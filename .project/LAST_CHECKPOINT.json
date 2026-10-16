@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T11:13:14+00:00",
+  "timestamp": "2026-10-16T14:13:42+00:00",
   "actor": "ChatGPT",
-  "event": "1400_source_only_object_storage_network_gate",
+  "event": "1399_guarded_boot_network_observer_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1400,
-    "branch": "fix/1400-offline-object-storage-network-gate",
-    "status": "software_gate_in_progress_ci_pending",
+    "issue": 1399,
+    "branch": "feature/1399-offline-boot-network-observer",
+    "status": "source_observer_tests_in_progress_activation_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2690,6 +2690,16 @@
       "approved_owner_scope": "does_not_include_minio",
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_1_skip_PASS"
+    },
+    "issue_1399_readonly_observer": {
+      "native_site_result": "blocked_physical_docker_cidr_conflict",
+      "accepted_package_ffdefc": "installed_unchanged",
+      "observer_mode": "read_only_only",
+      "candidate_recreation": "never_executed",
+      "systemd_enabled": false,
+      "unit_tests": "16_pass",
+      "source_bound_ci": "pending",
+      "db_agent_manual_only": "fail_closed"
     }
   },
   "observations": [
@@ -3787,7 +3797,7 @@
       }
     }
   ],
-  "next_action": "PR #1400 source CI/review; never recreate protected minio without a separately approved owner-local exact-image recovery.",
+  "next_action": "Run offline and exact-head CI on draft #1399 observer; design protected config-hash verified bounded actuator and secure owner opt-in only after safe CIDR migration and acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3796,7 +3806,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none_read_only_minio_dns_and_Docker_metadata_and_source_tests",
+  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
