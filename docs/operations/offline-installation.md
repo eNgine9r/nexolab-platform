@@ -28,7 +28,7 @@ Before accepting the Raspberry Pi offline runtime, execute the read-only
 network gate (no credentials, configuration writes or Docker changes):
 
 ```bash
-python3 scripts/verify-lan-docker-network-isolation.py
+python3 infrastructure/offline/verify-lan-docker-network-isolation.py
 ```
 
 It queries the real host IPv4 interfaces and effective Docker bridge IPAM

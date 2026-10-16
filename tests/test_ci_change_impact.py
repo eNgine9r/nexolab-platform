@@ -112,8 +112,8 @@ class ChangeImpactClassifierTests(unittest.TestCase):
 
     def test_lan_docker_cidr_guard_is_offline_deployment_not_unknown(self) -> None:
         files = [
-            "scripts/verify-lan-docker-network-isolation.py",
-            "scripts/tests/test_lan_docker_network_isolation.py",
+            "infrastructure/offline/verify-lan-docker-network-isolation.py",
+            "infrastructure/offline/tests/test_lan_docker_network_isolation.py",
             "scripts/verify-standalone-offline-raspberry-pi.sh",
             "scripts/tests/standalone-offline-runtime-contract.sh",
         ]

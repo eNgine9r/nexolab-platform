@@ -161,7 +161,7 @@ fi
 # A green internal container healthcheck cannot prove real LAN routing.
 # Verify host physical CIDRs against active Docker bridge IPAM before
 # accepting a packaged runtime; no Docker/host/Modbus state is changed.
-LAN_NETWORK_GATE=(python3 "$REPO/scripts/verify-lan-docker-network-isolation.py")
+LAN_NETWORK_GATE=(python3 "$REPO/infrastructure/offline/verify-lan-docker-network-isolation.py")
 if [[ "$REQUIRE_LOOPBACK_ONLY" == true ]]; then
   # Only the explicit disconnected acceptance flow may have no physical LAN.
   LAN_NETWORK_GATE+=( --allow-no-lan )
