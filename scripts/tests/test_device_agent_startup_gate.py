@@ -192,7 +192,12 @@ class StartupGateTests(unittest.TestCase):
                 scripts = root / "bundle/scripts"
                 (scripts / "lib").mkdir(parents=True)
                 for name in ("install-offline-bundle.sh", "device-agent-startup-gate.py", "verify-central-network-topology.py", "lib/deployment-lock.sh"):
-                    shutil.copyfile(ROOT / "scripts" / name, scripts / name)
+                    # Source checker lives in CI-covered infrastructure/offline,
+                    # but the immutable bundle still installs it under scripts/.
+                    source = (ROOT / "infrastructure/offline" / name
+                              if name == "verify-central-network-topology.py"
+                              else ROOT / "scripts" / name)
+                    shutil.copyfile(source, scripts / name)
                 verifier = scripts / "verify-offline-bundle.py"
                 verifier.write_text(
                     'import sys\n'

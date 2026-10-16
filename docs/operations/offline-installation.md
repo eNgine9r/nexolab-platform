@@ -100,7 +100,7 @@ containers whenever the API reports `mqtt=not_ready` although the broker is
 healthy:
 
 ```bash
-python3 scripts/verify-central-network-topology.py --mode lan
+python3 infrastructure/offline/verify-central-network-topology.py --mode lan
 ```
 
 The expected broker and telemetry-service have both `nexolab-central` and

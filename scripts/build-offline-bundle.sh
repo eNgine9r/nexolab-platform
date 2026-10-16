@@ -316,7 +316,7 @@ if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
     cp "$EXTERNAL_FRONTEND_ARTIFACT/$name" "$STAGING/frontend-external/$name"
   done
 fi
-cp scripts/verify-central-network-topology.py "$STAGING/scripts/"
+cp infrastructure/offline/verify-central-network-topology.py "$STAGING/scripts/"
 cp scripts/device-agent-startup-gate.py "$STAGING/scripts/"
 cp scripts/verify-packaged-object-storage-network.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
