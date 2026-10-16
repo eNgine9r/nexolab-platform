@@ -1,3 +1,25 @@
+# NEXOLAB Current State
+
+## 2026-10-16 — #1392: read-only MQTT/API network-drift guard in isolated branch
+
+At 08:19–09:53 EEST actual Raspberry Pi host remained reachable through LAN/Tailscale,
+but packaged MQTT broker was attached only to `nexolab-standalone-runtime`
+and central Telemetry API only to `nexolab-central`. The expected Compose
+overlay declares both attachments for each. Docker DNS `mqtt` therefore
+failed from API; `/health/ready` returned HTTP 503 with PostgreSQL ready,
+MQTT not ready. The approved source/production dashboard on :3000 was
+separately disabled/inactive (#1393). The accepted ffdefc deployment authority
+recovered under #1390 is **not** overwritten by these runtime observations.
+
+#1392 adds an immutable-offline-package-included read-only network/alias/TCP
+probe after guarded central Compose startup. Native Pi read-only execution of
+the same probe reproduced fail-closed `status=not_ready`; 8 topology unit tests and complete standalone
+offline contract (70 tests, 1 expected skip), Python compile, shell syntax, and diff checks passed. This is a **source
+candidate**, not a site repair. Full CI, PR review, isolated offline boot and
+owner-approved exact-version runtime correction remain necessary. Edge MQTT
+connected/queue=0 does not prove PostgreSQL persisted the disconnected stream
+(#1394). No service, network, database, hardware or volume write was performed.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.
@@ -557,8 +579,6 @@ is included here. Both ARM64 packages stay immutable; no third build, target
 activation, database restore or controller write. Prior entries are historical.
 
 <!-- OFFLINE_SITE_CONTEXT_1341_END -->
-
-# NEXOLAB Current State
 
 <!-- PROTECTED_TRAVERSAL_1339_BEGIN -->
 

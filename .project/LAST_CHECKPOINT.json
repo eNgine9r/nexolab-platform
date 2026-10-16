@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-15T16:56:28Z",
+  "timestamp": "2026-10-16T07:01:36+00:00",
   "actor": "ChatGPT",
-  "event": "1390_post_recovery_durable_state_in_review",
+  "event": "1392_source_topology_guard_tests_pass_site_unrepaired",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1390,
-    "branch": "docs/1390-recovered-ffdefc-acceptance",
-    "status": "review",
-    "scope": "four_state_files_only",
+    "issue": 1392,
+    "branch": "fix/1392-mqtt-api-reboot-topology",
+    "status": "implementation_tests_passed_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2668,6 +2667,14 @@
         1323
       ],
       "state_only_runtime_mutation": false
+    },
+    "issue_1392_mqtt_api_topology": {
+      "api_readiness": "503_mqtt_not_ready",
+      "broker_network": "nexolab-standalone-runtime_only",
+      "api_network": "nexolab-central_only",
+      "software_tests": "8_pass",
+      "production_cutover": "not_performed",
+      "standalone_offline_contract": "70_tests_1_skip_PASS"
     }
   },
   "observations": [
@@ -3765,7 +3772,7 @@
       }
     }
   ],
-  "next_action": "Verify #1390 exact-head CI and merge only after GREEN. Then obtain user acceptance of live ffdefc Energy CSV/XLSX and source-row reconciliation; close #1381/#1384 only on all actual acceptance evidence. Do not run Update/Rollback or hardware writes.",
+  "next_action": "PR 1392 exact-head CI and review; then 1393. Owner-approved guarded site recovery is a separate gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3774,7 +3781,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "#1390 state-only work makes NO site change. Historical root-only owner-approved recovery #1384 already completed and was independently verified with privileged 8/8 authority PASS, actual live ffdefc LAN/HTTPS and three real RS-485 read-only buses.",
+  "runtime_mutation": "none_readonly_site_probes_and_isolated_source_changes",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

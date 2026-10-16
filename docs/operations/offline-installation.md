@@ -14,6 +14,32 @@ This runbook covers a disconnected `LOCAL_LAN` installation of the NEXOLAB core:
 
 Hardware mode is unchanged and remains outside this Work Package.
 
+## Local MQTT/API topology after restart
+
+The isolated LAN/offline installer now performs a **read-only network topology
+verification** after starting Compose. Run it manually against the installed
+containers whenever the API reports `mqtt=not_ready` although the broker is
+healthy:
+
+```bash
+python3 scripts/verify-central-network-topology.py --mode lan
+```
+
+The expected broker and telemetry-service have both `nexolab-central` and
+`nexolab-standalone-runtime` attachments; the broker has the `mqtt`
+alias on the central network. The gate additionally resolves `mqtt` and opens a
+TCP socket from inside the API container (no MQTT publication or device writes).
+The tool returns JSON `status=not_ready` and exit code 1 on a missing network,
+wrong Compose owner, missing alias, or unreachable broker. It never repairs a
+running site or alters networks/volumes.
+
+**Do not fix this with ad-hoc `docker network connect`, a blind Compose
+recreate, or a production reboot.** Preserve Version Manager release authority,
+backup/rollback and protected HTTPS identity. Reconciliation of a live mismatch
+requires an exact reviewed, owner-authorized controlled deployment and a fresh
+post-repair local Chromium/API/device/DB verification. Edge broker ACKs alone
+are not PostgreSQL persistence proof (tracked separately by #1394).
+
 ## Supported bundle targets
 
 A bundle is built for exactly one target platform:
