@@ -255,6 +255,13 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/tests/test_nexolab_postgresql_backup.py",
     "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
+    # Immutable-package network readiness gates. Recognized deployment
+    # contracts do not need unrelated browser suites.
+    "scripts/verify-central-network-topology.py",
+    "scripts/tests/test_central_network_topology.py",
+    "scripts/verify-packaged-dashboard-port.py",
+    "scripts/tests/test_packaged_dashboard_network.py",
+    "scripts/tests/standalone-offline-runtime-contract.sh",
 }
 
 DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
@@ -292,6 +299,8 @@ ISOLATED_ACCEPTANCE_TOOL_PATHS = {
     # Dedicated synthetic-only Pi acceptance harness, never a deployment or
     # production runtime entrypoint. Keep every other new script fail-closed.
     "scripts/energy-history-export-benchmark.py",
+    # Isolated network-none broker-capacity fixture; no site mutations.
+    "scripts/tests/mqtt-offline-subscriber-cap-1394.sh",
 }
 
 CI_GOVERNANCE_PATHS = {

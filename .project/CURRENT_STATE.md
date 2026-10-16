@@ -1,3 +1,24 @@
+## 2026-10-16 — #1402 exact-path offline recovery CI routing (source-only)
+
+A new _isolated_ clean git clone at `bd56f38c77d06ce14ade1b69a249aa81b3852c3e` was used;
+the production checkout and its corrupted linked #1398 worktree were not mutated.
+Actual protected Pi site was owner-recovered earlier: ffdefc LAN Dashboard
+HTTP 200/Chromium rendered, MQTT/API/PostgreSQL ready with current persisted
+samples and 3 actual healthy RS-485 bus workers. Four device endpoints are
+degraded, packaged object-storage remains Docker-network detached (#1400),
+and further reboot/power-loss durability tests are unverified (#1399/#189).
+
+Source-only WP #1402 registers the exact new network read-only checks and
+isolated Mosquitto broker-capacity fixture in `classify-ci-impact.py`.
+Before this change, #1395/#1396/#1398 incorrectly fell through to
+`fail_closed` unknown paths and demanded Authenticated Dashboard/
+Refrigeration workflows not triggered by these file sets. The correction
+requires Offline Bundle for the packaged runtime paths and no unrelated
+browser workflow for the isolated broker-capacity fixture; arbitrary future
+scripts remain fail-closed. This is **not** a waiver of required CI or
+production update authorization. Separate exact-head PR/CI still required;
+no user-visible "Оновлюйся" before the release gate is satisfied.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.

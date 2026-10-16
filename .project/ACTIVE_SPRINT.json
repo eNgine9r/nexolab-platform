@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1390,
-      "branch": "docs/1390-recovered-ffdefc-acceptance"
+      "issue": 1402,
+      "branch": "fix/1402-offline-recovery-ci-routing"
     },
     "next_work_package": null
   },
@@ -8820,6 +8820,22 @@
         "owner_energy_page": "opens_after_login",
         "energy_csv_xlsx_on_ffdefc": "awaiting_operator_confirmation",
         "ci": "pending"
+      }
+    },
+    {
+      "issue": 1402,
+      "title": "Register scoped offline recovery verification paths in CI",
+      "branch": "fix/1402-offline-recovery-ci-routing",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Exact-path CI impact classification + fail-closed unknown regression; source-only, no production mutation.",
+      "evidence": {
+        "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1402",
+        "baseline_main": "bd56f38c77d06ce14ade1b69a249aa81b3852c3e",
+        "targeted_ci_classifier": "71_tests_passed",
+        "source_bound_ci": "pending",
+        "site_change": "none"
       }
     }
   ],
