@@ -78,6 +78,71 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertFalse(result["state_only"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_scoped_recovery_guard_prs_require_offline_bundle_not_browser(self) -> None:
+        common = [
+            ".project/CURRENT_STATE.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/LAST_CHECKPOINT.json",
+            "docs/operations/offline-installation.md",
+            "scripts/build-offline-bundle.sh",
+            "scripts/tests/standalone-offline-runtime-contract.sh",
+        ]
+        for files in (
+            [
+                *common,
+                "scripts/install-offline-bundle.sh",
+                "scripts/tests/test_central_network_topology.py",
+                "scripts/tests/test_device_agent_startup_gate.py",
+                "scripts/verify-central-network-topology.py",
+            ],
+            [
+                *common,
+                "scripts/offline-bundle-smoke.sh",
+                "scripts/tests/test_packaged_dashboard_network.py",
+                "scripts/verify-packaged-dashboard-port.py",
+            ],
+        ):
+            with self.subTest(paths=tuple(files)):
+                classified = classify(files)
+                self.assertEqual(classified["unknown_files"], [])
+                self.assertFalse(classified["fail_closed"])
+                self.assertEqual(classified["classes"], ["deployment_runtime"])
+                self.assertEqual(
+                    classified["verification"]["required_external_workflows"],
+                    ["Offline Bundle"],
+                )
+
+    def test_mqtt_backlog_fixture_is_verification_only(self) -> None:
+        files = [
+            "scripts/tests/mqtt-offline-subscriber-cap-1394.sh",
+            "docs/audits/mqtt-offline-delivery-1394.md",
+            ".project/CURRENT_STATE.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/LAST_CHECKPOINT.json",
+        ]
+        result = classify(files)
+        self.assertEqual(result["classes"], ["verification_tooling"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_recovery_registration_preserves_unknown_script_fail_closed(self) -> None:
+        result = classify([
+            "scripts/verify-central-network-topology.py",
+            "scripts/tests/an-unregistered-live-network-repair.py",
+        ])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn(
+            "scripts/tests/an-unregistered-live-network-repair.py",
+            result["unknown_files"],
+        )
+        self.assertIn(
+            "Authenticated Dashboard Acceptance",
+            result["verification"]["required_external_workflows"],
+        )
+
     def test_energy_benchmark_registration_does_not_waive_unknown_script_gates(self) -> None:
         result = classify([
             "scripts/energy-history-export-benchmark.py",

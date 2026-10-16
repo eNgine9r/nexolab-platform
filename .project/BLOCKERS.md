@@ -1,3 +1,15 @@
+## 2026-10-16 — #1402 external exact-head CI false-red, release unverified
+
+Packaged offline network guards PR #1395/#1396 show unit/build/offline
+success but core merge gate is RED: classifier mistakenly calls their new
+trusted scripts unknown and requires non-triggered dashboard/refrigeration
+browser workflows. Focused source-only #1402 registers the exact known paths,
+while unknown scripts remain fail-closed; CI/PR merge remains pending.
+#1398 additionally requires Prettier formatting of its audit. Independent
+Pi packaged object-storage is detached (#1400) and end-to-end broker ACK
+replay is unverified (#1397); no new owner-authorized site cutover or reboot.
+Engineering source corruption #1401 must not be repaired by resetting main.
+
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
 **Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**
