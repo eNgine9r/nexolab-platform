@@ -1,3 +1,15 @@
+## 2026-10-16 — #1394 end-to-end telemetry durability correctness gate
+
+**P0 correctness blocker remains:** broker PUBACK is not central durable
+acceptance. Production subscriber backlog can exceed finite Mosquitto cap;
+isolated real Docker fixture demonstrates dropped broker-ACKed messages
+(15 published / 10 replayed at fixture queue cap 10). This must not be
+extrapolated to unproven production lost samples. Durable application-level
+central receipt and edge replay implementation is now #1397 and requires
+separate focused source/CI/offline acceptance before hardware/site update.
+No unbounded no-loss guarantee is allowed until validated and a finite
+retention/storage budget is declared. #189 remains open.
+
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
 **Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**

@@ -1,3 +1,18 @@
+## 2026-10-16 — #1394: MQTT offline-subscriber durability discovery
+
+Source review confirms edge SQLite queue deletes records after MQTT QoS 1
+broker PUBACK, not PostgreSQL durable receipt. Broker persistent session and
+local spool support recovery but production broker `max_queued_messages=10000`
+is finite. Actual ffdefc API remained unavailable with `mqtt=not_ready`
+while edge had `mqtt_connected=true`; live data loss is **unverified**.
+
+A real isolated Mosquitto 2.0.22 test on Pi5, network=none and tmpfs only,
+simulates offline persistent subscriber with fixture cap 10: sends 15 QoS 1
+and recovers 10 on reconnect, proving capacity-loss class (not production
+loss). Documented read-only discovery and follow-up #1397 durable central ACK
+and edge replay. No runtime/persistent site data/hardware mutation. #1394
+discovery CI/review pending; #189 full acceptance remains unverified.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.
