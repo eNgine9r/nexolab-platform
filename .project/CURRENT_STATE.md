@@ -1,3 +1,26 @@
+## 2026-10-16 — #1406: prevent silent Docker/LAN subnet collision (source-only)
+
+Actual physical Raspberry Pi: `eth0=172.18.48.66/21`; Docker
+`nexolab-edge_default=172.18.0.0/16`; Device Agent has corresponding
+Docker eth0 route. This overlap is **proven**, but does not establish that
+it caused October 16 stale Docker network sandbox after reboot.
+
+Scoped WP #1406 supplies a pure-Python **read-only, fail-closed** host
+LAN-vs-all-effective-Docker-bridge CIDR gate and isolated regressions. The
+offline Raspberry Pi acceptance runner invokes it before accepting
+otherwise healthy containers/RS485. Explicit disconnected loopback-only
+fixture is handled separately, never used to excuse a connected site.
+Actual Raspberry Pi read-only invocation correctly detects/blocks the
+current conflict; no network, Docker, serial, DB or production package
+change was made. Separately owner-approved, protected Docker subnet
+migration/rollback and multi-reboot tests remain outstanding (#1399).
+End-to-end durable MQTT replay #1397 and detached storage #1400 remain
+independent runtime blockers. Active physical XJP60D channels were
+independently verified recovered at 14:51 and Issue #1405 closed.
+
+This source-only branch requires its own exact-head CI and PR acceptance;
+it is NOT permission to restart production or to claim release ready.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.

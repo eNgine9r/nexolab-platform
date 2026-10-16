@@ -110,6 +110,22 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_lan_docker_cidr_guard_is_offline_deployment_not_unknown(self) -> None:
+        files = [
+            "infrastructure/offline/verify-lan-docker-network-isolation.py",
+            "infrastructure/offline/tests/test_lan_docker_network_isolation.py",
+            "scripts/verify-standalone-offline-raspberry-pi.sh",
+            "scripts/tests/standalone-offline-runtime-contract.sh",
+        ]
+        classification = classify(files)
+        self.assertEqual(classification["classes"], ["deployment_runtime"])
+        self.assertFalse(classification["fail_closed"])
+        self.assertEqual(classification["unknown_files"], [])
+        self.assertEqual(
+            classification["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
     def test_hardware_startup_gate_is_known_deployment_tooling(self) -> None:
         result = classify([
             "scripts/device-agent-startup-gate.py",

@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1390,
-      "branch": "docs/1390-recovered-ffdefc-acceptance"
+      "issue": 1406,
+      "branch": "fix/1406-docker-lan-cidr-preflight"
     },
     "next_work_package": null
   },
@@ -8820,6 +8820,24 @@
         "owner_energy_page": "opens_after_login",
         "energy_csv_xlsx_on_ffdefc": "awaiting_operator_confirmation",
         "ci": "pending"
+      }
+    },
+    {
+      "issue": 1406,
+      "title": "Fail closed on Docker/physical-LAN CIDR overlap",
+      "branch": "fix/1406-docker-lan-cidr-preflight",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only Python IPv4 interface-vs-Docker IPAM gate integrated with offline Pi acceptance; no runtime network change.",
+      "evidence": {
+        "actual_pi_lan_cidr": "172.18.48.0/21",
+        "docker_bridge": "nexolab-edge_default:172.18.0.0/16",
+        "real_site_readonly_probe": "conflict_detected",
+        "unit_tests": "16_passed",
+        "production_site_changed": false,
+        "owner_authorized_subnet_migration": false,
+        "exact_head_ci": "pending"
       }
     }
   ],
