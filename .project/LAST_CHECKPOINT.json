@@ -2668,6 +2668,18 @@
       ],
       "state_only_runtime_mutation": false
     },
+    "issue_1406_overlapping_cidr": {
+      "physical_lan": "172.18.48.0/21",
+      "docker_edge_bridge": "172.18.0.0/16",
+      "real_docker_agent_route_overlap": "verified",
+      "native_readonly_probe": "conflict_detected",
+      "change_scope": "source_only",
+      "real_hardware_modbus_writes": false,
+      "protected_site_network_migration": "not_authorized",
+      "unit_tests": "16_pass",
+      "offline_contract": "PASS",
+      "ci_policy_suite": "225_tests_one_skip_PASS"
+    },
     "issue_1400_storage_detached": {
       "real_minio_container": "running",
       "actual_central_network": "missing",

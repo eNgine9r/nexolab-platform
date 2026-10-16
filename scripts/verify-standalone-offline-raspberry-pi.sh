@@ -158,6 +158,16 @@ if [[ "$REQUIRE_LOOPBACK_ONLY" == "true" ]]; then
     || { echo "ERROR: physical uplink IPv4 is still active: $PHYSICAL_IPV4" >&2; exit 1; }
 fi
 
+# A green internal container healthcheck cannot prove real LAN routing.
+# Verify host physical CIDRs against active Docker bridge IPAM before
+# accepting a packaged runtime; no Docker/host/Modbus state is changed.
+LAN_NETWORK_GATE=(python3 "$REPO/infrastructure/offline/verify-lan-docker-network-isolation.py")
+if [[ "$REQUIRE_LOOPBACK_ONLY" == true ]]; then
+  # Only the explicit disconnected acceptance flow may have no physical LAN.
+  LAN_NETWORK_GATE+=( --allow-no-lan )
+fi
+"${LAN_NETWORK_GATE[@]}"
+
 CENTRAL_MQTT_ID="$(require_running_container nexolab-central mqtt)"
 POSTGRES_ID="$(require_running_container nexolab-central postgres)"
 MINIO_ID="$(require_running_container nexolab-central minio)"
