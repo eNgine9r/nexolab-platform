@@ -66,7 +66,7 @@
     },
     "next_work_package": {
       "issue": 1393,
-      "branch": null
+      "branch": "fix/1393-packaged-dashboard-boot-network"
     }
   },
   "work_packages": [
@@ -8844,7 +8844,7 @@
     {
       "issue": 1393,
       "title": "Guarantee authorized LAN dashboard restart after Raspberry Pi reboot",
-      "branch": null,
+      "branch": "fix/1393-packaged-dashboard-boot-network",
       "priority": "critical",
       "lifecycle": "ready",
       "depends_on": [],
@@ -8857,7 +8857,7 @@
     {
       "issue": 1394,
       "title": "Prove durable telemetry delivery while central API is offline",
-      "branch": null,
+      "branch": "docs/1394-durable-delivery-discovery",
       "priority": "critical",
       "lifecycle": "ready",
       "depends_on": [],
