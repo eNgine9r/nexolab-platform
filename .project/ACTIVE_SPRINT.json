@@ -8826,6 +8826,44 @@
       }
     },
     {
+      "issue": 1406,
+      "title": "Fail closed on Docker/physical-LAN CIDR overlap",
+      "branch": "fix/1406-docker-lan-cidr-preflight",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only Python IPv4 interface-vs-Docker IPAM gate integrated with offline Pi acceptance; no runtime network change.",
+      "evidence": {
+        "actual_pi_lan_cidr": "172.18.48.0/21",
+        "docker_bridge": "nexolab-edge_default:172.18.0.0/16",
+        "real_site_readonly_probe": "conflict_detected",
+        "unit_tests": "16_passed",
+        "production_site_changed": false,
+        "owner_authorized_subnet_migration": false,
+        "exact_head_ci": "pending"
+      }
+    },
+    {
+      "issue": 1400,
+      "title": "Detect detached packaged object-storage private network after reboot",
+      "branch": "fix/1400-offline-object-storage-network-gate",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
+      "evidence": {
+        "real_site_minio_network": "detached",
+        "actual_api_minio_DNS": "unavailable",
+        "source_unit_tests": "10_passed",
+        "real_site_readonly_probe": "not_ready_expected",
+        "prod_repair": "requires_separate_owner_approval",
+        "ci": "pending",
+        "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
+        "standalone_contract": "PASS_10_new_tests",
+        "ci_policy_tests": "225_tests_1_expected_skip"
+      }
+    },
+    {
       "issue": 1393,
       "title": "Recover packaged Dashboard network/port after reboot",
       "branch": "fix/1393-packaged-dashboard-boot-network",

@@ -1,16 +1,59 @@
-## 2026-10-16 — #1393: packaged Dashboard port/network drift guard
+## 2026-10-16 — #1393 packaged Dashboard network/host-port source guard
 
-Actual ffdefc packaged Dashboard container is running and internally healthy
-but Docker lists **no live networks or published host ports** after Oct 16
-reboot, despite Compose requiring central network and LAN 3000 binding.
-The old `nexolab-dashboard.service` is correctly disabled after package
-cutover: do not enable it. Docker boot logs have missing sandbox IDs; no
-definitive cause of lost network metadata is yet established.
+After the October 16 reboot the installed ffdefc Dashboard was running
+and internally healthy but had **no effective Docker network or published
+port 3000**. Earlier checksum-pinned, owner-authorized dashboard-only
+recreation restored real LAN HTTP 200 without replacing PostgreSQL,
+MQTT, Telemetry API, object storage or Device Agent.
+The legacy host `nexolab-dashboard.service` remains intentionally
+disabled; do not enable it.
 
-Source-only #1393 adds host port/bridge identity gate to offline smoke,
-9 new tests and a passing standalone offline contract
-(71 total, 1 expected skip). No site restart, reboot, network repair,
-production cutover, volume or hardware write. CI/PR and live acceptance pending.
+This #1393 source-only WP adds a read-only active Docker network/port,
+Compose ownership and immutable offline package smoke gate. It cannot
+restart Dashboard or deploy to the live Pi. All tests and exact-head CI
+must pass before merging. The independent object storage network remains
+detached (#1400); route conflict #1409 and app ACK #1397 still outstanding.
+
+## 2026-10-16 — #1400: Private packaged object-storage drift detection
+
+Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)
+and MQTT/API/PostgreSQL live samples. **Independent actual Pi inspection**
+afterwards shows packaged `nexolab-central-minio-1` (VersityGW) running
+with its original immutable image and named object-storage volume, but
+`NetworkSettings.Networks={}` and `Ports={}`; Telemetry API cannot resolve
+`minio` (socket DNS failure). Equipment image/object-storage usability is
+therefore impaired; live data loss is not asserted.
+
+This **source-only** #1400 WP adds a fail-closed read-only Docker
+network/alias/host-port + API→storage health gate into the immutable offline
+package and 10 isolated unittest cases. Native read-only probe correctly
+returned `status=not_ready` on the actual site. No production object-storage
+recreation is in scope or approved by the earlier three-service owner
+authorization. Exact-head PR/CI and a separate protected site acceptance
+remain pending; do not interpret normal MQTT/API health as storage health.
+
+## 2026-10-16 — #1406: prevent silent Docker/LAN subnet collision (source-only)
+
+Actual physical Raspberry Pi: `eth0=172.18.48.66/21`; Docker
+`nexolab-edge_default=172.18.0.0/16`; Device Agent has corresponding
+Docker eth0 route. This overlap is **proven**, but does not establish that
+it caused October 16 stale Docker network sandbox after reboot.
+
+Scoped WP #1406 supplies a pure-Python **read-only, fail-closed** host
+LAN-vs-all-effective-Docker-bridge CIDR gate and isolated regressions. The
+offline Raspberry Pi acceptance runner invokes it before accepting
+otherwise healthy containers/RS485. Explicit disconnected loopback-only
+fixture is handled separately, never used to excuse a connected site.
+Actual Raspberry Pi read-only invocation correctly detects/blocks the
+current conflict; no network, Docker, serial, DB or production package
+change was made. Separately owner-approved, protected Docker subnet
+migration/rollback and multi-reboot tests remain outstanding (#1399).
+End-to-end durable MQTT replay #1397 and detached storage #1400 remain
+independent runtime blockers. Active physical XJP60D channels were
+independently verified recovered at 14:51 and Issue #1405 closed.
+
+This source-only branch requires its own exact-head CI and PR acceptance;
+it is NOT permission to restart production or to claim release ready.
 
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 

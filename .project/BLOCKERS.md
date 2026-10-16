@@ -1,12 +1,40 @@
-## 2026-10-16 — #1393 packaged Dashboard host network outage
+## 2026-10-16 — #1393 source Dashboard boot guard pending exact-head CI
 
-Packaged production Dashboard health is internally green, but Engine
-`NetworkSettings.Networks={}` / `Ports={}`; local :3000 is inaccessible.
-The source-only guard detects the condition but does not repair a live
-protected release. #1392 separately handles MQTT/API drift, #1394
-broker-to-PostgreSQL continuity. Full source CI, guarded owner-approved
-site recovery and real hardware/browser evidence remain blocked. No green
-operator update signal.
+The earlier ffdefc Dashboard outage (running, internal health green,
+Docker network/host 3000 lost after reboot) has already been recovered
+via separate Product Owner-approved protected action. This source-only
+guard detects and blocks such false acceptance in future offline packages;
+it does not configure a boot supervisor or enact Docker mutations.
+Physical LAN/Docker CIDR conflict #1409, detached S3 #1400, and durable
+acknowledgement #1397 remain separate blockers. Avoid production reboot
+until tested migration and rollback authority.
+
+## 2026-10-16 — #1400 object-storage private network recovery still blocked
+
+Actual packaged VersityGW `minio` is running with preserved named volume,
+but **no Docker private network/host published port** after reboot. Native
+read-only check detects missing `nexolab-central`; Telemetry API fails DNS
+resolution for `minio:9000` while core API and PostgreSQL are healthy.
+Source-only offline health gate is software-tested, production unchanged.
+Object-storage container recovery, existing-asset authorization and volume
+retention verification require a **separate owner-approved protected
+activation**, exact immutable version/rollback proof and live asset evidence.
+Do not treat current owner approval for only mqtt/API/dashboard as permission
+to recreate object-storage. #1399 reboot recurrence and #1397 replay remain open.
+
+## 2026-10-16 — #1406: conflicting Docker bridge and physical LAN
+
+Real eth0 physical LAN `172.18.48.0/21` lies inside
+`nexolab-edge_default=172.18.0.0/16`. Docker Device Agent container
+has connected route for the overlapping prefix. Source-only read-only
+release-acceptance guard now detects it in a feature branch; production
+still contains this conflict. Network range migration is a separate
+owner-approved protected maintenance/cutover decision. Do not change
+Docker IPAM/volumes, reattach networks or restart the edge on a guess.
+#1399 post-boot auto-recovery, #1397 durable data acknowledgements and
+#1400 object-storage recovery also remain open. Unit 102/104/106/108
+temperature communications recovered after the operator powered devices
+and cooldown expired; #1405 hardware evidence recorded.
 
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
