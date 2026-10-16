@@ -2686,8 +2686,9 @@
       "observer_mode": "read_only_only",
       "candidate_recreation": "never_executed",
       "systemd_enabled": false,
-      "unit_tests": "13_passed",
-      "source_bound_ci": "pending"
+      "unit_tests": "16_pass",
+      "source_bound_ci": "pending",
+      "db_agent_manual_only": "fail_closed"
     }
   },
   "observations": [

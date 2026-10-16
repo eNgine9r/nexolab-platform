@@ -195,9 +195,13 @@ def diagnose_containers(
         missing = sorted(NETWORK_REQUIREMENTS[role] - set(networks))
         if missing:
             drift.append({"service": role, "kind": "missing_network", "detail": ",".join(missing)})
-        running = (obj.get("State") or {}).get("Running") is True
+        state = obj.get("State") or {}
+        running = state.get("Running") is True
         if not running:
             drift.append({"service": role, "kind": "not_running", "detail": "container"})
+        health = (state.get("Health") or {}).get("Status")
+        if role != "minio" and health != "healthy":
+            drift.append({"service": role, "kind": "unhealthy", "detail": "healthcheck"})
         if role in {"dashboard", "mqtt", "telemetry-service", "minio"}:
             bound = (obj.get("HostConfig") or {}).get("PortBindings") or {}
             actual = (obj.get("NetworkSettings") or {}).get("Ports") or {}
@@ -213,7 +217,11 @@ def diagnose_containers(
         name for name in REPAIR_PRIORITY
         if any(item["service"] == name for item in drift)
     ]
+    manual_roles = sorted({
+        item["service"] for item in drift if item["service"] not in REPAIR_PRIORITY
+    })
     return {"container_drift": drift, "candidate_order": priority,
+            "manual_only_services": manual_roles,
             "protected_containers": sorted(observed)}
 
 
@@ -243,9 +251,11 @@ def run(root: Path, *,
     expected_images = authority(root)
     locks(root)
     observation = diagnose_containers(expected_images, inspect)
-    return {"status": "drift_detected" if observation["container_drift"] else "ready",
+    state = ("manual_review_required" if observation["manual_only_services"]
+             else "drift_detected" if observation["container_drift"] else "ready")
+    return {"status": state,
             "mode": "observe_only", "mutation_performed": False,
-            "owner_authorization_required_for_repair": bool(observation["candidate_order"]),
+            "owner_authorization_required_for_repair": bool(observation["container_drift"]),
             **observation}
 
 

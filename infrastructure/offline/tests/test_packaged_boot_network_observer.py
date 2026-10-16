@@ -29,7 +29,7 @@ def fixture():
             "Image": IMAGES[module.IMAGE_ROLES[role]],
             "Config": {"Labels": {"com.docker.compose.project": project,
                                   "com.docker.compose.service": role}},
-            "State": {"Running": True},
+            "State": {"Running": True, "Health": {"Status": "healthy"}},
             "Mounts": [{"Type": "volume", "Name": v} for v in module.EXPECTED_VOLUMES.get(role, ())],
             "HostConfig": {"PortBindings": {port: bindings} if port else {}},
             "NetworkSettings": {
@@ -104,6 +104,38 @@ class BootObserverUnitTests(unittest.TestCase):
         result = module.diagnose_containers(IMAGES, inspector(objects))
         self.assertIn({"service": "dashboard", "kind": "missing_published_port",
                        "detail": "3000/tcp"}, result["container_drift"])
+
+    def test_postgres_drift_is_manual_only_and_cannot_be_auto_candidate(self):
+        objects = fixture()
+        objects[module.CONTAINER_NAMES["postgres"]]["NetworkSettings"]["Networks"] = {}
+        result = module.run(Path("/unused"), cidr_check=lambda: None,
+                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            inspect=inspector(objects))
+        self.assertEqual(result["status"], "manual_review_required")
+        self.assertIn("postgres", result["manual_only_services"])
+        self.assertNotIn("postgres", result["candidate_order"])
+        self.assertTrue(result["owner_authorization_required_for_repair"])
+
+    def test_hardware_agent_health_failure_is_manual_not_network_autorepair(self):
+        objects = fixture()
+        objects[module.CONTAINER_NAMES["device-agent"]]["State"]["Health"] = {
+            "Status": "unhealthy",
+        }
+        result = module.run(Path("/unused"), cidr_check=lambda: None,
+                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            inspect=inspector(objects))
+        self.assertEqual(result["status"], "manual_review_required")
+        self.assertIn("device-agent", result["manual_only_services"])
+
+    def test_missing_health_proof_for_api_cannot_silently_pass(self):
+        objects = fixture()
+        objects[module.CONTAINER_NAMES["telemetry-service"]]["State"].pop("Health")
+        result = module.run(Path("/unused"), cidr_check=lambda: None,
+                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            inspect=inspector(objects))
+        self.assertEqual(result["status"], "drift_detected")
+        self.assertIn({"service": "telemetry-service", "kind": "unhealthy",
+                       "detail": "healthcheck"}, result["container_drift"])
 
     def test_missing_locks_refused(self):
         with tempfile.TemporaryDirectory() as d:

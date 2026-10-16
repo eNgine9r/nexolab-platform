@@ -8851,9 +8851,10 @@
       "evidence": {
         "main_includes_1406": "6bb87b26d8e5781893b786e4a4a28faece426650",
         "native_real_pi_cidr_gate": "blocked_overlap",
-        "source_tests": "13_passed",
+        "source_tests": "16_passed",
         "automated_site_repair": "not_authorized_not_enabled",
-        "exact_head_ci": "pending"
+        "exact_head_ci": "pending",
+        "manual_only_postgres_or_hardware_agent": "enforced"
       }
     }
   ],
