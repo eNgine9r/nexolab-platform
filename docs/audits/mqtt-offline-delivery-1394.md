@@ -24,7 +24,7 @@ before any claim about actual missing measurements.
 Run:
 
 ```bash
-bash scripts/tests/mqtt-offline-subscriber-cap-1394.sh
+bash infrastructure/offline/tests/mqtt-offline-subscriber-cap-1394.sh
 ```
 
 The fixture uses the **locally available** `eclipse-mosquitto:2.0.22` image
