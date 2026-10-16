@@ -2691,6 +2691,16 @@
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_1_skip_PASS"
     },
+    "issue_1399_readonly_observer": {
+      "native_site_result": "blocked_physical_docker_cidr_conflict",
+      "accepted_package_ffdefc": "installed_unchanged",
+      "observer_mode": "read_only_only",
+      "candidate_recreation": "never_executed",
+      "systemd_enabled": false,
+      "unit_tests": "16_pass",
+      "source_bound_ci": "pending",
+      "db_agent_manual_only": "fail_closed"
+    },
     "issue_1392_mqtt_api_topology": {
       "api_readiness": "503_mqtt_not_ready",
       "broker_network": "nexolab-standalone-runtime_only",

@@ -8864,6 +8864,23 @@
       }
     },
     {
+      "issue": 1399,
+      "title": "Guarded packaged Docker boot network recovery",
+      "branch": "feature/1399-offline-boot-network-observer",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only protected authority and Docker network drift observer first; later guarded owner-approved supervisor remains unimplemented.",
+      "evidence": {
+        "main_includes_1406": "6bb87b26d8e5781893b786e4a4a28faece426650",
+        "native_real_pi_cidr_gate": "blocked_overlap",
+        "source_tests": "16_passed",
+        "automated_site_repair": "not_authorized_not_enabled",
+        "exact_head_ci": "pending",
+        "manual_only_postgres_or_hardware_agent": "enforced"
+      }
+    },
+    {
       "issue": 1392,
       "title": "Restore central MQTT/API network topology reliably after reboot",
       "branch": "fix/1392-mqtt-api-reboot-topology",

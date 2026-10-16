@@ -92,6 +92,50 @@ gate** from the earlier Dashboard/MQTT recovery; see Issue #1400.
 Real existing images/attachments must be validated after any separately
 approved correction.
 
+## Packaged post-boot network drift observer (#1399, source-only)
+
+The Raspberry Pi may report an _internally healthy_ container even when
+the Docker network namespace, private DNS alias or host port has disappeared.
+`docker.service` already waits on `network-online.target`; the October 16
+incident proves that this alone does not provide Docker network recovery.
+
+The isolated prototype `infrastructure/offline/inspect-packaged-boot-network.py`
+offers a **read-only, fail-closed** boot observation. It first invokes the
+physical-LAN-vs-Docker-CIDR gate (#1406). Only if that passes, it reads the
+protected Version Manager `current.json`, checks exact accepted catalog
+bundle/source/platform/manifest marker and complete immutable image digest
+inventory, tries nonblocking shared update locks, and verifies the running
+containers' exact Compose labels, image identities, named volumes, required
+network membership and published ports. It never prints credentials or
+service environment. It computes a **candidate** order (MQTT, Telemetry API,
+Dashboard, VersityGW) without executing any recovery.
+
+It is intentionally **not installed as an enabled systemd service or timer**,
+does not expose `--execute`, and is not an auto-recovery implementation yet.
+Only in an offline/source review environment, invoke:
+
+```bash
+python3 infrastructure/offline/inspect-packaged-boot-network.py --check
+```
+
+On the currently installed Raspberry Pi the expected result is
+`status=blocked`, reason `physical_docker_cidr_not_safe`: the real LAN
+overlaps the active Docker bridge. Never override this on a live site.
+A read-only observer check that reports `ready` **does not verify actual
+controller samples, private object-storage assets, backup restores, or
+browser login**; full acceptance must independently prove them.
+
+A later, **separately approved** guarded supervisor must add source-bound
+Compose config hash verification, role-by-role recovery tests using the
+same exact installed offline images, persistent bounded audit and retry
+limits, updates-in-progress and rollback readiness, owner-controlled
+systemd opt-in, and real after-reboot acceptance. Do not introduce a generic
+Docker daemon restart, network connect/disconnect, Compose down, or
+silent service recreate. Current #1399 cannot be considered complete or
+enabled until the above gates are tested and accepted on real equipment.
+The user must separately authorize the physical-network migration and
+post-reboot production activation; existing permissions do not cover them.
+
 ## Local MQTT/API topology after restart
 
 The isolated LAN/offline installer now performs a **read-only network topology

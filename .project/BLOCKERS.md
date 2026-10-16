@@ -8,6 +8,19 @@ offline validation gate remains pending PR CI. Historical MQTT broker ACK
 does not prove central PostgreSQL commit; application-level ACK #1397
 and live CIDR overlap #1409 still require independently controlled WPs.
 
+## 2026-10-16 — #1399 protected automatic boot repair not yet authorized
+
+Source candidate observer is read-only; no systemd supervisor is installed
+or enabled. The current site still fails preflight because physical LAN
+`172.18.48.0/21` intersects `nexolab-edge_default:172.18.0.0/16`.
+Actual network/IPAM migration, privileged owner-approved self-recovery,
+immutable Compose hash proof, rate-limited retries, preserved volumes and
+rollback evidence must be independently verified before installing any
+boot-time actuator. Historical Docker stale-sandbox failure root cause is
+not conclusively established. Detached VersityGW network (#1400) and
+persistent application-level ACK/replay (#1397) remain open.
+No further site cutover or controller write authorized.
+
 ## 2026-10-16 — #1400 object-storage private network recovery still blocked
 
 Actual packaged VersityGW `minio` is running with preserved named volume,
