@@ -1,3 +1,18 @@
+## 2026-10-16 — #1394 bounded MQTT offline replay research (source-only)
+
+Actual source `services/device-agent/main.py` deletes durable edge
+SQLite messages after broker MQTT QoS1 PUBACK, which is **not** a central
+PostgreSQL persistence receipt. A controlled _isolated_ ARM64 Mosquitto
+test proved a possible queue capacity loss class: 15 PUBACKed events,
+fixture `max_queued_messages=10`, only 10 recovered after subscriber
+reconnection. Production cap is 10,000; **no production message loss
+is proven** by this fixture.
+
+The source-only #1394 audit and `--network none` bounded Docker script
+preserve real PostgreSQL/MQTT/Dashboard/Edge. Follow-up #1397 must add
+verified application-level durable ACK/replay with bounded persistence.
+Exact-head PR CI required; #1399 auto-recovery remains separate.
+
 ## 2026-10-16 — #1400: Private packaged object-storage drift detection
 
 Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)

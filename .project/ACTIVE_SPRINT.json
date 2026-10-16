@@ -61,10 +61,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1400,
-      "branch": "fix/1400-offline-object-storage-network-gate"
+      "issue": 1394,
+      "branch": "docs/1394-durable-delivery-discovery"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1397,
+      "branch": "feature/1397-central-durable-ack"
+    }
   },
   "work_packages": [
     {
@@ -8858,6 +8861,37 @@
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
         "ci_policy_tests": "225_tests_1_expected_skip"
+      }
+    },
+    {
+      "issue": 1394,
+      "title": "Prove durable telemetry delivery while central API is offline",
+      "branch": "docs/1394-durable-delivery-discovery",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Code-read + network-none isolated broker-cap experiment, audit/ADR and implementation gap, no production changes.",
+      "evidence": {
+        "isolated_mosquitto": "15_qos1_broker_acked_10_recovered_fixture_cap10",
+        "source_queue_semantics": "delete_after_broker_puback_not_database_receipt",
+        "hardware_persistence": "unverified",
+        "site_data_mutation": "none",
+        "ci": "pending"
+      }
+    },
+    {
+      "issue": 1397,
+      "title": "Central durable ACK and edge replay beyond broker queue capacity",
+      "branch": "feature/1397-central-durable-ack",
+      "priority": "critical",
+      "lifecycle": "ready",
+      "depends_on": [
+        1394
+      ],
+      "scope": "App-level authenticated durable acceptance, edge outbox replay and bounded retention.",
+      "evidence": {
+        "source_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1397",
+        "implementation": "not_started"
       }
     }
   ],

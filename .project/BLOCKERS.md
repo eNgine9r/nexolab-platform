@@ -1,3 +1,13 @@
+## 2026-10-16 — #1394 broker PUBACK does not prove database durability
+
+The actual edge SQLite outbox deletes after MQTT broker PUBACK. A real
+isolated finite Mosquitto queue experiment confirms a possible lost-
+delivery failure mode beyond configured capacity; actual production loss
+is not independently confirmed. Any no-data-loss claim requires #1397
+authenticated central application-level receipt and idempotent edge replay
+tests under bounded offline disk/time capacity. The research #1394 has no
+production MQTT, Docker, data, serial or hardware write scope.
+
 ## 2026-10-16 — #1400 object-storage private network recovery still blocked
 
 Actual packaged VersityGW `minio` is running with preserved named volume,

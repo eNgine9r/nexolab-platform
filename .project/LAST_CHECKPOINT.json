@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T11:13:14+00:00",
+  "timestamp": "2026-10-16T07:20:47+00:00",
   "actor": "ChatGPT",
-  "event": "1400_source_only_object_storage_network_gate",
+  "event": "1394_isolated_broker_overflow_correctness_gap_proven",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1400,
-    "branch": "fix/1400-offline-object-storage-network-gate",
-    "status": "software_gate_in_progress_ci_pending",
+    "issue": 1394,
+    "branch": "docs/1394-durable-delivery-discovery",
+    "status": "discovery_verified_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2690,6 +2690,15 @@
       "approved_owner_scope": "does_not_include_minio",
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_1_skip_PASS"
+    },
+    "issue_1394_durable_delivery": {
+      "sent_qos1": 15,
+      "replayed_qos1": 10,
+      "fixture_broker_queue_capacity": 10,
+      "production_loss": "unverified",
+      "driver_replay_gap": "broker_puback_before_central_receipt",
+      "next_issue": 1397,
+      "site_modification": "none"
     }
   },
   "observations": [
@@ -3787,7 +3796,7 @@
       }
     }
   ],
-  "next_action": "PR #1400 source CI/review; never recreate protected minio without a separately approved owner-local exact-image recovery.",
+  "next_action": "Publish PR1394 and source-bound CI; #1397 contract/edge replay implementation after dependency and site network fixes",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3796,7 +3805,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none_read_only_minio_dns_and_Docker_metadata_and_source_tests",
+  "runtime_mutation": "none_isolated_network_none_ephemeral_mosquitto_fixture_only",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
