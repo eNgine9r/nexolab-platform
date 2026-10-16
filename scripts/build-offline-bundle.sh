@@ -317,6 +317,7 @@ if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
   done
 fi
 cp scripts/device-agent-startup-gate.py "$STAGING/scripts/"
+cp scripts/verify-packaged-object-storage-network.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
 cp scripts/nexolab-version-manager.py "$STAGING/scripts/"

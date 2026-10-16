@@ -1,14 +1,39 @@
-## 2026-10-16 — #1394 end-to-end telemetry durability correctness gate
+## 2026-10-16 — #1394 broker PUBACK does not prove database durability
 
-**P0 correctness blocker remains:** broker PUBACK is not central durable
-acceptance. Production subscriber backlog can exceed finite Mosquitto cap;
-isolated real Docker fixture demonstrates dropped broker-ACKed messages
-(15 published / 10 replayed at fixture queue cap 10). This must not be
-extrapolated to unproven production lost samples. Durable application-level
-central receipt and edge replay implementation is now #1397 and requires
-separate focused source/CI/offline acceptance before hardware/site update.
-No unbounded no-loss guarantee is allowed until validated and a finite
-retention/storage budget is declared. #189 remains open.
+The actual edge SQLite outbox deletes after MQTT broker PUBACK. A real
+isolated finite Mosquitto queue experiment confirms a possible lost-
+delivery failure mode beyond configured capacity; actual production loss
+is not independently confirmed. Any no-data-loss claim requires #1397
+authenticated central application-level receipt and idempotent edge replay
+tests under bounded offline disk/time capacity. The research #1394 has no
+production MQTT, Docker, data, serial or hardware write scope.
+
+## 2026-10-16 — #1400 object-storage private network recovery still blocked
+
+Actual packaged VersityGW `minio` is running with preserved named volume,
+but **no Docker private network/host published port** after reboot. Native
+read-only check detects missing `nexolab-central`; Telemetry API fails DNS
+resolution for `minio:9000` while core API and PostgreSQL are healthy.
+Source-only offline health gate is software-tested, production unchanged.
+Object-storage container recovery, existing-asset authorization and volume
+retention verification require a **separate owner-approved protected
+activation**, exact immutable version/rollback proof and live asset evidence.
+Do not treat current owner approval for only mqtt/API/dashboard as permission
+to recreate object-storage. #1399 reboot recurrence and #1397 replay remain open.
+
+## 2026-10-16 — #1406: conflicting Docker bridge and physical LAN
+
+Real eth0 physical LAN `172.18.48.0/21` lies inside
+`nexolab-edge_default=172.18.0.0/16`. Docker Device Agent container
+has connected route for the overlapping prefix. Source-only read-only
+release-acceptance guard now detects it in a feature branch; production
+still contains this conflict. Network range migration is a separate
+owner-approved protected maintenance/cutover decision. Do not change
+Docker IPAM/volumes, reattach networks or restart the edge on a guess.
+#1399 post-boot auto-recovery, #1397 durable data acknowledgements and
+#1400 object-storage recovery also remain open. Unit 102/104/106/108
+temperature communications recovered after the operator powered devices
+and cooldown expired; #1405 hardware evidence recorded.
 
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
