@@ -1,3 +1,17 @@
+## 2026-10-16 — #1392 MQTT/API packaged private-network fail-closed verification
+
+After the 08:09 reboot, the broker lost its `nexolab-central` attachment
+and Telemetry API could not resolve `mqtt`; API returned `mqtt=not_ready`
+in spite of PostgreSQL readiness. Later owner-approved exact ffdefc network
+repair restored **actual** LAN Dashboard HTTP 200, API/PostgreSQL/MQTT
+readiness and fresh persisted telemetry. This #1392 _source-only_ WP adds
+read-only checking of expected Docker network members, Compose labels,
+private broker DNS alias and TCP connection as part of offline acceptance.
+No live site network/release/volumes were modified by this source work.
+The physically overlapping LAN/Docker CIDR, detached VersityGW, and
+application-level durable receipt remain separate issues #1409/#1400/#1397.
+CI must pass on the exact reconciled PR head before merge.
+
 ## 2026-10-16 — #1399 owner-gated boot network observer prototype (source-only)
 
 Previously published #1406/PR #1407 merged into `main` at

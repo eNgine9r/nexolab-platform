@@ -191,8 +191,13 @@ class StartupGateTests(unittest.TestCase):
                 root = Path(temporary)
                 scripts = root / "bundle/scripts"
                 (scripts / "lib").mkdir(parents=True)
-                for name in ("install-offline-bundle.sh", "device-agent-startup-gate.py", "lib/deployment-lock.sh"):
-                    shutil.copyfile(ROOT / "scripts" / name, scripts / name)
+                for name in ("install-offline-bundle.sh", "device-agent-startup-gate.py", "verify-central-network-topology.py", "lib/deployment-lock.sh"):
+                    # Source checker lives in CI-covered infrastructure/offline,
+                    # but the immutable bundle still installs it under scripts/.
+                    source = (ROOT / "infrastructure/offline" / name
+                              if name == "verify-central-network-topology.py"
+                              else ROOT / "scripts" / name)
+                    shutil.copyfile(source, scripts / name)
                 verifier = scripts / "verify-offline-bundle.py"
                 verifier.write_text(
                     'import sys\n'
@@ -218,10 +223,15 @@ class StartupGateTests(unittest.TestCase):
                     "with open(os.environ['CALLS'],'a') as out: out.write(json.dumps(a)+'\\n')\n"
                     "if a[:2]==['volume','inspect']: raise SystemExit(1)\n"
                     f"if a[:2]==['image','inspect']:\n print({IMAGE!r} if '--format' in a else json.dumps([{metadata()!r}]))\n"
+                    "if a[:2]==['inspect','--type']:\n"
+                    " service=a[-1][len('fixture-'):-2]\n"
+                    " networks={'fixture': {'Aliases': ['mqtt','postgres','telemetry-service']}, 'nexolab-standalone-runtime': {'Aliases': ['central-mqtt','mqtt']}}\n"
+                    " print(json.dumps([{'Config':{'Labels':{'com.docker.compose.project':'fixture','com.docker.compose.service':service}},'State':{'Running':True},'NetworkSettings':{'Networks':networks}}]))\n"
                     "if a[0]=='compose' and '--format' in a:\n"
-                    " overlay=Path(a[-4])\n"
-                    " # Last -f path precedes config --format json.\n"
-                    " print(overlay.read_text())\n"
+                    " if any('compose.startup.json' in x for x in a):\n"
+                    "  overlay=Path(a[-4]); print(overlay.read_text())\n"
+                    " else:\n"
+                    "  print(json.dumps({'name':'fixture','networks':{'central':{'name':'fixture'},'standalone-runtime':{'name':'nexolab-standalone-runtime'}}}))\n"
                     "if a[0]=='run' and os.environ['PROBE_FAIL']=='1': raise SystemExit(42)\n"
                 )
                 docker.chmod(0o755)

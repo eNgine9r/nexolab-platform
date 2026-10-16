@@ -61,10 +61,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1399,
-      "branch": "feature/1399-offline-boot-network-observer"
+      "issue": 1392,
+      "branch": "fix/1392-mqtt-api-reboot-topology"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1393,
+      "branch": "fix/1393-packaged-dashboard-boot-network"
+    }
   },
   "work_packages": [
     {
@@ -8875,6 +8878,48 @@
         "automated_site_repair": "not_authorized_not_enabled",
         "exact_head_ci": "pending",
         "manual_only_postgres_or_hardware_agent": "enforced"
+      }
+    },
+    {
+      "issue": 1392,
+      "title": "Restore central MQTT/API network topology reliably after reboot",
+      "branch": "fix/1392-mqtt-api-reboot-topology",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only runtime network/alias/TCP gate included in immutable package installer and isolated regressions; no automatic Docker reconnect or site mutation.",
+      "evidence": {
+        "native_readonly": "failed_closed_missing_nexolab-central_on_mqtt",
+        "software_tests": "70_unittest_total_1_expected_skip",
+        "runtime_site_recovery": "not_performed",
+        "offline_ci": "pending",
+        "standalone_offline_contract": "PASS_umask_077"
+      }
+    },
+    {
+      "issue": 1393,
+      "title": "Guarantee authorized LAN dashboard restart after Raspberry Pi reboot",
+      "branch": "fix/1393-packaged-dashboard-boot-network",
+      "priority": "critical",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "scope": "Independent focused WP; site mutation requires separate guarded approval.",
+      "evidence": {
+        "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1393",
+        "verification": "pending"
+      }
+    },
+    {
+      "issue": 1394,
+      "title": "Prove durable telemetry delivery while central API is offline",
+      "branch": "docs/1394-durable-delivery-discovery",
+      "priority": "critical",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "scope": "Independent focused WP; site mutation requires separate guarded approval.",
+      "evidence": {
+        "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1394",
+        "verification": "pending"
       }
     }
   ],

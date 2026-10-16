@@ -305,6 +305,30 @@ if [[ "$PREFLIGHT_ONLY" == true ]]; then
   exit 0
 fi
 "${CENTRAL[@]}" up -d --no-build --pull never --wait
+# Fail closed if the containers are individually running but Compose-owned DNS
+# attachments have drifted after restart or a partial protected handoff.
+# This gate is read-only: no docker network connect/disconnect or re-creation.
+TOPOLOGY_MODE="${RUNTIME_MODE:-central}"
+# Compose is the source of truth for project/network names. Select *only*
+# these non-secret fields; never log the interpolated Compose configuration.
+TOPOLOGY_NAMES="$("${CENTRAL[@]}" config --format json | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+nets = data["networks"]
+print(data["name"])
+print(nets["central"]["name"])
+print(nets.get("standalone-runtime", {}).get("name", "nexolab-standalone-runtime"))
+')"
+mapfile -t TOPOLOGY_FIELDS <<< "$TOPOLOGY_NAMES"
+[[ ${#TOPOLOGY_FIELDS[@]} -eq 3 && -n "${TOPOLOGY_FIELDS[0]}" && -n "${TOPOLOGY_FIELDS[1]}" ]] || {
+  echo "ERROR: unable to establish Compose project/network authority" >&2
+  exit 1
+}
+python3 "$SCRIPT_DIR/verify-central-network-topology.py" \
+  --mode "$TOPOLOGY_MODE" --project "${TOPOLOGY_FIELDS[0]}" \
+  --central-network "${TOPOLOGY_FIELDS[1]}" \
+  --standalone-network "${TOPOLOGY_FIELDS[2]}"
+
 if [[ "$SKIP_EDGE" == false ]]; then
   if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
     "${EDGE[@]}" up -d --no-build --pull never

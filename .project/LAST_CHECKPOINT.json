@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T14:13:42+00:00",
+  "timestamp": "2026-10-16T07:01:36+00:00",
   "actor": "ChatGPT",
-  "event": "1399_guarded_boot_network_observer_source_only",
+  "event": "1392_source_topology_guard_tests_pass_site_unrepaired",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1399,
-    "branch": "feature/1399-offline-boot-network-observer",
-    "status": "source_observer_tests_in_progress_activation_blocked",
+    "issue": 1392,
+    "branch": "fix/1392-mqtt-api-reboot-topology",
+    "status": "implementation_tests_passed_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2700,6 +2700,14 @@
       "unit_tests": "16_pass",
       "source_bound_ci": "pending",
       "db_agent_manual_only": "fail_closed"
+    },
+    "issue_1392_mqtt_api_topology": {
+      "api_readiness": "503_mqtt_not_ready",
+      "broker_network": "nexolab-standalone-runtime_only",
+      "api_network": "nexolab-central_only",
+      "software_tests": "8_pass",
+      "production_cutover": "not_performed",
+      "standalone_offline_contract": "70_tests_1_skip_PASS"
     }
   },
   "observations": [
@@ -3797,7 +3805,7 @@
       }
     }
   ],
-  "next_action": "Run offline and exact-head CI on draft #1399 observer; design protected config-hash verified bounded actuator and secure owner opt-in only after safe CIDR migration and acceptance.",
+  "next_action": "PR 1392 exact-head CI and review; then 1393. Owner-approved guarded site recovery is a separate gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3806,7 +3814,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
+  "runtime_mutation": "none_readonly_site_probes_and_isolated_source_changes",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

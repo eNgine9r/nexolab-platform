@@ -1,3 +1,13 @@
+## 2026-10-16 — #1392 source MQTT/API topology guard pending exact-head CI
+
+Historical mismatch from the Oct16 reboot (broker and API split across
+different Docker bridges, API MQTT DNS unresolved) was recovered through
+an **earlier owner-authorized** protected ffdefc site action. No new
+production mutation is necessary for this source checker; the one-service
+offline validation gate remains pending PR CI. Historical MQTT broker ACK
+does not prove central PostgreSQL commit; application-level ACK #1397
+and live CIDR overlap #1409 still require independently controlled WPs.
+
 ## 2026-10-16 — #1399 protected automatic boot repair not yet authorized
 
 Source candidate observer is read-only; no systemd supervisor is installed
