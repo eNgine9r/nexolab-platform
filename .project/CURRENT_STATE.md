@@ -1,6 +1,6 @@
 ## 2026-10-16 — #1402 exact-path offline recovery CI routing (source-only)
 
-A new *isolated* clean git clone at `bd56f38c77d06ce14ade1b69a249aa81b3852c3e` was used;
+A new _isolated_ clean git clone at `bd56f38c77d06ce14ade1b69a249aa81b3852c3e` was used;
 the production checkout and its corrupted linked #1398 worktree were not mutated.
 Actual protected Pi site was owner-recovered earlier: ffdefc LAN Dashboard
 HTTP 200/Chromium rendered, MQTT/API/PostgreSQL ready with current persisted
