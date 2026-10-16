@@ -5,13 +5,13 @@ database, Compose, serial device, or service modification.
 
 ## Observed source contract
 
-| Boundary | Actual checked implementation | Consequence |
-|---|---|---|
-| Edge observation → SQLite | `services/device-agent/main.py` queues an event with stable `event_id` and sequence before publish | Local persistence until MQTT publish acknowledgement |
-| SQLite → broker | `flush_queue` sends QoS 1 and deletes the SQLite row after `wait_for_publish` / `is_published` | Deletion proves **broker PUBACK**, not durable API/DB acceptance |
-| Central broker | `mosquitto.central.conf` has `persistence true`, `autosave_interval 60`, `max_queued_messages 10000` | Offline persistent subscribers are bounded; broker capacity is not infinite |
-| MQTT broker → central consumer | `mqtt_consumer.py`: if durable spool enabled, MQTT 3.1.1 `clean_session=False`, `manual_ack=True` | A connected central consumer acknowledges **after staging** the message |
-| Central staging → PostgreSQL | `ingestion.py` has local durable ingestion spool, retries and event-ID deduplication | Once a record is staged locally, backend DB downtime can be handled independently |
+| Boundary                       | Actual checked implementation                                                                        | Consequence                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Edge observation → SQLite      | `services/device-agent/main.py` queues an event with stable `event_id` and sequence before publish   | Local persistence until MQTT publish acknowledgement                              |
+| SQLite → broker                | `flush_queue` sends QoS 1 and deletes the SQLite row after `wait_for_publish` / `is_published`       | Deletion proves **broker PUBACK**, not durable API/DB acceptance                  |
+| Central broker                 | `mosquitto.central.conf` has `persistence true`, `autosave_interval 60`, `max_queued_messages 10000` | Offline persistent subscribers are bounded; broker capacity is not infinite       |
+| MQTT broker → central consumer | `mqtt_consumer.py`: if durable spool enabled, MQTT 3.1.1 `clean_session=False`, `manual_ack=True`    | A connected central consumer acknowledges **after staging** the message           |
+| Central staging → PostgreSQL   | `ingestion.py` has local durable ingestion spool, retries and event-ID deduplication                 | Once a record is staged locally, backend DB downtime can be handled independently |
 
 The deployed API returned HTTP 503 `database=ready,mqtt=not_ready` after
 2026-10-16 reboot while the edge reported MQTT connected and queue=0.
