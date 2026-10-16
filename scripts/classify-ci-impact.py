@@ -255,6 +255,8 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/tests/test_nexolab_postgresql_backup.py",
     "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
+    "scripts/tests/test_packaged_object_storage_network.py",
+    "scripts/verify-packaged-object-storage-network.py",
     # Fail-closed LAN/bridge overlap acceptance: no site mutation.
     "scripts/verify-standalone-offline-raspberry-pi.sh",
     "scripts/tests/standalone-offline-runtime-contract.sh",

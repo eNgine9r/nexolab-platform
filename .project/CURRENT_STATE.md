@@ -1,3 +1,21 @@
+## 2026-10-16 — #1400: Private packaged object-storage drift detection
+
+Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)
+and MQTT/API/PostgreSQL live samples. **Independent actual Pi inspection**
+afterwards shows packaged `nexolab-central-minio-1` (VersityGW) running
+with its original immutable image and named object-storage volume, but
+`NetworkSettings.Networks={}` and `Ports={}`; Telemetry API cannot resolve
+`minio` (socket DNS failure). Equipment image/object-storage usability is
+therefore impaired; live data loss is not asserted.
+
+This **source-only** #1400 WP adds a fail-closed read-only Docker
+network/alias/host-port + API→storage health gate into the immutable offline
+package and 10 isolated unittest cases. Native read-only probe correctly
+returned `status=not_ready` on the actual site. No production object-storage
+recreation is in scope or approved by the earlier three-service owner
+authorization. Exact-head PR/CI and a separate protected site acceptance
+remain pending; do not interpret normal MQTT/API health as storage health.
+
 ## 2026-10-16 — #1406: prevent silent Docker/LAN subnet collision (source-only)
 
 Actual physical Raspberry Pi: `eth0=172.18.48.66/21`; Docker

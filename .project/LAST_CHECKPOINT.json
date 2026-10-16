@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T12:02:52+00:00",
+  "timestamp": "2026-10-16T11:13:14+00:00",
   "actor": "ChatGPT",
-  "event": "1406_source_only_docker_lan_overlap_prevention",
+  "event": "1400_source_only_object_storage_network_gate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1406,
-    "branch": "fix/1406-docker-lan-cidr-preflight",
-    "status": "software_candidate_tests_in_progress",
+    "issue": 1400,
+    "branch": "fix/1400-offline-object-storage-network-gate",
+    "status": "software_gate_in_progress_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2679,6 +2679,17 @@
       "unit_tests": "16_pass",
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_one_skip_PASS"
+    },
+    "issue_1400_storage_detached": {
+      "real_minio_container": "running",
+      "actual_central_network": "missing",
+      "api_dns_minio": "failed",
+      "persistent_volume": "retained",
+      "source_gate_tests": "10_pass",
+      "real_site_mutation": "none",
+      "approved_owner_scope": "does_not_include_minio",
+      "offline_contract": "PASS",
+      "ci_policy_suite": "225_tests_1_skip_PASS"
     }
   },
   "observations": [
@@ -3776,7 +3787,7 @@
       }
     }
   ],
-  "next_action": "Verify offline contract and required exact-head CI; proceed with separately owner-approved native migration and #1399 boot supervisor only after protected source, data and hardware gates.",
+  "next_action": "PR #1400 source CI/review; never recreate protected minio without a separately approved owner-local exact-image recovery.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3785,7 +3796,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; native Docker/IPAM/eth0 read-only",
+  "runtime_mutation": "none_read_only_minio_dns_and_Docker_metadata_and_source_tests",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

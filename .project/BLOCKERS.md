@@ -1,3 +1,16 @@
+## 2026-10-16 — #1400 object-storage private network recovery still blocked
+
+Actual packaged VersityGW `minio` is running with preserved named volume,
+but **no Docker private network/host published port** after reboot. Native
+read-only check detects missing `nexolab-central`; Telemetry API fails DNS
+resolution for `minio:9000` while core API and PostgreSQL are healthy.
+Source-only offline health gate is software-tested, production unchanged.
+Object-storage container recovery, existing-asset authorization and volume
+retention verification require a **separate owner-approved protected
+activation**, exact immutable version/rollback proof and live asset evidence.
+Do not treat current owner approval for only mqtt/API/dashboard as permission
+to recreate object-storage. #1399 reboot recurrence and #1397 replay remain open.
+
 ## 2026-10-16 — #1406: conflicting Docker bridge and physical LAN
 
 Real eth0 physical LAN `172.18.48.0/21` lies inside

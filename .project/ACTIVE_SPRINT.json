@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1406,
-      "branch": "fix/1406-docker-lan-cidr-preflight"
+      "issue": 1400,
+      "branch": "fix/1400-offline-object-storage-network-gate"
     },
     "next_work_package": null
   },
@@ -8838,6 +8838,26 @@
         "production_site_changed": false,
         "owner_authorized_subnet_migration": false,
         "exact_head_ci": "pending"
+      }
+    },
+    {
+      "issue": 1400,
+      "title": "Detect detached packaged object-storage private network after reboot",
+      "branch": "fix/1400-offline-object-storage-network-gate",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
+      "evidence": {
+        "real_site_minio_network": "detached",
+        "actual_api_minio_DNS": "unavailable",
+        "source_unit_tests": "10_passed",
+        "real_site_readonly_probe": "not_ready_expected",
+        "prod_repair": "requires_separate_owner_approval",
+        "ci": "pending",
+        "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
+        "standalone_contract": "PASS_10_new_tests",
+        "ci_policy_tests": "225_tests_1_expected_skip"
       }
     }
   ],
