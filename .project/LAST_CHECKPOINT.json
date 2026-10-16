@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T11:13:14+00:00",
+  "timestamp": "2026-10-16T17:12:20+00:00",
   "actor": "ChatGPT",
-  "event": "1400_source_only_object_storage_network_gate",
+  "event": "1410_versioned_durable_receipt_schema_and_validation_contract",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1400,
-    "branch": "fix/1400-offline-object-storage-network-gate",
-    "status": "software_gate_in_progress_ci_pending",
+    "issue": 1410,
+    "branch": "feature/1410-durable-receipt-contract",
+    "status": "software_contract_tests_in_progress_no_runtime_activation",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2690,6 +2690,17 @@
       "approved_owner_scope": "does_not_include_minio",
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_1_skip_PASS"
+    },
+    "issue_1410_receipt_contract": {
+      "broker_puback_insufficient": true,
+      "contract_version": 1,
+      "trust_boundary": "broker_acl_required_not_currently_accepted",
+      "durably_spooled": "informational_only",
+      "postgres_committed": "eligible_for_fifo_prune_only_after_authenticated_matching_receipt",
+      "source_test_suite": "18_pass",
+      "central_receipt_publisher": "not_implemented",
+      "edge_actual_receipt_consumer": "not_implemented",
+      "site_mutated": false
     }
   },
   "observations": [
@@ -3787,7 +3798,7 @@
       }
     }
   ],
-  "next_action": "PR #1400 source CI/review; never recreate protected minio without a separately approved owner-local exact-image recovery.",
+  "next_action": "Exact-head PR CI and offline contracts; then independent central publisher and Edge authenticated SQLite ACK/replay WPs under #1397.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3796,7 +3807,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none_read_only_minio_dns_and_Docker_metadata_and_source_tests",
+  "runtime_mutation": "none: schema/test/documentation only",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

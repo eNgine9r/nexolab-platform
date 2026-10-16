@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1400,
-      "branch": "fix/1400-offline-object-storage-network-gate"
+      "issue": 1410,
+      "branch": "feature/1410-durable-receipt-contract"
     },
     "next_work_package": null
   },
@@ -8858,6 +8858,23 @@
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
         "ci_policy_tests": "225_tests_1_expected_skip"
+      }
+    },
+    {
+      "issue": 1410,
+      "title": "Define versioned authenticated central durability receipt contract",
+      "branch": "feature/1410-durable-receipt-contract",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Schema v1, trusted-transport-gated stateless validation, hermetic tests, offline design; no production receipt publication or queue deletion.",
+      "evidence": {
+        "existing_edge_deletion": "mqtt_puback_only",
+        "contract_only": true,
+        "runtime_not_installed": true,
+        "no_data_loss_guarantee": false,
+        "software_contract_tests": "18_pass",
+        "exact_head_ci": "pending"
       }
     }
   ],

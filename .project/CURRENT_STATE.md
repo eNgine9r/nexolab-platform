@@ -1,3 +1,22 @@
+## 2026-10-16 — #1410 versioned application-level durability receipt contract
+
+Source audit: Edge SQLite telemetry outbox deletes events after MQTT
+broker PUBACK, before any application-level PostgreSQL receipt. A
+controlled isolated Mosquitto test (#1394) demonstrated loss of queued
+broker delivery above finite cap, not a real production loss.
+
+This independent **contract-only** source WP specifies a JSON Schema
+and pure stdlib fail-closed receipt validation: UUID/event/tenant/node
+identity, monotonic FIFO sequence, authenticated local broker topic
+precondition and `durably_spooled` informational vs
+`postgres_committed` final deletion level. It adds hermetic tests
+and an offline architecture runbook. No central receipt producer,
+actual broker ACL, Edge receipt subscriber, queue prune/replay or
+production data path is changed. No source-completed contract is a
+no-loss guarantee: #1397 must separately implement and test end-to-end
+persistent ACK/replay with bounded capacity and actual offline ARM64.
+Source PR and exact-head CI remain pending.
+
 ## 2026-10-16 — #1400: Private packaged object-storage drift detection
 
 Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)

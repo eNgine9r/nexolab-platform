@@ -1,3 +1,12 @@
+## 2026-10-16 — #1410 contract-only receipt, not active site durability
+
+Stage-1 protocol/validator is source-only, has no central MQTT receipt
+publisher, no trusted installed broker ACL, no Edge subscription and
+no SQLite change. It cannot replace PUBACK-based deletion on the
+accepted ffdefc production runtime. Do not claim zero data loss.
+Actual authenticated central durable receipt and bounded replay/queue
+tests remain requirements #1397 before an owner-approved release.
+
 ## 2026-10-16 — #1400 object-storage private network recovery still blocked
 
 Actual packaged VersityGW `minio` is running with preserved named volume,
