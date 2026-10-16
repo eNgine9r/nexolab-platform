@@ -14,6 +14,48 @@ This runbook covers a disconnected `LOCAL_LAN` installation of the NEXOLAB core:
 
 Hardware mode is unchanged and remains outside this Work Package.
 
+## Fail-closed Docker/physical-LAN IPv4 network isolation (#1406)
+
+The physical Raspberry Pi Ethernet LAN is `172.18.48.66/21`, but on
+2026-10-16 the running Docker `nexolab-edge_default` bridge was
+`172.18.0.0/16`. The Device Agent has a connected Docker route
+`172.18.0.0/16`: traffic addressed to physical devices in
+`172.18.48.0/21` may be sent into the Docker bridge instead of the
+physical LAN. This is a **verified overlap / routing defect**; its precise
+role in earlier Docker daemon sandbox restoration failures is **unproven**.
+
+Before accepting the Raspberry Pi offline runtime, execute the read-only
+network gate (no credentials, configuration writes or Docker changes):
+
+```bash
+python3 scripts/verify-lan-docker-network-isolation.py
+```
+
+It queries the real host IPv4 interfaces and effective Docker bridge IPAM
+subnets, reports specific conflicting names/CIDRs and exits nonzero on
+overlap or missing/invalid inventory. The
+`scripts/verify-standalone-offline-raspberry-pi.sh` acceptance runner
+automatically requires this gate before the runtime/Modbus evidence stage.
+Only an explicitly disconnected `--require-loopback-only` acceptance
+may use `--allow-no-lan`; it independently checks the absence of a
+default route and physical uplink IPv4. Do not use this exception on the
+connected production Raspberry Pi.
+
+**Safe remediation is a separate protected change**, NOT this script:
+reserve a nonoverlapping Docker subnet based on the full physical LAN/VPN/
+future interface plan; validate the desired immutable Compose network/IPAM,
+existing container networks, named volumes, PostgreSQL/SQLite backups,
+rollback authority, serial mapping and actual site reachability. Plan a
+bounded maintenance window with the Product Owner for network recreation and
+source update. No live `docker network rm`, `docker network connect`,
+unreviewed host routing changes, `docker compose down`, volume deletion,
+or Modbus writes. After owner-approved controlled activation, prove private
+DNS, MQTT/API/DB readiness, actual Dashboard LAN port, all three real RS-485
+bus workers, fresh PostgreSQL writes, existing S3 images and offline reboot
+recovery **without filling historical telemetry gaps**. Continue #1399 for
+owner-guarded boot self-healing, #1400 for private object-storage health, and
+#1397 for application-level persisted ACK.
+
 ## Supported bundle targets
 
 A bundle is built for exactly one target platform:

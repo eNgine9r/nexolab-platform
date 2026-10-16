@@ -1,3 +1,17 @@
+## 2026-10-16 — #1406: conflicting Docker bridge and physical LAN
+
+Real eth0 physical LAN `172.18.48.0/21` lies inside
+`nexolab-edge_default=172.18.0.0/16`. Docker Device Agent container
+has connected route for the overlapping prefix. Source-only read-only
+release-acceptance guard now detects it in a feature branch; production
+still contains this conflict. Network range migration is a separate
+owner-approved protected maintenance/cutover decision. Do not change
+Docker IPAM/volumes, reattach networks or restart the edge on a guess.
+#1399 post-boot auto-recovery, #1397 durable data acknowledgements and
+#1400 object-storage recovery also remain open. Unit 102/104/106/108
+temperature communications recovered after the operator powered devices
+and cooldown expired; #1405 hardware evidence recorded.
+
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
 **Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**

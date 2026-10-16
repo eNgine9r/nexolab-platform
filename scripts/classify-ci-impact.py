@@ -205,6 +205,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/lib/postgresql-backup-client.sh",
     "scripts/generate-offline-bundle-manifest.py",
     "scripts/install-offline-bundle.sh",
+    "scripts/verify-lan-docker-network-isolation.py",
+    "scripts/tests/test_lan_docker_network_isolation.py",
     "scripts/offline-bundle-smoke.sh",
     "scripts/verify-offline-bundle.py",
     "scripts/offline_image_archive.py",
@@ -255,6 +257,11 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/tests/test_nexolab_postgresql_backup.py",
     "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
+    # Fail-closed LAN/bridge overlap acceptance: no site mutation.
+    "scripts/verify-lan-docker-network-isolation.py",
+    "scripts/tests/test_lan_docker_network_isolation.py",
+    "scripts/verify-standalone-offline-raspberry-pi.sh",
+    "scripts/tests/standalone-offline-runtime-contract.sh",
 }
 
 DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
