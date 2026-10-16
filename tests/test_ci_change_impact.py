@@ -110,6 +110,24 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_packaged_storage_private_network_probe_routes_offline_bundle(self) -> None:
+        paths = [
+            "scripts/offline-bundle-smoke.sh",
+            "scripts/build-offline-bundle.sh",
+            "scripts/verify-packaged-object-storage-network.py",
+            "scripts/tests/test_packaged_object_storage_network.py",
+            "scripts/tests/standalone-offline-runtime-contract.sh",
+            "docs/operations/offline-installation.md",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
     def test_hardware_startup_gate_is_known_deployment_tooling(self) -> None:
         result = classify([
             "scripts/device-agent-startup-gate.py",

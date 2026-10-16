@@ -1,3 +1,21 @@
+## 2026-10-16 — #1400: Private packaged object-storage drift detection
+
+Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)
+and MQTT/API/PostgreSQL live samples. **Independent actual Pi inspection**
+afterwards shows packaged `nexolab-central-minio-1` (VersityGW) running
+with its original immutable image and named object-storage volume, but
+`NetworkSettings.Networks={}` and `Ports={}`; Telemetry API cannot resolve
+`minio` (socket DNS failure). Equipment image/object-storage usability is
+therefore impaired; live data loss is not asserted.
+
+This **source-only** #1400 WP adds a fail-closed read-only Docker
+network/alias/host-port + API→storage health gate into the immutable offline
+package and 10 isolated unittest cases. Native read-only probe correctly
+returned `status=not_ready` on the actual site. No production object-storage
+recreation is in scope or approved by the earlier three-service owner
+authorization. Exact-head PR/CI and a separate protected site acceptance
+remain pending; do not interpret normal MQTT/API health as storage health.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.

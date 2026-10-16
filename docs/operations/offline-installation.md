@@ -14,6 +14,42 @@ This runbook covers a disconnected `LOCAL_LAN` installation of the NEXOLAB core:
 
 Hardware mode is unchanged and remains outside this Work Package.
 
+## Object-storage private Docker reachability after restart
+
+A `running` S3-compatible VersityGW service can still be **unreachable**:
+Docker may lose the `minio` container's `central` network attachment and
+published port while leaving its existing named `central-object-storage-data`
+volume intact. NEXOLAB observed this failure on Raspberry Pi on 2026-10-16;
+the Telemetry API could not resolve the `minio` hostname, although its own
+MQTT/PostgreSQL readiness was healthy.
+
+The offline-package smoke now executes the **read-only** included
+`verify-packaged-object-storage-network.py` check. It verifies the installed
+Compose owner/service labels, running state, _actual_ private central Docker
+attachment and `minio` DNS alias, expected configured and published LAN port,
+then sends an unauthenticated GET to `http://minio:9000/health` **from the
+Telemetry API container**. No asset read/write, Docker network modification,
+credentials, cloud call, or image download is performed by this check.
+The gate exits nonzero when the broker/API remain healthy but private storage
+is detached. A false-positive host-local HTTP response cannot bypass it.
+
+Manual diagnostics (read-only, on an installed version matching the host):
+
+```bash
+python3 scripts/verify-packaged-object-storage-network.py \
+  --project nexolab-central \
+  --central-network nexolab-central \
+  --bind 127.0.0.1 --port 9000
+```
+
+Use the **actually approved bind/port** from the installed site's Compose
+configuration, not blindly the example above. Do not repair running site
+networking with `docker network connect`, Docker Compose `down`, or volume
+recreation. Object-storage activation has a **separate protected owner approval
+gate** from the earlier Dashboard/MQTT recovery; see Issue #1400.
+Real existing images/attachments must be validated after any separately
+approved correction.
+
 ## Supported bundle targets
 
 A bundle is built for exactly one target platform:

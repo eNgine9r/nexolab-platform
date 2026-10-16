@@ -54,6 +54,23 @@ fi
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready" >/tmp/nexolab-offline-ready.json
 curl --fail --silent --show-error "http://${DASHBOARD_BIND}:${DASHBOARD_PORT}/" >/dev/null
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${OBJECT_PORT}/health" >/dev/null
+# A green host-local HTTP health endpoint alone does not prove the private
+# API can resolve the packaged S3-compatible service. Verify the *live* Docker
+# attachment/alias/host-port contract without recreating containers or assets.
+mapfile -t STORAGE_COMPOSE_IDENTITY < <("${CENTRAL[@]}" config --format json | python3 -c '
+import json,sys
+cfg=json.load(sys.stdin)
+print(cfg["name"])
+print(cfg["networks"]["central"]["name"])
+')
+[[ ${#STORAGE_COMPOSE_IDENTITY[@]} -eq 2 && -n "${STORAGE_COMPOSE_IDENTITY[0]}" && -n "${STORAGE_COMPOSE_IDENTITY[1]}" ]] || {
+  echo "ERROR: missing trusted Compose object-storage identity" >&2
+  exit 1
+}
+python3 "$SCRIPT_DIR/verify-packaged-object-storage-network.py" \
+  --project "${STORAGE_COMPOSE_IDENTITY[0]}" \
+  --central-network "${STORAGE_COMPOSE_IDENTITY[1]}" \
+  --bind "$CENTRAL_BIND" --port "$OBJECT_PORT"
 "${CENTRAL[@]}" exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 "${CENTRAL[@]}" exec -T mqtt sh -ec "mosquitto_sub -h 127.0.0.1 -t '\$SYS/broker/version' -C 1 -W 5 >/dev/null"
 

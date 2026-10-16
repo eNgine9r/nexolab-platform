@@ -255,6 +255,8 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/tests/test_nexolab_postgresql_backup.py",
     "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
+    "scripts/verify-packaged-object-storage-network.py",
+    "scripts/tests/test_packaged_object_storage_network.py",
 }
 
 DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {

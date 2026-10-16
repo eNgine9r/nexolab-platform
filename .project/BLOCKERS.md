@@ -1,3 +1,16 @@
+## 2026-10-16 — #1400 object-storage private network recovery still blocked
+
+Actual packaged VersityGW `minio` is running with preserved named volume,
+but **no Docker private network/host published port** after reboot. Native
+read-only check detects missing `nexolab-central`; Telemetry API fails DNS
+resolution for `minio:9000` while core API and PostgreSQL are healthy.
+Source-only offline health gate is software-tested, production unchanged.
+Object-storage container recovery, existing-asset authorization and volume
+retention verification require a **separate owner-approved protected
+activation**, exact immutable version/rollback proof and live asset evidence.
+Do not treat current owner approval for only mqtt/API/dashboard as permission
+to recreate object-storage. #1399 reboot recurrence and #1397 replay remain open.
+
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
 **Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**
