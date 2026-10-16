@@ -1,3 +1,13 @@
+## 2026-10-16 — #1393 packaged Dashboard host network outage
+
+Packaged production Dashboard health is internally green, but Engine
+`NetworkSettings.Networks={}` / `Ports={}`; local :3000 is inaccessible.
+The source-only guard detects the condition but does not repair a live
+protected release. #1392 separately handles MQTT/API drift, #1394
+broker-to-PostgreSQL continuity. Full source CI, guarded owner-approved
+site recovery and real hardware/browser evidence remain blocked. No green
+operator update signal.
+
 ## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
 
 **Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**

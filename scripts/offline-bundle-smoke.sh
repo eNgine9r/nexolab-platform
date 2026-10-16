@@ -51,6 +51,23 @@ if [[ "$LOCAL_AUTH" == true ]]; then
   CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
 fi
 "${CENTRAL[@]}" ps --format json > /tmp/nexolab-offline-central-ps.json
+# A healthy Next.js process inside a detached container is not a usable LAN
+# dashboard. Check the live Engine network/host-port mapping, not just HTTP
+# inside its own namespace. The validator never alters a running site.
+mapfile -t DASHBOARD_TOPOLOGY < <("${CENTRAL[@]}" config --format json | python3 -c '
+import json, sys
+cfg=json.load(sys.stdin)
+print(cfg["name"])
+print(cfg["networks"]["central"]["name"])
+')
+[[ ${#DASHBOARD_TOPOLOGY[@]} -eq 2 && -n "${DASHBOARD_TOPOLOGY[0]}" && -n "${DASHBOARD_TOPOLOGY[1]}" ]] || {
+  echo "ERROR: packaged Dashboard Compose identity missing" >&2
+  exit 1
+}
+python3 "$SCRIPT_DIR/verify-packaged-dashboard-port.py" \
+  --project "${DASHBOARD_TOPOLOGY[0]}" \
+  --central-network "${DASHBOARD_TOPOLOGY[1]}" \
+  --bind "$DASHBOARD_BIND" --port "$DASHBOARD_PORT"
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready" >/tmp/nexolab-offline-ready.json
 curl --fail --silent --show-error "http://${DASHBOARD_BIND}:${DASHBOARD_PORT}/" >/dev/null
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${OBJECT_PORT}/health" >/dev/null

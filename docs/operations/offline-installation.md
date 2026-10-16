@@ -23,6 +23,24 @@ A bundle is built for exactly one target platform:
 
 Do not load an `amd64` bundle on an `arm64` host or the reverse. The manifest and verifier reject a platform mismatch.
 
+## Packaged Dashboard port after host reboot
+
+A healthy container healthcheck validates **only HTTP inside the container**.
+It does not prove that the LOCAL_LAN Dashboard is available on port 3000:
+Docker may report a running/healthy packaged Dashboard while its live
+`NetworkSettings.Networks` and `NetworkSettings.Ports` are empty. This
+failure was observed on Raspberry Pi on 2026-10-16 after a host reboot.
+
+The installed offline-bundle smoke now verifies Docker Compose ownership,
+the required central network and **actual** Engine-published host address/port
+against the approved `DASHBOARD_BIND_ADDRESS` and `DASHBOARD_PORT`, before
+running the normal local HTTP and WebSocket smoke. It is read-only. The
+source-only `nexolab-dashboard.service` is intentionally disabled once the
+packaged Dashboard is active, and **must not be enabled to work around a broken
+packaged container**. Do not repair live Docker networking or trigger an
+update/rollback without a separate exact-source authorized recovery,
+retained-volume proof and real Modbus read-only continuity verification.
+
 ## Security and data boundary
 
 The bundle contains images, Compose definitions, environment templates, SBOMs, provenance, checksums and operator scripts. It does **not** contain:

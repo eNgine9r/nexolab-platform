@@ -1,3 +1,17 @@
+## 2026-10-16 — #1393: packaged Dashboard port/network drift guard
+
+Actual ffdefc packaged Dashboard container is running and internally healthy
+but Docker lists **no live networks or published host ports** after Oct 16
+reboot, despite Compose requiring central network and LAN 3000 binding.
+The old `nexolab-dashboard.service` is correctly disabled after package
+cutover: do not enable it. Docker boot logs have missing sandbox IDs; no
+definitive cause of lost network metadata is yet established.
+
+Source-only #1393 adds host port/bridge identity gate to offline smoke,
+9 new tests and a passing standalone offline contract
+(71 total, 1 expected skip). No site restart, reboot, network repair,
+production cutover, volume or hardware write. CI/PR and live acceptance pending.
+
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
 **Actual installed production source:** `ffdefc4550d71e211724de1154ffe9057f905c9c` (not historical 29cff). Owner-approved, SHA256-pinned forward reconciliation `reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7` returned `succeeded`. The owner then ran a privileged read-only confirmation with **8/8 PASS**: Version Manager `health=ready`, `runtime_state_known=true`, correct source and last operation, separate recovery proof succeeded, _original failed update remains failed_, previous 29cff package marker exists, original 992,743,918-byte PostgreSQL dump exists. The previous 29cff deployment remains a historical accepted Energy product baseline, **not the deployed runtime**.
