@@ -1,24 +1,57 @@
-# NEXOLAB Current State
+## 2026-10-16 — #1392 MQTT/API packaged private-network fail-closed verification
 
-## 2026-10-16 — #1392: read-only MQTT/API network-drift guard in isolated branch
+After the 08:09 reboot, the broker lost its `nexolab-central` attachment
+and Telemetry API could not resolve `mqtt`; API returned `mqtt=not_ready`
+in spite of PostgreSQL readiness. Later owner-approved exact ffdefc network
+repair restored **actual** LAN Dashboard HTTP 200, API/PostgreSQL/MQTT
+readiness and fresh persisted telemetry. This #1392 _source-only_ WP adds
+read-only checking of expected Docker network members, Compose labels,
+private broker DNS alias and TCP connection as part of offline acceptance.
+No live site network/release/volumes were modified by this source work.
+The physically overlapping LAN/Docker CIDR, detached VersityGW, and
+application-level durable receipt remain separate issues #1409/#1400/#1397.
+CI must pass on the exact reconciled PR head before merge.
 
-At 08:19–09:53 EEST actual Raspberry Pi host remained reachable through LAN/Tailscale,
-but packaged MQTT broker was attached only to `nexolab-standalone-runtime`
-and central Telemetry API only to `nexolab-central`. The expected Compose
-overlay declares both attachments for each. Docker DNS `mqtt` therefore
-failed from API; `/health/ready` returned HTTP 503 with PostgreSQL ready,
-MQTT not ready. The approved source/production dashboard on :3000 was
-separately disabled/inactive (#1393). The accepted ffdefc deployment authority
-recovered under #1390 is **not** overwritten by these runtime observations.
+## 2026-10-16 — #1400: Private packaged object-storage drift detection
 
-#1392 adds an immutable-offline-package-included read-only network/alias/TCP
-probe after guarded central Compose startup. Native Pi read-only execution of
-the same probe reproduced fail-closed `status=not_ready`; 8 topology unit tests and complete standalone
-offline contract (70 tests, 1 expected skip), Python compile, shell syntax, and diff checks passed. This is a **source
-candidate**, not a site repair. Full CI, PR review, isolated offline boot and
-owner-approved exact-version runtime correction remain necessary. Edge MQTT
-connected/queue=0 does not prove PostgreSQL persisted the disconnected stream
-(#1394). No service, network, database, hardware or volume write was performed.
+Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)
+and MQTT/API/PostgreSQL live samples. **Independent actual Pi inspection**
+afterwards shows packaged `nexolab-central-minio-1` (VersityGW) running
+with its original immutable image and named object-storage volume, but
+`NetworkSettings.Networks={}` and `Ports={}`; Telemetry API cannot resolve
+`minio` (socket DNS failure). Equipment image/object-storage usability is
+therefore impaired; live data loss is not asserted.
+
+This **source-only** #1400 WP adds a fail-closed read-only Docker
+network/alias/host-port + API→storage health gate into the immutable offline
+package and 10 isolated unittest cases. Native read-only probe correctly
+returned `status=not_ready` on the actual site. No production object-storage
+recreation is in scope or approved by the earlier three-service owner
+authorization. Exact-head PR/CI and a separate protected site acceptance
+remain pending; do not interpret normal MQTT/API health as storage health.
+
+## 2026-10-16 — #1406: prevent silent Docker/LAN subnet collision (source-only)
+
+Actual physical Raspberry Pi: `eth0=172.18.48.66/21`; Docker
+`nexolab-edge_default=172.18.0.0/16`; Device Agent has corresponding
+Docker eth0 route. This overlap is **proven**, but does not establish that
+it caused October 16 stale Docker network sandbox after reboot.
+
+Scoped WP #1406 supplies a pure-Python **read-only, fail-closed** host
+LAN-vs-all-effective-Docker-bridge CIDR gate and isolated regressions. The
+offline Raspberry Pi acceptance runner invokes it before accepting
+otherwise healthy containers/RS485. Explicit disconnected loopback-only
+fixture is handled separately, never used to excuse a connected site.
+Actual Raspberry Pi read-only invocation correctly detects/blocks the
+current conflict; no network, Docker, serial, DB or production package
+change was made. Separately owner-approved, protected Docker subnet
+migration/rollback and multi-reboot tests remain outstanding (#1399).
+End-to-end durable MQTT replay #1397 and detached storage #1400 remain
+independent runtime blockers. Active physical XJP60D channels were
+independently verified recovered at 14:51 and Issue #1405 closed.
+
+This source-only branch requires its own exact-head CI and PR acceptance;
+it is NOT permission to restart production or to claim release ready.
 
 ## 2026-10-15 — #1390: Protected production ffdefc recovered; Energy page login accepted
 
@@ -579,6 +612,8 @@ is included here. Both ARM64 packages stay immutable; no third build, target
 activation, database restore or controller write. Prior entries are historical.
 
 <!-- OFFLINE_SITE_CONTEXT_1341_END -->
+
+# NEXOLAB Current State
 
 <!-- PROTECTED_TRAVERSAL_1339_BEGIN -->
 

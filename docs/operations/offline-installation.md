@@ -14,6 +14,84 @@ This runbook covers a disconnected `LOCAL_LAN` installation of the NEXOLAB core:
 
 Hardware mode is unchanged and remains outside this Work Package.
 
+## Fail-closed Docker/physical-LAN IPv4 network isolation (#1406)
+
+The physical Raspberry Pi Ethernet LAN is `172.18.48.66/21`, but on
+2026-10-16 the running Docker `nexolab-edge_default` bridge was
+`172.18.0.0/16`. The Device Agent has a connected Docker route
+`172.18.0.0/16`: traffic addressed to physical devices in
+`172.18.48.0/21` may be sent into the Docker bridge instead of the
+physical LAN. This is a **verified overlap / routing defect**; its precise
+role in earlier Docker daemon sandbox restoration failures is **unproven**.
+
+Before accepting the Raspberry Pi offline runtime, execute the read-only
+network gate (no credentials, configuration writes or Docker changes):
+
+```bash
+python3 infrastructure/offline/verify-lan-docker-network-isolation.py
+```
+
+It queries the real host IPv4 interfaces and effective Docker bridge IPAM
+subnets, reports specific conflicting names/CIDRs and exits nonzero on
+overlap or missing/invalid inventory. The
+`scripts/verify-standalone-offline-raspberry-pi.sh` acceptance runner
+automatically requires this gate before the runtime/Modbus evidence stage.
+Only an explicitly disconnected `--require-loopback-only` acceptance
+may use `--allow-no-lan`; it independently checks the absence of a
+default route and physical uplink IPv4. Do not use this exception on the
+connected production Raspberry Pi.
+
+**Safe remediation is a separate protected change**, NOT this script:
+reserve a nonoverlapping Docker subnet based on the full physical LAN/VPN/
+future interface plan; validate the desired immutable Compose network/IPAM,
+existing container networks, named volumes, PostgreSQL/SQLite backups,
+rollback authority, serial mapping and actual site reachability. Plan a
+bounded maintenance window with the Product Owner for network recreation and
+source update. No live `docker network rm`, `docker network connect`,
+unreviewed host routing changes, `docker compose down`, volume deletion,
+or Modbus writes. After owner-approved controlled activation, prove private
+DNS, MQTT/API/DB readiness, actual Dashboard LAN port, all three real RS-485
+bus workers, fresh PostgreSQL writes, existing S3 images and offline reboot
+recovery **without filling historical telemetry gaps**. Continue #1399 for
+owner-guarded boot self-healing, #1400 for private object-storage health, and
+#1397 for application-level persisted ACK.
+
+## Object-storage private Docker reachability after restart
+
+A `running` S3-compatible VersityGW service can still be **unreachable**:
+Docker may lose the `minio` container's `central` network attachment and
+published port while leaving its existing named `central-object-storage-data`
+volume intact. NEXOLAB observed this failure on Raspberry Pi on 2026-10-16;
+the Telemetry API could not resolve the `minio` hostname, although its own
+MQTT/PostgreSQL readiness was healthy.
+
+The offline-package smoke now executes the **read-only** included
+`verify-packaged-object-storage-network.py` check. It verifies the installed
+Compose owner/service labels, running state, _actual_ private central Docker
+attachment and `minio` DNS alias, expected configured and published LAN port,
+then sends an unauthenticated GET to `http://minio:9000/health` **from the
+Telemetry API container**. No asset read/write, Docker network modification,
+credentials, cloud call, or image download is performed by this check.
+The gate exits nonzero when the broker/API remain healthy but private storage
+is detached. A false-positive host-local HTTP response cannot bypass it.
+
+Manual diagnostics (read-only, on an installed version matching the host):
+
+```bash
+python3 scripts/verify-packaged-object-storage-network.py \
+  --project nexolab-central \
+  --central-network nexolab-central \
+  --bind 127.0.0.1 --port 9000
+```
+
+Use the **actually approved bind/port** from the installed site's Compose
+configuration, not blindly the example above. Do not repair running site
+networking with `docker network connect`, Docker Compose `down`, or volume
+recreation. Object-storage activation has a **separate protected owner approval
+gate** from the earlier Dashboard/MQTT recovery; see Issue #1400.
+Real existing images/attachments must be validated after any separately
+approved correction.
+
 ## Local MQTT/API topology after restart
 
 The isolated LAN/offline installer now performs a **read-only network topology
