@@ -23,6 +23,20 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             self.assertIn('deployment_runtime', result['classes'])
             self.assertTrue(result['verification']['offline_bundle'])
 
+    def test_durable_receipt_contract_is_backend_only_not_runtime(self) -> None:
+        # A pure schema/validator has no live publisher, subscriber or DB
+        # migration. Do not make GitHub wait for unrelated production builds.
+        paths = [
+            "contracts/durable_receipt_v1.py",
+            "contracts/telemetry-durable-receipt.v1.schema.json",
+            "tests/test_durable_receipt_protocol.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["classes"], ["backend"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_state_only_is_lightweight(self) -> None:
         result = classify(
             [
