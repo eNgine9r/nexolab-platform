@@ -1,3 +1,28 @@
+## 2026-10-16 — #1399 owner-gated boot network observer prototype (source-only)
+
+Previously published #1406/PR #1407 merged into `main` at
+`6bb87b26d8e5781893b786e4a4a28faece426650` after **all required
+exact-head CI GREEN**; no Raspberry Pi software deployment was performed.
+The Raspberry Pi still has the physical Ethernet `172.18.48.0/21` /
+Docker bridge `172.18.0.0/16` overlap.
+
+Issue #1399 work starts on separate `feature/1399-offline-boot-network-observer`
+from the updated source main. Source-only read-only observer checks physical
+LAN conflict first, then protected installed package authority/manifest
+checksum, image digests, nonblocking update locks, Compose ownership, named
+volumes, current network membership and published port metadata.
+No automatic container action is available in this candidate.
+The real Pi reports `status=blocked` due to the correctly detected
+physical/Docker CIDR conflict; safe repair candidates only exist in fully
+offline mocked fixtures where all trust gates pass.
+
+Real site remains ffdefc accepted runtime with live Dashboard and
+PostgreSQL/MQTT/API, Device Agent 3/3 buses and 0 degraded endpoints.
+Privileged root authority checks, owner-controlled supervisor opt-in,
+actual Docker restore after reboot, VersityGW existing asset acceptance,
+and no-loss application-level ACK/replay (#1397) are **still pending**.
+No production change, firmware/Modbus write, reboot or network change.
+
 ## 2026-10-16 — #1406: prevent silent Docker/LAN subnet collision (source-only)
 
 Actual physical Raspberry Pi: `eth0=172.18.48.66/21`; Docker
