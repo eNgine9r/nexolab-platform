@@ -2680,6 +2680,17 @@
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_one_skip_PASS"
     },
+    "issue_1400_storage_detached": {
+      "real_minio_container": "running",
+      "actual_central_network": "missing",
+      "api_dns_minio": "failed",
+      "persistent_volume": "retained",
+      "source_gate_tests": "10_pass",
+      "real_site_mutation": "none",
+      "approved_owner_scope": "does_not_include_minio",
+      "offline_contract": "PASS",
+      "ci_policy_suite": "225_tests_1_skip_PASS"
+    },
     "issue_1399_readonly_observer": {
       "native_site_result": "blocked_physical_docker_cidr_conflict",
       "accepted_package_ffdefc": "installed_unchanged",

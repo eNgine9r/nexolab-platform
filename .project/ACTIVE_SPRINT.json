@@ -8841,6 +8841,26 @@
       }
     },
     {
+      "issue": 1400,
+      "title": "Detect detached packaged object-storage private network after reboot",
+      "branch": "fix/1400-offline-object-storage-network-gate",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
+      "evidence": {
+        "real_site_minio_network": "detached",
+        "actual_api_minio_DNS": "unavailable",
+        "source_unit_tests": "10_passed",
+        "real_site_readonly_probe": "not_ready_expected",
+        "prod_repair": "requires_separate_owner_approval",
+        "ci": "pending",
+        "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
+        "standalone_contract": "PASS_10_new_tests",
+        "ci_policy_tests": "225_tests_1_expected_skip"
+      }
+    },
+    {
       "issue": 1399,
       "title": "Guarded packaged Docker boot network recovery",
       "branch": "feature/1399-offline-boot-network-observer",
