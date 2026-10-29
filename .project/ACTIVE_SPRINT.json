@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1421,
-      "branch": "fix/1421-audit-packagekit-docker-updates"
+      "issue": 1423,
+      "branch": "fix/1423-boot-observer-oci-runtime-digests"
     },
     "next_work_package": null
   },
@@ -8882,7 +8882,7 @@
       "title": "Audit and gate PackageKit updates of Docker/containerd host packages",
       "branch": "fix/1421-audit-packagekit-docker-updates",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Read-only fail-closed audit of six Docker/containerd APT package holds and versions; follow-up protected owner-approved site policy separate; outage recovery owned by #1399 and CIDR #1409.",
       "permitted_paths": [
@@ -8899,9 +8899,36 @@
         "local_mock_tests": "8_passed",
         "python_compile": "passed",
         "native_pi_package_guard": "not_run",
-        "exact_head_ci": "pending",
+        "exact_head_ci": "success",
         "site_network_recovery": "blocked_requires_owner_approved_preflight",
-        "production_mutation": false
+        "production_mutation": false,
+        "pull_request_merged": 1422,
+        "merge_commit_observation": "3de9451e920c9a4f653a2d0780ccf16a80f085e3",
+        "host_package_policy_activation": "not_performed"
+      }
+    },
+    {
+      "issue": 1423,
+      "title": "Use immutable OCI runtime_digests in packaged boot observer",
+      "branch": "fix/1423-boot-observer-oci-runtime-digests",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Correct source-only network recovery observer to accept only image identities pinned in the immutable package runtime_digests and reject missing/foreign digests; no site mutation.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-packaged-boot-network.py",
+        "infrastructure/offline/tests/test_packaged_boot_network_observer.py",
+        "docs/operations/offline-installation.md",
+        ".project/**"
+      ],
+      "evidence": {
+        "parent_incident": 1399,
+        "prior_incorrect_check": "compared_docker_Image_only_to_manifest_image_id",
+        "targeted_unit_tests": "added_pending_actual_execution",
+        "native_operator_digest_check": "pending",
+        "exact_head_ci": "pending",
+        "production_mutation": false,
+        "hardware_acceptance": "unverified"
       }
     }
   ],
@@ -10373,6 +10400,25 @@
         "source_guard": "draft_source_only_eight_mock_tests_passed",
         "site_recovery": "not_performed_owner_approved_rollback_required",
         "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T17:17:19.369Z",
+      "kind": "issue_1423_readonly_oci_runtime_digest_membership",
+      "data": {
+        "issue": 1423,
+        "parent_incident": 1399,
+        "related_merged_prevention_issue": 1421,
+        "operator_manifest_marker_match": true,
+        "operator_source_match": true,
+        "operator_bundle_root_match": true,
+        "operator_scratch_image_id_comparison": "six_false_inadequate_test",
+        "source_root_cause": "boot_observer_used_single_image_id_instead_of_identity_runtime_digests",
+        "proper_site_image_membership": "unverified",
+        "backup_restore": "unverified",
+        "docker_network_recovery": "not_performed",
+        "site_cutover_authorized": false
       }
     }
   ],
