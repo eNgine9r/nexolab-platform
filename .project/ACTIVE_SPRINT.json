@@ -8953,7 +8953,7 @@
         "scripts/tests/standalone-offline-runtime-contract.sh"
       ],
       "evidence": {
-        "mock_test_cases_added": 17,
+        "mock_test_cases_added": 18,
         "local_tests": "not_run",
         "exact_head_ci": "pending",
         "actual_Raspberry_readonly_route_inventory": "blocked_remote_execution",
@@ -8966,9 +8966,10 @@
         "provisional_candidate": "172.26.0.0/24",
         "site_cidr_reservation": "unverified",
         "ipam_src_compatibility": "source_only_no_site_cutover",
-        "test_cases": 17,
+        "test_cases": 18,
         "initial_ci_format_failure": "runbook_prettier",
-        "next_ci": "pending"
+        "next_ci": "pending",
+        "unapproved_candidate_exit": "nonzero_fail_closed"
       }
     }
   ],
