@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T18:28:00Z",
+  "timestamp": "2026-10-29T18:38:00Z",
   "actor": "ChatGPT",
-  "event": "1409_edge_docker_ipam_readonly_inventory_source_only",
+  "event": "1409_owner_pi_all_routes_subnets_site_candidate_readonly",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1409,
     "branch": "feature/1409-edge-ipam-readonly-inventory",
-    "status": "source_only_inventory_and_fixture_tests_ci_pending_site_cutover_blocked",
+    "status": "read_only_site_routes_verified_local_candidate_unapproved_exact_head_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3858,9 +3858,39 @@
         "production_cutover_authorized": false,
         "hardware_acceptance": "unverified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:38:00Z",
+      "kind": "issue_1409_live_pi_route_ipam_inventory_oct29",
+      "data": {
+        "issue": 1409,
+        "host_eth0": "172.18.48.66/21",
+        "physical_lan": "172.18.48.0/21",
+        "docker_edge_bridge": "172.18.0.0/16",
+        "docker_other_bridges": [
+          "172.17.0.0/16",
+          "172.19.0.0/16",
+          "172.20.0.0/16",
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.23.0.0/16",
+          "172.24.0.0/16",
+          "172.25.0.0/16"
+        ],
+        "tailscale_address": "100.113.204.81/32",
+        "tailscale_routes": "seven_ipv4_host_routes_only_in_observed_table_52",
+        "provisional_candidate": "172.26.0.0/24",
+        "candidate_status": "locally_disjoint_not_site_approved",
+        "default_route": "172.18.48.1_via_eth0",
+        "runbook_prettier_failure": "corrected_source_new_ci_pending",
+        "backup_restore": "not_verified",
+        "site_activation": "not_performed",
+        "hardware_acceptance": "not_verified"
+      }
     }
   ],
-  "next_action": "Run exact-head CI for #1409 read-only IPAM inventory, collect physical Raspberry ip -j route table all and Docker network IPAM from reviewed source; select site-reserved nonconflicting CIDR only after VPN/host/site plan and independent backup/restore evidence; obtain separate owner approval for any network/site mutation. Continue #1399 after safe route fix.",
+  "next_action": "Complete exact-head PR #1425 CI/review and merge if GREEN. Use 172.26.0.0/24 only as an unapproved local candidate until site/VPN reservations, manifest-matched IPAM, verified current backup restore/rollback and separate owner approved cutover. Proceed with #1399 protected recovery only after safe network approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
