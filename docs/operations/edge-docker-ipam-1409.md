@@ -29,7 +29,7 @@ python3 infrastructure/offline/inspect-edge-docker-ipam-readiness.py \
   --reserved-cidr <OTHER_RESERVED_SITE_CIDR>
 ```
 
-A `candidate_unapproved` / `locally_disjoint_not_site_approved` result means **only** that the proposed subnet did not overlap networks visible in this snapshot. It is not proof of upstream allocations, VLAN/IPAM reservations, future VPN ads, or offline/post-reboot reachability; it cannot satisfy the release gate by itself. Unknown/inaccessible inventories, absent physical LAN, absent default route, absent edge bridge, missing IPAM, malformed route and occupied candidate all fail closed. Do not select a convenient `10.x` range on speculation.
+A `candidate_unapproved` / `locally_disjoint_not_site_approved` result means **only** that the proposed subnet did not overlap networks visible in this snapshot. It is not proof of upstream allocations, VLAN/IPAM reservations, future VPN ads, or offline/post-reboot reachability; it cannot satisfy the release gate by itself. Unknown/inaccessible inventories, absent physical LAN or its connected route, absent edge bridge, missing IPAM, malformed route and occupied candidate all fail closed. The default internet route is **not required** for local/offline LAN operation; its presence or absence is reported. Do not select a convenient `10.x` range on speculation.
 
 ## Protected production cutover — NOT authorized by this source-only work
 
