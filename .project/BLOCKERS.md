@@ -1,3 +1,7 @@
+## 2026-10-29 — P0 reboot and Docker network restoration blocked; PackageKit host policy activation separate
+
+Physical Raspberry Pi evidence: Dashboard LAN HTTP000, Dashboard/Telemetry/VersityGW Docker networks detached, MQTT/API network split, edge Agent unhealthy and Docker/physical LAN CIDR collision. Old sandbox faults at 16:39 preceded PackageKit-triggered Docker/containerd upgrade at 16:43; shim incompatibility was additionally observed during upgrade. Source-only #1421/PR #1422 audits APT holds without changing the host; full prevention requires separate reviewed owner-approved site policy. **No currently validated, accepted immutable-package network recovery procedure / backup and rollback gate has been verified for this latest boot.** Live recovery and CIDR migration (#1399/#1409), object-storage (#1400) require protected scope, exact identity/volume continuity and distinct Product Owner approval. Detached containers may be internally healthy; do not report live telemetry based on process health alone. No downgrade, Docker restart, arbitrary network reattach, broad Compose down, old systemd frontend enablement or Modbus write authorized.
+
 ## 2026-10-16 — #1399 protected automatic boot repair not yet authorized
 
 Source candidate observer is read-only; no systemd supervisor is installed

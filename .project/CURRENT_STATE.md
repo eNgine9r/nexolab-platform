@@ -1,3 +1,11 @@
+## 2026-10-29 — Recurrent P0 Docker network outage and #1421 PackageKit source guard
+
+Actual Raspberry Pi boot 16:38:36 EET. Docker stale/missing sandbox logs started 16:39:07 **before** the 16:43:39 `packagekit role='update-packages'` transaction requested under `nexolab` UID 1000. That transaction upgraded Docker 29.7.1→29.9.2 and containerd 2.2.6→2.4.2 while services ran; transient shim bootstrap API incompatibility followed at 16:44:26. Caller/application behind PackageKit remains unknown. Daemons restarted by 16:45:51 with no later priority=error journal entries in the sampled interval; this does **not** restore Docker networking.
+
+Confirmed on production: packaged Dashboard running/healthy internally but `Networks={}`, `Ports={}`, LAN localhost /login HTTP000; Telemetry API and VersityGW `Networks={}`; MQTT lacks central network, Telemetry API restarting, Device Agent unhealthy, physical LAN `172.18.48.0/21` overlaps Docker edge bridge `172.18.0.0/16`. PostgreSQL reported healthy, but no end-to-end new sample persistence or hardware acceptance proved. Incident recovery remains blocked on exact accepted immutable package/volume/backup/rollback proof and an explicitly approved protected site procedure (#1399, #1409, #1400).
+
+Source-only #1421 / Draft PR #1422 introduces stdlib read-only Docker/containerd PackageKit APT hold audit and 8 mocked passing tests, with an operator runbook. **No APT holds, Pi runtime repair, network changes, data/volume operations, service restarts or hardware writes were made.** Exact-head CI and native Pi source audit remain pending; do not claim production package-update policy enabled.
+
 ## 2026-10-16 — #1399 owner-gated boot network observer prototype (source-only)
 
 Previously published #1406/PR #1407 merged into `main` at
