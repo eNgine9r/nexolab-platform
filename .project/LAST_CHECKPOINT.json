@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T14:13:42+00:00",
+  "timestamp": "2026-10-29T16:26:16.476Z",
   "actor": "ChatGPT",
-  "event": "1399_guarded_boot_network_observer_source_only",
+  "event": "1421_packagekit_runtime_package_guard_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1399,
-    "branch": "feature/1399-offline-boot-network-observer",
-    "status": "source_observer_tests_in_progress_activation_blocked",
+    "issue": 1421,
+    "branch": "fix/1421-audit-packagekit-docker-updates",
+    "status": "draft_pr_1422_mock_tests_passed_ci_and_site_unverified",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3795,9 +3795,30 @@
         ],
         "state_only_runtime_mutation": false
       }
+    },
+    {
+      "source": "operator_read_only_and_github",
+      "observed_at": "2026-10-29T16:26:16.476Z",
+      "kind": "packagekit_docker_runtime_upgrade_20261029_and_source_guard_1421",
+      "data": {
+        "issue": 1421,
+        "pull_request": 1422,
+        "boot": "2026-10-29T16:38:36+02:00",
+        "docker_stale_sandboxes_started": "2026-10-29T16:39:07+02:00",
+        "packagekit_started": "2026-10-29T16:43:39+02:00",
+        "requested_by": "nexolab_uid_1000_caller_unverified",
+        "containerd_upgrade": "2.2.6_to_2.4.2",
+        "docker_upgrade": "29.7.1_to_29.9.2",
+        "shim_failure": "2026-10-29T16:44:26+02:00",
+        "site_dashboard": "HTTP000_network_detached",
+        "cidr_overlap": "physical_172.18.48.0_21_docker_172.18.0.0_16",
+        "source_guard": "draft_source_only_eight_mock_tests_passed",
+        "site_recovery": "not_performed_owner_approved_rollback_required",
+        "hardware_acceptance": "unverified"
+      }
     }
   ],
-  "next_action": "Run offline and exact-head CI on draft #1399 observer; design protected config-hash verified bounded actuator and secure owner opt-in only after safe CIDR migration and acceptance.",
+  "next_action": "Verify exact-head CI and review on draft PR #1422; run native Pi READ-ONLY host package guard; independently gate #1399/#1409 site recovery with immutable source, backups and owner authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
