@@ -1,47 +1,124 @@
-# #1409 — NEXOLAB Edge Docker IPAM: read-only site inventory and protected migration
+# NEXOLAB Edge Docker IPAM — Site Readiness #1409
 
-## Incident and accepted authority (2026-10-29)
+## Verified production evidence
 
-The Raspberry Pi physical `eth0=172.18.48.66/21` (LAN `172.18.48.0/21`) overlaps Docker `nexolab-edge_default=172.18.0.0/16` with `172.18.0.1` gateway. This is a proven routing ambiguity, **not** proven to be the sole cause of Docker's stale sandbox faults after reboot. Dashboard, Telemetry API and VersityGW have no Docker networks; MQTT is only attached to `nexolab-standalone-runtime`, PostgreSQL has central, Device Agent has edge and standalone. All six actual Docker image IDs match the digest sets of the accepted `ffdefc4550d71e211724de1154ffe9057f905c9c` offline package; its manifest marker SHA and source match. Current and previous package catalog directories and named volumes exist. This is **not** evidence that all database samples or existing S3 assets are available or backed up today.
+On 2026-10-29, the Raspberry Pi had these IPv4 networks:
 
-Issue #1399 owns the original boot/sandbox recovery, #1400 object-storage, #1397 telemetry persistence and #1421 PackageKit policy. This #1409 read-only stage does **not** modify Docker or fix the outage.
+| Component | Network |
+| --- | --- |
+| Physical LAN on eth0 | `172.18.48.0/21` |
+| Docker edge bridge | `172.18.0.0/16` |
+| Other Docker bridges | `172.17.0.0/16`, `172.19.0.0/16` through `172.25.0.0/16` |
+| Local Tailscale host address | `100.113.204.81/32` |
 
-## Inventory — source-only read-only step
+The edge Docker bridge overlaps the physical LAN.
+This is a confirmed configuration defect.
+It does not prove the root cause of the Docker sandbox failures.
 
-Use the exact reviewed branch/commit. Do not copy scripts from an old Raspberry Pi checkout (`main` was observed behind `origin/main`). The script requires Python 3 standard library, `iproute2`, and local Docker CLI permissions; it does not need internet or elevated writes.
+Six running container image IDs match the accepted offline
+`ffdefc4550d71e211724de1154ffe9057f905c9c` package.
+The current manifest marker, source and package root match.
+Current and previous catalog directories exist.
+Expected named Docker volumes are present.
+
+Dashboard, Telemetry API and VersityGW have no Docker networks.
+MQTT has only the standalone network.
+PostgreSQL remains on the central network.
+The Device Agent has edge and standalone networks.
+
+The installed Version Manager records `health=ready`, but
+the site is not operationally healthy.
+A listed backup file is not proof of successful restoration.
+
+## Read-only inventory
+
+Use only the reviewed branch or an exact validated source revision.
+The Raspberry checkout was observed 23 commits behind remote `main`.
+Do not run an unverified copy from the old checkout.
+
+The stdlib Python script requires `iproute2` and Docker CLI access.
+It works without internet and does not require runtime mutation.
 
 ```bash
 python3 infrastructure/offline/inspect-edge-docker-ipam-readiness.py
 ```
 
-This reads only:
-- `ip -j -4 addr show`;
-- `ip -j -4 route show table all` (including non-main VPN/policy tables);
-- `docker network ls --quiet` and `docker network inspect <listed ID...>`.
+It executes only these local commands:
 
-The sanitized JSON reports physical and virtual IPv4 subnets, routed IPv4 destinations, Docker bridge subnets, the current physical-versus-Docker conflict and the explicit flags `read_only=true`, `mutation_performed=false`, `site_cutover_authorized=false`. A current conflict exits nonzero. This script prints **no Docker environment, tokens, passwords, service logs, database values, MAC addresses, personal VPN peers or route gateways**.
+- `ip -j -4 addr show`
+- `ip -j -4 route show table all`
+- `docker network ls --quiet`
+- `docker network inspect` for the listed network IDs
 
-No target subnet is approved yet. After the site administrator inventories full site topology and **explicitly reserves** a candidate with LAN/VLAN/VPN administrators, the script can evaluate that specific candidate read-only:
+The sanitized JSON reports physical and virtual IPv4 networks,
+all route destinations and Docker bridge IPAM.
+It reports `read_only=true`, `mutation_performed=false` and
+`site_cutover_authorized=false`.
+
+The script does not expose service environment values, credentials,
+database contents, MAC addresses, VPN peer identities or route gateways.
+The local default internet route is optional for LOCAL_LAN operation.
+A connected physical LAN route remains required.
+
+## Candidate subnet
+
+The site route inventory showed no local overlap for the **provisional**
+candidate `172.26.0.0/24`.
+This is not an approved allocation.
+It may still conflict with upstream VLAN, VPN or future LAN reservations.
+
+Only after checking those reservations may an operator assess the
+specific candidate without modifying any network:
 
 ```bash
 python3 infrastructure/offline/inspect-edge-docker-ipam-readiness.py \
-  --candidate <SITE_RESERVED_RFC1918_CIDR> \
-  --reserved-cidr <OTHER_RESERVED_SITE_CIDR>
+  --candidate 172.26.0.0/24
 ```
 
-A `candidate_unapproved` / `locally_disjoint_not_site_approved` result means **only** that the proposed subnet did not overlap networks visible in this snapshot. It is not proof of upstream allocations, VLAN/IPAM reservations, future VPN ads, or offline/post-reboot reachability; it cannot satisfy the release gate by itself. Unknown/inaccessible inventories, absent physical LAN or its connected route, absent edge bridge, missing IPAM, malformed route and occupied candidate all fail closed. The default internet route is **not required** for local/offline LAN operation; its presence or absence is reported. Do not select a convenient `10.x` range on speculation.
+Include each site-reserved range using `--reserved-cidr`.
+The tool does not select, allocate or activate an IP subnet.
 
-## Protected production cutover — NOT authorized by this source-only work
+The result `candidate_unapproved` only proves local disjointness
+within the supplied inventory and reservation list.
+It does not grant permission for site deployment.
 
-Before proposing a concrete owner-reviewed migration command:
-1. Collect and retain sanitized current IPv4 addresses, **all routing tables**, every Docker bridge/IPAM, Tailscale-advertised subnets and confirmed future site reservations. Confirm owner and administrators have physical LAN access for rollback if remote network access fails.
-2. Verify the root-protected current immutable package identity, manifest and six runtime digests; immutable Compose network/IPAM file hashes, exact current container IDs, project labels, network names, labels/aliases, ports and published host bindings. Resolve necessary network ownership in the *installed* package, not only in source checkout.
-3. Verify actual PostgreSQL, edge SQLite, MQTT spool and VersityGW *named volume identities*; inventory and independently **restore-test a recent consistent backup in an isolated disposable environment** before changing live production. A directory listing of 2026-10-14 dumps does not prove a recoverable October 29 state.
-4. Verify no Version Manager operations or acquisition migrations are running; verify serial-by-id bus and read-only Modbus baseline, local-auth, frontend gateway, dashboard and admin access policies.
-5. Prepare deterministic exact accepted-image Compose change for *only the edge bridge*, a checksum-pinned owner-local dry-run, a reversible restoration of the original bridge/IPAM and original container attachments, hard time bounds and fail-closed halt conditions. No broad Docker network connect, global default-address-pools changes, Compose down, volume removal, daemon restart or live cutover on assumptions.
-6. Obtain **separate explicit Product Owner approval of the exact, reviewed, snapshot-bound site operation**. A general "continue" instruction is not authorization for the cutover, especially with the current Docker/LAN collision and unavailable verified backup restore.
-7. During separately approved maintenance, independently verify the physical LAN route, MQTT → API → PostgreSQL newly persisted samples, existing PostgreSQL rows, retained edge SQLite/outbox, three actual RS-485 read-only workers, Chromium LAN Dashboard login, existing VersityGW assets, rollback readiness, and offline/post-reboot behavior. Never infer telemetry continuity from process health, fill data gaps, or claim hardware acceptance from mock data.
+## Protected change gate — not activated
 
-## Safe failures and scope
+Before any production network migration, establish all of the following:
 
-Missing local inventory, a conflicting candidate, unknown upstream reservations, missing rollback assets, active update lock, inadequate recent backup, stale immutable authority or missing physical recovery contact must stop before production mutation. The read-only script has **no** `--execute`, no network setter and no operator approval bypass. Its source tests use isolated mocked data only; native site acceptance and offline reboot have not been performed in this stage.
+- Actual full LAN, VLAN, VPN and Docker route inventory.
+- Site administrator reservation of a nonoverlapping target CIDR.
+- Exact protected immutable package and Compose configuration hashes.
+- Matching running container identities, labels, images and ports.
+- Preserved PostgreSQL, SQLite, MQTT and VersityGW volume identities.
+- A recent consistent backup with a successful isolated restore test.
+- Safe rollback to the exact previous Docker IPAM and container topology.
+- No active Version Manager update or acquisition operation.
+- Stable serial-by-id RS-485 identities and read-only baseline.
+- Owner physical access if the remote network becomes unreachable.
+- Explicit Product Owner approval for the reviewed site procedure.
+
+A source-only successful test does not satisfy these production gates.
+
+The protected activation must target only the intended edge network.
+Do not modify Docker global address pools.
+Do not use blind `docker network connect` or `docker compose down`.
+Do not remove volumes, downgrade Docker or restart daemons on assumptions.
+Do not perform Modbus or hardware writes.
+
+After an independently approved activation, prove LAN routing,
+MQTT to API to PostgreSQL persistence, existing SQL and S3 data,
+three real RS-485 read-only buses, Chromium Dashboard login,
+local authentication, offline operation and rollback readiness.
+Do not reconstruct historical telemetry gaps or infer live health
+from the internal container process state alone.
+
+## Related work
+
+- #1399: protected post-boot recovery.
+- #1400: private VersityGW network reachability.
+- #1397: durable central telemetry acknowledgements.
+- #1421: PackageKit update policy.
+
+This Work Package is a read-only inventory and test stage.
+No production network, database or hardware change is authorized.
