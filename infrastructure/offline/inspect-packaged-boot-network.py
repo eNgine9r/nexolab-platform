@@ -66,7 +66,7 @@ def read_object(path: Path) -> dict[str, Any]:
     return obj
 
 
-def validate_authority(root: Path) -> dict[str, str]:
+def validate_authority(root: Path) -> dict[str, frozenset[str]]:
     # No symlink traversal into a new release root or arbitrary user-supplied
     # bundle. Only the installed trusted catalog path is accepted.
     require(root.is_dir() and not root.is_symlink(), "protected_root_unavailable")
@@ -104,18 +104,29 @@ def validate_authority(root: Path) -> dict[str, str]:
     )
     images = manifest.get("images")
     require(isinstance(images, list), "installed_image_inventory_missing")
-    hashes = {
-        obj["id"]: obj["image_id"]
-        for obj in images
-        if isinstance(obj, dict)
-        and isinstance(obj.get("id"), str)
-        and isinstance(obj.get("image_id"), str)
-    }
-    require(
-        all(x in hashes and re.fullmatch(r"sha256:[0-9a-f]{64}", hashes[x])
-            for x in IMAGE_ROLES.values()),
-        "immutable_image_inventory_incomplete",
-    )
+    # A validated OCI package may expose the same pinned image via a config,
+    # manifest or index digest. The normal recovery verifier uses the archive's
+    # complete runtime_digests contract, not only its config image_id.
+    hashes: dict[str, frozenset[str]] = {}
+    for item in images:
+        require(isinstance(item, dict), "immutable_image_inventory_incomplete")
+        role, config_digest = item.get("id"), item.get("image_id")
+        identity = item.get("identity")
+        runtime = identity.get("runtime_digests") if isinstance(identity, dict) else None
+        require(isinstance(role, str) and role not in hashes
+                and isinstance(config_digest, str)
+                and re.fullmatch(r"sha256:[0-9a-f]{64}", config_digest) is not None,
+                "immutable_image_inventory_incomplete")
+        require(isinstance(runtime, list) and bool(runtime)
+                and all(isinstance(digest, str)
+                        and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+                        for digest in runtime)
+                and len(set(runtime)) == len(runtime)
+                and config_digest in runtime,
+                "immutable_runtime_digests_invalid")
+        hashes[role] = frozenset(runtime)
+    require(all(x in hashes for x in IMAGE_ROLES.values()),
+            "immutable_image_inventory_incomplete")
     previous = current.get("previous_bundle_id")
     if previous is not None:
         require(
@@ -162,7 +173,7 @@ def inspect_docker(name: str, kind: str = "container") -> dict[str, Any]:
 
 
 def diagnose_containers(
-    expected_images: dict[str, str],
+    expected_images: dict[str, frozenset[str]],
     inspect: Callable[[str, str], dict[str, Any]] = inspect_docker,
 ) -> dict[str, Any]:
     drift: list[dict[str, str]] = []
@@ -177,7 +188,7 @@ def diagnose_containers(
             and labels.get("com.docker.compose.service") == expected_service,
             f"container_compose_identity_untrusted_{role}",
         )
-        require(obj.get("Image") == expected_images[IMAGE_ROLES[role]],
+        require(obj.get("Image") in expected_images[IMAGE_ROLES[role]],
                 f"container_image_drift_{role}")
         expected_volume_names = EXPECTED_VOLUMES.get(role, set())
         actual_volume_names = {
@@ -242,7 +253,7 @@ def inspect_host_cidr() -> None:
 
 def run(root: Path, *,
         cidr_check: Callable[[], None] = inspect_host_cidr,
-        authority: Callable[[Path], dict[str, str]] = validate_authority,
+        authority: Callable[[Path], dict[str, frozenset[str]]] = validate_authority,
         locks: Callable[[Path], None] = check_update_locks,
         inspect: Callable[[str, str], dict[str, Any]] = inspect_docker) -> dict[str, Any]:
     # CIDR is the first fail-closed gate; never propose a repair with the
