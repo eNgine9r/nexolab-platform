@@ -8949,7 +8949,8 @@
         ".project/CURRENT_STATE.md",
         ".project/ACTIVE_SPRINT.json",
         ".project/BLOCKERS.md",
-        ".project/LAST_CHECKPOINT.json"
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/tests/standalone-offline-runtime-contract.sh"
       ],
       "evidence": {
         "mock_test_cases_added": 16,
@@ -8958,7 +8959,8 @@
         "actual_Raspberry_readonly_route_inventory": "blocked_remote_execution",
         "docker_network_cutover": "not_performed",
         "backup_restore": "unverified",
-        "site_owner_approval": false
+        "site_owner_approval": false,
+        "ci_test_runner": "scripts/tests/standalone-offline-runtime-contract.sh executes 16 isolated tests"
       }
     }
   ],
