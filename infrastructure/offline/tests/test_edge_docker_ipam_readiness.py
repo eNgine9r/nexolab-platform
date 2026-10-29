@@ -27,6 +27,7 @@ ROUTES = [
     {"dst": "172.18.48.0/21", "dev": "eth0"},
     {"dst": "172.18.0.0/16", "dev": "br-edge"},
     {"dst": "100.100.0.0/16", "dev": "tailscale0", "table": "52"},
+    {"dst": "10.55.0.0/16", "dev": "tailscale0", "table": "52"},
 ]
 DOCKER = [
     {"Name": "nexolab-edge_default", "Driver": "bridge", "IPAM": {
@@ -68,7 +69,7 @@ class IpamReadOnlyTests(unittest.TestCase):
         self.assertEqual(result["status"], "candidate_conflict")
 
     def test_proposal_cannot_overlap_vpn_route(self):
-        result = analyze(candidate="100.100.20.0/24")
+        result = analyze(candidate="10.55.20.0/24")
         self.assertEqual(result["candidate_status"], "conflict")
         self.assertTrue(any(x["source"].startswith("route:tailscale")
                             for x in result["candidate_conflicts"]))
