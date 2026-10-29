@@ -8961,7 +8961,14 @@
         "backup_restore": "unverified",
         "site_owner_approval": false,
         "ci_test_runner": "scripts/tests/standalone-offline-runtime-contract.sh executes 16 isolated tests",
-        "offline_lan_without_default_route": "covered_by_regression"
+        "offline_lan_without_default_route": "covered_by_regression",
+        "actual_pi_route_inventory": "received_from_owner_2026_10_29_20_22_eet",
+        "provisional_candidate": "172.26.0.0/24",
+        "site_cidr_reservation": "unverified",
+        "ipam_src_compatibility": "source_only_no_site_cutover",
+        "test_cases": 17,
+        "initial_ci_format_failure": "runbook_prettier",
+        "next_ci": "pending"
       }
     }
   ],
@@ -10475,6 +10482,36 @@
         "site_reserved_cidr": "not_selected",
         "production_cutover_authorized": false,
         "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:38:00Z",
+      "kind": "issue_1409_live_pi_route_ipam_inventory_oct29",
+      "data": {
+        "issue": 1409,
+        "host_eth0": "172.18.48.66/21",
+        "physical_lan": "172.18.48.0/21",
+        "docker_edge_bridge": "172.18.0.0/16",
+        "docker_other_bridges": [
+          "172.17.0.0/16",
+          "172.19.0.0/16",
+          "172.20.0.0/16",
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.23.0.0/16",
+          "172.24.0.0/16",
+          "172.25.0.0/16"
+        ],
+        "tailscale_address": "100.113.204.81/32",
+        "tailscale_routes": "seven_ipv4_host_routes_only_in_observed_table_52",
+        "provisional_candidate": "172.26.0.0/24",
+        "candidate_status": "locally_disjoint_not_site_approved",
+        "default_route": "172.18.48.1_via_eth0",
+        "runbook_prettier_failure": "corrected_source_new_ci_pending",
+        "backup_restore": "not_verified",
+        "site_activation": "not_performed",
+        "hardware_acceptance": "not_verified"
       }
     }
   ],
