@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import json
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "inspect-edge-docker-ipam-readiness.py"
@@ -96,6 +97,10 @@ class IpamReadOnlyTests(unittest.TestCase):
         self.assertEqual(result["status"], "existing_cidr_conflict")
         self.assertEqual(result["default_routes_present"], 0)
         self.assertFalse(result["site_cutover_authorized"])
+
+    def test_unapproved_locally_free_cidr_cannot_be_a_green_exit(self):
+        with patch.object(module, "collect", return_value=(ADDR, ROUTES, DOCKER)):
+            self.assertEqual(module.main(["--candidate", "172.26.0.0/24"]), 1)
 
     def test_missing_connected_physical_lan_route_fails_closed(self):
         with self.assertRaisesRegex(module.InventoryBlocked, "physical_lan_route_missing"):
