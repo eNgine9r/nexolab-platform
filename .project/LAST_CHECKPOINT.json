@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T17:17:19.369Z",
+  "timestamp": "2026-10-29T18:28:00Z",
   "actor": "ChatGPT",
-  "event": "1423_boot_observer_oci_runtime_digests_source_only",
+  "event": "1409_edge_docker_ipam_readonly_inventory_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1423,
-    "branch": "fix/1423-boot-observer-oci-runtime-digests",
-    "status": "source_fix_tests_added_ci_and_native_site_unverified",
+    "issue": 1409,
+    "branch": "feature/1409-edge-ipam-readonly-inventory",
+    "status": "source_only_inventory_and_fixture_tests_ci_pending_site_cutover_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3835,9 +3835,32 @@
         "docker_network_recovery": "not_performed",
         "site_cutover_authorized": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:28:00Z",
+      "kind": "1409_site_ipam_readonly_inventory_stage1",
+      "data": {
+        "issue": 1409,
+        "source_only": true,
+        "pi_image_identity": "6_of_6_accepted_runtime_digests",
+        "protected_manifest": "sha_source_bundle_root_verified",
+        "current_pi_lan": "172.18.48.0/21",
+        "current_edge_bridge": "172.18.0.0/16",
+        "dashboard_api_storage": "networks_detached",
+        "mqtt": "central_attachment_missing",
+        "rollback_package": "catalog_present_not_restore_tested",
+        "last_visible_large_backup": "2026-10-14_no_current_restore_proof",
+        "remote_commander": "limit_exhausted",
+        "nexus_execution": "handler_failed",
+        "local_actual_route_inventory": "not_collected",
+        "site_reserved_cidr": "not_selected",
+        "production_cutover_authorized": false,
+        "hardware_acceptance": "unverified"
+      }
     }
   ],
-  "next_action": "Verify exact-head CI for #1423; run native Pi read-only membership against manifest identity.runtime_digests; preserve #1399/#1409 recovery owner gate, confirm fresh backed-up data and rollback before any site mutation.",
+  "next_action": "Run exact-head CI for #1409 read-only IPAM inventory, collect physical Raspberry ip -j route table all and Docker network IPAM from reviewed source; select site-reserved nonconflicting CIDR only after VPN/host/site plan and independent backup/restore evidence; obtain separate owner approval for any network/site mutation. Continue #1399 after safe route fix.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
