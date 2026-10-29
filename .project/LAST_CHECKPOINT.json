@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T16:26:16.476Z",
+  "timestamp": "2026-10-29T17:17:19.369Z",
   "actor": "ChatGPT",
-  "event": "1421_packagekit_runtime_package_guard_source_only",
+  "event": "1423_boot_observer_oci_runtime_digests_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1421,
-    "branch": "fix/1421-audit-packagekit-docker-updates",
-    "status": "draft_pr_1422_mock_tests_passed_ci_and_site_unverified",
+    "issue": 1423,
+    "branch": "fix/1423-boot-observer-oci-runtime-digests",
+    "status": "source_fix_tests_added_ci_and_native_site_unverified",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3816,9 +3816,28 @@
         "site_recovery": "not_performed_owner_approved_rollback_required",
         "hardware_acceptance": "unverified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T17:17:19.369Z",
+      "kind": "issue_1423_readonly_oci_runtime_digest_membership",
+      "data": {
+        "issue": 1423,
+        "parent_incident": 1399,
+        "related_merged_prevention_issue": 1421,
+        "operator_manifest_marker_match": true,
+        "operator_source_match": true,
+        "operator_bundle_root_match": true,
+        "operator_scratch_image_id_comparison": "six_false_inadequate_test",
+        "source_root_cause": "boot_observer_used_single_image_id_instead_of_identity_runtime_digests",
+        "proper_site_image_membership": "unverified",
+        "backup_restore": "unverified",
+        "docker_network_recovery": "not_performed",
+        "site_cutover_authorized": false
+      }
     }
   ],
-  "next_action": "Verify exact-head CI and review on draft PR #1422; run native Pi READ-ONLY host package guard; independently gate #1399/#1409 site recovery with immutable source, backups and owner authorization.",
+  "next_action": "Verify exact-head CI for #1423; run native Pi read-only membership against manifest identity.runtime_digests; preserve #1399/#1409 recovery owner gate, confirm fresh backed-up data and rollback before any site mutation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
