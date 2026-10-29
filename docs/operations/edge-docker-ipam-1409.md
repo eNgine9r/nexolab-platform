@@ -80,6 +80,7 @@ The tool does not select, allocate or activate an IP subnet.
 
 The result `candidate_unapproved` only proves local disjointness
 within the supplied inventory and reservation list.
+It deliberately exits nonzero to prevent a false green deployment gate.
 It does not grant permission for site deployment.
 
 ## Protected change gate — not activated
