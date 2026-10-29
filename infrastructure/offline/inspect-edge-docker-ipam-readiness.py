@@ -119,8 +119,12 @@ def analyze(
             continue
         route = ipv4(dst, "route_destination")
         known_routes.append((str(item.get("dev") or item.get("table") or "route"), route))
-    if default_count == 0:
-        raise InventoryBlocked("default_route_missing")
+    # Offline LOCAL_LAN operation must not depend on an internet/default route.
+    # The actual connected physical-LAN route must still be present.
+    if any(not any(dev == iface and route.overlaps(lan)
+                   for dev, route in known_routes)
+           for iface, lan in physical):
+        raise InventoryBlocked("physical_lan_route_missing")
     bridges: list[tuple[str, ipaddress.IPv4Network]] = []
     target_found = False
     for item in docker_networks:
