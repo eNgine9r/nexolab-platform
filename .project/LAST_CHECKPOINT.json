@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T18:38:00Z",
+  "timestamp": "2026-10-29T18:48:00Z",
   "actor": "ChatGPT",
-  "event": "1409_owner_pi_all_routes_subnets_site_candidate_readonly",
+  "event": "1409_provisional_cidr_unapproved_nonzero_exit_guard",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1409,
     "branch": "feature/1409-edge-ipam-readonly-inventory",
-    "status": "read_only_site_routes_verified_local_candidate_unapproved_exact_head_ci_pending",
+    "status": "source_only_18_isolated_tests_fail_closed_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3890,7 +3890,7 @@
       }
     }
   ],
-  "next_action": "Complete exact-head PR #1425 CI/review and merge if GREEN. Use 172.26.0.0/24 only as an unapproved local candidate until site/VPN reservations, manifest-matched IPAM, verified current backup restore/rollback and separate owner approved cutover. Proceed with #1399 protected recovery only after safe network approval.",
+  "next_action": "Verify exact-head CI, offline bundle and telemetry for PR #1425 after Prettier/runbook and unapproved-candidate nonzero fix; merge only when GREEN. Site IPAM migration remains blocked on upstream CIDR reservation, independent fresh backup restore, protected rollback and explicit Product Owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
