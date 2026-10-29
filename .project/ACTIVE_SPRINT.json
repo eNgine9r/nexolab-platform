@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1399,
-      "branch": "feature/1399-offline-boot-network-observer"
+      "issue": 1421,
+      "branch": "fix/1421-audit-packagekit-docker-updates"
     },
     "next_work_package": null
   },
@@ -420,7 +420,28 @@
               "kind": "accepted_merge",
               "sha": "4d206988c6da195a5ac9abaa42994f584c3e4d10",
               "observed_at": "2026-10-11T17:22:29Z"
-            }
+            },
+    {
+      "source": "operator_read_only_and_github",
+      "observed_at": "2026-10-29T16:26:16.476Z",
+      "kind": "packagekit_docker_runtime_upgrade_20261029_and_source_guard_1421",
+      "data": {
+        "issue": 1421,
+        "pull_request": 1422,
+        "boot": "2026-10-29T16:38:36+02:00",
+        "docker_stale_sandboxes_started": "2026-10-29T16:39:07+02:00",
+        "packagekit_started": "2026-10-29T16:43:39+02:00",
+        "requested_by": "nexolab_uid_1000_caller_unverified",
+        "containerd_upgrade": "2.2.6_to_2.4.2",
+        "docker_upgrade": "29.7.1_to_29.9.2",
+        "shim_failure": "2026-10-29T16:44:26+02:00",
+        "site_dashboard": "HTTP000_network_detached",
+        "cidr_overlap": "physical_172.18.48.0_21_docker_172.18.0.0_16",
+        "source_guard": "draft_source_only_eight_mock_tests_passed",
+        "site_recovery": "not_performed_owner_approved_rollback_required",
+        "hardware_acceptance": "unverified"
+      }
+    }
           ]
         }
       }
@@ -8875,6 +8896,33 @@
         "automated_site_repair": "not_authorized_not_enabled",
         "exact_head_ci": "pending",
         "manual_only_postgres_or_hardware_agent": "enforced"
+      }
+    },
+    {
+      "issue": 1421,
+      "title": "Audit and gate PackageKit updates of Docker/containerd host packages",
+      "branch": "fix/1421-audit-packagekit-docker-updates",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only fail-closed audit of six Docker/containerd APT package holds and versions; follow-up protected owner-approved site policy separate; outage recovery owned by #1399 and CIDR #1409.",
+      "permitted_paths": [
+        "scripts/verify-host-container-runtime-package-policy.py",
+        "scripts/tests/test_host_container_runtime_package_policy.py",
+        "docs/operations/host-container-runtime-package-policy.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "pull_request": 1422,
+        "local_mock_tests": "8_passed",
+        "python_compile": "passed",
+        "native_pi_package_guard": "not_run",
+        "exact_head_ci": "pending",
+        "site_network_recovery": "blocked_requires_owner_approved_preflight",
+        "production_mutation": false
       }
     }
   ],
