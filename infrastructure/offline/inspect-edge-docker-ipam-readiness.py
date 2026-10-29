@@ -171,7 +171,12 @@ def analyze(
     }
     if candidate is not None:
         proposal = ipv4(candidate, "candidate")
-        if not proposal.is_private or proposal.is_loopback or proposal.is_link_local or proposal.prefixlen < 24:
+        rfc1918 = (
+            ipaddress.IPv4Network("10.0.0.0/8"),
+            ipaddress.IPv4Network("172.16.0.0/12"),
+            ipaddress.IPv4Network("192.168.0.0/16"),
+        )
+        if proposal.prefixlen < 24 or not any(proposal.subnet_of(net) for net in rfc1918):
             raise InventoryBlocked("unsafe_candidate_scope")
         explicit = [ipv4(value, "reserved_cidr") for value in reserved]
         constraints = [
