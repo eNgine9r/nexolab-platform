@@ -216,8 +216,9 @@ def main(argv: list[str] | None = None) -> int:
         report = {"status": "blocked", "reason": str(exc), "read_only": True,
                   "mutation_performed": False, "site_cutover_authorized": False}
     print(json.dumps(report, sort_keys=True))
-    # No result, including locally disjoint, is approval to change a site network.
-    return 1 if report["status"] in {"blocked", "candidate_conflict", "existing_cidr_conflict"} else 0
+    # A locally disjoint candidate is never an approved live network.
+    # Prevent CI/operators from treating candidate_unapproved as a green gate.
+    return 0 if report["status"] == "inventory_collected" else 1
 
 
 if __name__ == "__main__":
