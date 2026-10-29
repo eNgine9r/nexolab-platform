@@ -91,9 +91,15 @@ class IpamReadOnlyTests(unittest.TestCase):
         self.assertFalse(result["site_reservations_verified"])
         self.assertFalse(result["site_cutover_authorized"])
 
-    def test_missing_default_route_fails_closed(self):
-        with self.assertRaisesRegex(module.InventoryBlocked, "default_route_missing"):
-            analyze(routes=ROUTES[1:])
+    def test_local_lan_without_default_route_is_supported_offline(self):
+        result = analyze(routes=ROUTES[1:])
+        self.assertEqual(result["status"], "existing_cidr_conflict")
+        self.assertEqual(result["default_routes_present"], 0)
+        self.assertFalse(result["site_cutover_authorized"])
+
+    def test_missing_connected_physical_lan_route_fails_closed(self):
+        with self.assertRaisesRegex(module.InventoryBlocked, "physical_lan_route_missing"):
+            analyze(routes=[{"dst": "10.55.0.0/16", "dev": "tailscale0"}])
 
     def test_empty_routes_or_docker_fails_closed(self):
         for routes, docker in (([], DOCKER), (ROUTES, [])):
