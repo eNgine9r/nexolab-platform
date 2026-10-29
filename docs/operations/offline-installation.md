@@ -122,7 +122,18 @@ protected Version Manager `current.json`, checks exact accepted catalog
 bundle/source/platform/manifest marker and complete immutable image digest
 inventory, tries nonblocking shared update locks, and verifies the running
 containers' exact Compose labels, image identities, named volumes, required
-network membership and published ports. It never prints credentials or
+network membership and published ports. It validates every image against the immutable bundle's
+`identity.runtime_digests` set (OCI config/manifest/index digests) rather
+than requiring that the live `docker inspect .Image` equal only the manifest's
+single `image_id`. A digest must be both syntactically valid and pinned in
+that manifest; unexpected images still block. A 2026-10-29 ad-hoc comparison
+against only `image_id` returned six `False` readings on the live Pi,
+but that test is **not** evidence of image replacement until the complete
+`runtime_digests` membership is checked. Confirm the native IDs read-only
+before planning any protected network recovery; never adjust or re-tag an image
+merely to silence this guard.
+
+It never prints credentials or
 service environment. It computes a **candidate** order (MQTT, Telemetry API,
 Dashboard, VersityGW) without executing any recovery.
 
