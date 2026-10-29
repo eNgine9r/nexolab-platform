@@ -18,6 +18,9 @@ IMAGES = {role: "sha256:" + format(index, "064x")
               ("mqtt", "postgres", "object-storage", "telemetry-service", "dashboard", "device-agent"), 1)}
 
 
+IMAGE_SETS = {role: frozenset({digest}) for role, digest in IMAGES.items()}
+
+
 def fixture():
     items = {}
     for role, name in module.CONTAINER_NAMES.items():
@@ -50,7 +53,7 @@ def inspector(objects):
 class BootObserverUnitTests(unittest.TestCase):
     def test_ready_host_does_not_need_changes(self):
         result = module.run(Path("/unused"), cidr_check=lambda: None,
-                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            authority=lambda _: IMAGE_SETS, locks=lambda _: None,
                             inspect=inspector(fixture()))
         self.assertEqual(result["status"], "ready")
         self.assertEqual(result["candidate_order"], [])
@@ -63,7 +66,7 @@ class BootObserverUnitTests(unittest.TestCase):
             item["NetworkSettings"]["Networks"] = {}
             item["NetworkSettings"]["Ports"] = {}
         result = module.run(Path("/unused"), cidr_check=lambda: None,
-                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            authority=lambda _: IMAGE_SETS, locks=lambda _: None,
                             inspect=inspector(objects))
         self.assertEqual(result["status"], "drift_detected")
         self.assertEqual(result["candidate_order"], ["mqtt", "telemetry-service", "dashboard", "minio"])
@@ -83,25 +86,39 @@ class BootObserverUnitTests(unittest.TestCase):
         objects = fixture()
         objects[module.CONTAINER_NAMES["mqtt"]]["Image"] = "sha256:" + "a" * 64
         with self.assertRaisesRegex(module.BootGuardError, "container_image_drift_mqtt"):
-            module.diagnose_containers(IMAGES, inspector(objects))
+            module.diagnose_containers(IMAGE_SETS, inspector(objects))
+
+    def test_oci_manifest_digest_is_accepted_when_pinned(self):
+        objects = fixture()
+        alternate = "sha256:" + "c" * 64
+        objects[module.CONTAINER_NAMES["dashboard"]]["Image"] = alternate
+        expected = {**IMAGE_SETS, "dashboard": frozenset({IMAGES["dashboard"], alternate})}
+        result = module.diagnose_containers(expected, inspector(objects))
+        self.assertEqual(result["container_drift"], [])
+
+    def test_unpinned_oci_manifest_digest_is_rejected(self):
+        objects = fixture()
+        objects[module.CONTAINER_NAMES["dashboard"]]["Image"] = "sha256:" + "b" * 64
+        with self.assertRaisesRegex(module.BootGuardError, "container_image_drift_dashboard"):
+            module.diagnose_containers(IMAGE_SETS, inspector(objects))
 
     def test_missing_storage_volume_blocks(self):
         objects = fixture()
         objects[module.CONTAINER_NAMES["minio"]]["Mounts"] = []
         with self.assertRaisesRegex(module.BootGuardError, "volume_mount_missing_minio"):
-            module.diagnose_containers(IMAGES, inspector(objects))
+            module.diagnose_containers(IMAGE_SETS, inspector(objects))
 
     def test_wrong_compose_label_blocks(self):
         objects = fixture()
         objects[module.CONTAINER_NAMES["dashboard"]]["Config"]["Labels"][
             "com.docker.compose.service"] = "other"
         with self.assertRaisesRegex(module.BootGuardError, "container_compose_identity"):
-            module.diagnose_containers(IMAGES, inspector(objects))
+            module.diagnose_containers(IMAGE_SETS, inspector(objects))
 
     def test_running_dashboard_missing_live_host_port_is_detected(self):
         objects = fixture()
         objects[module.CONTAINER_NAMES["dashboard"]]["NetworkSettings"]["Ports"] = {}
-        result = module.diagnose_containers(IMAGES, inspector(objects))
+        result = module.diagnose_containers(IMAGE_SETS, inspector(objects))
         self.assertIn({"service": "dashboard", "kind": "missing_published_port",
                        "detail": "3000/tcp"}, result["container_drift"])
 
@@ -109,7 +126,7 @@ class BootObserverUnitTests(unittest.TestCase):
         objects = fixture()
         objects[module.CONTAINER_NAMES["postgres"]]["NetworkSettings"]["Networks"] = {}
         result = module.run(Path("/unused"), cidr_check=lambda: None,
-                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            authority=lambda _: IMAGE_SETS, locks=lambda _: None,
                             inspect=inspector(objects))
         self.assertEqual(result["status"], "manual_review_required")
         self.assertIn("postgres", result["manual_only_services"])
@@ -122,7 +139,7 @@ class BootObserverUnitTests(unittest.TestCase):
             "Status": "unhealthy",
         }
         result = module.run(Path("/unused"), cidr_check=lambda: None,
-                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            authority=lambda _: IMAGE_SETS, locks=lambda _: None,
                             inspect=inspector(objects))
         self.assertEqual(result["status"], "manual_review_required")
         self.assertIn("device-agent", result["manual_only_services"])
@@ -131,7 +148,7 @@ class BootObserverUnitTests(unittest.TestCase):
         objects = fixture()
         objects[module.CONTAINER_NAMES["telemetry-service"]]["State"].pop("Health")
         result = module.run(Path("/unused"), cidr_check=lambda: None,
-                            authority=lambda _: IMAGES, locks=lambda _: None,
+                            authority=lambda _: IMAGE_SETS, locks=lambda _: None,
                             inspect=inspector(objects))
         self.assertEqual(result["status"], "drift_detected")
         self.assertIn({"service": "telemetry-service", "kind": "unhealthy",
@@ -153,7 +170,8 @@ class BootObserverUnitTests(unittest.TestCase):
             "source_commit": "f" * 40,
             "platform": "linux/arm64",
             "version_management": {"bundle_id": "validated-package-001"},
-            "images": [{"id": role, "image_id": digest}
+            "images": [{"id": role, "image_id": digest,
+                        "identity": {"runtime_digests": [digest]}}
                        for role, digest in IMAGES.items()],
         }
         raw = json.dumps(manifest).encode()
@@ -174,7 +192,64 @@ class BootObserverUnitTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root, package = self.make_protected_authority(tmp)
             with patch.object(module.platform, "machine", return_value="aarch64"):
-                self.assertEqual(module.validate_authority(root), IMAGES)
+                self.assertEqual(module.validate_authority(root), IMAGE_SETS)
+
+    def update_manifest(self, package, update):
+        path = package / "manifest.json"
+        manifest = json.loads(path.read_text())
+        update(manifest)
+        raw = json.dumps(manifest).encode()
+        path.write_bytes(raw)
+        (package / ".nexolab-validated.json").write_text(json.dumps({
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+        }))
+
+    def test_authority_accepts_pinned_alternative_oci_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self.make_protected_authority(tmp)
+            alternate = "sha256:" + "c" * 64
+            self.update_manifest(package, lambda m: m["images"][0]["identity"][
+                "runtime_digests"].append(alternate))
+            with patch.object(module.platform, "machine", return_value="aarch64"):
+                hashes = module.validate_authority(root)
+            first = json.loads((package / "manifest.json").read_text())["images"][0]["id"]
+            self.assertEqual(hashes[first], frozenset({IMAGES[first], alternate}))
+
+    def test_missing_runtime_digest_identity_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self.make_protected_authority(tmp)
+            self.update_manifest(package, lambda m: m["images"][0].pop("identity"))
+            with patch.object(module.platform, "machine", return_value="aarch64"):
+                with self.assertRaisesRegex(module.BootGuardError, "runtime_digests_invalid"):
+                    module.validate_authority(root)
+
+    def test_unpinned_config_digest_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self.make_protected_authority(tmp)
+            self.update_manifest(package, lambda m: m["images"][0]["identity"].update({
+                "runtime_digests": ["sha256:" + "d" * 64],
+            }))
+            with patch.object(module.platform, "machine", return_value="aarch64"):
+                with self.assertRaisesRegex(module.BootGuardError, "runtime_digests_invalid"):
+                    module.validate_authority(root)
+
+    def test_duplicate_runtime_digests_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self.make_protected_authority(tmp)
+            self.update_manifest(package, lambda m: m["images"][0]["identity"][
+                "runtime_digests"].append(m["images"][0]["image_id"]))
+            with patch.object(module.platform, "machine", return_value="aarch64"):
+                with self.assertRaisesRegex(module.BootGuardError, "runtime_digests_invalid"):
+                    module.validate_authority(root)
+
+    def test_malformed_runtime_digest_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self.make_protected_authority(tmp)
+            self.update_manifest(package, lambda m: m["images"][0]["identity"][
+                "runtime_digests"].append("sha256:not-a-real-digest"))
+            with patch.object(module.platform, "machine", return_value="aarch64"):
+                with self.assertRaisesRegex(module.BootGuardError, "runtime_digests_invalid"):
+                    module.validate_authority(root)
 
     def test_tampered_manifest_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
