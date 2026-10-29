@@ -3797,7 +3797,7 @@
       }
     },
     {
-      "source": "operator_read_only_and_github",
+      "source": "github",
       "observed_at": "2026-10-29T16:26:16.476Z",
       "kind": "packagekit_docker_runtime_upgrade_20261029_and_source_guard_1421",
       "data": {
