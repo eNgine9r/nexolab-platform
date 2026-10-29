@@ -8953,14 +8953,15 @@
         "scripts/tests/standalone-offline-runtime-contract.sh"
       ],
       "evidence": {
-        "mock_test_cases_added": 16,
+        "mock_test_cases_added": 17,
         "local_tests": "not_run",
         "exact_head_ci": "pending",
         "actual_Raspberry_readonly_route_inventory": "blocked_remote_execution",
         "docker_network_cutover": "not_performed",
         "backup_restore": "unverified",
         "site_owner_approval": false,
-        "ci_test_runner": "scripts/tests/standalone-offline-runtime-contract.sh executes 16 isolated tests"
+        "ci_test_runner": "scripts/tests/standalone-offline-runtime-contract.sh executes 16 isolated tests",
+        "offline_lan_without_default_route": "covered_by_regression"
       }
     }
   ],
