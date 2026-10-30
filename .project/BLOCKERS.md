@@ -1,3 +1,7 @@
+## 2026-10-30 — #1437 fixture-only DR cannot authorize production recovery
+
+#1435 source-only read-only preflight merged GREEN. #1437 exercises only synthetic data in isolated temporary directories. Actual Raspberry asset identity, full PostgreSQL/VersityGW/MQTT/edge SQLite/auth consistent capture, independent encrypted off-device copy and successful isolated site restore remain UNVERIFIED. No verified separate protected backup destination/key custody has been provided. Retain old MinIO and new VersityGW volumes; do not touch Docker/IPAM or hardware to resolve #1399. Synthetic receipt must never be classified as real hardware or production acceptance.
+
 ## 2026-10-30 — #1435 read-only site mapping awaits protected destination and live evidence
 
 #1433 v2 structural contract merged. #1435 source-only script cannot prove physical independence of a backup destination, S3/MQTT/edge SQLite consistency, local-auth secret custody or actual restores. Live Docker service and protected volume observations are still unverified. No approved independent root-owned backup medium was identified; last reported SSD headroom 28G. Do not run unchecked scripts on protected site or consider preflight output site cutover approval. #1399 stays blocked, no Modbus/hardware writes.
