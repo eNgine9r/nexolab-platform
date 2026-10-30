@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1410,
-      "branch": "feature/1410-durable-receipt-contract"
+      "issue": 1451,
+      "branch": "feature/1451-edge-sqlite-committed-receipt-ledger"
     },
     "next_work_package": null
   },
@@ -9309,7 +9309,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9332,11 +9332,106 @@
         "atomic_sqlite_prune": "not_implemented",
         "hardware": "unverified",
         "checks": {
-          "ci": "pending",
-          "unit": "pending",
-          "offline": "pending"
+          "ci": "success",
+          "unit": "success",
+          "offline": "success"
         },
         "pr": 1411
+      }
+    },
+    {
+      "issue": 1445,
+      "title": "Central PostgreSQL-committed receipt outbox and publisher",
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410
+      ],
+      "scope": "Atomic PostgreSQL central receipt intent and opt-in QoS1 publisher; no site activation.",
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1446,
+        "source_only": true,
+        "site": "not_activated",
+        "acl": "not_installed"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Container CVE remediation and exact HIGH risk re-review",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "scope": "Fix container CRITICALs and review 49 exact HIGH risks before merge.",
+      "permitted_paths": [
+        "config/security/",
+        "services/",
+        "infrastructure/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1448,
+        "source_only": true,
+        "workflow_success": 22,
+        "residual_high": 49,
+        "security_owner_approval": "pending"
+      }
+    },
+    {
+      "issue": 1449,
+      "title": "Dedicated receipt MQTT broker ACL source-only proof",
+      "branch": "security/1449-dedicated-receipt-mqtt-acl",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1445,
+        1447
+      ],
+      "scope": "Dedicated receipt publisher identity and per-node literal subscriber ACL; disposable broker proof only.",
+      "permitted_paths": [
+        "infrastructure/mqtt/dynamic-security/",
+        "services/telemetry-service/bin/",
+        "services/telemetry-service/tests/",
+        "scripts/run-mqtt-broker-security-acceptance.sh",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1450,
+        "source_only": true,
+        "live_broker_acl": "not_installed"
+      }
+    },
+    {
+      "issue": 1451,
+      "title": "Opt-in Edge SQLite committed-receipt ledger and atomic oldest-only prune",
+      "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410,
+        1445,
+        1449
+      ],
+      "scope": "Stage isolated, non-runtime SQLite receipt ledger with strict identity and FIFO validation, without changing current production PUBACK deletion.",
+      "permitted_paths": [
+        "services/device-agent/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1452,
+        "source_only": true,
+        "device_agent_runtime": "unchanged",
+        "actual_broker_accepted": "unverified",
+        "hardware": "unverified"
       }
     }
   ],
@@ -10893,6 +10988,23 @@
         "pg_backup_executed": false,
         "private_restored": false,
         "protected_site_unmodified": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T19:43:23Z",
+      "kind": "1451_edge_sqlite_source_only_acceptance",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "65f6e6815ad707d0f640f0470569a2f86b82dbdc",
+        "edge_image_run": 41117448969,
+        "edge_image": "success",
+        "python_tests": 339,
+        "full_ci": "pending",
+        "hardware": "unverified",
+        "production_mutation": false,
+        "security_dependency": 1447
       }
     }
   ],
