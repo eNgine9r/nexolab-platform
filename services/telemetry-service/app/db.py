@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import (
     BigInteger,
@@ -27,6 +29,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.contracts import TelemetryEvent
+from app.committed_receipts import CommittedReceiptIdentity, prepare_committed_receipt
 
 
 TELEMETRY_HISTORY_ADVISORY_LOCK_ID = 263_000_001
@@ -65,6 +68,38 @@ class TelemetrySample(Base):
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class TelemetryCommittedReceipt(Base):
+    """Transactional intent only; a separate authenticated publisher owns delivery."""
+
+    __tablename__ = "telemetry_committed_receipts"
+
+    event_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    receipt_id: Mapped[str] = mapped_column(String(36), nullable=False, unique=True)
+    organization_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    node_sequence: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    topic: Mapped[str] = mapped_column(String(256), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+Index(
+    "ix_telemetry_committed_receipts_pending",
+    TelemetryCommittedReceipt.published_at,
+    TelemetryCommittedReceipt.committed_at,
+)
+Index(
+    "uq_telemetry_committed_receipts_node_sequence",
+    TelemetryCommittedReceipt.organization_id,
+    TelemetryCommittedReceipt.node_id,
+    TelemetryCommittedReceipt.node_sequence,
+    unique=True,
+)
 
 
 class TelemetryLatest(Base):
@@ -332,7 +367,26 @@ class Database:
                 update(table).where(table.c.id == existing.id).values(**update_columns)
             )
 
-    def persist(self, event: TelemetryEvent, raw_payload: dict[str, Any]) -> bool:
+    def persist(
+        self,
+        event: TelemetryEvent,
+        raw_payload: dict[str, Any],
+        *,
+        receipt_identity: CommittedReceiptIdentity | None = None,
+        receipt_outbox_max_pending: int = 10_000,
+        connection: Any | None = None,
+    ) -> bool:
+        """Persist telemetry and optional central-receipt intent atomically.
+
+        receipt_identity MUST come from a successful node-registry ingress
+        authorization and a separately verified authenticated MQTT boundary.
+        This parameter is opt-in; no runtime call path currently supplies it.
+        """
+        if receipt_identity is not None:
+            if receipt_outbox_max_pending < 1:
+                raise ValueError("invalid_receipt_outbox_capacity")
+            receipt_identity.validate_raw(event, raw_payload)
+
         values = {
             "event_id": str(event.event_id),
             "node_id": event.node_id,
@@ -353,8 +407,19 @@ class Database:
 
         table = TelemetrySample.__table__
         dialect = self.engine.dialect.name
+        if receipt_identity is not None and dialect != "postgresql":
+            raise RuntimeError("postgresql_required_for_committed_receipt")
 
-        with self.engine.begin() as connection:
+        if connection is not None and not connection.in_transaction():
+            raise RuntimeError("receipt_persist_requires_active_transaction")
+
+        with (self.engine.begin() if connection is None else nullcontext(connection)) as connection:
+            if receipt_identity is not None and dialect == "postgresql":
+                # Serialize capacity checks across concurrent central workers.
+                connection.execute(
+                    text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                    {"lock_id": 263_000_002},
+                )
             if dialect == "postgresql":
                 connection.execute(
                     text("SELECT pg_advisory_xact_lock_shared(:lock_id)"),
@@ -390,6 +455,23 @@ class Database:
                 ).first()
 
             if inserted is None:
+                if receipt_identity is not None:
+                    existing = connection.execute(
+                        select(TelemetrySample.raw_payload, TelemetrySample.node_id)
+                        .where(TelemetrySample.event_id == str(event.event_id))
+                    ).first()
+                    if (
+                        existing is None
+                        or existing.node_id != receipt_identity.node_id
+                        or existing.raw_payload != raw_payload
+                    ):
+                        raise ValueError("receipt_duplicate_event_identity_conflict")
+                    self._queue_committed_receipt(
+                        connection,
+                        event_id=str(event.event_id),
+                        identity=receipt_identity,
+                        max_pending=receipt_outbox_max_pending,
+                    )
                 return False
 
             latest_values = self._latest_values(
@@ -403,7 +485,92 @@ class Database:
                 dialect=dialect,
                 values=latest_values,
             )
+            if receipt_identity is not None:
+                self._queue_committed_receipt(
+                    connection,
+                    event_id=str(event.event_id),
+                    identity=receipt_identity,
+                    max_pending=receipt_outbox_max_pending,
+                )
             return True
+
+    @staticmethod
+    def _queue_committed_receipt(
+        connection: Any,
+        *,
+        event_id: str,
+        identity: CommittedReceiptIdentity,
+        max_pending: int,
+    ) -> None:
+        """Enqueue only under the caller's open telemetry transaction."""
+        table = TelemetryCommittedReceipt.__table__
+        existing = connection.execute(
+            select(table).where(table.c.event_id == event_id)
+        ).mappings().first()
+        if existing is not None:
+            if (
+                existing["organization_id"] != identity.organization_id
+                or existing["node_id"] != identity.node_id
+                or existing["node_sequence"] != identity.node_sequence
+                or existing["topic"] != identity.receipt_topic
+            ):
+                raise ValueError("receipt_outbox_identity_conflict")
+            if existing["published_at"] is not None:
+                pending = connection.scalar(
+                    select(func.count())
+                    .select_from(table)
+                    .where(table.c.published_at.is_(None))
+                )
+                if pending is None or pending >= max_pending:
+                    raise RuntimeError("receipt_outbox_capacity_reached")
+                # A valid replay may request a fresh receipt if an old MQTT
+                # reply was dropped or exceeded the seven-day freshness budget.
+                # The original immutable PostgreSQL sample is first verified
+                # by persist() before this reissue is permitted.
+                payload, observed = prepare_committed_receipt(
+                    event_id=event_id,
+                    identity=identity,
+                    receipt_id=str(uuid4()),
+                )
+                connection.execute(
+                    table.update()
+                    .where(table.c.event_id == event_id)
+                    .values(
+                        receipt_id=payload["receipt_id"],
+                        payload=payload,
+                        committed_at=observed,
+                        published_at=None,
+                        attempts=0,
+                        next_attempt_at=None,
+                    )
+                )
+            return
+        pending = connection.scalar(
+            select(func.count())
+            .select_from(table)
+            .where(table.c.published_at.is_(None))
+        )
+        if pending is None or pending >= max_pending:
+            raise RuntimeError("receipt_outbox_capacity_reached")
+        receipt_id = str(uuid4())
+        payload, committed_at = prepare_committed_receipt(
+            event_id=event_id, identity=identity, receipt_id=receipt_id
+        )
+        connection.execute(
+            table.insert().values(
+                event_id=event_id,
+                receipt_id=receipt_id,
+                organization_id=identity.organization_id,
+                node_id=identity.node_id,
+                node_sequence=identity.node_sequence,
+                topic=identity.receipt_topic,
+                payload=payload,
+                committed_at=committed_at,
+                published_at=None,
+                attempts=0,
+                next_attempt_at=None,
+            )
+        )
 
     def persist_dead_letter(
         self,

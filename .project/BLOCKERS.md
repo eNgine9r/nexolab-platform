@@ -1,3 +1,15 @@
+## 2026-10-30 — #1445 and #1447 updated source review gates
+
+#1445 PR #1446 now contains an isolated atomic PostgreSQL NodeIngressAuthorizer sample+cursor+receipt path and a uniqueness constraint on (organization, node, sequence), including older missing-sequence replay checks. **This method is not called by the production ingestion worker.** Authenticated dedicated central MQTT publisher identities and real per-node broker-enforced receipt ACL, Edge receipt subscriber and SQLite acknowledgement retention, real bounded storage acceptance and ARM64 offline restart/data-loss tests remain missing. Old production ingress semantics have NOT been changed. Full exact-head CI pending; do not merge or activate based on mocked sender acceptance.
+
+#1447 PR #1448 has source-only Pillow/msgpack/Go fixes with previous actual x86_64 image scan showing zero CRITICAL, 49 HIGH remaining. New exact-49 HIGH tuple exception policy, bounded through 2026-11-06, and fail-closed fixed-version regression are pending complete CI and explicit security-owner decision. libwebsockets DoS exposure is residual; current Debian Trixie has no reported fixed version. No existing release authorization can be inferred from source-only exceptions.
+
+#1399 site IPAM/network overlap and #1428 protected full encrypted backup + isolated restore still prevent production/site cutover or deployment. No Modbus/hardware/site write permitted.
+
+## 2026-10-30 — #1445 committed receipt outbox Draft is not an authenticated publisher
+
+Source-only Draft PR #1446 provides a proposed PostgreSQL-only receipt outbox transaction and deterministic test coverage; there is no connected central receipt publisher, proven MQTT ACL, authenticated transport identity, Edge SQLite prune/replay, real PostgreSQL migration site execution, real MQTT delivery/retry or full exact-head acceptance yet. Ingress cursor high-water behavior on older-event replay also needs integration review. Do not merge or activate on production merely from unit tests. #1428 full encrypted backup/isolated restore and #1399 protected runtime recovery remain separate owner-gated blockers.
+
 ## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
 
 #1410/PR #1411 implements source-only schema and fail-closed validator; installed central MQTT broker publisher authorization, per-node ACL, sender authenticity, trusted persistent replay ledger, central PostgreSQL commit receipt publication, Edge atomic SQLite retention/prune, and actual offline loss/restart tests are NOT IMPLEMENTED or verified. Existing Edge may still delete queue rows after broker PUBACK. Full #1397 resilience and any no-loss claim remain blocked on separate central/edge WPs and real acceptance. Do not change broker credentials, subscriptions, persistence, Docker, site IPAM or Modbus writes during contract-only work.

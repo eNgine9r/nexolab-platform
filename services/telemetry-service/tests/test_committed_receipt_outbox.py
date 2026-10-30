@@ -1,0 +1,509 @@
+"""Isolated transactional receipt intent tests (NOT site / MQTT acceptance)."""
+from __future__ import annotations
+
+from datetime import datetime, UTC
+import os
+from uuid import UUID, uuid4
+import pytest
+from sqlalchemy import delete, func, select
+
+from app.committed_receipts import CommittedReceiptIdentity
+from app.contracts import TelemetryEvent
+from app.db import Database, TelemetryCommittedReceipt, TelemetryLatest, TelemetrySample
+
+
+ORG = "28dceec5-3a75-4d03-b5ec-b21122b35778"
+NODE = f"receipt-{uuid4().hex[:20]}"
+
+
+def make_event(sequence: int = 1, *, event_id: str | None = None):
+    raw = dict(
+        event_id=event_id or str(uuid4()),
+        node_id=NODE,
+        node_sequence=sequence,
+        captured_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC).isoformat(),
+        metric="electrical.voltage",
+        value=231.3,
+        unit="V",
+        quality="valid",
+        source="meter",
+        equipment_id="meter-200",
+        channel_id="200-v",
+    )
+    return TelemetryEvent.model_validate(raw), raw
+
+
+@pytest.fixture
+def database():
+    # A PostgreSQL-committed receipt cannot be proven by SQLite fixtures.
+    url = os.environ.get("DATABASE_URL", "")
+    if not url.startswith("postgresql"):
+        pytest.skip("PostgreSQL integration database required for committed receipts")
+    db = Database(url)
+    db.create_schema()
+    yield db
+    with db.engine.begin() as connection:
+        connection.execute(
+            delete(TelemetryCommittedReceipt).where(TelemetryCommittedReceipt.node_id == NODE)
+        )
+        connection.execute(delete(TelemetryLatest).where(TelemetryLatest.node_id == NODE))
+        connection.execute(delete(TelemetrySample).where(TelemetrySample.node_id == NODE))
+    db.dispose()
+
+
+def identity(sequence: int = 1):
+    return CommittedReceiptIdentity(ORG, NODE, sequence)
+
+
+def rows(db):
+    with db.engine.connect() as connection:
+        return list(connection.execute(
+            select(TelemetryCommittedReceipt.__table__)
+        ).mappings())
+
+
+def test_default_unchanged_no_new_receipt(database):
+    event, raw = make_event()
+    assert database.persist(event, raw) is True
+    assert rows(database) == []
+
+
+def test_committed_receipt_same_transaction_and_schema(database):
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity()) is True
+    receipt = rows(database)[0]
+    assert receipt["event_id"] == raw["event_id"]
+    assert receipt["organization_id"] == ORG
+    assert receipt["topic"] == f"nexolab/v1/{ORG}/{NODE}/receipts"
+    assert receipt["payload"]["receipt_level"] == "postgres_committed"
+    assert receipt["payload"]["node_sequence"] == 1
+    assert str(UUID(receipt["receipt_id"])) == receipt["receipt_id"]
+    assert receipt["published_at"] is None
+
+
+def test_idempotent_duplicate_keeps_original_receipt(database):
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity()) is True
+    original = rows(database)[0]["receipt_id"]
+    assert database.persist(event, raw, receipt_identity=identity()) is False
+    assert len(rows(database)) == 1
+    assert rows(database)[0]["receipt_id"] == original
+
+
+def test_unauthorized_identity_conflict_does_not_respond(database):
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity()) is True
+    forged = dict(raw, value=999.0)
+    with pytest.raises(ValueError, match="receipt_duplicate_event_identity_conflict"):
+        database.persist(event, forged, receipt_identity=identity())
+    assert len(rows(database)) == 1
+
+
+def test_capacity_blocks_telemetry_commit_without_receipt(database):
+    first, one = make_event()
+    second, two = make_event(2)
+    assert database.persist(first, one, receipt_identity=identity(), receipt_outbox_max_pending=1)
+    with pytest.raises(RuntimeError, match="receipt_outbox_capacity_reached"):
+        database.persist(second, two, receipt_identity=identity(2), receipt_outbox_max_pending=1)
+    with database.engine.connect() as connection:
+        assert connection.scalar(select(func.count()).select_from(TelemetrySample)) == 1
+    assert len(rows(database)) == 1
+
+
+def test_mismatched_node_sequence_rejected_before_database(database):
+    event, raw = make_event()
+    with pytest.raises(ValueError, match="receipt_sequence_unverified"):
+        database.persist(event, raw, receipt_identity=identity(2))
+    assert rows(database) == []
+
+
+def test_mismatched_tenant_payload_rejected(database):
+    event, raw = make_event()
+    raw["organization_id"] = str(uuid4())
+    with pytest.raises(ValueError, match="receipt_organization_mismatch"):
+        database.persist(event, raw, receipt_identity=identity())
+    assert rows(database) == []
+
+
+def test_rollback_does_not_leave_phantom_receipt(database, monkeypatch):
+    event, raw = make_event()
+
+    def fail_projection(*args, **kwargs):
+        raise RuntimeError("forced_projection_failure")
+
+    monkeypatch.setattr(database, "_upsert_latest", fail_projection)
+    with pytest.raises(RuntimeError, match="forced_projection_failure"):
+        database.persist(event, raw, receipt_identity=identity())
+    with database.engine.connect() as connection:
+        assert connection.scalar(select(func.count()).select_from(TelemetrySample)) == 0
+    assert rows(database) == []
+
+
+def test_non_postgres_cannot_claim_postgresql_commit(tmp_path):
+    fake = Database(f"sqlite:///{tmp_path / 'refuse.db'}")
+    fake.create_schema()
+    event, raw = make_event()
+    with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
+        fake.persist(event, raw, receipt_identity=identity())
+    assert rows(fake) == []
+    fake.dispose()
+
+
+def test_identity_fails_closed_on_noncanonical_and_bool_sequence():
+    with pytest.raises(ValueError, match="invalid_receipt_sequence"):
+        CommittedReceiptIdentity(ORG, NODE, True)
+    with pytest.raises(ValueError, match="noncanonical_receipt_organization"):
+        CommittedReceiptIdentity(ORG.upper(), NODE, 1)
+
+
+
+def test_broker_ack_failure_keeps_durable_pending_and_retry(database):
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    delivered = []
+    def sender(topic, payload):
+        delivered.append((topic, payload))
+        return len(delivered) > 1
+
+    publisher = CommittedReceiptPublisher(database, sender)
+    start = datetime.now(UTC)
+    first = publisher.run_once(now=start)
+    assert first.status == "retry"
+    assert rows(database)[0]["published_at"] is None
+    assert publisher.run_once(now=start + timedelta(seconds=1)).status == "idle"
+    second = publisher.run_once(now=start + timedelta(seconds=3))
+    assert second.status == "published"
+    assert len(delivered) == 2
+    assert delivered[0][1] == delivered[1][1]
+    assert rows(database)[0]["published_at"] is not None
+
+
+def test_restart_before_ack_claim_expires_and_replays(database):
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    first = CommittedReceiptPublisher(database, lambda *_: False)
+    start = datetime.now(UTC)
+    assert first.run_once(now=start).status == "retry"
+    recovered = CommittedReceiptPublisher(database, lambda *_: True)
+    assert recovered.run_once(now=start + timedelta(seconds=3)).status == "published"
+    assert rows(database)[0]["attempts"] == 2
+
+
+def test_duplicate_replay_requeues_confirmed_receipt_with_fresh_identity(database):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    assert CommittedReceiptPublisher(database, lambda *_: True).run_once().status == "published"
+    receipt = rows(database)[0]["receipt_id"]
+    assert database.persist(event, raw, receipt_identity=identity()) is False
+    current = rows(database)[0]
+    assert current["published_at"] is None
+    assert current["receipt_id"] != receipt
+    assert current["payload"]["event_id"] == raw["event_id"]
+
+
+def test_sender_cannot_claim_postgres_from_sqlite(tmp_path):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    db = Database(f"sqlite:///{tmp_path / 'sender-refuse.db'}")
+    with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
+        CommittedReceiptPublisher(db, lambda *_: True)
+    db.dispose()
+
+
+def test_publisher_cannot_ack_new_receipt_after_concurrent_duplicate(database):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    original = rows(database)[0]["receipt_id"]
+
+    def send_then_reissue(topic, payload):
+        # The original broker ACK races a valid reissue. The newer receipt
+        # is still pending and MUST NOT be marked delivered by this ACK.
+        new_receipt_id = str(uuid4())
+        prior_payload = rows(database)[0]["payload"]
+        with database.engine.begin() as connection:
+            connection.execute(
+                TelemetryCommittedReceipt.__table__.update()
+                .where(TelemetryCommittedReceipt.event_id == str(event.event_id))
+                .values(
+                    receipt_id=new_receipt_id,
+                    payload=dict(prior_payload, receipt_id=new_receipt_id),
+                    attempts=0,
+                    published_at=None,
+                )
+            )
+        return True
+
+    outcome = CommittedReceiptPublisher(database, send_then_reissue).run_once()
+    assert outcome.status == "retry"
+    assert rows(database)[0]["published_at"] is None
+    assert rows(database)[0]["receipt_id"] != original
+
+
+def test_publisher_refreshes_expired_receipt_before_broker_send(database):
+    import json
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    old = rows(database)[0]
+    yesterday_plus_week = datetime.now(UTC) - timedelta(days=8)
+    expired = dict(old["payload"], accepted_at=yesterday_plus_week.isoformat().replace("+00:00", "Z"))
+    with database.engine.begin() as connection:
+        connection.execute(
+            TelemetryCommittedReceipt.__table__.update()
+            .where(TelemetryCommittedReceipt.event_id == str(event.event_id))
+            .values(payload=expired)
+        )
+    sent = []
+    outcome = CommittedReceiptPublisher(
+        database, lambda topic, payload: sent.append(json.loads(payload)) or True
+    ).run_once()
+    assert outcome.status == "published"
+    assert len(sent) == 1
+    assert sent[0]["receipt_id"] != old["receipt_id"]
+    assert datetime.fromisoformat(sent[0]["accepted_at"].replace("Z", "+00:00")) > yesterday_plus_week
+    assert rows(database)[0]["receipt_id"] == sent[0]["receipt_id"]
+
+
+def test_authorized_node_cursor_and_sample_rollback_are_atomic_on_postgres(
+    database, monkeypatch
+):
+    """Database failure must never advance the trusted ingress high-water cursor.
+
+    Registry objects here are synthetic tests, NOT evidence of real broker ACL.
+    """
+    from sqlalchemy.orm import Session
+    from app.nodes.ingress import NodeIngressAuthorizer
+    from app.nodes.models import (
+        CentralNode,
+        CentralNodeCredential,
+        CentralNodeIngressCursor,
+    )
+    from app.security.models import SecurityOrganization
+
+    org = str(uuid4())
+    node_record_id = str(uuid4())
+    credential_id = str(uuid4())
+    observed = datetime.now(UTC)
+    with Session(database.engine) as session:
+        with session.begin():
+            session.add(SecurityOrganization(id=org, slug=f"receipt-ci-{uuid4().hex[:12]}", name="Receipt CI"))
+            session.flush()
+            session.add(
+                CentralNode(
+                    id=node_record_id,
+                    organization_id=org,
+                    node_id=NODE,
+                    display_name="Receipt test node",
+                    state="active",
+                    state_reason="isolated PostgreSQL test",
+                    created_by="test",
+                    created_at=observed,
+                    updated_at=observed,
+                )
+            )
+            session.flush()
+            session.add(
+                CentralNodeCredential(
+                    id=credential_id,
+                    organization_id=org,
+                    node_record_id=node_record_id,
+                    generation=1,
+                    secret_salt="0" * 64,
+                    secret_hash="0" * 64,
+                    secret_fingerprint="0" * 16,
+                    idempotency_key=f"receipt-ci-{uuid4()}",
+                    command_sha256="0" * 64,
+                    issued_by="test",
+                    issued_at=observed,
+                )
+            )
+
+    try:
+        gate = NodeIngressAuthorizer(database)
+        topic = f"nexolab/v1/{org}/{NODE}/telemetry"
+        first, raw = make_event(1)
+        allowed, reason, detail, inserted = gate.authorize_and_persist_committed(
+            first, raw, topic, observed
+        )
+        assert allowed is True and inserted is True
+        assert len(rows(database)) == 1
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 1
+
+        second, raw2 = make_event(2)
+        original = database._upsert_latest
+
+        def force_failure(*args, **kwargs):
+            raise RuntimeError("forced_before_commit")
+
+        monkeypatch.setattr(database, "_upsert_latest", force_failure)
+        with pytest.raises(RuntimeError, match="forced_before_commit"):
+            gate.authorize_and_persist_committed(second, raw2, topic, observed)
+        monkeypatch.setattr(database, "_upsert_latest", original)
+
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 1
+            assert session.query(TelemetrySample).filter_by(
+                event_id=str(second.event_id)
+            ).count() == 0
+            assert session.query(TelemetryCommittedReceipt).filter_by(
+                event_id=str(second.event_id)
+            ).count() == 0
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            second, raw2, topic, observed
+        )
+        assert allowed is True and inserted is True
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 2
+
+        # A later committed event must not cause an earlier, missing
+        # telemetry sample to be silently rejected on replay.
+        later, raw4 = make_event(4)
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            later, raw4, topic, observed
+        )
+        assert allowed and inserted is True
+        earlier, raw3 = make_event(3)
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            earlier, raw3, topic, observed
+        )
+        assert allowed and inserted is True
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            earlier, raw3, topic, observed
+        )
+        assert allowed and inserted is False
+        conflicting, raw_conflict = make_event(3)
+        allowed, reason, _, inserted = gate.authorize_and_persist_committed(
+            conflicting, raw_conflict, topic, observed
+        )
+        assert not allowed and reason == "node_replay" and inserted is None
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 4
+            assert session.query(TelemetryCommittedReceipt).filter_by(
+                organization_id=org, node_id=NODE
+            ).count() == 4
+            assert session.query(TelemetrySample).filter_by(
+                event_id=str(conflicting.event_id)
+            ).count() == 0
+    finally:
+        with Session(database.engine) as session:
+            with session.begin():
+                session.query(CentralNodeIngressCursor).filter_by(
+                    node_record_id=node_record_id
+                ).delete()
+                session.query(CentralNodeCredential).filter_by(
+                    id=credential_id
+                ).delete()
+                session.query(CentralNode).filter_by(
+                    id=node_record_id
+                ).delete()
+                session.query(SecurityOrganization).filter_by(id=org).delete()
+
+
+def test_duplicate_sequence_cannot_claim_two_events(database):
+    from sqlalchemy.exc import IntegrityError
+
+    first, original = make_event(11)
+    second, different = make_event(11)
+    assert database.persist(first, original, receipt_identity=identity(11))
+    with pytest.raises(IntegrityError):
+        database.persist(second, different, receipt_identity=identity(11))
+    assert len(rows(database)) == 1
+    with database.engine.connect() as connection:
+        assert connection.scalar(
+            select(func.count()).select_from(TelemetrySample).where(
+                TelemetrySample.event_id == str(second.event_id)
+            )
+        ) == 0
+
+
+def test_retry_blocks_newer_receipt_on_same_node_until_oldest_puback(database):
+    """A backed-off oldest receipt cannot be overtaken by later sequences."""
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event1, raw1 = make_event(1)
+    event2, raw2 = make_event(2)
+    assert database.persist(event1, raw1, receipt_identity=identity(1))
+    assert database.persist(event2, raw2, receipt_identity=identity(2))
+    sent = []
+    def send(topic, body):
+        import json
+        decoded = json.loads(body)
+        sent.append(decoded["node_sequence"])
+        return len(sent) > 1
+
+    sender = CommittedReceiptPublisher(database, send)
+    started = datetime.now(UTC)
+    assert sender.run_once(now=started).status == "retry"
+    assert sent == [1]
+    # Sequence 1 has an active backoff lease, so sequence 2 must not
+    # be marked delivered (or even sent) during that retry interval.
+    assert sender.run_once(now=started + timedelta(seconds=1)).status == "idle"
+    assert sent == [1]
+    assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
+    assert sent == [1, 1]
+    assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
+    assert sent == [1, 1, 2]
+    assert all(row["published_at"] is not None for row in rows(database))
+
+
+def test_retry_backoff_does_not_block_independent_node(database):
+    """A stuck node must not prevent publishing to a different node."""
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event1, raw1 = make_event(1)
+    assert database.persist(event1, raw1, receipt_identity=identity(1))
+    new_node = f"receipt-{uuid4().hex[:20]}"
+    event2, raw2 = make_event(2)
+    raw2["node_id"] = new_node
+    event2 = TelemetryEvent.model_validate(raw2)
+    assert database.persist(
+        event2, raw2, receipt_identity=CommittedReceiptIdentity(ORG, new_node, 2)
+    )
+    sent = []
+    def send(topic, body):
+        sent.append(topic)
+        return len(sent) == 2
+
+    publisher = CommittedReceiptPublisher(database, send)
+    start = datetime.now(UTC)
+    assert publisher.run_once(now=start).status == "retry"
+    assert publisher.run_once(now=start + timedelta(seconds=1)).status == "published"
+    assert sent == [
+        f"nexolab/v1/{ORG}/{NODE}/receipts",
+        f"nexolab/v1/{ORG}/{new_node}/receipts",
+    ]
+    with database.engine.begin() as connection:
+        connection.execute(
+            delete(TelemetryCommittedReceipt).where(
+                TelemetryCommittedReceipt.node_id == new_node
+            )
+        )
+        connection.execute(delete(TelemetryLatest).where(TelemetryLatest.node_id == new_node))
+        connection.execute(delete(TelemetrySample).where(TelemetrySample.node_id == new_node))
