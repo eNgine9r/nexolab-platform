@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexolab.local/contracts/telemetry-durable-receipt.v1.schema.json",
+  "title": "NEXOLAB Central Telemetry Durable Receipt v1",
+  "description": "Informational staged or final PostgreSQL-committed receipt; payload cannot establish publisher authenticity without a separately verified local broker authorization boundary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "receipt_id",
+    "event_id",
+    "organization_id",
+    "node_id",
+    "stream",
+    "node_sequence",
+    "receipt_level",
+    "accepted_at"
+  ],
+  "properties": {
+    "contract_version": { "const": 1 },
+    "receipt_id": { "type": "string", "format": "uuid" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string", "format": "uuid" },
+    "node_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"
+    },
+    "stream": { "const": "telemetry" },
+    "node_sequence": { "type": "integer", "minimum": 1 },
+    "receipt_level": { "enum": ["durably_spooled", "postgres_committed"] },
+    "accepted_at": { "type": "string", "format": "date-time" }
+  }
+}

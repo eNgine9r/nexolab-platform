@@ -1,3 +1,7 @@
+## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
+
+#1410/PR #1411 implements source-only schema and fail-closed validator; installed central MQTT broker publisher authorization, per-node ACL, sender authenticity, trusted persistent replay ledger, central PostgreSQL commit receipt publication, Edge atomic SQLite retention/prune, and actual offline loss/restart tests are NOT IMPLEMENTED or verified. Existing Edge may still delete queue rows after broker PUBACK. Full #1397 resilience and any no-loss claim remain blocked on separate central/edge WPs and real acceptance. Do not change broker credentials, subscriptions, persistence, Docker, site IPAM or Modbus writes during contract-only work.
+
 ## 2026-10-30 — #1443 host PackageKit guard remains source-only
 
 Original #1421 code in main checked APT holds but did not validate dpkg installed-state abbreviation; a held removed/unconfigured package could produce misleading guarded status. #1443 fixes source and mocked tests only. Live Raspberry exact packages/holds, immutable approved versions, owner-authorized change window, backup and rollback are unverified. Do not apply package holds, disable PackageKit, modify Docker/containerd, restart containers or migrate IPAM without separate owner approval and actual protected DR evidence.

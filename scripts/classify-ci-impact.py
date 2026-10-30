@@ -554,6 +554,11 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("backend")
             matched = True
 
+        if path == "tests/test_ci_durable_receipt_protocol.py":
+            # Exact contract fixture: no deployed runtime or publisher.
+            classes.add("backend")
+            matched = True
+
         if _matches(path, TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS):
             # Cross-contract tests exercise both the browser envelope and the
             # Telegram gateway fixture boundary. Keep the pattern narrow so

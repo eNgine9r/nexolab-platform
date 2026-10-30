@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1443,
-      "branch": "fix/1443-packagekit-installed-state-regression"
+      "issue": 1410,
+      "branch": "feature/1410-durable-receipt-contract"
     },
     "next_work_package": null
   },
@@ -9269,7 +9269,7 @@
       "title": "Fail-closed installed-state regression fix for Docker PackageKit guard",
       "branch": "fix/1443-packagekit-installed-state-regression",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1421
       ],
@@ -9289,14 +9289,54 @@
       "evidence": {
         "source": "source_only",
         "checks": {
-          "python_policy": "pending",
-          "offline_bundle": "pending",
-          "build": "pending"
+          "ci": "success",
+          "offline_bundle": "success",
+          "telemetry": "success",
+          "dashboard": "success",
+          "refrigeration": "success",
+          "telegram": "success"
         },
         "pr": "pending",
         "apt_hold_activation": "not_performed",
         "raspberry_runtime": "not_touched",
-        "hardware": "unverified"
+        "hardware": "unverified",
+        "pr1444": "merged",
+        "site_package_mutation": "not_performed"
+      }
+    },
+    {
+      "issue": 1410,
+      "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
+      "branch": "feature/1410-durable-receipt-contract",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
+      "permitted_paths": [
+        "contracts/durable_receipt_v1.py",
+        "contracts/telemetry-durable-receipt.v1.schema.json",
+        "docs/architecture/durable-central-telemetry-receipts-v1.md",
+        "tests/test_ci_durable_receipt_protocol.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "broker_acl": "not_verified",
+        "central_publisher": "not_implemented",
+        "edge_subscriber": "not_implemented",
+        "atomic_sqlite_prune": "not_implemented",
+        "hardware": "unverified",
+        "checks": {
+          "ci": "pending",
+          "unit": "pending",
+          "offline": "pending"
+        },
+        "pr": 1411
       }
     }
   ],
