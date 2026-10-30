@@ -209,6 +209,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/nexolab-site-dr-preflight.py",
     "scripts/nexolab-site-dr-fixture-harness.py",
     "scripts/nexolab-site-dr-capture-handoff.py",
+    "scripts/verify-host-container-runtime-package-policy.py",
+    "scripts/tests/test_host_container_runtime_package_policy.py",
     "scripts/nexolab-dr-readonly-health.py",
     "tests/test_ci_dr_readonly_health.py",
     "tests/test_ci_site_dr_capture_handoff.py",
@@ -255,6 +257,8 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 }
 
 VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/verify-host-container-runtime-package-policy.py",
+    "scripts/tests/test_host_container_runtime_package_policy.py",
     "scripts/reconcile-failed-packaged-update.py",
     "scripts/tests/test_reconcile_failed_packaged_update.py",
     "scripts/prepare-version-update-lock.py",

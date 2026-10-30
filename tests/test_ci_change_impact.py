@@ -48,6 +48,22 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', trigger)
 
+    def test_host_docker_packagekit_guard_is_offline_routed(self) -> None:
+        paths = [
+            "scripts/verify-host-container-runtime-package-policy.py",
+            "scripts/tests/test_host_container_runtime_package_policy.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
     def test_dr_readonly_health_monitor_is_offline_routed(self) -> None:
         paths = [
             "scripts/nexolab-dr-readonly-health.py",
