@@ -26,9 +26,14 @@ run `41067085401`, source
   including Dockerfile runtime assertion).
 - `object-storage` Go stdlib HIGH `CVE-2026-111943` →
   Go 1.26.10 or 1.27.3 (currently source `GO_VERSION=1.27.2`).
-  **Not upgraded in this slice**: both official architecture-specific binary
-  checksums, signed toolchain provenance, ARM64 compatibility and exact commit
-  acceptance must first be independently validated.
+  **Upgraded in this source-only slice** from Go 1.27.2 to 1.27.3 using
+  exact Go project SHA-256 values from https://go.dev/dl/ :
+  amd64 `65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40`;
+  arm64 `a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49`.
+  Official reproducible rebuilds are documented at https://go.dev/rebuild .
+  **No container / architecture / software or site acceptance is assumed**:
+  verify actual CI x86_64 scan, isolated ARM64 build+runtime contract and
+  storage compatibility before any production installation.
 
 A new Debian HIGH `libwebsockets19t64 / CVE-2026-95114` has no
 Trivy FixedVersion. The existing exception registry has **48 entries all
