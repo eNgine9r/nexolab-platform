@@ -376,6 +376,39 @@ def test_authorized_node_cursor_and_sample_rollback_are_atomic_on_postgres(
                 node_record_id=node_record_id
             ).one()
             assert cursor.last_sequence == 2
+
+        # A later committed event must not cause an earlier, missing
+        # telemetry sample to be silently rejected on replay.
+        later, raw4 = make_event(4)
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            later, raw4, topic, observed
+        )
+        assert allowed and inserted is True
+        earlier, raw3 = make_event(3)
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            earlier, raw3, topic, observed
+        )
+        assert allowed and inserted is True
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            earlier, raw3, topic, observed
+        )
+        assert allowed and inserted is False
+        conflicting, raw_conflict = make_event(3)
+        allowed, reason, _, inserted = gate.authorize_and_persist_committed(
+            conflicting, raw_conflict, topic, observed
+        )
+        assert not allowed and reason == "node_replay" and inserted is None
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 4
+            assert session.query(TelemetryCommittedReceipt).filter_by(
+                organization_id=org, node_id=NODE
+            ).count() == 4
+            assert session.query(TelemetrySample).filter_by(
+                event_id=str(conflicting.event_id)
+            ).count() == 0
     finally:
         with Session(database.engine) as session:
             with session.begin():
@@ -389,3 +422,20 @@ def test_authorized_node_cursor_and_sample_rollback_are_atomic_on_postgres(
                     id=node_record_id
                 ).delete()
                 session.query(SecurityOrganization).filter_by(id=org).delete()
+
+
+def test_duplicate_sequence_cannot_claim_two_events(database):
+    from sqlalchemy.exc import IntegrityError
+
+    first, original = make_event(11)
+    second, different = make_event(11)
+    assert database.persist(first, original, receipt_identity=identity(11))
+    with pytest.raises(IntegrityError):
+        database.persist(second, different, receipt_identity=identity(11))
+    assert len(rows(database)) == 1
+    with database.engine.connect() as connection:
+        assert connection.scalar(
+            select(func.count()).select_from(TelemetrySample).where(
+                TelemetrySample.event_id == str(second.event_id)
+            )
+        ) == 0

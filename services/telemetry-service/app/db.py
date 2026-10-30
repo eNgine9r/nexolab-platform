@@ -93,6 +93,13 @@ Index(
     TelemetryCommittedReceipt.published_at,
     TelemetryCommittedReceipt.committed_at,
 )
+Index(
+    "uq_telemetry_committed_receipts_node_sequence",
+    TelemetryCommittedReceipt.organization_id,
+    TelemetryCommittedReceipt.node_id,
+    TelemetryCommittedReceipt.node_sequence,
+    unique=True,
+)
 
 
 class TelemetryLatest(Base):

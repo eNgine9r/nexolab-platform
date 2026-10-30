@@ -32,6 +32,12 @@ def upgrade() -> None:
         "telemetry_committed_receipts",
         ["published_at", "committed_at"],
     )
+    op.create_index(
+        "uq_telemetry_committed_receipts_node_sequence",
+        "telemetry_committed_receipts",
+        ["organization_id", "node_id", "node_sequence"],
+        unique=True,
+    )
 
 
 def downgrade() -> None:
@@ -42,5 +48,6 @@ def downgrade() -> None:
     ))
     if count:
         raise RuntimeError("receipt_outbox_not_empty_downgrade_refused")
+    op.drop_index("uq_telemetry_committed_receipts_node_sequence")
     op.drop_index("ix_telemetry_committed_receipts_pending")
     op.drop_table("telemetry_committed_receipts")

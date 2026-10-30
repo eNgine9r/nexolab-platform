@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.contracts import TelemetryEvent
 from app.committed_receipts import CommittedReceiptIdentity
-from app.db import Database
+from app.db import Database, TelemetryCommittedReceipt
 from app.nodes.domain import (
     ClockStatus,
     NodeState,
@@ -117,6 +117,24 @@ class NodeIngressAuthorizer:
                 if credential is None:
                     return False, NODE_AUTHORIZATION_REASON, "node has no active broker credential", None
 
+                if raw_payload is not None:
+                    # The cursor is a high-water mark, not a proof that all
+                    # earlier samples committed. Check the immutable ledger
+                    # before accepting an out-of-order or retried sequence.
+                    recorded_event = session.scalar(
+                        select(TelemetryCommittedReceipt.event_id).where(
+                            TelemetryCommittedReceipt.organization_id == parsed.organization_id,
+                            TelemetryCommittedReceipt.node_id == parsed.node_id,
+                            TelemetryCommittedReceipt.node_sequence == sequence,
+                        )
+                    )
+                    if recorded_event is not None and recorded_event != event_id:
+                        return (
+                            False, NODE_REPLAY_REASON,
+                            "node_sequence is already bound to another committed event",
+                            None,
+                        )
+
                 cursor = session.scalar(
                     select(CentralNodeIngressCursor)
                     .where(
@@ -138,7 +156,12 @@ class NodeIngressAuthorizer:
                     )
                     session.add(cursor)
                 elif sequence < cursor.last_sequence:
-                    return False, NODE_REPLAY_REASON, "node_sequence is lower than the persisted cursor", None
+                    if raw_payload is None:
+                        return False, NODE_REPLAY_REASON, "node_sequence is lower than the persisted cursor", None
+                    # Central committed path: permit an older uncommitted
+                    # sample or exact retry without moving the high-water mark.
+                    # Unique organization/node/sequence ledger + raw event
+                    # identity checks rule out conflicting replay.
                 elif sequence == cursor.last_sequence:
                     if event_id != cursor.last_event_id:
                         return False, NODE_REPLAY_REASON, "node_sequence is already bound to another event", None
