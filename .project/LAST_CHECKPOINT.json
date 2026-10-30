@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T09:14:27Z",
+  "timestamp": "2026-10-30T09:38:17.553Z",
   "actor": "ChatGPT",
-  "event": "1428_actual_pg_archive_owner_evidence_ci_guard_correction",
+  "event": "1431_site_dr_inventory_after_1430_merge",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1428,
-    "branch": "fix/1428-bounded-incident-pg-backup",
-    "status": "partial_pg_archive_owner_evidence_Draft_PR_1430_CI_pending",
+    "issue": 1431,
+    "branch": "docs/1431-site-dr-inventory-gate",
+    "status": "source_only_inventory_doc_implemented_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2700,6 +2700,17 @@
       "unit_tests": "16_pass",
       "source_bound_ci": "pending",
       "db_agent_manual_only": "fail_closed"
+    },
+    "issue_1431_site_dr_inventory": {
+      "issue": 1431,
+      "source_only": true,
+      "pr1430_merged": true,
+      "pr1430_merge_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
+      "actual_pg_backup": "owner_reported_toc_pass_no_restore",
+      "s3_versity_volume_map": "source_only_reconciliation_required",
+      "edge_sqlite_protection": "missing_in_dr_v1",
+      "off_device_encrypted_copy": "unverified",
+      "protected_site_mutation": false
     }
   },
   "observations": [
@@ -3915,7 +3926,7 @@
       }
     }
   ],
-  "next_action": "Confirm exact-head PR #1430 corrected CI and review. Owner-reported partial PostgreSQL snapshot/TOC exists; do not repeat it without a reason. Complete independent encrypted S3/MQTT/SQLite/auth off-host snapshot and isolated restore, then validate exact installed image/Compose/IPAM and guarded rollback before separately approved #1399 site recovery. No login recovery claimed; RS485 detached intentionally.",
+  "next_action": "Finish #1431 exact-head docs/format/state checks and focused PR; then implement a separately scoped non-destructive multi-store DR capture/manifest contract. Site backup, isolated off-device restore, network/IPAM and #1399 login recovery remain blocked until independently accepted and separately approved.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
