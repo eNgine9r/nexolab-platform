@@ -34,6 +34,14 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
             ids.append(event_id)
         return ids
 
+    def set_pending_payload(self, event_id: str, payload: str) -> None:
+        # Commit synthetic corruption before the receipt transaction starts.
+        with self.queue._connection:
+            self.queue._connection.execute(
+                "UPDATE outbound_queue SET payload=? WHERE event_id=?",
+                (payload, event_id),
+            )
+
     def receipt(
         self,
         event_id: str,
@@ -167,10 +175,7 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         ):
             with self.subTest(corrupt=corrupt):
                 payload = {**json.loads(original), **corrupt}
-                self.queue._connection.execute(
-                    "UPDATE outbound_queue SET payload=? WHERE event_id=?",
-                    (json.dumps(payload), event_id),
-                )
+                self.set_pending_payload(event_id, json.dumps(payload))
                 with self.assertRaisesRegex(
                     ReceiptProtocolError, "local_pending_identity_mismatch"
                 ):
@@ -184,29 +189,20 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
                     ).fetchall(),
                     [],
                 )
-        self.queue._connection.execute(
-            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
-            (original, event_id),
-        )
+        self.set_pending_payload(event_id, original)
         self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
 
     def test_duplicate_keys_in_local_pending_payload_fail_closed(self) -> None:
         (event_id,) = self.pending()
         original = self.queue.oldest()[0][2]
         duplicate_json = original.replace('"node_id":', '"node_id":"edge-02","node_id":')
-        self.queue._connection.execute(
-            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
-            (duplicate_json, event_id),
-        )
+        self.set_pending_payload(event_id, duplicate_json)
         with self.assertRaisesRegex(
             ReceiptProtocolError, "invalid_local_pending_payload"
         ):
             self.apply(self.receipt(event_id))
         self.assertEqual(self.queue.size(), 1)
-        self.queue._connection.execute(
-            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
-            (original, event_id),
-        )
+        self.set_pending_payload(event_id, original)
         self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
 
     def test_future_receipt_and_duplicate_keys_never_prune(self) -> None:
