@@ -11,6 +11,7 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Callable
+from uuid import uuid4
 
 from sqlalchemy import func, or_, select, update
 
@@ -99,6 +100,32 @@ class CommittedReceiptPublisher:
             )
             topic = str(record["topic"])
             payload = record["payload"]
+            receipt_id = str(record["receipt_id"])
+
+            # The Edge validator refuses receipts older than seven days.
+            # Reissue a fresh receipt (not a fresh sample commit) from the
+            # durable PostgreSQL row before an aged retry is published.
+            stamp = payload.get("accepted_at")
+            if not isinstance(stamp, str):
+                return PublishAttempt("retry", event_id, attempts)
+            try:
+                accepted_at = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            except ValueError:
+                return PublishAttempt("retry", event_id, attempts)
+            if accepted_at.tzinfo is None or accepted_at.utcoffset() is None:
+                return PublishAttempt("retry", event_id, attempts)
+            if accepted_at <= observed - timedelta(days=6):
+                receipt_id = str(uuid4())
+                payload = dict(payload)
+                payload["receipt_id"] = receipt_id
+                payload["accepted_at"] = observed.astimezone(UTC).isoformat().replace(
+                    "+00:00", "Z"
+                )
+                connection.execute(
+                    update(table)
+                    .where(table.c.event_id == event_id)
+                    .values(receipt_id=receipt_id, payload=payload)
+                )
 
         try:
             body = json.dumps(
@@ -121,6 +148,7 @@ class CommittedReceiptPublisher:
                 .where(
                     table.c.event_id == event_id,
                     table.c.attempts == attempts,
+                    table.c.receipt_id == receipt_id,
                     table.c.published_at.is_(None),
                 )
                 .values(published_at=observed)

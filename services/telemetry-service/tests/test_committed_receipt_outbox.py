@@ -216,3 +216,59 @@ def test_sender_cannot_claim_postgres_from_sqlite(tmp_path):
     with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
         CommittedReceiptPublisher(db, lambda *_: True)
     db.dispose()
+
+
+def test_publisher_cannot_ack_new_receipt_after_concurrent_duplicate(database):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    original = rows(database)[0]["receipt_id"]
+
+    def send_then_reissue(topic, payload):
+        # The original broker ACK races a valid reissue. The newer receipt
+        # is still pending and MUST NOT be marked delivered by this ACK.
+        with database.engine.begin() as connection:
+            connection.execute(
+                TelemetryCommittedReceipt.__table__.update()
+                .where(TelemetryCommittedReceipt.event_id == str(event.event_id))
+                .values(
+                    receipt_id=str(uuid4()),
+                    payload=dict(rows(database)[0]["payload"], receipt_id=str(uuid4())),
+                    attempts=0,
+                    published_at=None,
+                )
+            )
+        return True
+
+    outcome = CommittedReceiptPublisher(database, send_then_reissue).run_once()
+    assert outcome.status == "retry"
+    assert rows(database)[0]["published_at"] is None
+    assert rows(database)[0]["receipt_id"] != original
+
+
+def test_publisher_refreshes_expired_receipt_before_broker_send(database):
+    import json
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    old = rows(database)[0]
+    yesterday_plus_week = datetime.now(UTC) - timedelta(days=8)
+    expired = dict(old["payload"], accepted_at=yesterday_plus_week.isoformat().replace("+00:00", "Z"))
+    with database.engine.begin() as connection:
+        connection.execute(
+            TelemetryCommittedReceipt.__table__.update()
+            .where(TelemetryCommittedReceipt.event_id == str(event.event_id))
+            .values(payload=expired)
+        )
+    sent = []
+    outcome = CommittedReceiptPublisher(
+        database, lambda topic, payload: sent.append(json.loads(payload)) or True
+    ).run_once()
+    assert outcome.status == "published"
+    assert len(sent) == 1
+    assert sent[0]["receipt_id"] != old["receipt_id"]
+    assert datetime.fromisoformat(sent[0]["accepted_at"].replace("Z", "+00:00")) > yesterday_plus_week
+    assert rows(database)[0]["receipt_id"] == sent[0]["receipt_id"]
