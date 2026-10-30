@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone, timedelta
 import hashlib
 import importlib.util
 import json
@@ -71,11 +72,14 @@ def fixtures() -> tuple[dict, dict]:
             handoff_assets[next(i for i, x in enumerate(handoff_assets) if x["id"] == ident)][
                 identity_field
             ] = central_telemetry[identity_field]
+    current = datetime.now(timezone.utc)
+    observed = (current - timedelta(minutes=12)).isoformat().replace("+00:00", "Z")
+    reviewed = (current - timedelta(minutes=4)).isoformat().replace("+00:00", "Z")
     p = {
         "schema_version": 2,
         "kind": "nexolab-site-dr-preflight",
         "profile": "LOCAL_LAN",
-        "observed_at": "2026-10-30T10:00:00Z",
+        "observed_at": observed,
         "assets": assets,
         "capacity": {
             "working_free_bytes": 28 * GiB,
@@ -97,7 +101,7 @@ def fixtures() -> tuple[dict, dict]:
         "kind": "nexolab-site-capture-handoff",
         "profile": "LOCAL_LAN",
         "site_id": "nexolab-edge-01",
-        "observed_at": "2026-10-30T10:08:00Z",
+        "observed_at": reviewed,
         "preflight_sha256": hashlib.sha256(module.canonical(p)).hexdigest(),
         "source_device_sha256": sha(801),
         "destination_device_sha256": sha(802),
@@ -258,8 +262,22 @@ class CaptureHandoffTests(unittest.TestCase):
 
     def test_freshness_after_30_minutes_blocks(self):
         p, h = fixtures()
-        h["observed_at"] = "2026-10-30T10:31:00Z"
+        source_time = datetime.fromisoformat(p["observed_at"].replace("Z", "+00:00"))
+        h["observed_at"] = (source_time + timedelta(minutes=31)).isoformat().replace("+00:00", "Z")
         self.deny(p, h, "stale")
+
+    def test_old_signed_receipt_without_live_freshness_is_blocked(self):
+        p, h = fixtures()
+        now = datetime.now(timezone.utc)
+        p["observed_at"] = (now - timedelta(minutes=70)).isoformat().replace("+00:00", "Z")
+        h["observed_at"] = (now - timedelta(minutes=62)).isoformat().replace("+00:00", "Z")
+        refresh_hash(p, h)
+        self.deny(p, h, "stale site observation")
+
+    def test_handoff_timestamp_in_future_is_blocked(self):
+        p, h = fixtures()
+        h["observed_at"] = (datetime.now(timezone.utc) + timedelta(minutes=3)).isoformat().replace("+00:00", "Z")
+        self.deny(p, h, "handoff from future")
 
     def test_wrong_sample_interval_blocks(self):
         p, h = fixtures()
