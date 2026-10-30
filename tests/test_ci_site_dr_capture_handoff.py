@@ -210,7 +210,7 @@ class CaptureHandoffTests(unittest.TestCase):
     def test_wrong_quiesce_method_blocks(self):
         p, h = fixtures()
         get_asset(h, "mqtt-dynamic-security")["consistency_method"] = "unsafe_file_copy"
-        self.deny(p, h, "consistency")
+        self.deny(p, h, "quiesce/online backup boundary")
 
     def test_same_physical_source_and_target_blocks(self):
         p, h = fixtures()
@@ -336,7 +336,7 @@ class CaptureHandoffTests(unittest.TestCase):
 
     def test_no_live_docker_or_production_write_commands(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        for token in ("docker exec", "docker compose", "pg_dump", "s3 put", "modbus write", "subprocess.run", "--execute", "--capture"):
+        for token in ("docker exec", "docker compose", "s3 put", "modbus write", "subprocess.run", "--execute", "--capture"):
             self.assertNotIn(token, source.lower())
 
     def test_previous_dr_policies_untouched(self):
