@@ -202,12 +202,14 @@ def read_migration_authority(path: Path, vol_created_at: str, image_sha256: str)
             raise PreflightBlocked("migration authority is unsafe")
         raw = path.read_bytes()
         data = json.loads(raw)
+    except PreflightBlocked:
+        raise
     except (OSError, UnicodeError, ValueError) as exc:
         raise PreflightBlocked("migration authority missing or invalid") from exc
     if not isinstance(data, dict) or data.get("status") != "verified" or data.get("cutover_verified") is not True:
         raise PreflightBlocked("VersityGW cutover not verified")
     if data.get("target_volume_created_at") != vol_created_at:
-        raise PreflightBlocked("VersityGW volume authority mismatch")
+        raise PreflightBlocked("VersityGW volume creation identity mismatch")
     if data.get("target_image_id") != f"sha256:{image_sha256}":
         raise PreflightBlocked("VersityGW immutable image authority mismatch")
     return sha(raw)
