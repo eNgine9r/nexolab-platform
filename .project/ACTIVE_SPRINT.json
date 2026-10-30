@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1409,
-      "branch": "feature/1409-edge-ipam-readonly-inventory"
+      "issue": 1426,
+      "branch": "feature/1426-offline-dual-browser-origin-contract"
     },
     "next_work_package": null
   },
@@ -8971,6 +8971,38 @@
         "next_ci": "pending",
         "unapproved_candidate_exit": "nonzero_fail_closed"
       }
+    },
+    {
+      "issue": 1426,
+      "title": "Dual offline Raspberry Pi Dashboard on attached screen and isolated PC",
+      "branch": "feature/1426-offline-dual-browser-origin-contract",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1399,
+        1409
+      ],
+      "scope": "Source-only opt-in private browser host API/WebSocket resolution, regression tests, browser security and isolated local access acceptance. Site network/API port exposure and hardware tests pending.",
+      "permitted_paths": [
+        "src/lib/telemetry/offline-dual-access-origin.ts",
+        "src/lib/telemetry/offline-dual-access-origin.test.ts",
+        "src/lib/telemetry/runtime-config.ts",
+        "src/lib/alerts/runtime-config.ts",
+        "src/lib/nodes/runtime-config.ts",
+        "src/lib/reports/runtime-config.ts",
+        "src/lib/sessions/runtime-config.ts",
+        "docs/operations/offline-dual-access-contract.md",
+        ".project/**"
+      ],
+      "evidence": {
+        "pi_runtime_mode": "lan",
+        "source_only": true,
+        "feature_flag": "NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS_default_disabled",
+        "sessions_module": "blocked_by_write_policy",
+        "browser_security": "unverified",
+        "CI": "pending",
+        "no_site_mutation": true
+      }
     }
   ],
   "maintenance_actions": [
@@ -10513,6 +10545,24 @@
         "backup_restore": "not_verified",
         "site_activation": "not_performed",
         "hardware_acceptance": "not_verified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "kind": "issue_1426_dual_offline_browser_origin_draft",
+      "data": {
+        "issue": 1426,
+        "stage": "source_only_opt_in_resolver",
+        "current_pi_mode": "lan_verified_by_bounded_nexus_read",
+        "hardware": "unverified",
+        "docker_networks": "incident_1399_still_unrepaired",
+        "offline_pi_screen": "not_accepted",
+        "ethernet_isolated_pc": "not_accepted",
+        "wifi_ap": "not_accepted",
+        "local_auth_CORS": "not_accepted",
+        "sessions_consumer": "not_updated_due_write_tool_block",
+        "deployment": false
       }
     }
   ],
