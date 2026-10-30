@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1437,
-      "branch": "feat/1437-offline-multistore-fixture-recovery"
+      "issue": 1439,
+      "branch": "feat/1439-protected-capture-approval-gate"
     },
     "next_work_package": null
   },
@@ -9139,7 +9139,7 @@
       "title": "Offline multi-store protected capture harness with isolated fixture recovery",
       "branch": "feat/1437-offline-multistore-fixture-recovery",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1435
       ],
@@ -9166,7 +9166,55 @@
         "hardware": "unverified",
         "required_external_workflows": [
           "Offline Bundle"
-        ]
+        ],
+        "pr1438": "merged",
+        "checks": {
+          "core_ci": "success",
+          "telemetry": "success",
+          "offline_bundle": "success",
+          "dashboard": "success",
+          "refrigeration": "success",
+          "telegram": "success"
+        },
+        "actual_site_backup": "not_performed",
+        "real_restore": "not_performed"
+      }
+    },
+    {
+      "issue": 1439,
+      "title": "Protected eight-store operational backup execution and capacity approval gate",
+      "branch": "feat/1439-protected-capture-approval-gate",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1437
+      ],
+      "scope": "Offline source-only sanitized preflight/attestation capture plan gate for all eight stores; fail closed for missing volumes, source drift, false physical independence, unsafe budget, missing continuity or custody evidence. No real execution.",
+      "permitted_paths": [
+        "scripts/nexolab-site-dr-capture-handoff.py",
+        "tests/test_ci_site_dr_capture_handoff.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/site-dr-capture-approval-gate-1439.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "implementation": "source_only_plan",
+        "actual_site_probe": "not_performed",
+        "real_backup": "not_performed",
+        "off_device_copy": "not_verified",
+        "isolated_restore": "not_performed",
+        "hardware": "unverified",
+        "production_mutation": false,
+        "checks": {
+          "status": "pending",
+          "offline_bundle": "pending"
+        },
+        "pr": "pending"
       }
     }
   ],
