@@ -18,11 +18,10 @@ function isPrivateIPv4(host: string): boolean {
     return false;
   }
   const [first, second] = octets;
-  return (
-    first === 10 ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168)
-  );
+  const privateTen = first === 10;
+  const privateSeventeen = first === 172 && second >= 16 && second <= 31;
+  const privateOneNinetyTwo = first === 192 && second === 168;
+  return privateTen || privateSeventeen || privateOneNinetyTwo;
 }
 
 function localBrowserHostname(location: OfflineBrowserLocation): string | null {
@@ -36,6 +35,8 @@ function localBrowserHostname(location: OfflineBrowserLocation): string | null {
   } catch {
     throw new Error("Invalid offline dashboard browser origin");
   }
+  const isLoopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  const trustedBrowser = isLoopback || isPrivateIPv4(parsed.hostname);
   if (
     parsed.protocol !== "http:" ||
     parsed.port !== "3000" ||
@@ -44,11 +45,7 @@ function localBrowserHostname(location: OfflineBrowserLocation): string | null {
     parsed.pathname !== "/" ||
     parsed.search ||
     parsed.hash ||
-    !(
-      parsed.hostname === "localhost" ||
-      parsed.hostname === "127.0.0.1" ||
-      isPrivateIPv4(parsed.hostname)
-    )
+    !trustedBrowser
   ) {
     throw new Error("Offline dashboard requires an explicit private IPv4 or loopback origin on port 3000");
   }
