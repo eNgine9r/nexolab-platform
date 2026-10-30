@@ -1,3 +1,5 @@
+import { resolveOfflineBrowserApiBaseUrl } from "@/lib/telemetry/offline-dual-access-origin";
+
 export class NodeClientError extends Error {
   constructor(
     message: string,
@@ -29,7 +31,10 @@ export function getNodesApiBaseUrl(): string {
   }
   let parsed: URL;
   try {
-    parsed = new URL(value);
+    parsed = new URL(resolveOfflineBrowserApiBaseUrl(
+      value,
+      process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS,
+    ));
   } catch (error) {
     throw new NodeClientError("Nodes API URL must be absolute.", undefined, "configuration", {
       cause: error,
