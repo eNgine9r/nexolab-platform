@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T13:35:00Z",
+  "timestamp": "2026-10-30T15:00:40Z",
   "actor": "ChatGPT",
-  "event": "1445_source_only_postgres_receipt_intent_draft_pr",
+  "event": "1445_atomic_ingress_replay_and_security_dependency_checkpoint",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1445,
     "branch": "feature/1445-central-committed-receipt-outbox",
-    "status": "draft_source_only_ci_pending",
+    "status": "source_only_atomic_replay_and_publisher_core_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -4002,7 +4002,7 @@
       }
     }
   ],
-  "next_action": "Finish #1445 central receipt publisher and authorized ingress binding, run real PostgreSQL/MQTT/crash-retry acceptance and full exact-head CI; keep PR #1446 Draft until GREEN. No Raspberry/site, Docker, secrets or hardware changes without protected DR and separate approval.",
+  "next_action": "Verify #1446 bb77384c exact-head PostgreSQL, migrations, API and offline CI; verify independent #1447 Draft PR #1448 0b50d7df fresh policy and scan CI. Do not claim central MQTT ACL, production data durability or site readiness without real evidence. Keep drafts while blockers remain.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

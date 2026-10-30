@@ -9363,7 +9363,7 @@
       ],
       "evidence": {
         "pr": 1446,
-        "head_sha": "07d0d35d744d3b312bce63f695ad11d163ced6cd",
+        "head_sha": "bb77384c1027cfd1952eafe37c94358f6b3fa914",
         "source_only": true,
         "postgres_guard": "added",
         "producer": "not_implemented",
@@ -9372,9 +9372,14 @@
         "site_activation": "not_performed",
         "hardware": "unverified",
         "checks": {
-          "targeted": "ci_pending",
+          "targeted": "previous_exact_head_passed_new_commit_pending",
           "required_workflows": "in_progress"
-        }
+        },
+        "publisher_core": "source_implemented_not_mqtt_connected",
+        "ingress_atomic_cursor_sample": "source_implemented_not_runtime_connected",
+        "out_of_order_replay": "source_implemented_pending_ci",
+        "node_sequence_unique_constraint": "source_implemented_pending_ci",
+        "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review"
       }
     }
   ],
