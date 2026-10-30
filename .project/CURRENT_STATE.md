@@ -1,3 +1,7 @@
+## 2026-10-30 — #1437 isolated eight-store encrypted fixture recovery
+
+PR #1436 (#1435 read-only site preflight) merged to main after all six GitHub workflows GREEN. Current #1437 feature branch `feat/1437-offline-multistore-fixture-recovery` implements an isolated **synthetic-only** eight-asset fixture, bounded AES-256-GCM encrypted archive, authenticated integrity checks, wrong-key/tamper denial, and fresh isolated fixture restore. Offline tests/CI routing and runbook are part of this work. No actual site data, off-device custody, protected backup or hardware was touched. #1428 full DR remains blocked pending real encrypted protected multi-store backup plus actual isolated restore; #1399 Dashboard/API site repair requires separately approved cutover.
+
 ## 2026-10-30 — #1435 bounded read-only site DR preflight
 
 PR #1434 (#1433 v2 inventory contract) merged to main after all 6 exact-head workflows GREEN. Current #1435 branch `feat/1435-readonly-site-dr-preflight` adds read-only Docker Compose labels/image IDs/named-mount inventory, VersityGW migration authority and protected backup destination/capacity guard, deterministic isolated fixtures, offline CI routing and an operator runbook. No site preflight has been executed; this is source-only code, not a live backup or a safe cutover receipt. Full #1428 multi-store encrypted off-device backup and isolated restore unverified; #1399 Dashboard/Telemetry outage recovery remains blocked pending independent backup/rollback and separate owner approval.
