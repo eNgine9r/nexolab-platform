@@ -150,7 +150,7 @@ def validate_site_inventory(value: object) -> None:
             object_keys(asset, {"id", "disposition", "source", "rebuild_proof_sha256"}, identifier)
             digest(asset["rebuild_proof_sha256"], f"{identifier}.rebuild_proof_sha256")
         else:
-            object_keys(asset, {"id", "disposition", "source", "capture", "restore"}, identifier)
+            object_keys(asset, {"id", "disposition", "source", "capture", "restore"} | ({"storage_backend"} if identifier == "object-storage" else set()), identifier)
         src_fields = SOURCE_FIELDS if identifier in NO_VOLUME else SOURCE_FIELDS | {"source_volume"}
         source = object_keys(asset["source"], src_fields, f"{identifier}.source")
         require(source["compose_service"] == service, f"{identifier}: service identity mismatch")
