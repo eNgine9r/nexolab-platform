@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T08:40:00Z",
+  "timestamp": "2026-10-30T09:14:27Z",
   "actor": "ChatGPT",
-  "event": "1428_pg_incident_backup_guarded_draft_login_first",
+  "event": "1428_actual_pg_archive_owner_evidence_ci_guard_correction",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1428,
     "branch": "fix/1428-bounded-incident-pg-backup",
-    "status": "source_only_Draft_PR_1430_CI_pending",
+    "status": "partial_pg_archive_owner_evidence_Draft_PR_1430_CI_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3903,11 +3903,19 @@
         "nexus_provider_task": "quota_fallback_exhausted",
         "rs485_intentionally_detached": true,
         "auth_dashboard_currently_unavailable": true,
-        "site_mutation": false
+        "site_mutation": false,
+        "owner_pg_backup_archive": "/var/backups/nexolab/pg-incident-20261030T090951Z.dump",
+        "owner_pg_backup_bytes": 1181154608,
+        "owner_pg_backup_sha256": "3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06",
+        "source_helper_sha256": "634758e1585d92efd7dce74433afec4796e81e4b5349fe213439c21c5a86a7bc",
+        "pg_restore_toc": "pass",
+        "pg_restore_actual": "not_performed",
+        "free_ssd_space_after_pg_dump": "28G",
+        "complete_dr_proof": "pending"
       }
     }
   ],
-  "next_action": "Confirm exact-head CI, run root-only --check for source-pinned script only when accessible, create verified current partial PostgreSQL backup on Pi without touching central DB, acquire complete independent S3/MQTT/SQLite/auth off-host DR evidence and tested rollback, then carry out exact separately approved #1399 Docker network/port recreation. RS485 intentionally unplugged and out of scope. Do not claim login restored.",
+  "next_action": "Confirm exact-head PR #1430 corrected CI and review. Owner-reported partial PostgreSQL snapshot/TOC exists; do not repeat it without a reason. Complete independent encrypted S3/MQTT/SQLite/auth off-host snapshot and isolated restore, then validate exact installed image/Compose/IPAM and guarded rollback before separately approved #1399 site recovery. No login recovery claimed; RS485 detached intentionally.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
