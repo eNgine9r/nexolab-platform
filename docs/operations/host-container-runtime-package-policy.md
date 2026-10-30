@@ -17,8 +17,17 @@ python3 scripts/verify-host-container-runtime-package-policy.py --check
 It checks hold state and installed versions for `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-compose-plugin`, `docker-buildx-plugin`, `docker-ce-rootless-extras`.
 
 - `guarded` (exit 0): all six packages are installed and held in APT.
-- `unprotected` (exit 2): a required package is present but not held.
-- `blocked` (exit 2): missing packages, unreadable inventory or malformed/contradictory output.
+- `unprotected` (exit 78): all six packages are fully installed but at least one lacks an APT hold.
+- `blocked` (exit 78): missing, removed, unpacked or half-configured package, unreadable inventory, malformed or contradictory APT/dpkg hold state.
+
+The audit now cross-checks the `dpkg-query` desired/state/error code
+(`hi ` for a held fully installed package; `ii ` for an installed
+unheld package) against `apt-mark showhold`. Version strings alone
+are rejected as proof of installation. Duplicate/unknown packages,
+missing status codes, unexpected version formatting and incomplete
+inventories fail closed. Only the six allowlisted package identities,
+their installed versions and hold bits appear in success output.
+The script never claims exact release-version approval.
 
 This check **does not** call `apt install`, `apt-mark hold`, PackageKit, `systemctl`, Docker or any remote network. It does not read application secrets, write a file or touch industrial hardware. The status is **not** proof of installed immutable package authority, successful PostgreSQL/SQLite backups, working MQTT, hardware readiness or network health. APT holds alone do not prevent an authorized privileged user from explicitly overriding them or running direct `dpkg`; they are one defense-in-depth control, not a complete update policy.
 
