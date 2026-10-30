@@ -203,6 +203,20 @@ OFFLINE_BUNDLE_PATTERNS = (
     "src/app/api/**",
     "scripts/build-offline-bundle.sh",
     "scripts/lib/postgresql-backup-client.sh",
+    "scripts/nexolab-safe-pg-incident-backup.sh",
+    "scripts/tests/test_nexolab_incident_pg_backup.py",
+    "scripts/validate-site-dr-inventory-v2.py",
+    "scripts/nexolab-site-dr-preflight.py",
+    "scripts/nexolab-site-dr-fixture-harness.py",
+    "scripts/nexolab-site-dr-capture-handoff.py",
+    "scripts/verify-host-container-runtime-package-policy.py",
+    "scripts/tests/test_host_container_runtime_package_policy.py",
+    "scripts/nexolab-dr-readonly-health.py",
+    "tests/test_ci_dr_readonly_health.py",
+    "tests/test_ci_site_dr_capture_handoff.py",
+    "tests/test_ci_site_dr_fixture_harness.py",
+    "tests/test_ci_site_dr_preflight.py",
+    "tests/test_ci_site_dr_inventory_v2.py",
     "scripts/generate-offline-bundle-manifest.py",
     "scripts/install-offline-bundle.sh",
     "scripts/offline-bundle-smoke.sh",
@@ -243,6 +257,8 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 }
 
 VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/verify-host-container-runtime-package-policy.py",
+    "scripts/tests/test_host_container_runtime_package_policy.py",
     "scripts/reconcile-failed-packaged-update.py",
     "scripts/tests/test_reconcile_failed_packaged_update.py",
     "scripts/prepare-version-update-lock.py",
@@ -252,6 +268,8 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/nexolab-version-manager.py",
     "scripts/tests/test_nexolab_version_manager.py",
     "scripts/lib/postgresql-backup-client.sh",
+    "scripts/nexolab-safe-pg-incident-backup.sh",
+    "scripts/tests/test_nexolab_incident_pg_backup.py",
     "scripts/tests/test_nexolab_postgresql_backup.py",
     "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
@@ -269,6 +287,16 @@ DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
 DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
+    "scripts/validate-site-dr-inventory-v2.py",
+    "scripts/nexolab-site-dr-preflight.py",
+    "scripts/nexolab-site-dr-fixture-harness.py",
+    "scripts/nexolab-site-dr-capture-handoff.py",
+    "scripts/nexolab-dr-readonly-health.py",
+    "tests/test_ci_dr_readonly_health.py",
+    "tests/test_ci_site_dr_capture_handoff.py",
+    "tests/test_ci_site_dr_fixture_harness.py",
+    "tests/test_ci_site_dr_preflight.py",
+    "tests/test_ci_site_dr_inventory_v2.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
@@ -527,8 +555,7 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path == "tests/test_durable_receipt_protocol.py":
-            # Exact fixture for versioned backend/Edge receipt schema;
-            # root tests remain fail-closed unless explicitly registered.
+            # Exact contract fixture: no deployed runtime or publisher.
             classes.add("backend")
             matched = True
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 MAX_RECEIPT_BYTES = 2048
@@ -57,6 +57,8 @@ def validate_for_pending(
     expected_node_id: str,
     expected_node_sequence: int,
     oldest_pending_sequence: int,
+    seen_receipt_ids: set[str] | frozenset[str] | None = None,
+    now: datetime | None = None,
 ) -> str:
     """Return 'informational' or 'prune_allowed', otherwise raise.
 
@@ -66,6 +68,8 @@ def validate_for_pending(
     Replayed/deleted events are rejected by outbox lookup before this call.
     No storage mutation or network I/O occurs here.
     """
+    if not isinstance(seen_receipt_ids, (set, frozenset)):
+        raise ReceiptProtocolError("trusted_receipt_replay_ledger_required")
     if central_publisher_authorized is not True:
         raise ReceiptProtocolError("central_publisher_not_authenticated")
     if not isinstance(payload, bytes) or not 0 < len(payload) <= MAX_RECEIPT_BYTES:
@@ -94,6 +98,8 @@ def validate_for_pending(
     if type(receipt["contract_version"]) is not int or receipt["contract_version"] != 1:
         raise ReceiptProtocolError("unsupported_receipt_version")
     _uuid(receipt["receipt_id"])
+    if receipt["receipt_id"] in seen_receipt_ids:
+        raise ReceiptProtocolError("receipt_id_already_processed")
     _uuid(receipt["event_id"])
     _uuid(receipt["organization_id"])
     if (
@@ -120,6 +126,13 @@ def validate_for_pending(
         raise ReceiptProtocolError("invalid_acceptance_timestamp") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ReceiptProtocolError("timestamp_missing_timezone")
+    clock = datetime.now(timezone.utc) if now is None else now
+    if not isinstance(clock, datetime) or clock.tzinfo is None or clock.utcoffset() is None:
+        raise ReceiptProtocolError("invalid_trusted_clock")
+    if parsed > clock + timedelta(minutes=5):
+        raise ReceiptProtocolError("future_receipt_timestamp")
+    if parsed < clock - timedelta(days=7):
+        raise ReceiptProtocolError("stale_receipt_timestamp")
 
     # Informational spool acceptance is NEVER a final SQLite deletion ACK.
     if receipt["receipt_level"] == "durably_spooled":

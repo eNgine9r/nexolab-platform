@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from datetime import datetime, timedelta, timezone
 import json
 import unittest
 from pathlib import Path
@@ -46,6 +47,8 @@ def verify(message=None, **kwargs):
         "expected_node_id": NODE,
         "expected_node_sequence": 41,
         "oldest_pending_sequence": 41,
+        "seen_receipt_ids": frozenset(),
+        "now": datetime(2026, 10, 16, 12, 2, tzinfo=timezone.utc),
     }
     expected.update(kwargs)
     return mod.validate_for_pending(message if message is not None else payload(), **expected)
@@ -147,6 +150,26 @@ class DurableReceiptV1ContractTests(unittest.TestCase):
     def test_bool_sequence_is_not_integer(self):
         with self.assertRaises(mod.ReceiptProtocolError):
             verify(expected_node_sequence=True)
+
+    def test_trusted_replay_ledger_is_mandatory(self):
+        with self.assertRaisesRegex(mod.ReceiptProtocolError, "replay_ledger_required"):
+            verify(seen_receipt_ids=None)
+
+    def test_replayed_receipt_id_cannot_prune(self):
+        with self.assertRaisesRegex(mod.ReceiptProtocolError, "already_processed"):
+            verify(seen_receipt_ids={RECEIPT})
+
+    def test_stale_receipt_cannot_prune_even_when_event_is_pending(self):
+        with self.assertRaisesRegex(mod.ReceiptProtocolError, "stale_receipt"):
+            verify(now=datetime(2026, 10, 24, 12, 2, tzinfo=timezone.utc))
+
+    def test_future_dated_receipt_cannot_prune(self):
+        with self.assertRaisesRegex(mod.ReceiptProtocolError, "future_receipt"):
+            verify(now=datetime(2026, 10, 16, 11, 50, tzinfo=timezone.utc))
+
+    def test_untrusted_naive_clock_blocks(self):
+        with self.assertRaisesRegex(mod.ReceiptProtocolError, "invalid_trusted_clock"):
+            verify(now=datetime(2026, 10, 16, 12, 2))
 
     def test_legacy_unscoped_topic_is_not_accepted(self):
         with self.assertRaises(mod.ReceiptProtocolError):

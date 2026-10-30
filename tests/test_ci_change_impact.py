@@ -15,17 +15,8 @@ classify = MODULE.classify
 
 
 class ChangeImpactClassifierTests(unittest.TestCase):
-    def test_offline_identity_and_reissue_helpers_require_real_offline_gate(self) -> None:
-        for path in ('scripts/generate-offline-bundle-manifest.py', 'scripts/offline_image_archive.py', 'scripts/reissue-offline-bundle.py',
-                     'scripts/tests/test_offline_image_identity.py'):
-            result = classify([path])
-            self.assertFalse(result['fail_closed'])
-            self.assertIn('deployment_runtime', result['classes'])
-            self.assertTrue(result['verification']['offline_bundle'])
-
     def test_durable_receipt_contract_is_backend_only_not_runtime(self) -> None:
-        # A pure schema/validator has no live publisher, subscriber or DB
-        # migration. Do not make GitHub wait for unrelated production builds.
+        # Contract-only schema/validator requires no live publisher or DB migration.
         paths = [
             "contracts/durable_receipt_v1.py",
             "contracts/telemetry-durable-receipt.v1.schema.json",
@@ -36,6 +27,144 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["classes"], ["backend"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_offline_identity_and_reissue_helpers_require_real_offline_gate(self) -> None:
+        for path in ('scripts/generate-offline-bundle-manifest.py', 'scripts/offline_image_archive.py', 'scripts/reissue-offline-bundle.py',
+                     'scripts/tests/test_offline_image_identity.py'):
+            result = classify([path])
+            self.assertFalse(result['fail_closed'])
+            self.assertIn('deployment_runtime', result['classes'])
+            self.assertTrue(result['verification']['offline_bundle'])
+
+    def test_incident_pg_backup_helpers_require_offline_bundle_not_unknown_broadening(self) -> None:
+        result = classify([
+            "scripts/nexolab-safe-pg-incident-backup.sh",
+            "scripts/tests/test_nexolab_incident_pg_backup.py",
+            "docs/operations/incident-postgresql-backup-1428.md",
+        ])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
+    def test_incident_pg_backup_paths_trigger_offline_workflow(self) -> None:
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in (
+            "scripts/nexolab-safe-pg-incident-backup.sh",
+            "scripts/tests/test_nexolab_incident_pg_backup.py",
+            "docs/operations/incident-postgresql-backup-1428.md",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', trigger)
+
+    def test_host_docker_packagekit_guard_is_offline_routed(self) -> None:
+        paths = [
+            "scripts/verify-host-container-runtime-package-policy.py",
+            "scripts/tests/test_host_container_runtime_package_policy.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
+    def test_dr_readonly_health_monitor_is_offline_routed(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-readonly-health.py",
+            "tests/test_ci_dr_readonly_health.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
+    def test_site_capture_handoff_is_offline_routed(self) -> None:
+        paths = [
+            "scripts/nexolab-site-dr-capture-handoff.py",
+            "tests/test_ci_site_dr_capture_handoff.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
+    def test_dr_synthetic_harness_is_deterministically_offline_routed(self) -> None:
+        paths = [
+            "scripts/nexolab-site-dr-fixture-harness.py",
+            "tests/test_ci_site_dr_fixture_harness.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        content = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        triggers = content.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
+    def test_site_dr_readonly_preflight_requires_offline_bundle(self) -> None:
+        paths = [
+            "scripts/nexolab-site-dr-preflight.py",
+            "tests/test_ci_site_dr_preflight.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', trigger)
+
+    def test_site_dr_v2_contract_is_offline_and_ci_routed(self) -> None:
+        paths = [
+            "scripts/validate-site-dr-inventory-v2.py",
+            "tests/test_ci_site_dr_inventory_v2.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        trigger = workflow.split("  pull_request:", 1)[1].split(
+            "  workflow_dispatch:", 1
+        )[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', trigger)
 
     def test_state_only_is_lightweight(self) -> None:
         result = classify(

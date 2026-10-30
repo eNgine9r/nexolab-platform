@@ -1,11 +1,67 @@
-## 2026-10-16 — #1410 contract-only receipt, not active site durability
+## 2026-10-30 — #1443 host PackageKit guard remains source-only
 
-Stage-1 protocol/validator is source-only, has no central MQTT receipt
-publisher, no trusted installed broker ACL, no Edge subscription and
-no SQLite change. It cannot replace PUBACK-based deletion on the
-accepted ffdefc production runtime. Do not claim zero data loss.
-Actual authenticated central durable receipt and bounded replay/queue
-tests remain requirements #1397 before an owner-approved release.
+Original #1421 code in main checked APT holds but did not validate dpkg installed-state abbreviation; a held removed/unconfigured package could produce misleading guarded status. #1443 fixes source and mocked tests only. Live Raspberry exact packages/holds, immutable approved versions, owner-authorized change window, backup and rollback are unverified. Do not apply package holds, disable PackageKit, modify Docker/containerd, restart containers or migrate IPAM without separate owner approval and actual protected DR evidence.
+
+## 2026-10-30 — #1441 read-only backup health reveals operational DR gaps
+
+#1439 source-only handoff contract merged GREEN; it has not delivered an actual independent backup. #1441 read-only monitor is a source-only observer, not scheduling or data protection. Last site evidence has only a partial real PostgreSQL archive, no independently verified 8-store encrypted off-device copy, no actual isolated restore and no application backup timer. Raspberry local main is behind remote by 23 commits (read-only Commander evidence), do not update/cut over until safe separate approval. Legacy MinIO and active VersityGW volumes must remain untouched, no Modbus/hardware writes.
+
+## 2026-10-30 — #1439 operational capture approval remains structurally and physically unverified
+
+#1437 fixture-only DR merged. #1439 is a source-only structural plan gate, NOT a production backup tool. Actual root/backup device separation, independent encrypted backup medium and key custody, real per-store consistency, MQTT/SQLite high-water continuity, and full isolated restore have not been evidenced on Raspberry. A structurally valid operator receipt cannot certify its own authenticity. No protected #1399 site Docker/IPAM recovery or Modbus/hardware writes permitted. Preserve active VersityGW and old MinIO volumes.
+
+## 2026-10-30 — #1437 fixture-only DR cannot authorize production recovery
+
+#1435 source-only read-only preflight merged GREEN. #1437 exercises only synthetic data in isolated temporary directories. Actual Raspberry asset identity, full PostgreSQL/VersityGW/MQTT/edge SQLite/auth consistent capture, independent encrypted off-device copy and successful isolated site restore remain UNVERIFIED. No verified separate protected backup destination/key custody has been provided. Retain old MinIO and new VersityGW volumes; do not touch Docker/IPAM or hardware to resolve #1399. Synthetic receipt must never be classified as real hardware or production acceptance.
+
+## 2026-10-30 — #1435 read-only site mapping awaits protected destination and live evidence
+
+#1433 v2 structural contract merged. #1435 source-only script cannot prove physical independence of a backup destination, S3/MQTT/edge SQLite consistency, local-auth secret custody or actual restores. Live Docker service and protected volume observations are still unverified. No approved independent root-owned backup medium was identified; last reported SSD headroom 28G. Do not run unchecked scripts on protected site or consider preflight output site cutover approval. #1399 stays blocked, no Modbus/hardware writes.
+
+## 2026-10-30 — #1433 site DR v2 validation is not operational backup
+
+#1431 source-only inventory merged; #1433 is a feature-branch validator and deterministic fixtures only. No independent actual VersityGW, MQTT, SQLite/outbox, auth-key encrypted off-device backup or isolated restoration exists in site evidence. SSD last reported 28G available, not proof of separate media. V2 attestation can never itself authorize #1399 site cutover. NEXUS direct remote command execution still unverified; Raspberry remains unchanged.
+
+## 2026-10-30 — #1431 offline DR inventory blockers after #1430 merge
+
+PR #1430 source-only helper merged (`eb3b42135f188e9a916313c9d335b32f49f020d9`), but #1428 full DR remains open. Actual installed VersityGW `nexolab-central-object-storage-versitygw-data` vs five-asset DR v1 legacy object-storage volume, missing edge SQLite/outbox, unclassified edge MQTT and central ingestion persistence require verified source inventory, consistency gate and independent encrypted off-device restore. Root SSD had 28G free after partial PostgreSQL archive. No dedicated backup medium or verified key custody available in evidence. This blocks #1399 protected Dashboard/Telemetry API Docker network repair and any site activation; docs-only #1431 proceeds without runtime mutation.
+
+## 2026-10-30 — #1399 urgent Dashboard login and #1428 incomplete backup
+
+Critical user outcome is LAN Dashboard login at `172.18.48.66:3000` with real Telemetry API/retained PostgreSQL. Dashboard, API and VersityGW have no Docker network endpoints or published host ports; current PostgreSQL remains available and 19 GB. Root SSD now has 28G available (88% used). Owner terminal reports a new partial PostgreSQL incident archive from the reviewed SHA256-matched #1428 helper: 1,181,154,608 bytes at `/var/backups/nexolab/pg-incident-20261030T090951Z.dump`, SHA256 `3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06`, TOC PASS. This is NOT a verified complete S3/MQTT/edge SQLite/local-auth encrypted backup, off-device custody or isolated restore. Helper PR #1430 stays Draft.
+
+NEXUS direct execution fails `EXECUTION_HANDLER_FAILED` (nonretryable) and provider task reports `quota_fallback_exhausted`; RDC monthly limit remains exhausted. Therefore the assistant cannot run privileged commands on Raspberry or assert recovery. Physical RS-485 interfaces are intentionally disconnected and are not a blocker to login. Site Docker recreation, network/IPAM change and service activation are prohibited without fresh consistent backup, independent restore/rollback and exact scoped owner review. Do not run blind `docker network connect`, restart/Compose down, disk pruning, or fallback demo frontend.
+
+## 2026-10-29 — #1409 verified overlap and unresolved site recovery gates
+
+Actual Pi routing: physical LAN `172.18.48.0/21` overlaps Docker edge `172.18.0.0/16`. Other bridges consume `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale has observed per-peer host routes. Candidate `172.26.0.0/24` is locally disjoint but not reserved across upstream LAN, VLAN or VPN.
+
+A protected migration remains blocked on the exact installed Compose/IPAM authority, current PostgreSQL, edge SQLite, MQTT and object-storage backup with independently verified restore, rollback to the previous topology, site network reservations, physical recovery access and a separately reviewed Product Owner approval for the exact change. NEXUS Commander supports bounded file reads but command execution is failing; Remote Desktop Commander monthly quota is exhausted. CI for source-only PR #1425 must pass before merge. No host or Docker runtime mutation has occurred.
+
+## 2026-10-29 — #1409 source-only IPAM inventory; production cutover explicitly blocked
+
+Actual physical `172.18.48.0/21` overlaps edge Docker bridge `172.18.0.0/16`; Dashboard/Telemetry/VersityGW Docker networking absent, MQTT central attachment absent after reboot. All six accepted OCI runtime digests MATCH the immutable ffdefc bundle; no image reinstall needed. Real all-table routing inventory (including site VPN and upstream reservation policy) not yet obtained; `10.x` subnet is not automatically safe. Native /var/backups/nexolab listing showed only Oct13–14 large dumps in the displayed subset, not a fresh verified successful isolated restore. Root-only protected backup, current volume ID proof, exact installation Compose/IPAM hash and rollback to original networks require verification. Remote Desktop Commander quota prevents direct terminal calls and NEXUS execution handler failed; do not bypass access restrictions. Source-only script for #1409 can audit routes and explicitly selected candidates but **never authorizes** a live Docker network change. A separately approved exact owner-local protected procedure is mandatory before any host/Docker mutation, reboot, site cutover or Modbus/hardware action. No risk to site data was taken in this WP.
+
+## 2026-10-29 — #1423 digest-contract correction; live runtime recovery remains hard-blocked
+
+The protected ffdefc manifest marker/source/package root match but a scratch `image_id`-only comparison cannot prove six image mismatches; test proper `identity.runtime_digests` membership from the immutable archive. Existing #1399 observer's image identity check is source-only and needs #1423 corrective tests/CI before depending on it in any recovery procedure. Docker Dashboard, Telemetry API and VersityGW remain detached after reboot; physical LAN `172.18.48.0/21` overlaps edge Docker `172.18.0.0/16`. Host backup listing displayed Oct13–14 dump metadata but no current fresh restore drill or owner-approved rollback; presence of named volumes does not prove preserved data. **Do not execute** arbitrary Docker restarts, network connect, Compose down, image repull, package downgrade or site cutover without exact restored backups and separately approved protected plan. #1421 source guard merged but host policy not enabled.
+
+## 2026-10-29 — P0 reboot and Docker network restoration blocked; PackageKit host policy activation separate
+
+Physical Raspberry Pi evidence: Dashboard LAN HTTP000, Dashboard/Telemetry/VersityGW Docker networks detached, MQTT/API network split, edge Agent unhealthy and Docker/physical LAN CIDR collision. Old sandbox faults at 16:39 preceded PackageKit-triggered Docker/containerd upgrade at 16:43; shim incompatibility was additionally observed during upgrade. Source-only #1421/PR #1422 audits APT holds without changing the host; full prevention requires separate reviewed owner-approved site policy. **No currently validated, accepted immutable-package network recovery procedure / backup and rollback gate has been verified for this latest boot.** Live recovery and CIDR migration (#1399/#1409), object-storage (#1400) require protected scope, exact identity/volume continuity and distinct Product Owner approval. Detached containers may be internally healthy; do not report live telemetry based on process health alone. No downgrade, Docker restart, arbitrary network reattach, broad Compose down, old systemd frontend enablement or Modbus write authorized.
+
+## 2026-10-16 — #1399 protected automatic boot repair not yet authorized
+
+Source candidate observer is read-only; no systemd supervisor is installed
+or enabled. The current site still fails preflight because physical LAN
+`172.18.48.0/21` intersects `nexolab-edge_default:172.18.0.0/16`.
+Actual network/IPAM migration, privileged owner-approved self-recovery,
+immutable Compose hash proof, rate-limited retries, preserved volumes and
+rollback evidence must be independently verified before installing any
+boot-time actuator. Historical Docker stale-sandbox failure root cause is
+not conclusively established. Detached VersityGW network (#1400) and
+persistent application-level ACK/replay (#1397) remain open.
+No further site cutover or controller write authorized.
 
 ## 2026-10-16 — #1400 object-storage private network recovery still blocked
 

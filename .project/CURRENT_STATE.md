@@ -1,21 +1,97 @@
-## 2026-10-16 — #1410 versioned application-level durability receipt contract
+## 2026-10-30 — #1443 PackageKit installed-state safety regression
 
-Source audit: Edge SQLite telemetry outbox deletes events after MQTT
-broker PUBACK, before any application-level PostgreSQL receipt. A
-controlled isolated Mosquitto test (#1394) demonstrated loss of queued
-broker delivery above finite cap, not a real production loss.
+PR #1442 (#1441 offline read-only backup health probe) merged into main after all six exact-head GitHub workflows GREEN; no site backup executed. Existing #1421 PackageKit source-only audit was already merged in PR #1422 and its Issue closed. #1443 branch `fix/1443-packagekit-installed-state-regression` fixes the audit's false-green risk: dpkg-query version alone does not prove installed state. The 6 inspected packages must have fully installed (ii/hi) dpkg state matching APT hold inventory; removed/half-configured/missing/inconsistent states are blocked. Includes 23 hermetic tests, exact-path CI routing and updated operator runbook. No package installation, holds, Docker restart, production Raspberry change or Modbus write. #1428 independent encrypted backup/isolated restore and #1399 site recovery remain blocked.
 
-This independent **contract-only** source WP specifies a JSON Schema
-and pure stdlib fail-closed receipt validation: UUID/event/tenant/node
-identity, monotonic FIFO sequence, authenticated local broker topic
-precondition and `durably_spooled` informational vs
-`postgres_committed` final deletion level. It adds hermetic tests
-and an offline architecture runbook. No central receipt producer,
-actual broker ACL, Edge receipt subscriber, queue prune/replay or
-production data path is changed. No source-completed contract is a
-no-loss guarantee: #1397 must separately implement and test end-to-end
-persistent ACK/replay with bounded capacity and actual offline ARM64.
-Source PR and exact-head CI remain pending.
+## 2026-10-30 — #1441 offline read-only backup health audit
+
+PR #1440 (#1439 protected capture handoff) merged to main after all 6 exact-head GitHub workflows GREEN. Current #1441 branch `feat/1441-offline-dr-readonly-health` adds a read-only offline backup health probe (strict eight-store v2 receipt, root 20 GiB reserve, exact expected systemd backup timer state and stale/missing evidence flags), deterministic mock tests, offline CI routing and runbook. All read-only statuses distinguish self-attested receipt from independently verified backup. No Raspberry deployment, actual eight-store backup, off-device encrypted custody, full isolated restore or hardware acceptance has been performed. Raspberry Commander is online; installed repo main was read-only verified clean but behind origin/main 23 commits, not synced. #1428 full DR and protected #1399 site repair remain blocked.
+
+## 2026-10-30 — #1439 eight-store protected operational capture handoff gate
+
+PR #1438 (#1437 synthetic AES-256-GCM fixture recovery) merged into main after all six exact-head GitHub workflows GREEN. #1439 branch `feat/1439-protected-capture-approval-gate` implements a source-only non-executing offline plan validator for all 8 protected assets, matching #1435 read-only source evidence against sanitized operator review for immutable image/volume identities, migration authority, separate destination/key custody, capture boundaries and 20 GiB work reserve. Includes deterministic fail-closed tests and CI/offline routing. No actual Raspberry site backup, key extraction, migration, service changes or restore has occurred. #1428 full DR and protected #1399 Dashboard/API network repair remain blocked pending encrypted independent multi-store site backup, real isolated restore and separate owner approval.
+
+## 2026-10-30 — #1437 isolated eight-store encrypted fixture recovery
+
+PR #1436 (#1435 read-only site preflight) merged to main after all six GitHub workflows GREEN. Current #1437 feature branch `feat/1437-offline-multistore-fixture-recovery` implements an isolated **synthetic-only** eight-asset fixture, bounded AES-256-GCM encrypted archive, authenticated integrity checks, wrong-key/tamper denial, and fresh isolated fixture restore. Offline tests/CI routing and runbook are part of this work. No actual site data, off-device custody, protected backup or hardware was touched. #1428 full DR remains blocked pending real encrypted protected multi-store backup plus actual isolated restore; #1399 Dashboard/API site repair requires separately approved cutover.
+
+## 2026-10-30 — #1435 bounded read-only site DR preflight
+
+PR #1434 (#1433 v2 inventory contract) merged to main after all 6 exact-head workflows GREEN. Current #1435 branch `feat/1435-readonly-site-dr-preflight` adds read-only Docker Compose labels/image IDs/named-mount inventory, VersityGW migration authority and protected backup destination/capacity guard, deterministic isolated fixtures, offline CI routing and an operator runbook. No site preflight has been executed; this is source-only code, not a live backup or a safe cutover receipt. Full #1428 multi-store encrypted off-device backup and isolated restore unverified; #1399 Dashboard/Telemetry outage recovery remains blocked pending independent backup/rollback and separate owner approval.
+
+## 2026-10-30 — #1433 complete-site DR v2 inventory implementation (source only)
+
+PR #1432 (#1431 inventory) merged into main after Core CI and Telemetry GREEN. #1433 feature branch `feat/1433-site-dr-inventory-v2-contract` implements a strict offline JSON receipt validator for 8 protected stores, including actual VersityGW source identity, edge SQLite/outbox and classified auxiliary data, with structurally required encrypted/off-device/isolated restore evidence; legacy DR v1 policy untouched. Source-only isolated tests and CI impact/offline routing are in progress. This is NOT a real complete backup, off-device custody or fresh-volume restore. #1399 site Docker/network recovery stays blocked on actual DR and owner approval. Raspberry runtime/hardware unchanged.
+
+## 2026-10-30 — PR #1430 merged; #1431 offline DR inventory source-only
+
+PR #1430 merged into main at `eb3b42135f188e9a916313c9d335b32f49f020d9` after all six exact-head workflows GREEN. Scope is only bounded, source-pinned one-time PostgreSQL emergency dump helper. Operator-reported 1,181,154,608-byte archive passed TOC; no isolated PostgreSQL restore or complete multi-store encrypted backup accepted. Source implementation does not deploy or restart services.
+
+New independent Issue #1431 / branch `docs/1431-site-dr-inventory-gate` documents current DR v1 five-asset assumptions vs actual VersityGW named volume, edge SQLite/outbox, central ingestion and edge MQTT durability. Inventory and restore gate: `docs/operations/site-dr-inventory-gate-1431.md`. Actual complete DR, off-device key custody, site storage identity and Dashboard/API recovery remain unverified; #1399 no cutover approval. Hardware RS-485 disconnected intentionally, no hardware write.
+
+## 2026-10-30 — #1428 guarded PostgreSQL snapshot prerequisite to NEXOLAB login recovery
+
+Owner's explicit current priority is authenticated Dashboard on `http://172.18.48.66:3000` and the real Telemetry API on `:8082`; intentionally unplugged RS-485 adapters are **not** a prerequisite. Actual installed `ffdefc4550d71e211724de1154ffe9057f905c9c` Dashboard/Telemetry/VersityGW containers were observed running but with no Docker networks or host ports. PostgreSQL is running and locally queryable (19 GB). Root SSD has 29 GB available; last displayed backup in scanned local paths is Oct 14; no NEXOLAB application-data systemd backup timer was observed.
+
+#1428 Draft PR #1430 now stages a source-only bounded one-time PostgreSQL backup helper, isolated fixture tests, explicit workflow test routing and an operator runbook. This does **not** restore the Dashboard, verify a fresh-volume restore, establish off-device custody or schedule complete backups. The source-only PR does not install a timer or repair the site. NEXUS direct Commander execution returned `EXECUTION_HANDLER_FAILED` again; NEXUS provider task blocked `quota_fallback_exhausted`. No protected Docker or data-volume mutation performed. Source-only #1399 network recovery is still blocked on complete data safety, installed package/Compose identity and exact operator-approved site procedure.
+
+### 2026-10-30 — operator partial PostgreSQL archive evidence, no DR restore
+
+The owner transferred the exact SHA256-matching #1428 helper (`634758e1585d92efd7dce74433afec4796e81e4b5349fe213439c21c5a86a7bc`) to `nexolab-edge-01`; `--check` returned `PG_BACKUP_PREFLIGHT=PASS`, then the separate real invocation reported `PG_BACKUP_ARCHIVE=CREATED` and `PG_RESTORE_TOC=PASS`. New root-only archive `/var/backups/nexolab/pg-incident-20261030T090951Z.dump` is **1,181,154,608 bytes**, SHA256 `3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06` according to operator stdout. SSD now reports 28G available (88% used). The `PG_BACKUP_PERFORMED=NO` line belonged to check-only invocation, not the later archive creation.
+
+Acceptance boundary: `PG_RESTORE_ACTUAL=NOT_PERFORMED`, no source-consistent encrypted off-device S3/MQTT/SQLite/local-auth backup, no independent isolated restoration, no Dashboard/API recovery, and no approved Docker/IPAM cutover. PR #1430 was kept Draft; source-only CI classifier path registration corrected after exact-head Quality policy failure, full latest-head CI pending. Full #1428 DR remains open and #1399 site repair stays protected.
+
+## 2026-10-29 — #1409 Raspberry Pi route and Docker IPAM evidence
+
+Operator-collected read-only data confirms physical LAN `172.18.48.0/21` and Docker edge bridge `172.18.0.0/16` overlap. Other Docker bridge networks occupy `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale interface `100.113.204.81/32` has seven observed host routes in table 52.
+
+The physical /21 route is more specific than the Docker /16 route on the host, but the address overlap remains unsafe inside container namespaces. The overlap alone has not been proven to cause Docker sandbox loss. Candidate `172.26.0.0/24` is locally disjoint, not site-reserved or approved.
+
+PR #1425 adds a read-only IPAM candidate guard and 18 isolated test cases to the offline runtime contract. Source-only CI and format fixes are under review. The installed immutable ffdefc images are pinned 6/6, but Dashboard, Telemetry API and object storage have detached Docker networking. MQTT lacks its central network. Fresh backup restoration, operator-approved site network change and real hardware validation remain unverified. No live container, network, database or device was changed.
+
+## 2026-10-29 — #1409 read-only site route/IPAM inventory stage 1 (no cutover)
+
+Current NEXOLAB on Raspberry Pi: accepted immutable ARM64 package ffdefc; marker/source/bundle root verified, all **six** Docker image IDs pinned in accepted manifest runtime digests; expected named volumes exist. Actual operator network inspection: physical `172.18.48.0/21` and edge bridge `172.18.0.0/16` conflict, Dashboard/Telemetry/VersityGW have no Docker attachment, MQTT only standalone, PostgreSQL central and Edge Agent edge+standalone. Root cause of post-reboot detached Docker sandboxes is not proven solely by CIDR collision. Production data restore/fresh backup after Oct14 not verified; no latest real hardware acceptance.
+
+Issue #1423/PR #1424 (OCI runtime digest observer) merged exact-head GREEN at `b7fc68926045aebaa4502cf1e73e491c0d25d388`. Owner-supplied read-only native 6/6 pinned image check now confirms this correction. #1409 starts separately on branch `feature/1409-edge-ipam-readonly-inventory` with source-only route/IPAM read-only diagnostic, 16 isolated tests and operator gating. No candidate CIDR selected, no exact site route table inventory yet, no backup restoration evidence or approved site cutover. Remote Desktop Commander quota exhausted and NEXUS Commander execution handler failed; local Raspberry Pi command execution unavailable through current connector tools. This WP does **not** change Docker IPAM, systemd, storage, devices, network or any live NEXOLAB instance. Do not declare `ready` from `current.json` while actual LAN services are detached.
+
+## 2026-10-29 — #1423 correct OCI image identity validation in the P0 boot observer (source-only)
+
+The owner confirmed that protected `current.json` is `validated_package/ready/runtime_state_known=true` for installed ARM64 source `ffdefc4550d71e211724de1154ffe9057f905c9c`, both current and previous catalog directories exist, and the current manifest checksum, source and package-root assertions pass. On-site `docker volume ls` lists expected central/edge named volumes and live containers continue to report dashboard/API/VersityGW network loss; no data restore or live image identity has been proven. The owner's provisional comparison of six container `.Image` values to `manifest.images[].image_id` returned six `False` results, **not** reliable image drift evidence: the canonical offline image archive/recovery contract allows the immutable `identity.runtime_digests` set. Old #1399 observer compared only `image_id`, too, causing false blocking for legitimate OCI manifest/index digests. #1423 changes only that read-only source policy and adds regression tests; actual native Pi membership, backups/rollback, offline recovery and hardware acceptance remain UNVERIFIED and gated.
+
+Independent #1421 prevention PR #1422 was merged after GitHub CI + Telemetry GREEN at `3de9451e920c9a4f653a2d0780ccf16a80f085e3`; this is not evidence that PackageKit protection is activated on the Pi. Live reboot recovery #1399, physical/Docker CIDR migration #1409 and storage #1400 remain P0; no Docker/host/network/Modbus/volume or site cutover was performed by this WP.
+
+## 2026-10-29 — Recurrent P0 Docker network outage and #1421 PackageKit source guard
+
+Actual Raspberry Pi boot 16:38:36 EET. Docker stale/missing sandbox logs started 16:39:07 **before** the 16:43:39 `packagekit role='update-packages'` transaction requested under `nexolab` UID 1000. That transaction upgraded Docker 29.7.1→29.9.2 and containerd 2.2.6→2.4.2 while services ran; transient shim bootstrap API incompatibility followed at 16:44:26. Caller/application behind PackageKit remains unknown. Daemons restarted by 16:45:51 with no later priority=error journal entries in the sampled interval; this does **not** restore Docker networking.
+
+Confirmed on production: packaged Dashboard running/healthy internally but `Networks={}`, `Ports={}`, LAN localhost /login HTTP000; Telemetry API and VersityGW `Networks={}`; MQTT lacks central network, Telemetry API restarting, Device Agent unhealthy, physical LAN `172.18.48.0/21` overlaps Docker edge bridge `172.18.0.0/16`. PostgreSQL reported healthy, but no end-to-end new sample persistence or hardware acceptance proved. Incident recovery remains blocked on exact accepted immutable package/volume/backup/rollback proof and an explicitly approved protected site procedure (#1399, #1409, #1400).
+
+Source-only #1421 / Draft PR #1422 introduces stdlib read-only Docker/containerd PackageKit APT hold audit and 8 mocked passing tests, with an operator runbook. **No APT holds, Pi runtime repair, network changes, data/volume operations, service restarts or hardware writes were made.** Exact-head CI and native Pi source audit remain pending; do not claim production package-update policy enabled.
+
+## 2026-10-16 — #1399 owner-gated boot network observer prototype (source-only)
+
+Previously published #1406/PR #1407 merged into `main` at
+`6bb87b26d8e5781893b786e4a4a28faece426650` after **all required
+exact-head CI GREEN**; no Raspberry Pi software deployment was performed.
+The Raspberry Pi still has the physical Ethernet `172.18.48.0/21` /
+Docker bridge `172.18.0.0/16` overlap.
+
+Issue #1399 work starts on separate `feature/1399-offline-boot-network-observer`
+from the updated source main. Source-only read-only observer checks physical
+LAN conflict first, then protected installed package authority/manifest
+checksum, image digests, nonblocking update locks, Compose ownership, named
+volumes, current network membership and published port metadata.
+No automatic container action is available in this candidate.
+The real Pi reports `status=blocked` due to the correctly detected
+physical/Docker CIDR conflict; safe repair candidates only exist in fully
+offline mocked fixtures where all trust gates pass.
+
+Real site remains ffdefc accepted runtime with live Dashboard and
+PostgreSQL/MQTT/API, Device Agent 3/3 buses and 0 degraded endpoints.
+Privileged root authority checks, owner-controlled supervisor opt-in,
+actual Docker restore after reboot, VersityGW existing asset acceptance,
+and no-loss application-level ACK/replay (#1397) are **still pending**.
+No production change, firmware/Modbus write, reboot or network change.
 
 ## 2026-10-16 — #1400: Private packaged object-storage drift detection
 

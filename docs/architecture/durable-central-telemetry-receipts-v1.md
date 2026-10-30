@@ -67,10 +67,17 @@ database commitment by themselves.
   missing earlier data. Use a single atomic SQLite transaction when
   the Edge eventually performs receipt validation and deletion.
 - Invalid, duplicate, unexpected, cross-tenant, stale or unscoped
-  receipts must never delete queued data. Receipt ID replay protection,
-  queue/sequence revalidation and transaction boundaries belong in
-  the later Edge receiver implementation; do not misrepresent the
-  stateless protocol validator as complete replay protection.
+  receipts must never delete queued data. The pure validator now requires
+  a trusted local `seen_receipt_ids` lookup and rejects an already seen
+  receipt ID; without that lookup, it fails closed. It also rejects receipts
+  more than seven days old or over five minutes in the future. A long-offline
+  Edge must request a fresh, centrally authenticated receipt rather than
+  delete an unverified event.
+- The future Edge implementation owns **persisted atomic** receipt-ID
+  deduplication, pending event lookup, sequence revalidation and deletion.
+  The caller must not supply a fabricated or volatile ledger and must
+  commit receipt-ID recording in the same transaction as queue mutation.
+  The stateless validator is a contract gate, not production replay protection.
 - No policy change from `postgres_committed` to
   `durably_spooled` deletion is permitted without an explicit reviewed
   product decision and documented durability/restore budget.
@@ -86,7 +93,7 @@ publish to the target node-scoped `receipts` topic. A subscriber
 cannot infer publisher identity merely from JSON fields.
 
 The pure function `contracts/durable_receipt_v1.py` defaults to
-`central_publisher_authorized=False`. Future integration may set it
+`central_publisher_authorized=False` and requires a trusted replay ledger. Future integration may set it
 to true **only after** independent transport/ACL authorization evidence.
 The expected tenant/node/event identity must come from trusted local
 configuration and a real pending SQLite row, never from the receipt

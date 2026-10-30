@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-16T17:12:20+00:00",
+  "timestamp": "2026-10-30T12:15:00Z",
   "actor": "ChatGPT",
-  "event": "1410_versioned_durable_receipt_schema_and_validation_contract",
+  "event": "1443_packagekit_installed_state_readonly_regression_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1410,
-    "branch": "feature/1410-durable-receipt-contract",
-    "status": "software_contract_tests_in_progress_no_runtime_activation",
+    "issue": 1443,
+    "branch": "fix/1443-packagekit-installed-state-regression",
+    "status": "source_audit_hardening_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2691,16 +2691,78 @@
       "offline_contract": "PASS",
       "ci_policy_suite": "225_tests_1_skip_PASS"
     },
-    "issue_1410_receipt_contract": {
-      "broker_puback_insufficient": true,
-      "contract_version": 1,
-      "trust_boundary": "broker_acl_required_not_currently_accepted",
-      "durably_spooled": "informational_only",
-      "postgres_committed": "eligible_for_fifo_prune_only_after_authenticated_matching_receipt",
-      "source_test_suite": "18_pass",
-      "central_receipt_publisher": "not_implemented",
-      "edge_actual_receipt_consumer": "not_implemented",
-      "site_mutated": false
+    "issue_1399_readonly_observer": {
+      "native_site_result": "blocked_physical_docker_cidr_conflict",
+      "accepted_package_ffdefc": "installed_unchanged",
+      "observer_mode": "read_only_only",
+      "candidate_recreation": "never_executed",
+      "systemd_enabled": false,
+      "unit_tests": "16_pass",
+      "source_bound_ci": "pending",
+      "db_agent_manual_only": "fail_closed"
+    },
+    "issue_1431_site_dr_inventory": {
+      "issue": 1431,
+      "source_only": true,
+      "pr1430_merged": true,
+      "actual_pg_backup": "owner_reported_toc_pass_no_restore",
+      "s3_versity_volume_map": "source_only_reconciliation_required",
+      "edge_sqlite_protection": "missing_in_dr_v1",
+      "off_device_encrypted_copy": "unverified",
+      "protected_site_mutation": false
+    },
+    "issue_1433_site_dr_v2": {
+      "issue": 1433,
+      "source_only": true,
+      "legacy_v1_policy_unchanged": true,
+      "site_data_backup": "not_performed",
+      "isolated_restore": "not_performed",
+      "no_site_mutation": true,
+      "hardware": "unverified"
+    },
+    "issue_1435_preflight": {
+      "issue": 1435,
+      "source_only": true,
+      "source_probe": "not_executed_on_site",
+      "backup_capture": "not_performed",
+      "isolated_restore": "not_performed",
+      "owner_hardware": "unverified",
+      "no_site_mutation": true
+    },
+    "issue_1437_fixture": {
+      "issue": 1437,
+      "source_only": true,
+      "synthetic_only": true,
+      "real_site_backup": "not_performed",
+      "off_device_copy": "not_performed",
+      "actual_isolated_restore": "not_performed",
+      "site_activation": "not_authorized",
+      "hardware": "unverified"
+    },
+    "issue_1439_plan": {
+      "issue": 1439,
+      "source_only": true,
+      "site_backup": "not_performed",
+      "actual_isolated_restore": "not_performed",
+      "physical_medium": "unverified",
+      "independent_key_custody": "unverified",
+      "hardware": "unverified",
+      "site_activation": "not_authorized"
+    },
+    "issue_1441_health": {
+      "source_only": true,
+      "real_backup": "not_performed",
+      "actual_isolated_restore": "not_performed",
+      "hardware": "unverified",
+      "site_activation": "not_authorized",
+      "raspberry_git": "clean_behind_23"
+    },
+    "issue_1443_packagekit": {
+      "source_only": true,
+      "dpkg_installed_status_validation": "implemented",
+      "hardware": "unverified",
+      "live_package_mutation": "not_performed",
+      "production_update": "not_authorized"
     }
   },
   "observations": [
@@ -3796,9 +3858,127 @@
         ],
         "state_only_runtime_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T16:26:16.476Z",
+      "kind": "packagekit_docker_runtime_upgrade_20261029_and_source_guard_1421",
+      "data": {
+        "issue": 1421,
+        "pull_request": 1422,
+        "boot": "2026-10-29T16:38:36+02:00",
+        "docker_stale_sandboxes_started": "2026-10-29T16:39:07+02:00",
+        "packagekit_started": "2026-10-29T16:43:39+02:00",
+        "requested_by": "nexolab_uid_1000_caller_unverified",
+        "containerd_upgrade": "2.2.6_to_2.4.2",
+        "docker_upgrade": "29.7.1_to_29.9.2",
+        "shim_failure": "2026-10-29T16:44:26+02:00",
+        "site_dashboard": "HTTP000_network_detached",
+        "cidr_overlap": "physical_172.18.48.0_21_docker_172.18.0.0_16",
+        "source_guard": "draft_source_only_eight_mock_tests_passed",
+        "site_recovery": "not_performed_owner_approved_rollback_required",
+        "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T17:17:19.369Z",
+      "kind": "issue_1423_readonly_oci_runtime_digest_membership",
+      "data": {
+        "issue": 1423,
+        "parent_incident": 1399,
+        "related_merged_prevention_issue": 1421,
+        "operator_manifest_marker_match": true,
+        "operator_source_match": true,
+        "operator_bundle_root_match": true,
+        "operator_scratch_image_id_comparison": "six_false_inadequate_test",
+        "source_root_cause": "boot_observer_used_single_image_id_instead_of_identity_runtime_digests",
+        "proper_site_image_membership": "unverified",
+        "backup_restore": "unverified",
+        "docker_network_recovery": "not_performed",
+        "site_cutover_authorized": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:28:00Z",
+      "kind": "1409_site_ipam_readonly_inventory_stage1",
+      "data": {
+        "issue": 1409,
+        "source_only": true,
+        "pi_image_identity": "6_of_6_accepted_runtime_digests",
+        "protected_manifest": "sha_source_bundle_root_verified",
+        "current_pi_lan": "172.18.48.0/21",
+        "current_edge_bridge": "172.18.0.0/16",
+        "dashboard_api_storage": "networks_detached",
+        "mqtt": "central_attachment_missing",
+        "rollback_package": "catalog_present_not_restore_tested",
+        "last_visible_large_backup": "2026-10-14_no_current_restore_proof",
+        "remote_commander": "limit_exhausted",
+        "nexus_execution": "handler_failed",
+        "local_actual_route_inventory": "not_collected",
+        "site_reserved_cidr": "not_selected",
+        "production_cutover_authorized": false,
+        "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:38:00Z",
+      "kind": "issue_1409_live_pi_route_ipam_inventory_oct29",
+      "data": {
+        "issue": 1409,
+        "host_eth0": "172.18.48.66/21",
+        "physical_lan": "172.18.48.0/21",
+        "docker_edge_bridge": "172.18.0.0/16",
+        "docker_other_bridges": [
+          "172.17.0.0/16",
+          "172.19.0.0/16",
+          "172.20.0.0/16",
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.23.0.0/16",
+          "172.24.0.0/16",
+          "172.25.0.0/16"
+        ],
+        "tailscale_address": "100.113.204.81/32",
+        "tailscale_routes": "seven_ipv4_host_routes_only_in_observed_table_52",
+        "provisional_candidate": "172.26.0.0/24",
+        "candidate_status": "locally_disjoint_not_site_approved",
+        "default_route": "172.18.48.1_via_eth0",
+        "runbook_prettier_failure": "corrected_source_new_ci_pending",
+        "backup_restore": "not_verified",
+        "site_activation": "not_performed",
+        "hardware_acceptance": "not_verified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T08:40:00Z",
+      "kind": "source_only_incident_pg_backup_1428",
+      "data": {
+        "pr": 1430,
+        "runtime_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "pg_database_bytes": "19 GB",
+        "free_ssd_space": "29 GB",
+        "last_backup_scanned": "2026-10-14",
+        "nexus_commander_execution": "EXECUTION_HANDLER_FAILED",
+        "nexus_provider_task": "quota_fallback_exhausted",
+        "rs485_intentionally_detached": true,
+        "auth_dashboard_currently_unavailable": true,
+        "site_mutation": false,
+        "owner_pg_backup_archive": "/var/backups/nexolab/pg-incident-20261030T090951Z.dump",
+        "owner_pg_backup_bytes": 1181154608,
+        "owner_pg_backup_sha256": "3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06",
+        "source_helper_sha256": "634758e1585d92efd7dce74433afec4796e81e4b5349fe213439c21c5a86a7bc",
+        "pg_restore_toc": "pass",
+        "pg_restore_actual": "not_performed",
+        "free_ssd_space_after_pg_dump": "28G",
+        "complete_dr_proof": "pending"
+      }
     }
   ],
-  "next_action": "Exact-head PR CI and offline contracts; then independent central publisher and Edge authenticated SQLite ACK/replay WPs under #1397.",
+  "next_action": "Run exact-head #1443 Python policy tests and GitHub CI/Offline Bundle; fix failures, merge only six GREEN. Do not change APT holds/PackageKit or Docker without separate backup/rollback and owner authorization. Parent #1428 and #1399 remain blocked.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3807,7 +3987,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none: schema/test/documentation only",
+  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
