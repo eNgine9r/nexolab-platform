@@ -1,3 +1,7 @@
+## 2026-10-30 — #1443 host PackageKit guard remains source-only
+
+Original #1421 code in main checked APT holds but did not validate dpkg installed-state abbreviation; a held removed/unconfigured package could produce misleading guarded status. #1443 fixes source and mocked tests only. Live Raspberry exact packages/holds, immutable approved versions, owner-authorized change window, backup and rollback are unverified. Do not apply package holds, disable PackageKit, modify Docker/containerd, restart containers or migrate IPAM without separate owner approval and actual protected DR evidence.
+
 ## 2026-10-30 — #1441 read-only backup health reveals operational DR gaps
 
 #1439 source-only handoff contract merged GREEN; it has not delivered an actual independent backup. #1441 read-only monitor is a source-only observer, not scheduling or data protection. Last site evidence has only a partial real PostgreSQL archive, no independently verified 8-store encrypted off-device copy, no actual isolated restore and no application backup timer. Raspberry local main is behind remote by 23 commits (read-only Commander evidence), do not update/cut over until safe separate approval. Legacy MinIO and active VersityGW volumes must remain untouched, no Modbus/hardware writes.
