@@ -2705,7 +2705,6 @@
       "issue": 1431,
       "source_only": true,
       "pr1430_merged": true,
-      "pr1430_merge_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
       "actual_pg_backup": "owner_reported_toc_pass_no_restore",
       "s3_versity_volume_map": "source_only_reconciliation_required",
       "edge_sqlite_protection": "missing_in_dr_v1",
