@@ -207,6 +207,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/tests/test_nexolab_incident_pg_backup.py",
     "scripts/validate-site-dr-inventory-v2.py",
     "scripts/nexolab-site-dr-preflight.py",
+    "scripts/nexolab-site-dr-fixture-harness.py",
+    "tests/test_ci_site_dr_fixture_harness.py",
     "tests/test_ci_site_dr_preflight.py",
     "tests/test_ci_site_dr_inventory_v2.py",
     "scripts/generate-offline-bundle-manifest.py",
@@ -279,6 +281,8 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_disaster_recovery_assets.py",
     "scripts/validate-site-dr-inventory-v2.py",
     "scripts/nexolab-site-dr-preflight.py",
+    "scripts/nexolab-site-dr-fixture-harness.py",
+    "tests/test_ci_site_dr_fixture_harness.py",
     "tests/test_ci_site_dr_preflight.py",
     "tests/test_ci_site_dr_inventory_v2.py",
 }

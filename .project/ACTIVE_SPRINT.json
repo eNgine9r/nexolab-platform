@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1435,
-      "branch": "feat/1435-readonly-site-dr-preflight"
+      "issue": 1437,
+      "branch": "feat/1437-offline-multistore-fixture-recovery"
     },
     "next_work_package": null
   },
@@ -9093,7 +9093,7 @@
       "title": "Bounded read-only site multi-store capture preflight and v2 inventory mapping",
       "branch": "feat/1435-readonly-site-dr-preflight",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1433
       ],
@@ -9119,6 +9119,51 @@
         "isolated_restore": "not_performed",
         "hardware": "unverified",
         "no_site_mutation": true,
+        "required_external_workflows": [
+          "Offline Bundle"
+        ],
+        "pr1436": "merged",
+        "checks": {
+          "core_ci": "success",
+          "telemetry": "success",
+          "offline_bundle": "success",
+          "dashboard": "success",
+          "refrigeration": "success",
+          "telegram": "success"
+        },
+        "site_runtime": "unverified"
+      }
+    },
+    {
+      "issue": 1437,
+      "title": "Offline multi-store protected capture harness with isolated fixture recovery",
+      "branch": "feat/1437-offline-multistore-fixture-recovery",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1435
+      ],
+      "scope": "Fixture-only bounded eight-asset synthetic recovery roundtrip using AES-256-GCM, wrong-key and tamper denial, isolated restore and CI/offline checks; no real capture, off-device custody, hardware or site activation.",
+      "permitted_paths": [
+        "scripts/nexolab-site-dr-fixture-harness.py",
+        "tests/test_ci_site_dr_fixture_harness.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/site-dr-offline-fixture-1437.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "implementation": "source_only_synthetic",
+        "pr": "pending",
+        "runtime_site": "not_touched",
+        "full_dr": "not_performed",
+        "off_device_copy": "unverified",
+        "isolated_real_restore": "not_performed",
+        "hardware": "unverified",
         "required_external_workflows": [
           "Offline Bundle"
         ]

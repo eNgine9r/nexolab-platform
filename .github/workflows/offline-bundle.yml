@@ -26,6 +26,8 @@ on:
       - "scripts/tests/test_nexolab_incident_pg_backup.py"
       - "scripts/validate-site-dr-inventory-v2.py"
       - "scripts/nexolab-site-dr-preflight.py"
+      - "scripts/nexolab-site-dr-fixture-harness.py"
+      - "tests/test_ci_site_dr_fixture_harness.py"
       - "tests/test_ci_site_dr_preflight.py"
       - "tests/test_ci_site_dr_inventory_v2.py"
       - "docs/operations/incident-postgresql-backup-1428.md"
