@@ -352,7 +352,7 @@ create_receipt_publisher() {
     echo "Dedicated receipt client-id required." >&2; exit 81;
   }
   role=nexolab-central-receipts-only
-  exact=publishClientSend:allow:nexolab/v1/+/+/receipts(priority:100)
+  exact="publishClientSend:allow:nexolab/v1/+/+/receipts(priority:100)"
   if role_exists "$role"; then
     verify_receipt_role "$role" "$exact"
   else
