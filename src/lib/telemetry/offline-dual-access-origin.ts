@@ -72,7 +72,7 @@ function resolveBrowserHost(
     return configured;
   }
   parsed.hostname = hostname;
-  return parsed.toString().replace(/\\/$/, "");
+  return expectedPath === "/" ? parsed.origin : parsed.toString();
 }
 
 export function resolveOfflineBrowserApiBaseUrl(
