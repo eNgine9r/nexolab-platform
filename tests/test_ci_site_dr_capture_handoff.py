@@ -163,6 +163,25 @@ class CaptureHandoffTests(unittest.TestCase):
         h["assets"][1] = deepcopy(h["assets"][0])
         self.deny(p, h, "duplicate")
 
+    def test_wrong_compose_project_is_rejected(self):
+        p, h = fixtures()
+        p["assets"]["edge-mqtt-persistence"]["compose_project"] = "nexolab-central"
+        refresh_hash(p, h)
+        self.deny(p, h, "Compose project/service drift")
+
+    def test_auxiliary_shared_service_must_match_same_identity(self):
+        p, h = fixtures()
+        p["assets"]["central-ingestion-spool"]["image_sha256"] = sha(999)
+        get_asset(h, "central-ingestion-spool")["image_sha256"] = sha(999)
+        refresh_hash(p, h)
+        self.deny(p, h, "shared service identity drift")
+
+    def test_raise_preflight_size_cap_is_forbidden(self):
+        p, h = fixtures()
+        p["assets"]["postgresql"]["max_proposed_bytes"] = 100 * GiB
+        refresh_hash(p, h)
+        self.deny(p, h, "cap policy drift")
+
     def test_legacy_minio_volume_blocks(self):
         p, h = fixtures()
         p["assets"]["object-storage"]["source_volume"] = "nexolab-central-object-storage-data"
