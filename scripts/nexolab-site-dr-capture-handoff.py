@@ -45,6 +45,26 @@ METHODS = {
     "central-ingestion-spool": "sqlite_online_backup_with_high_water",
     "edge-mqtt-persistence": "separately_approved_mqtt_quiesce",
 }
+SERVICES = {
+    "postgresql": ("nexolab-central", "postgres"),
+    "object-storage": ("nexolab-central", "minio"),
+    "mqtt-dynamic-security": ("nexolab-central", "mqtt"),
+    "edge-sqlite-outbox": ("nexolab-edge", "device-agent"),
+    "local-auth-private-key": ("nexolab-central", "telemetry-service"),
+    "local-auth-public-key": ("nexolab-central", "telemetry-service"),
+    "central-ingestion-spool": ("nexolab-central", "telemetry-service"),
+    "edge-mqtt-persistence": ("nexolab-edge", "mqtt"),
+}
+CAP_BYTES = {
+    "postgresql": 4 * GiB,
+    "object-storage": 4 * GiB,
+    "mqtt-dynamic-security": GiB,
+    "edge-sqlite-outbox": GiB,
+    "local-auth-private-key": 1024 * 1024,
+    "local-auth-public-key": 1024 * 1024,
+    "central-ingestion-spool": 4 * GiB,
+    "edge-mqtt-persistence": GiB,
+}
 VOLUMES = {
     "postgresql": "nexolab-central-postgres-data",
     "object-storage": "nexolab-central-object-storage-versitygw-data",
@@ -161,6 +181,7 @@ def review(preflight: object, handoff: object) -> dict:
     declared = h["assets"]
     require(isinstance(declared, list) and len(declared) == len(METHODS), "incomplete capture handoff")
     seen: set[str] = set()
+    same_service: dict[tuple[str, str], tuple[str, str]] = {}
     total = 0
     for item in declared:
         require(isinstance(item, dict), "asset handoff must be object")
@@ -181,6 +202,16 @@ def review(preflight: object, handoff: object) -> dict:
         if ident == "object-storage":
             src_expected = src_expected | {"migration_authority_sha256"}
         source = keys(sources[ident], src_expected, f"{ident} source")
+        require(
+            (source["compose_project"], source["compose_service"]) == SERVICES[ident],
+            f"{ident}: Compose project/service drift",
+        )
+        container_identity = (source["container_id_sha256"], source["image_sha256"])
+        service_key = SERVICES[ident]
+        if service_key in same_service:
+            require(same_service[service_key] == container_identity, f"{ident}: shared service identity drift")
+        same_service[service_key] = container_identity
+        require(source["max_proposed_bytes"] == CAP_BYTES[ident], f"{ident}: per-store cap policy drift")
         require(source["runtime_status"] == "running", f"{ident}: not running")
         require(source["capture_status"] == "unverified" and source["restore_status"] == "unverified", f"{ident}: false snapshot proof")
         require(source["disposition"] in ("unclassified", "retain_required"), f"{ident}: unrecognized source state")
