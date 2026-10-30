@@ -466,13 +466,29 @@ expect_denied receipt-grant-cross-org \
 expect_denied receipt-grant-topic-injection \
   admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_A" 'edge-01/#'
 
-# Broker must refuse node or ingestion attempts to publish a receipt.
-expect_denied receipt-node-publish-denied \
-  mqtt_publish "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
-    "$RECEIPT_TOPIC" forged
-expect_denied receipt-ingestion-publish-denied \
-  mqtt_publish "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
-    "$RECEIPT_TOPIC" forged
+# MQTTv5/QoS1 clients can return exit 0 for an ACL-rejected PUBLISH.
+# Negative publish permission must be proved by NON-DELIVERY, not CLI exit.
+expect_no_receipt_retained() {
+  local label=$1
+  local output
+  set +e
+  output="$(mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" \
+    "$NODE_A_CLIENT_ID" "$RECEIPT_TOPIC" \
+    2>"$EVIDENCE_DIR/$label.log")"
+  set -e
+  if [[ -n "$output" ]]; then
+    echo "Forbidden receipt publish reached the node: $label" >&2
+    return 1
+  fi
+}
+attempt_forbidden_publish receipt-node-publish-denied \
+  "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$RECEIPT_TOPIC" forged-node
+expect_no_receipt_retained receipt-node-publish-not-delivered
+attempt_forbidden_publish receipt-ingestion-publish-denied \
+  "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
+  "$RECEIPT_TOPIC" forged-ingestion
+expect_no_receipt_retained receipt-ingestion-publish-not-delivered
 
 # The exact node can subscribe to its receipts only, and obtains a real
 # non-retained QoS1 publish from the dedicated central principal.
@@ -491,15 +507,23 @@ wait "$receipt_sub_pid"
   echo "Receipt was not delivered to its bound node." >&2
   exit 1
 }
-expect_denied receipt-foreign-node-subscribe-denied \
-  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" \
-    "$NODE_A_CLIENT_ID" "$OTHER_RECEIPT_TOPIC"
-expect_denied receipt-foreign-org-subscribe-denied \
-  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" \
-    "$NODE_A_CLIENT_ID" "$FOREIGN_RECEIPT_TOPIC"
-expect_denied receipt-central-telemetry-publish-denied \
-  mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
-    "$NODE_A_TOPIC/telemetry" forged
+# Retained probe messages make a wildcard ACL leak observable. The real
+# receipt transport itself always publishes retain=false.
+mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$OTHER_RECEIPT_TOPIC" foreign-node-probe true
+expect_no_subscription_delivery receipt-foreign-node-subscribe-denied \
+  "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$OTHER_RECEIPT_TOPIC"
+mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$FOREIGN_RECEIPT_TOPIC" foreign-tenant-probe true
+expect_no_subscription_delivery receipt-foreign-org-subscribe-denied \
+  "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$FOREIGN_RECEIPT_TOPIC"
+attempt_forbidden_publish receipt-central-telemetry-publish-denied \
+  "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$NODE_A_TOPIC/telemetry" forged
+assert_retained_equals receipt-central-telemetry-not-delivered \
+  "$NODE_A_TOPIC/telemetry" '{"source":"node-a-telemetry"}'
 
 # Inspect the broker's actual persisted Dynamic Security state, not mock roles.
 compose exec -T mqtt-security jq -e --arg role "nexolab-central-receipts-only" \
