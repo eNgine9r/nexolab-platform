@@ -6,13 +6,11 @@
 
 Source head: `66c30bd496193e4ea334df9d80deac07aea0f772`, GitHub Actions `Container Supply Chain` run `41071197854` (linux/amd64 images).
 
-| Image | HIGH before | CRITICAL before | HIGH after | CRITICAL after | Trivy report SHA-256 after |
-| --- | ---: | ---: | ---: | ---: | --- |
-| telemetry-service | 73 | 5 | 49 | 0 | `176a86e51affe51805aecf4fc1987093705aacd5db500a1b16940c3c7e330fd5` |
-| object-storage | 1 | 0 | 0 | 0 | `717f4c3f8b52da68953aff3c62adac0e5a8fc7925529937dde93f73ddefc4675` |
-| device-agent | 0 | 0 | 0 | 0 | `95b6f5a7bf1bfdae50fa3f8873c5b65a9477895ce5de026f80a26dcc692feb83` |
-| telegram-gateway | 0 | 0 | 0 | 0 | `a3b238b6c59b366b61b7c1164880fe960451a4fbed8b906769e2a01a84750355` |
-| mqtt-dynamic-security | 0 | 0 | 0 | 0 | `34cb9f676015640fbb3e0024ae749120fc22a0f006f51859379ab25bfbd9b120` |
+- `telemetry-service`: before 73 HIGH / 5 CRITICAL, after 49 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `176a86e51affe51805aecf4fc1987093705aacd5db500a1b16940c3c7e330fd5`.
+- `object-storage`: before 1 HIGH / 0 CRITICAL, after 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `717f4c3f8b52da68953aff3c62adac0e5a8fc7925529937dde93f73ddefc4675`.
+- `device-agent`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `95b6f5a7bf1bfdae50fa3f8873c5b65a9477895ce5de026f80a26dcc692feb83`.
+- `telegram-gateway`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `a3b238b6c59b366b61b7c1164880fe960451a4fbed8b906769e2a01a84750355`.
+- `mqtt-dynamic-security`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `34cb9f676015640fbb3e0024ae749120fc22a0f006f51859379ab25bfbd9b120`.
 
 Fixed using **Pillow 13.0.0**, **msgpack 1.2.3**, and Object Storage **Go 1.27.3**. Go downloads checksums came from [official downloads](https://go.dev/dl/). This source-only security PR does not modify runtime networking, authentication, package installation or deployed storage.
 
