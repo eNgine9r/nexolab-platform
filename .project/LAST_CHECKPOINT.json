@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T18:48:00Z",
+  "timestamp": "2026-10-30T08:40:00Z",
   "actor": "ChatGPT",
-  "event": "1409_provisional_cidr_unapproved_nonzero_exit_guard",
+  "event": "1428_pg_incident_backup_guarded_draft_login_first",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1409,
-    "branch": "feature/1409-edge-ipam-readonly-inventory",
-    "status": "source_only_18_isolated_tests_fail_closed_ci_pending",
+    "issue": 1428,
+    "branch": "fix/1428-bounded-incident-pg-backup",
+    "status": "source_only_Draft_PR_1430_CI_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3888,9 +3888,26 @@
         "site_activation": "not_performed",
         "hardware_acceptance": "not_verified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T08:40:00Z",
+      "kind": "source_only_incident_pg_backup_1428",
+      "data": {
+        "pr": 1430,
+        "runtime_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "pg_database_bytes": "19 GB",
+        "free_ssd_space": "29 GB",
+        "last_backup_scanned": "2026-10-14",
+        "nexus_commander_execution": "EXECUTION_HANDLER_FAILED",
+        "nexus_provider_task": "quota_fallback_exhausted",
+        "rs485_intentionally_detached": true,
+        "auth_dashboard_currently_unavailable": true,
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Verify exact-head CI, offline bundle and telemetry for PR #1425 after Prettier/runbook and unapproved-candidate nonzero fix; merge only when GREEN. Site IPAM migration remains blocked on upstream CIDR reservation, independent fresh backup restore, protected rollback and explicit Product Owner approval.",
+  "next_action": "Confirm exact-head CI, run root-only --check for source-pinned script only when accessible, create verified current partial PostgreSQL backup on Pi without touching central DB, acquire complete independent S3/MQTT/SQLite/auth off-host DR evidence and tested rollback, then carry out exact separately approved #1399 Docker network/port recreation. RS485 intentionally unplugged and out of scope. Do not claim login restored.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
