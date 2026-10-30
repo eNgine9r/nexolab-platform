@@ -32,7 +32,9 @@ The handoff requires `schema_version: 1`, `kind:
 "nexolab-site-capture-handoff"`, `profile: "LOCAL_LAN"`,
 `site_id: "nexolab-edge-01"`, a UTC `observed_at`, and a canonical
 `preflight_sha256`. The handoff timestamp must be within 30 minutes after
-the source observation.
+the source observation. The source observation must also be less than 45 minutes
+old relative to current UTC. Future-dated evidence is blocked even when the
+receipt SHA-256 matches.
 
 ## Required independent operator review evidence
 
