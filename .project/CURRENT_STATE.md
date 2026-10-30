@@ -1,3 +1,9 @@
+## 2026-10-30 — #1428 guarded PostgreSQL snapshot prerequisite to NEXOLAB login recovery
+
+Owner's explicit current priority is authenticated Dashboard on `http://172.18.48.66:3000` and the real Telemetry API on `:8082`; intentionally unplugged RS-485 adapters are **not** a prerequisite. Actual installed `ffdefc4550d71e211724de1154ffe9057f905c9c` Dashboard/Telemetry/VersityGW containers were observed running but with no Docker networks or host ports. PostgreSQL is running and locally queryable (19 GB). Root SSD has 29 GB available; last displayed backup in scanned local paths is Oct 14; no NEXOLAB application-data systemd backup timer was observed.
+
+#1428 Draft PR #1430 now stages a source-only bounded one-time PostgreSQL backup helper, isolated fixture tests, explicit workflow test routing and an operator runbook. This does **not** restore the Dashboard, create a live backup, verify a fresh-volume restore, establish off-device custody or schedule complete backup. NEXUS direct Commander execution returned `EXECUTION_HANDLER_FAILED` again; NEXUS provider task blocked `quota_fallback_exhausted`. No protected Docker or data-volume mutation performed. Source-only #1399 network recovery is still blocked on complete data safety, installed package/Compose identity and exact operator-approved site procedure.
+
 ## 2026-10-29 — #1409 Raspberry Pi route and Docker IPAM evidence
 
 Operator-collected read-only data confirms physical LAN `172.18.48.0/21` and Docker edge bridge `172.18.0.0/16` overlap. Other Docker bridge networks occupy `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale interface `100.113.204.81/32` has seven observed host routes in table 52.
