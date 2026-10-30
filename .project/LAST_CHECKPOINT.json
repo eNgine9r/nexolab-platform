@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T12:15:00Z",
+  "timestamp": "2026-10-30T12:37:00Z",
   "actor": "ChatGPT",
-  "event": "1443_packagekit_installed_state_readonly_regression_source_only",
+  "event": "1410_durable_receipt_v1_contract_reconciled_with_main",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1443,
-    "branch": "fix/1443-packagekit-installed-state-regression",
-    "status": "source_audit_hardening_ci_pending",
+    "issue": 1410,
+    "branch": "feature/1410-durable-receipt-contract",
+    "status": "v1_schema_replay_freshness_validator_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2763,6 +2763,15 @@
       "hardware": "unverified",
       "live_package_mutation": "not_performed",
       "production_update": "not_authorized"
+    },
+    "issue_1410_durable_receipt": {
+      "source_only": true,
+      "pr": 1411,
+      "central_publisher": "not_implemented",
+      "edge_prune": "not_implemented",
+      "mqtt_acl": "not_verified",
+      "hardware": "unverified",
+      "offline_ci": "pending"
     }
   },
   "observations": [
@@ -3978,7 +3987,7 @@
       }
     }
   ],
-  "next_action": "Run exact-head #1443 Python policy tests and GitHub CI/Offline Bundle; fix failures, merge only six GREEN. Do not change APT holds/PackageKit or Docker without separate backup/rollback and owner authorization. Parent #1428 and #1399 remain blocked.",
+  "next_action": "Run 23 new targeted protocol tests via mandatory test_ci_ discovery, exact-head GitHub CI and external workflows. Review security/topic/tenant/replay/freshness boundaries and merge PR #1411 only full GREEN. No production broker/Edge or Modbus changes; full reliability #1397 blocked until actual Central publisher and Edge replay acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
