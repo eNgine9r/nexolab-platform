@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -366,6 +367,7 @@ class Database:
         *,
         receipt_identity: CommittedReceiptIdentity | None = None,
         receipt_outbox_max_pending: int = 10_000,
+        connection: Any | None = None,
     ) -> bool:
         """Persist telemetry and optional central-receipt intent atomically.
 
@@ -401,7 +403,10 @@ class Database:
         if receipt_identity is not None and dialect != "postgresql":
             raise RuntimeError("postgresql_required_for_committed_receipt")
 
-        with self.engine.begin() as connection:
+        if connection is not None and not connection.in_transaction():
+            raise RuntimeError("receipt_persist_requires_active_transaction")
+
+        with (self.engine.begin() if connection is None else nullcontext(connection)) as connection:
             if receipt_identity is not None and dialect == "postgresql":
                 # Serialize capacity checks across concurrent central workers.
                 connection.execute(
