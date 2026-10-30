@@ -31,10 +31,9 @@ export function getNodesApiBaseUrl(): string {
   }
   let parsed: URL;
   try {
-    parsed = new URL(resolveOfflineBrowserApiBaseUrl(
-      value,
-      process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS,
-    ));
+    parsed = new URL(
+      resolveOfflineBrowserApiBaseUrl(value, process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS),
+    );
   } catch (error) {
     throw new NodeClientError("Nodes API URL must be absolute.", undefined, "configuration", {
       cause: error,
