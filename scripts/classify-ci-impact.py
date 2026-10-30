@@ -554,7 +554,7 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("backend")
             matched = True
 
-        if path == "tests/test_durable_receipt_protocol.py":
+        if path == "tests/test_ci_durable_receipt_protocol.py":
             # Exact contract fixture: no deployed runtime or publisher.
             classes.add("backend")
             matched = True
