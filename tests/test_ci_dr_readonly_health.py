@@ -133,7 +133,7 @@ class ReadOnlyDRHealthTests(unittest.TestCase):
             path = Path(tmp) / "receipt.json"
             path.write_text(json.dumps(fixture()), encoding="utf-8")
             path.chmod(0o644)
-            with self.assertRaisesRegex(dr.HealthBlocked, "mode 0600"):
+            with self.assertRaisesRegex(dr.HealthBlocked, "require 0600"):
                 dr.read_sanitized_receipt(path)
             path.chmod(0o600)
             self.assertEqual(dr.read_sanitized_receipt(path)["kind"], "nexolab-site-dr-inventory")
