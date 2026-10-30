@@ -29,3 +29,37 @@ def test_broker_admin_scripts_are_valid_posix_shell() -> None:
             text=True,
         )
         assert completed.returncode == 0, completed.stderr
+
+
+def test_receipt_acl_commands_are_opt_in_and_no_legacy_acl_is_changed() -> None:
+    source = PACKAGED_ADMIN.read_text(encoding="utf-8")
+    node = source.split("create_node() {", 1)[1].split("create_ingestion() {", 1)[0]
+    ingestion = source.split("create_ingestion() {", 1)[1].split(
+        "# Explicit receipt grants only.", 1
+    )[0]
+    assert "/receipts" not in node
+    assert "/receipts" not in ingestion
+    assert "create-receipt-publisher)" in source
+    assert "grant-node-receipts)" in source
+    assert "subscribeLiteral" in source
+    assert "publishClientReceive" in source
+    assert "receipt_acls" in source
+    assert "Unexpected existing receipt-role ACL" in source
+    assert "nexolab-central-receipts-only" in source
+
+
+def test_isolated_broker_receipt_acceptance_has_real_negative_controls() -> None:
+    source = (
+        REPOSITORY_ROOT / "scripts" / "run-mqtt-broker-security-acceptance.sh"
+    ).read_text(encoding="utf-8")
+    for required in (
+        "receipt-node-publish-denied",
+        "receipt-ingestion-publish-denied",
+        "receipt-foreign-node-subscribe-denied",
+        "receipt-foreign-org-subscribe-denied",
+        "receipt-central-telemetry-publish-denied",
+        "receipt-publisher-client-collision",
+        "receipt-grant-topic-injection",
+        "receipt-after-restart.txt",
+    ):
+        assert required in source

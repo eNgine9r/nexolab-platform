@@ -302,7 +302,7 @@ done
 rm -rf "$EVIDENCE_DIR"
 mkdir -p "$SECRETS_DIR"
 chmod 0700 "$SECRETS_DIR"
-for name in admin-password ingestion-password node-a-old node-a-new node-b-password unknown-password; do
+for name in admin-password ingestion-password node-a-old node-a-new node-b-password unknown-password receipt-publisher-password; do
   generate_secret "$SECRETS_DIR/$name"
 done
 
@@ -436,6 +436,105 @@ expect_denied restart-disabled-node \
 
 assert_retained_equals restart-status-delivery \
   "$NODE_A_TOPIC/status" '{"source":"after-restart"}'
+
+
+# Receipt authorization is an explicit independent, non-retained workflow.
+# These synthetic credentials and transient Docker volume are NOT live site ACL.
+RECEIPT_USERNAME="nexolab-central-receipts-only-fixture"
+RECEIPT_CLIENT_ID="nexolab-central-receipts-only-fixture"
+RECEIPT_PASSWORD="$(secret receipt-publisher-password)"
+RECEIPT_TOPIC="$NODE_A_TOPIC/receipts"
+OTHER_RECEIPT_TOPIC="$NODE_B_TOPIC/receipts"
+FOREIGN_RECEIPT_TOPIC="nexolab/v1/$ORGANIZATION_B/$NODE_A/receipts"
+
+admin create-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
+  /run/secrets/nexolab/receipt-publisher-password
+admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_A" "$NODE_A"
+# Second provisioning must not duplicate ACLs, mutate passwords or broaden roles.
+admin create-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
+  /run/secrets/nexolab/receipt-publisher-password
+admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_A" "$NODE_A"
+
+expect_denied receipt-publisher-client-collision \
+  admin create-receipt-publisher "$RECEIPT_USERNAME" "wrong-$RECEIPT_CLIENT_ID" \
+    /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-publisher-reserved-principal \
+  admin create-receipt-publisher "$INGESTION_USERNAME" "$INGESTION_CLIENT_ID" \
+    /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-grant-cross-org \
+  admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_B" "$NODE_A"
+expect_denied receipt-grant-topic-injection \
+  admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_A" 'edge-01/#'
+
+# Broker must refuse node or ingestion attempts to publish a receipt.
+expect_denied receipt-node-publish-denied \
+  mqtt_publish "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
+    "$RECEIPT_TOPIC" forged
+expect_denied receipt-ingestion-publish-denied \
+  mqtt_publish "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
+    "$RECEIPT_TOPIC" forged
+
+# The exact node can subscribe to its receipts only, and obtains a real
+# non-retained QoS1 publish from the dedicated central principal.
+compose exec -T mqtt-security mosquitto_sub \
+  -h 127.0.0.1 -p 1883 -V mqttv5 -q 1 --quiet \
+  -u "$NODE_A_USERNAME" -P "$NODE_A_NEW_PASSWORD" -i "$NODE_A_CLIENT_ID" \
+  -C 1 -W 8 -t "$RECEIPT_TOPIC" \
+  >"$EVIDENCE_DIR/receipt-node-delivered.txt" \
+  2>"$EVIDENCE_DIR/receipt-node-errors.txt" &
+receipt_sub_pid=$!
+sleep 1
+mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$RECEIPT_TOPIC" source-only-committed
+wait "$receipt_sub_pid"
+[ "$(cat "$EVIDENCE_DIR/receipt-node-delivered.txt")" = "source-only-committed" ] || {
+  echo "Receipt was not delivered to its bound node." >&2
+  exit 1
+}
+expect_denied receipt-foreign-node-subscribe-denied \
+  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" \
+    "$NODE_A_CLIENT_ID" "$OTHER_RECEIPT_TOPIC"
+expect_denied receipt-foreign-org-subscribe-denied \
+  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" \
+    "$NODE_A_CLIENT_ID" "$FOREIGN_RECEIPT_TOPIC"
+expect_denied receipt-central-telemetry-publish-denied \
+  mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+    "$NODE_A_TOPIC/telemetry" forged
+
+# Inspect the broker's actual persisted Dynamic Security state, not mock roles.
+compose exec -T mqtt-security jq -e --arg role "nexolab-central-receipts-only" \
+  '.roles[] | select(.rolename == $role and (.acls | length) == 1)' \
+  /mosquitto/data/dynamic-security.json >"$EVIDENCE_DIR/receipt-role.json"
+compose exec -T mqtt-security jq -e --arg user "$RECEIPT_USERNAME" \
+  '.clients[] | select(.username == $user and (.roles | length) == 1 and ((.groups // []) | length) == 0)' \
+  /mosquitto/data/dynamic-security.json >"$EVIDENCE_DIR/receipt-client.json"
+
+# After broker restart, grants must persist. Reconnection is verified on a
+# new subscriber; it is not proof of Edge SQLite deletion or production ACL.
+compose restart mqtt-security
+wait_for_broker
+compose exec -T mqtt-security mosquitto_sub \
+  -h 127.0.0.1 -p 1883 -V mqttv5 -q 1 --quiet \
+  -u "$NODE_A_USERNAME" -P "$NODE_A_NEW_PASSWORD" -i "$NODE_A_CLIENT_ID" \
+  -C 1 -W 8 -t "$RECEIPT_TOPIC" \
+  >"$EVIDENCE_DIR/receipt-after-restart.txt" \
+  2>"$EVIDENCE_DIR/receipt-after-restart-errors.txt" &
+receipt_reconnect_pid=$!
+sleep 1
+mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$RECEIPT_TOPIC" source-only-after-restart
+wait "$receipt_reconnect_pid"
+[ "$(cat "$EVIDENCE_DIR/receipt-after-restart.txt")" = "source-only-after-restart" ] || {
+  echo "Receipt ACL did not survive an isolated broker restart." >&2
+  exit 1
+}
+printf '%s\n' \
+  "receipt_acl_source_only=verified_in_isolated_broker" \
+  "receipt_central_publish=qos1_accepted" \
+  "receipt_node_delivery=exact_topic_only" \
+  "receipt_foreign_publish_and_subscribe=denied" \
+  "receipt_restart_acl=persistent" \
+  >"$EVIDENCE_DIR/receipt-acceptance-summary.txt"
 
 printf '%s\n' \
   "anonymous=denied" \
