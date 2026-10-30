@@ -9123,7 +9123,14 @@
           "Offline Bundle"
         ],
         "pr1436": "merged",
-        "checks": "six_workflows_GREEN",
+        "checks": {
+          "core_ci": "success",
+          "telemetry": "success",
+          "offline_bundle": "success",
+          "dashboard": "success",
+          "refrigeration": "success",
+          "telegram": "success"
+        },
         "site_runtime": "unverified"
       }
     },
