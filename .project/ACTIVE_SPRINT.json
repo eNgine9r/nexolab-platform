@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1441,
-      "branch": "feat/1441-offline-dr-readonly-health"
+      "issue": 1443,
+      "branch": "fix/1443-packagekit-installed-state-regression"
     },
     "next_work_package": null
   },
@@ -9229,7 +9229,7 @@
       "title": "Offline read-only backup health audit for missing scheduler, stale and partial site evidence",
       "branch": "feat/1441-offline-dr-readonly-health",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1439
       ],
@@ -9250,11 +9250,52 @@
         "code": "source_only_readonly",
         "pr": "pending",
         "checks": {
-          "core_ci": "pending",
-          "offline_bundle": "pending"
+          "core_ci": "success",
+          "offline_bundle": "success",
+          "telegram": "success",
+          "telemetry": "success",
+          "refrigeration": "success",
+          "dashboard": "success"
         },
         "site_execution": "not_performed",
         "real_backup": "not_performed",
+        "hardware": "unverified",
+        "pr1442": "merged",
+        "real_site_backup": "not_performed"
+      }
+    },
+    {
+      "issue": 1443,
+      "title": "Fail-closed installed-state regression fix for Docker PackageKit guard",
+      "branch": "fix/1443-packagekit-installed-state-regression",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1421
+      ],
+      "scope": "Correct six-package read-only APT policy audit to verify dpkg actual fully installed and desired hold state, reject false guarded on version-only/removed package; no live package changes.",
+      "permitted_paths": [
+        "scripts/verify-host-container-runtime-package-policy.py",
+        "scripts/tests/test_host_container_runtime_package_policy.py",
+        "docs/operations/host-container-runtime-package-policy.md",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source": "source_only",
+        "checks": {
+          "python_policy": "pending",
+          "offline_bundle": "pending",
+          "build": "pending"
+        },
+        "pr": "pending",
+        "apt_hold_activation": "not_performed",
+        "raspberry_runtime": "not_touched",
         "hardware": "unverified"
       }
     }
