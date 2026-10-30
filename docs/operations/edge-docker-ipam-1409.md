@@ -4,12 +4,10 @@
 
 On 2026-10-29, the Raspberry Pi had these IPv4 networks:
 
-| Component | Network |
-| --- | --- |
-| Physical LAN on eth0 | `172.18.48.0/21` |
-| Docker edge bridge | `172.18.0.0/16` |
-| Other Docker bridges | `172.17.0.0/16`, `172.19.0.0/16` through `172.25.0.0/16` |
-| Local Tailscale host address | `100.113.204.81/32` |
+- Physical LAN on eth0: `172.18.48.0/21`
+- Docker edge bridge: `172.18.0.0/16`
+- Other Docker bridges: `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`
+- Local Tailscale host address: `100.113.204.81/32`
 
 The edge Docker bridge overlaps the physical LAN.
 This is a confirmed configuration defect.
