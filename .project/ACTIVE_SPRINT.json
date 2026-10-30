@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1410,
-      "branch": "feature/1410-durable-receipt-contract"
+      "issue": 1445,
+      "branch": "feature/1445-central-committed-receipt-outbox"
     },
     "next_work_package": null
   },
@@ -9309,7 +9309,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9332,11 +9332,49 @@
         "atomic_sqlite_prune": "not_implemented",
         "hardware": "unverified",
         "checks": {
-          "ci": "pending",
-          "unit": "pending",
-          "offline": "pending"
+          "ci": "success",
+          "telemetry": "not_applicable_contract_only",
+          "offline": "success"
         },
-        "pr": 1411
+        "pr": 1411,
+        "merged_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
+        "production_mutation": false
+      }
+    },
+    {
+      "issue": 1445,
+      "title": "Central PostgreSQL-committed telemetry receipt publisher with durable retry",
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410
+      ],
+      "scope": "Source-only central authenticated committed receipt publication with PostgreSQL-transactional outbox and durable retry; no broker ACL/Edge/site cutover",
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "contracts/",
+        "docs/architecture/",
+        "docs/operations/",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "pr": 1446,
+        "head_sha": "07d0d35d744d3b312bce63f695ad11d163ced6cd",
+        "source_only": true,
+        "postgres_guard": "added",
+        "producer": "not_implemented",
+        "mq_acl": "unverified",
+        "edge_ack": "not_implemented",
+        "site_activation": "not_performed",
+        "hardware": "unverified",
+        "checks": {
+          "targeted": "ci_pending",
+          "required_workflows": "in_progress"
+        }
       }
     }
   ],

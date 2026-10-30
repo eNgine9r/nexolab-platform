@@ -11,7 +11,7 @@ Current code adds opt-in `Database.persist(..., receipt_identity=...)` and an ad
 - The optional outbox insertion is within the same SQLAlchemy transaction as telemetry insert and latest projection. Duplicate event ID must have byte-equivalent decoded JSON plus matching node/tenant/sequence; mismatches fail closed.
 - Receipt is a **queued intent**, not emitted to MQTT here. Publisher must later separately prove actual PostgreSQL commit before sending, durable pending retries, broker ACL, local auth and restart behavior.
 - Outbox capacity is bounded; failure aborts the entire transaction so no sample commit exists without a corresponding intent for opt-in events.
-- The SQLite hermetic tests validate transaction rollback and idempotency, **not PostgreSQL migration execution nor MQTT/site acceptance**. The PostgreSQL advisory lock in opt-in path serializes capacity checks.
+- The committed-intent transaction tests now require PostgreSQL and skip without a real PostgreSQL test database. A separate SQLite test asserts the engine rejects any attempt to claim a PostgreSQL commit. Database migration/operational MQTT/site acceptance remains separate, and the PostgreSQL advisory lock in the opt-in path serializes capacity checks.
 
 ## Outstanding acceptance for #1445
 
