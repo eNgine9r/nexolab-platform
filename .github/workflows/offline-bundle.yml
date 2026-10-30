@@ -28,6 +28,8 @@ on:
       - "scripts/nexolab-site-dr-preflight.py"
       - "scripts/nexolab-site-dr-fixture-harness.py"
       - "scripts/nexolab-site-dr-capture-handoff.py"
+      - "scripts/nexolab-dr-readonly-health.py"
+      - "tests/test_ci_dr_readonly_health.py"
       - "tests/test_ci_site_dr_capture_handoff.py"
       - "tests/test_ci_site_dr_fixture_harness.py"
       - "tests/test_ci_site_dr_preflight.py"
