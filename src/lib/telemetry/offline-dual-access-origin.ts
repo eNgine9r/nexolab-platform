@@ -44,7 +44,11 @@ function localBrowserHostname(location: OfflineBrowserLocation): string | null {
     parsed.pathname !== "/" ||
     parsed.search ||
     parsed.hash ||
-    !(parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || isPrivateIPv4(parsed.hostname))
+    !(
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      isPrivateIPv4(parsed.hostname)
+    )
   ) {
     throw new Error("Offline dashboard requires an explicit private IPv4 or loopback origin on port 3000");
   }
