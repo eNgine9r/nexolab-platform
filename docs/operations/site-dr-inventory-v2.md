@@ -20,14 +20,14 @@ All eight protected assets must be present and classified:
 
 1. `postgresql` — `postgres`, logical custom-format PostgreSQL dump.
 2. `object-storage` — compatibility Compose service key `minio` actually runs **VersityGW**, with `storage_backend: "versitygw"` and a volume ending in `-object-storage-versitygw-data`. The legacy MinIO volume is rejected.
-3. `mqtt-dynamic-security` — central `mqtt`, persistence and clients/roles/ACLs.
+3. `mqtt-dynamic-security` — `mqtt` in Compose project `nexolab-central`, persistence and clients/roles/ACLs.
 4. `edge-sqlite-outbox` — `device-agent`, SQLite online snapshot, queue and sequence continuity.
 5. `local-auth-private-key` — `telemetry-service`, secret-safe private PEM.
 6. `local-auth-public-key` — `telemetry-service`, paired public PEM.
 7. `central-ingestion-spool` — `telemetry-service`, durable SQLite ingestion state.
-8. `edge-mqtt-persistence` — `edge-mqtt`, broker persistence.
+8. `edge-mqtt-persistence` — `mqtt` in Compose project `nexolab-edge`, broker persistence.
 
-Every asset source observation must identify the exact Compose service, image SHA-256, source identity SHA-256, authority SHA-256 and UTC observation time. Volume-backed assets require a volume name; local-auth keys are external-file assets, not Docker volumes.
+Every asset source observation must identify both the exact `compose_project` and `compose_service`, image SHA-256, source identity SHA-256, authority SHA-256 and UTC observation time. The central and edge brokers deliberately share service key `mqtt` but are distinct Compose projects. Volume-backed assets require **unique** volume names; local-auth keys are external-file assets, not Docker volumes.
 
 Retained assets require `capture.status: "verified"`, exact format and consistency boundary, SHA-256, positive byte count, UTC time and shared cross-store consistency receipt hash. Each also requires `restore.status: "verified"`, isolated receipt and verification hashes, new restore target and source-untouched proof. Both local-auth entries must have the same keypair verification hash.
 
