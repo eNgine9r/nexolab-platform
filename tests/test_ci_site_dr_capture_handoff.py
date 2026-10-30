@@ -63,6 +63,14 @@ def fixtures() -> tuple[dict, dict]:
             "estimated_archive_bytes": min(preflight.CAP_BYTES[ident], 1 * 1024 * 1024),
             "review_evidence_sha256": sha(n + 300),
         })
+    # All three retained records share ONE central telemetry-service container.
+    central_telemetry = assets["local-auth-private-key"]
+    for ident in ("local-auth-public-key", "central-ingestion-spool"):
+        for identity_field in ("image_sha256", "container_id_sha256"):
+            assets[ident][identity_field] = central_telemetry[identity_field]
+            handoff_assets[next(i for i, x in enumerate(handoff_assets) if x["id"] == ident)][
+                identity_field
+            ] = central_telemetry[identity_field]
     p = {
         "schema_version": 2,
         "kind": "nexolab-site-dr-preflight",
