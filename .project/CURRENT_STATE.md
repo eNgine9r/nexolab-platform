@@ -1,3 +1,9 @@
+## 2026-10-30 — #1426 isolated-PC and Pi-display offline origin contract (Draft)
+
+Current Pi runtime mode is `lan`; read-only NEXUS file inspection verified that the old checkout is 23 commits behind remote main. The accepted ffdefc package is unchanged and real Dashboard/API Docker network recovery #1399 is still blocked by limited privileged execution and current backup/rollback evidence. PR #1425 for #1409 source-only route/IPAM readiness merged with full exact-head CI GREEN at `fecd81c6c1107e8b554534d39036391e0de3442a`. No Pi network or package cutover occurred.
+
+Issue #1426 adds a strictly opt-in source-only browser origin resolver to support both a Pi-attached loopback browser and a PC on direct Ethernet/private Wi-Fi without requiring external network. New opt-in is disabled by default; existing ffdefc image is not updated. Isolated access link, port exposure, CORS and sessions workspace are not accepted. The sessions module edit operation was blocked by the connected tool policy and not bypassed. Any PR is Draft, not production complete; no offline hardware evidence or site modification.
+
 ## 2026-10-29 — #1409 Raspberry Pi route and Docker IPAM evidence
 
 Operator-collected read-only data confirms physical LAN `172.18.48.0/21` and Docker edge bridge `172.18.0.0/16` overlap. Other Docker bridge networks occupy `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale interface `100.113.204.81/32` has seven observed host routes in table 52.
