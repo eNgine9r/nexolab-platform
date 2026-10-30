@@ -9,10 +9,10 @@ paho-mqtt==2.1.0
 boto3>=1.36,<2
 numpy==2.5.2
 CoolProp==8.0.0
-Pillow>=12.3,<13
+Pillow==13.0.0
 openpyxl==3.1.5
 reportlab==4.4.9
 python-multipart>=0.0.20,<1
 PyJWT[crypto]>=2.10,<3
 cryptography>=50.0.0,<51
-msgpack==1.2.1
+msgpack==1.2.3
