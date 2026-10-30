@@ -23,6 +23,31 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             self.assertIn('deployment_runtime', result['classes'])
             self.assertTrue(result['verification']['offline_bundle'])
 
+    def test_incident_pg_backup_helpers_require_offline_bundle_not_unknown_broadening(self) -> None:
+        result = classify([
+            "scripts/nexolab-safe-pg-incident-backup.sh",
+            "scripts/tests/test_nexolab_incident_pg_backup.py",
+            "docs/operations/incident-postgresql-backup-1428.md",
+        ])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
+    def test_incident_pg_backup_paths_trigger_offline_workflow(self) -> None:
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in (
+            "scripts/nexolab-safe-pg-incident-backup.sh",
+            "scripts/tests/test_nexolab_incident_pg_backup.py",
+            "docs/operations/incident-postgresql-backup-1428.md",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', trigger)
+
     def test_state_only_is_lightweight(self) -> None:
         result = classify(
             [

@@ -1,3 +1,9 @@
+## 2026-10-30 — #1399 urgent Dashboard login and #1428 incomplete backup
+
+Critical user outcome is LAN Dashboard login at `172.18.48.66:3000` with real Telemetry API/retained PostgreSQL. Dashboard, API and VersityGW have no Docker network endpoints or published host ports; current PostgreSQL remains available and 19 GB. Root SSD now has 28G available (88% used). Owner terminal reports a new partial PostgreSQL incident archive from the reviewed SHA256-matched #1428 helper: 1,181,154,608 bytes at `/var/backups/nexolab/pg-incident-20261030T090951Z.dump`, SHA256 `3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06`, TOC PASS. This is NOT a verified complete S3/MQTT/edge SQLite/local-auth encrypted backup, off-device custody or isolated restore. Helper PR #1430 stays Draft.
+
+NEXUS direct execution fails `EXECUTION_HANDLER_FAILED` (nonretryable) and provider task reports `quota_fallback_exhausted`; RDC monthly limit remains exhausted. Therefore the assistant cannot run privileged commands on Raspberry or assert recovery. Physical RS-485 interfaces are intentionally disconnected and are not a blocker to login. Site Docker recreation, network/IPAM change and service activation are prohibited without fresh consistent backup, independent restore/rollback and exact scoped owner review. Do not run blind `docker network connect`, restart/Compose down, disk pruning, or fallback demo frontend.
+
 ## 2026-10-29 — #1409 verified overlap and unresolved site recovery gates
 
 Actual Pi routing: physical LAN `172.18.48.0/21` overlaps Docker edge `172.18.0.0/16`. Other bridges consume `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale has observed per-peer host routes. Candidate `172.26.0.0/24` is locally disjoint but not reserved across upstream LAN, VLAN or VPN.

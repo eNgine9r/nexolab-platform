@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1409,
-      "branch": "feature/1409-edge-ipam-readonly-inventory"
+      "issue": 1428,
+      "branch": "fix/1428-bounded-incident-pg-backup"
     },
     "next_work_package": null
   },
@@ -8971,6 +8971,50 @@
         "next_ci": "pending",
         "unapproved_candidate_exit": "nonzero_fail_closed"
       }
+    },
+    {
+      "issue": 1428,
+      "title": "Restore offline NEXOLAB backup/restore readiness with bounded PG incident snapshot",
+      "branch": "fix/1428-bounded-incident-pg-backup",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1399
+      ],
+      "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft.",
+      "permitted_paths": [
+        "scripts/nexolab-safe-pg-incident-backup.sh",
+        "scripts/tests/test_nexolab_incident_pg_backup.py",
+        ".github/workflows/telemetry-service.yml",
+        ".github/workflows/offline-bundle.yml",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        "docs/operations/incident-postgresql-backup-1428.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "pull_request": 1430,
+        "feature_branch_ci": "pending",
+        "direct_raspberry_execution": "EXECUTION_HANDLER_FAILED",
+        "nexus_task": "quota_fallback_exhausted",
+        "native_pg_database_size": "19 GB",
+        "host_free_disk": "28 GB (df -h)",
+        "last_scanned_local_backups": "2026-10-14",
+        "hardware": "unverified_and_explicitly_out_of_scope",
+        "actual_pg_backup": "owner_reported_archive_created_toc_pass",
+        "pg_archive_path": "/var/backups/nexolab/pg-incident-20261030T090951Z.dump",
+        "pg_archive_bytes": 1181154608,
+        "pg_archive_sha256": "3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06",
+        "pg_source_helper_sha256": "634758e1585d92efd7dce74433afec4796e81e4b5349fe213439c21c5a86a7bc",
+        "pg_restore_actual": "not_performed",
+        "protected_cross_store_off_device_restore": "unverified",
+        "full_dr_restore": "not_performed",
+        "docker_network_recovery": "not_performed",
+        "owner_goal": "authenticated_dashboard_login_first"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10513,6 +10557,19 @@
         "backup_restore": "not_verified",
         "site_activation": "not_performed",
         "hardware_acceptance": "not_verified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T08:40:00Z",
+      "kind": "incident_1428_source_only_draft",
+      "data": {
+        "issue": 1428,
+        "pr": 1430,
+        "source_only": true,
+        "pg_backup_executed": false,
+        "private_restored": false,
+        "protected_site_unmodified": true
       }
     }
   ],
