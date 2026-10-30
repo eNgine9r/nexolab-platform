@@ -15,7 +15,7 @@ classify = MODULE.classify
 
 
 class ChangeImpactClassifierTests(unittest.TestCase):
-    def test_durable_receipt_contract_is_backend_only_not_runtime(self) -> None:
+    def test_durable_receipt_contract_registers_ci_policy_and_backend(self) -> None:
         # Contract-only schema/validator requires no live publisher or DB migration.
         paths = [
             "contracts/durable_receipt_v1.py",
@@ -25,7 +25,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         result = classify(paths)
         self.assertFalse(result["fail_closed"])
         self.assertEqual(result["unknown_files"], [])
-        self.assertEqual(result["classes"], ["backend"])
+        self.assertEqual(result["classes"], ["backend", "ci_governance", "cross_surface_or_unknown"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
     def test_offline_identity_and_reissue_helpers_require_real_offline_gate(self) -> None:
