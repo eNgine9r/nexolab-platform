@@ -398,6 +398,8 @@ class Database:
 
         table = TelemetrySample.__table__
         dialect = self.engine.dialect.name
+        if receipt_identity is not None and dialect != "postgresql":
+            raise RuntimeError("postgresql_required_for_committed_receipt")
 
         with self.engine.begin() as connection:
             if receipt_identity is not None and dialect == "postgresql":

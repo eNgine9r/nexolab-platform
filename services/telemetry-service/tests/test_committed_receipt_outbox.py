@@ -2,22 +2,24 @@
 from __future__ import annotations
 
 from datetime import datetime, UTC
+import os
 from uuid import UUID, uuid4
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.committed_receipts import CommittedReceiptIdentity
 from app.contracts import TelemetryEvent
-from app.db import Database, TelemetryCommittedReceipt, TelemetrySample
+from app.db import Database, TelemetryCommittedReceipt, TelemetryLatest, TelemetrySample
 
 
 ORG = "28dceec5-3a75-4d03-b5ec-b21122b35778"
+NODE = f"receipt-{uuid4().hex[:20]}"
 
 
 def make_event(sequence: int = 1, *, event_id: str | None = None):
     raw = dict(
         event_id=event_id or str(uuid4()),
-        node_id="edge-01",
+        node_id=NODE,
         node_sequence=sequence,
         captured_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC).isoformat(),
         metric="electrical.voltage",
@@ -32,15 +34,25 @@ def make_event(sequence: int = 1, *, event_id: str | None = None):
 
 
 @pytest.fixture
-def database(tmp_path):
-    db = Database(f"sqlite:///{tmp_path / 'committed-receipts.db'}")
+def database():
+    # A PostgreSQL-committed receipt cannot be proven by SQLite fixtures.
+    url = os.environ.get("DATABASE_URL", "")
+    if not url.startswith("postgresql"):
+        pytest.skip("PostgreSQL integration database required for committed receipts")
+    db = Database(url)
     db.create_schema()
     yield db
+    with db.engine.begin() as connection:
+        connection.execute(
+            delete(TelemetryCommittedReceipt).where(TelemetryCommittedReceipt.node_id == NODE)
+        )
+        connection.execute(delete(TelemetryLatest).where(TelemetryLatest.node_id == NODE))
+        connection.execute(delete(TelemetrySample).where(TelemetrySample.node_id == NODE))
     db.dispose()
 
 
 def identity(sequence: int = 1):
-    return CommittedReceiptIdentity(ORG, "edge-01", sequence)
+    return CommittedReceiptIdentity(ORG, NODE, sequence)
 
 
 def rows(db):
@@ -62,7 +74,7 @@ def test_committed_receipt_same_transaction_and_schema(database):
     receipt = rows(database)[0]
     assert receipt["event_id"] == raw["event_id"]
     assert receipt["organization_id"] == ORG
-    assert receipt["topic"] == f"nexolab/v1/{ORG}/edge-01/receipts"
+    assert receipt["topic"] == f"nexolab/v1/{ORG}/{NODE}/receipts"
     assert receipt["payload"]["receipt_level"] == "postgres_committed"
     assert receipt["payload"]["node_sequence"] == 1
     assert str(UUID(receipt["receipt_id"])) == receipt["receipt_id"]
@@ -127,8 +139,18 @@ def test_rollback_does_not_leave_phantom_receipt(database, monkeypatch):
     assert rows(database) == []
 
 
+def test_non_postgres_cannot_claim_postgresql_commit(tmp_path):
+    fake = Database(f"sqlite:///{tmp_path / 'refuse.db'}")
+    fake.create_schema()
+    event, raw = make_event()
+    with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
+        fake.persist(event, raw, receipt_identity=identity())
+    assert rows(fake) == []
+    fake.dispose()
+
+
 def test_identity_fails_closed_on_noncanonical_and_bool_sequence():
     with pytest.raises(ValueError, match="invalid_receipt_sequence"):
-        CommittedReceiptIdentity(ORG, "edge-01", True)
+        CommittedReceiptIdentity(ORG, NODE, True)
     with pytest.raises(ValueError, match="noncanonical_receipt_organization"):
-        CommittedReceiptIdentity(ORG.upper(), "edge-01", 1)
+        CommittedReceiptIdentity(ORG.upper(), NODE, 1)
