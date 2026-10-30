@@ -29,3 +29,5 @@ The 49 bounded records expire on **2026-11-06**. They are **not** blanket versio
 - ARM64 cross-build/isolated use evidence and runtime installed package verification.
 - Owner-approved protected production backups and restore, plus separate site change approval, before release.
 - No hardware acceptance; no Modbus/hardware writes, broker ACL modifications or storage cutover.
+
+A policy regression in this Work Package also rejects any exceptional HIGH with a non-empty Trivy `FixedVersion`; a newly available patch must be investigated rather than silently overridden by the previous exception. This is enforced by an isolated unit test and exact-head CI.
