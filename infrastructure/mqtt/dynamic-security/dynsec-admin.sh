@@ -357,6 +357,25 @@ create_receipt_publisher() {
   required_value "$user" "Receipt publisher username"
   required_value "$cid" "Receipt publisher client-id"
   case "$user" in
+    nexolab-central-receipts-*) ;;
+    *) echo "Receipt publisher username must use dedicated namespace." >&2; exit 81 ;;
+  esac
+  case "$cid" in
+    nexolab-central-receipts-*) ;;
+    *) echo "Receipt client ID must use dedicated namespace." >&2; exit 81 ;;
+  esac
+  [ -f "$secret" ] && [ ! -L "$secret" ] && [ -r "$secret" ] || {
+    echo "Receipt publisher password must be a readable regular non-symlink file." >&2
+    exit 82
+  }
+  secret_mode="$(stat -c '%a' "$secret")"
+  case "$secret_mode" in
+    400|600) ;;
+    *)
+      echo "Receipt publisher password file permissions must be 0400 or 0600." >&2
+      exit 82 ;;
+  esac
+  case "$user" in
     "$ADMIN_USERNAME"|nexolab-central-ingestion|node:*)
       echo "Dedicated receipt principal required." >&2; exit 81 ;;
   esac

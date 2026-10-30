@@ -75,3 +75,18 @@ def test_receipt_security_requires_default_deny_and_exact_existing_node_role() -
     assert "subscribePattern" not in source.split("grant_node_receipts() {", 1)[1].split(
         "command=", 1
     )[0]
+
+
+def test_receipt_publisher_has_dedicated_namespace_and_secret_mode_guard() -> None:
+    source = PACKAGED_ADMIN.read_text(encoding="utf-8")
+    assert 'nexolab-central-receipts-*)' in source
+    assert "Receipt client ID must use dedicated namespace." in source
+    assert "Receipt publisher username must use dedicated namespace." in source
+    assert "Receipt publisher password file permissions must be 0400 or 0600." in source
+    assert 'stat -c' in source
+
+    acceptance = (
+        REPOSITORY_ROOT / "scripts" / "run-mqtt-broker-security-acceptance.sh"
+    ).read_text(encoding="utf-8")
+    assert "receipt-publisher-node-client-id-collision" in acceptance
+    assert "receipt-publisher-world-readable-secret" in acceptance

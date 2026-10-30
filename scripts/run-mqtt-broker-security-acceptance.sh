@@ -461,6 +461,14 @@ expect_denied receipt-publisher-client-collision \
 expect_denied receipt-publisher-reserved-principal \
   admin create-receipt-publisher "$INGESTION_USERNAME" "$INGESTION_CLIENT_ID" \
     /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-publisher-node-client-id-collision \
+  admin create-receipt-publisher "$RECEIPT_USERNAME" "$NODE_A_CLIENT_ID" \
+    /run/secrets/nexolab/receipt-publisher-password
+chmod 0644 "$SECRETS_DIR/receipt-publisher-password"
+expect_denied receipt-publisher-world-readable-secret \
+  admin create-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
+    /run/secrets/nexolab/receipt-publisher-password
+chmod 0600 "$SECRETS_DIR/receipt-publisher-password"
 expect_denied receipt-grant-cross-org \
   admin grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_B" "$NODE_A"
 expect_denied receipt-grant-topic-injection \
