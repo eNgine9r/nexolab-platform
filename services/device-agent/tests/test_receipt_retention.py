@@ -154,6 +154,116 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         self.queue._connection.execute("DROP TRIGGER prevent_receipt_delete")
         self.assertEqual(self.apply(raw), "prune_allowed")
 
+
+
+    def test_tampered_local_pending_identity_never_prunes(self) -> None:
+        (event_id,) = self.pending()
+        original = self.queue.oldest()[0][2]
+        for corrupt in (
+            {"event_id": str(uuid.uuid4())},
+            {"node_id": "edge-02"},
+            {"organization_id": str(uuid.uuid4())},
+            {"stream": "health"},
+        ):
+            with self.subTest(corrupt=corrupt):
+                payload = {**json.loads(original), **corrupt}
+                self.queue._connection.execute(
+                    "UPDATE outbound_queue SET payload=? WHERE event_id=?",
+                    (json.dumps(payload), event_id),
+                )
+                with self.assertRaisesRegex(
+                    ReceiptProtocolError, "local_pending_identity_mismatch"
+                ):
+                    self.apply(self.receipt(event_id))
+                self.assertEqual(self.queue.size(), 1)
+                # Even a rejected receipt must not persist a replay ID.
+                self.assertEqual(
+                    self.queue._connection.execute(
+                        "SELECT name FROM sqlite_master "
+                        "WHERE name='committed_receipt_ledger'"
+                    ).fetchall(),
+                    [],
+                )
+        self.queue._connection.execute(
+            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
+            (original, event_id),
+        )
+        self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
+
+    def test_duplicate_keys_in_local_pending_payload_fail_closed(self) -> None:
+        (event_id,) = self.pending()
+        original = self.queue.oldest()[0][2]
+        duplicate_json = original.replace('"node_id":', '"node_id":"edge-02","node_id":')
+        self.queue._connection.execute(
+            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
+            (duplicate_json, event_id),
+        )
+        with self.assertRaisesRegex(
+            ReceiptProtocolError, "invalid_local_pending_payload"
+        ):
+            self.apply(self.receipt(event_id))
+        self.assertEqual(self.queue.size(), 1)
+        self.queue._connection.execute(
+            "UPDATE outbound_queue SET payload=? WHERE event_id=?",
+            (original, event_id),
+        )
+        self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
+
+    def test_future_receipt_and_duplicate_keys_never_prune(self) -> None:
+        (event_id,) = self.pending()
+        future = self.receipt(
+            event_id,
+            overrides={
+                "accepted_at": (
+                    datetime.now(timezone.utc) + timedelta(minutes=6)
+                ).isoformat()
+            },
+        )
+        raw = self.receipt(event_id)
+        duplicate = raw.replace(b'"node_id":', b'"node_id":"edge-02","node_id":')
+        for rejected in (future, duplicate):
+            with self.subTest(receipt=rejected):
+                with self.assertRaises(ReceiptProtocolError):
+                    self.apply(rejected)
+                self.assertEqual(self.queue.size(), 1)
+        self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
+
+    def test_contended_sqlite_transaction_preserves_row_and_recovers(self) -> None:
+        (event_id,) = self.pending()
+        raw = self.receipt(event_id)
+        bounded = CommittedReceiptQueue(
+            self.db_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=2,
+            busy_retry_delay_seconds=0.01,
+        )
+        blocker = sqlite3.connect(self.db_path, timeout=0)
+        blocker.execute("BEGIN IMMEDIATE")
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                bounded.apply_committed_receipt(
+                    raw,
+                    topic=RECEIPT_TOPIC,
+                    organization_id=ORG,
+                    node_id=NODE,
+                    central_publisher_authorized=True,
+                )
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertEqual(self.queue.size(), 1)
+        self.assertEqual(
+            bounded.apply_committed_receipt(
+                raw,
+                topic=RECEIPT_TOPIC,
+                organization_id=ORG,
+                node_id=NODE,
+                central_publisher_authorized=True,
+            ),
+            "prune_allowed",
+        )
+        self.assertEqual(bounded.size(), 0)
+
     def test_shared_contract_copy_must_remain_byte_exact(self) -> None:
         root = Path(__file__).resolve().parents[3]
         self.assertEqual(

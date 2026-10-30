@@ -11,3 +11,7 @@
 ## Boundaries and next acceptance
 
 Source-only SQL and hermetic tests do not prove broker identity, real Central PostgreSQL commitment, subscription behavior, bounded replay under MQTT outages, finite disk capacity, ARM64 system service health or protected Pi recovery. No live credentials, ACLs, hardware, Modbus write, deployment, or database migration were applied. The production retention-mode switch and subscriber require separate integrated acceptance of Issue #1445 central publisher, Issue #1449 broker ACL and owner-approved protected backup/restore #1428 and network #1399. Do not mark hardware/site acceptance GREEN without field evidence.
+
+## Local integrity and bounded contention
+
+The staged ledger refuses a receipt when the **existing** SQLite outbox row's `event_id` column disagrees with its serialized `event_id`, or the serialized node, optional organization or optional stream identity disagrees with trusted local configuration. Duplicate JSON keys in a local queued payload are rejected. An unauthorized, corrupted, malformed, future-dated, replayed or out-of-order receipt never removes a row. A bounded SQLite `BEGIN IMMEDIATE` lock timeout and retry exhaustion preserve the original pending event; a later retry succeeds after the lock is released. These checks are isolated synthetic SQLite tests, not real Edge offline acceptance.

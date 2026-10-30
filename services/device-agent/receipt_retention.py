@@ -19,6 +19,15 @@ from durable_receipt_v1 import (
 from main import OfflineQueue
 
 
+def _strict_local_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ReceiptProtocolError("duplicate_local_pending_json_key")
+        result[key] = value
+    return result
+
+
 class CommittedReceiptQueue(OfflineQueue):
     """Standalone Edge outbox receipt applier. Inherits legacy queue unchanged.
 
@@ -89,11 +98,29 @@ class CommittedReceiptQueue(OfflineQueue):
                 if row is None:
                     raise ReceiptProtocolError("no_matching_pending_telemetry")
                 try:
-                    trusted_payload = json.loads(str(row[2]))
+                    trusted_payload = json.loads(
+                        str(row[2]), object_pairs_hook=_strict_local_pairs
+                    )
                 except (ValueError, TypeError) as exc:
                     raise ReceiptProtocolError("invalid_local_pending_payload") from exc
                 if not isinstance(trusted_payload, dict):
                     raise ReceiptProtocolError("invalid_local_pending_payload")
+                # The local SQLite column, its immutable payload and the
+                # trusted node configuration MUST agree before acknowledging
+                # or pruning. Reject corrupt local rows fail-closed.
+                if (
+                    trusted_payload.get("event_id") != row[1]
+                    or trusted_payload.get("node_id") != node_id
+                    or (
+                        "organization_id" in trusted_payload
+                        and trusted_payload["organization_id"] != organization_id
+                    )
+                    or (
+                        "stream" in trusted_payload
+                        and trusted_payload["stream"] != "telemetry"
+                    )
+                ):
+                    raise ReceiptProtocolError("local_pending_identity_mismatch")
                 sequence = trusted_payload.get("node_sequence")
                 if type(sequence) is not int or sequence < 1:
                     raise ReceiptProtocolError("invalid_local_pending_sequence")
