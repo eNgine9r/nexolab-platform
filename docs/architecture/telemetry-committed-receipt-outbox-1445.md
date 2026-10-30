@@ -34,3 +34,7 @@ principal, installed ACL, actual Edge receipt delivery or lossless behavior.
 Publisher construction refuses SQLite. Receipt intent construction refuses
 SQLite. Integration tests require a real PostgreSQL test database. Pending
 broker/identity/real-MQTT tests and runtime wiring remain **unfinished**.
+
+### Per-node publish ordering
+
+CommittedReceiptPublisher source-only scheduler excludes a newer pending sequence when any earlier sequence for the same organization/node is still unpublished, even if its retry lease is backed off or another worker holds the earlier row. Other nodes can publish independently. This prevents a known older receipt from being overtaken, **but cannot prove whether a yet-uncommitted earlier sample exists**. Broker PUBACK does not prove Edge acceptance: subscriber-side pending FIFO, durable replay requests, ACL acceptance and isolated outages remain separate gates.

@@ -439,3 +439,71 @@ def test_duplicate_sequence_cannot_claim_two_events(database):
                 TelemetrySample.event_id == str(second.event_id)
             )
         ) == 0
+
+
+def test_retry_blocks_newer_receipt_on_same_node_until_oldest_puback(database):
+    """A backed-off oldest receipt cannot be overtaken by later sequences."""
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event1, raw1 = make_event(1)
+    event2, raw2 = make_event(2)
+    assert database.persist(event1, raw1, receipt_identity=identity(1))
+    assert database.persist(event2, raw2, receipt_identity=identity(2))
+    sent = []
+    def send(topic, body):
+        import json
+        decoded = json.loads(body)
+        sent.append(decoded["node_sequence"])
+        return len(sent) > 1
+
+    sender = CommittedReceiptPublisher(database, send)
+    started = datetime.now(UTC)
+    assert sender.run_once(now=started).status == "retry"
+    assert sent == [1]
+    # Sequence 1 has an active backoff lease, so sequence 2 must not
+    # be marked delivered (or even sent) during that retry interval.
+    assert sender.run_once(now=started + timedelta(seconds=1)).status == "idle"
+    assert sent == [1]
+    assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
+    assert sent == [1, 1]
+    assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
+    assert sent == [1, 1, 2]
+    assert all(row["published_at"] is not None for row in rows(database))
+
+
+def test_retry_backoff_does_not_block_independent_node(database):
+    """A stuck node must not prevent publishing to a different node."""
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event1, raw1 = make_event(1)
+    assert database.persist(event1, raw1, receipt_identity=identity(1))
+    new_node = f"receipt-{uuid4().hex[:20]}"
+    event2, raw2 = make_event(2)
+    raw2["node_id"] = new_node
+    event2 = TelemetryEvent.model_validate(raw2)
+    assert database.persist(
+        event2, raw2, receipt_identity=CommittedReceiptIdentity(ORG, new_node, 2)
+    )
+    sent = []
+    def send(topic, body):
+        sent.append(topic)
+        return len(sent) == 2
+
+    publisher = CommittedReceiptPublisher(database, send)
+    start = datetime.now(UTC)
+    assert publisher.run_once(now=start).status == "retry"
+    assert publisher.run_once(now=start + timedelta(seconds=1)).status == "published"
+    assert sent == [
+        f"nexolab/v1/{ORG}/{NODE}/receipts",
+        f"nexolab/v1/{ORG}/{new_node}/receipts",
+    ]
+    with database.engine.begin() as connection:
+        connection.execute(
+            delete(TelemetryCommittedReceipt).where(
+                TelemetryCommittedReceipt.node_id == new_node
+            )
+        )
+        connection.execute(delete(TelemetryLatest).where(TelemetryLatest.node_id == new_node))
+        connection.execute(delete(TelemetrySample).where(TelemetrySample.node_id == new_node))

@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Callable
 from uuid import uuid4
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import and_, exists, func, or_, select, update
 
 from app.db import Database, TelemetryCommittedReceipt
 
@@ -68,6 +68,7 @@ class CommittedReceiptPublisher:
         if observed.tzinfo is None or observed.utcoffset() is None:
             raise ValueError("receipt_clock_must_be_aware")
         table = TelemetryCommittedReceipt.__table__
+        earlier = table.alias("earlier_unpublished_receipt")
         with self._database.engine.begin() as connection:
             record = connection.execute(
                 select(table)
@@ -76,6 +77,21 @@ class CommittedReceiptPublisher:
                     or_(
                         table.c.next_attempt_at.is_(None),
                         table.c.next_attempt_at <= observed,
+                    ),
+                    # Edge only accepts the oldest pending sequence. A
+                    # backed-off older receipt must prevent claiming a
+                    # newer receipt for the SAME organization and node;
+                    # otherwise newer broker PUBACK could permanently
+                    # retire an ACK the Edge has not accepted.
+                    ~exists(
+                        select(earlier.c.event_id).where(
+                            and_(
+                                earlier.c.organization_id == table.c.organization_id,
+                                earlier.c.node_id == table.c.node_id,
+                                earlier.c.node_sequence < table.c.node_sequence,
+                                earlier.c.published_at.is_(None),
+                            )
+                        )
                     ),
                 )
                 .order_by(table.c.committed_at, table.c.event_id)
