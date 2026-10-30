@@ -42,7 +42,7 @@ def valid_runner(*, mutate=None):
 
     def run(args):
         if args[0] == "ps":
-            project = args[3].split("=", 1)[1]
+            project = args[3].rsplit("=", 1)[-1]
             return "\n".join(identity[f"{project}:{s}"] for s in services[project])
         if args[0] == "inspect" and "range .Mounts" not in args[2]:
             ident = args[-1]
