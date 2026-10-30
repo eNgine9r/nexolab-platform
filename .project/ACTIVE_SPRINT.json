@@ -9310,9 +9310,7 @@
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
       "lifecycle": "in_progress",
-      "depends_on": [
-        1397
-      ],
+      "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
         "contracts/durable_receipt_v1.py",
