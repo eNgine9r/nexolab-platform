@@ -48,6 +48,24 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', trigger)
 
+    def test_site_dr_readonly_preflight_requires_offline_bundle(self) -> None:
+        paths = [
+            "scripts/nexolab-site-dr-preflight.py",
+            "tests/test_ci_site_dr_preflight.py",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', trigger)
+
     def test_site_dr_v2_contract_is_offline_and_ci_routed(self) -> None:
         paths = [
             "scripts/validate-site-dr-inventory-v2.py",

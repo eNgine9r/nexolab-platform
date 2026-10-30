@@ -1,3 +1,7 @@
+## 2026-10-30 — #1435 read-only site mapping awaits protected destination and live evidence
+
+#1433 v2 structural contract merged. #1435 source-only script cannot prove physical independence of a backup destination, S3/MQTT/edge SQLite consistency, local-auth secret custody or actual restores. Live Docker service and protected volume observations are still unverified. No approved independent root-owned backup medium was identified; last reported SSD headroom 28G. Do not run unchecked scripts on protected site or consider preflight output site cutover approval. #1399 stays blocked, no Modbus/hardware writes.
+
 ## 2026-10-30 — #1433 site DR v2 validation is not operational backup
 
 #1431 source-only inventory merged; #1433 is a feature-branch validator and deterministic fixtures only. No independent actual VersityGW, MQTT, SQLite/outbox, auth-key encrypted off-device backup or isolated restoration exists in site evidence. SSD last reported 28G available, not proof of separate media. V2 attestation can never itself authorize #1399 site cutover. NEXUS direct remote command execution still unverified; Raspberry remains unchanged.

@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1433,
-      "branch": "feat/1433-site-dr-inventory-v2-contract"
+      "issue": 1435,
+      "branch": "feat/1435-readonly-site-dr-preflight"
     },
     "next_work_package": null
   },
@@ -9055,7 +9055,7 @@
       "title": "Versioned fail-closed complete-site backup inventory contract (VersityGW + edge SQLite)",
       "branch": "feat/1433-site-dr-inventory-v2-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1431
       ],
@@ -9082,7 +9082,46 @@
           "Offline Bundle"
         ],
         "merged_1431": true,
-        "pr": "pending"
+        "pr": "pending",
+        "source_only_pr1434": "merged",
+        "source_only_ci": "all_six_workflows_green",
+        "full_site_dr": "not_performed"
+      }
+    },
+    {
+      "issue": 1435,
+      "title": "Bounded read-only site multi-store capture preflight and v2 inventory mapping",
+      "branch": "feat/1435-readonly-site-dr-preflight",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1433
+      ],
+      "scope": "Source-only offline Docker label/image/mount and VersityGW authority probes, protected destination/capacity checks, sanitized unverified capture plan; no site backup, secret read, network mutation or restore.",
+      "permitted_paths": [
+        "scripts/nexolab-site-dr-preflight.py",
+        "tests/test_ci_site_dr_preflight.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/site-dr-readonly-preflight-1435.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "pr": "pending",
+        "implementation": "source_only",
+        "site_execution": "not_performed",
+        "full_multi_store_backup": "not_performed",
+        "encrypted_off_device_custody": "unverified",
+        "isolated_restore": "not_performed",
+        "hardware": "unverified",
+        "no_site_mutation": true,
+        "required_external_workflows": [
+          "Offline Bundle"
+        ]
       }
     }
   ],
