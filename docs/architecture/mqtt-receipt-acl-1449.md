@@ -23,3 +23,7 @@ Mosquitto MQTT QoS 1 publish return codes alone are not an ACL guarantee. The is
 ## Credential and client-ID protection
 
 Dedicated receipt publisher user and client IDs must both use the `nexolab-central-receipts-` namespace, preventing accidentally reusing any existing node or ingestion MQTT client ID. The opt-in command requires a non-symlink regular secret file with `0400` or `0600` mode before role reconciliation. Isolated broker regression refuses a node client ID collision and a world-readable synthetic secret. These rules do not rotate or change production credentials.
+
+## Transport boundary
+
+Opt-in receipt administration rejects **unencrypted non-loopback brokers**. Existing loopback-only disposable broker acceptance remains allowed without TLS. Real remote administration must set and verify MQTT TLS CA and (if configured) client certificate/key. Publisher username and client ID are restricted to canonical dedicated alphanumeric/hyphen identifiers, excluding topic wildcards and separators. Legacy node/ingestion provisioning paths are unchanged. This source rule is not permission to configure a live site.

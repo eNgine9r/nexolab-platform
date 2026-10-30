@@ -90,3 +90,16 @@ def test_receipt_publisher_has_dedicated_namespace_and_secret_mode_guard() -> No
     ).read_text(encoding="utf-8")
     assert "receipt-publisher-node-client-id-collision" in acceptance
     assert "receipt-publisher-world-readable-secret" in acceptance
+
+
+def test_receipt_provisioning_fails_closed_for_remote_plaintext_broker() -> None:
+    source = PACKAGED_ADMIN.read_text(encoding="utf-8")
+    assert "require_secure_receipt_admin" in source
+    assert "Receipt ACL provisioning requires TLS for a non-loopback broker." in source
+    assert 'require_receipt_identity "$cid"' in source
+    acceptance = (
+        REPOSITORY_ROOT / "scripts" / "run-mqtt-broker-security-acceptance.sh"
+    ).read_text(encoding="utf-8")
+    assert "receipt-plaintext-remote-provisioning" in acceptance
+    assert "receipt-plaintext-remote-node-grant" in acceptance
+    assert "receipt-publisher-unsafe-identifier" in acceptance

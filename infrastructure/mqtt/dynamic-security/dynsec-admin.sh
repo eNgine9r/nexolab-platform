@@ -350,12 +350,39 @@ verify_receipt_client() {
     exit 80
   }
 }
+
+# Never send administrative credentials or receipt identity secrets to an
+# unencrypted remote broker. Local-only plaintext is allowed in CI fixtures
+# and operator-controlled loopback; no default or installed ACL is changed.
+require_secure_receipt_admin() {
+  if [ "$TLS_ENABLED" != "true" ]; then
+    case "$BROKER_HOST" in
+      127.0.0.1|localhost|::1) ;;
+      *)
+        echo "Receipt ACL provisioning requires TLS for a non-loopback broker." >&2
+        exit 83
+        ;;
+    esac
+  fi
+}
+require_receipt_identity() {
+  name=$1
+  label=$2
+  printf '%s\n' "$name" | grep -Eq '^nexolab-central-receipts-[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$' || {
+    echo "$label requires canonical dedicated receipt namespace." >&2
+    exit 81
+  }
+}
+
 create_receipt_publisher() {
   user=$1
   cid=$2
   secret=$3
   required_value "$user" "Receipt publisher username"
   required_value "$cid" "Receipt publisher client-id"
+  require_secure_receipt_admin
+  require_receipt_identity "$user" "Receipt publisher username"
+  require_receipt_identity "$cid" "Receipt publisher client ID"
   case "$user" in
     nexolab-central-receipts-*) ;;
     *) echo "Receipt publisher username must use dedicated namespace." >&2; exit 81 ;;
@@ -418,6 +445,7 @@ grant_node_receipts() {
     printf '%s\n' "$node" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' || {
     echo "Unsafe node receipt identity." >&2; exit 78;
   }
+  require_secure_receipt_admin
   [ "$user" = "node:$org:$node" ] && client_exists "$user" || {
     echo "Unprovisioned or mismatched receipt node." >&2; exit 81;
   }

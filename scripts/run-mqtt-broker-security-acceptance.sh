@@ -464,6 +464,19 @@ expect_denied receipt-publisher-reserved-principal \
 expect_denied receipt-publisher-node-client-id-collision \
   admin create-receipt-publisher "$RECEIPT_USERNAME" "$NODE_A_CLIENT_ID" \
     /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-publisher-unsafe-identifier \
+  admin create-receipt-publisher "$RECEIPT_USERNAME" \
+    'nexolab-central-receipts-+/unsafe' \
+    /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-plaintext-remote-provisioning \
+  compose exec -T -e NEXOLAB_MQTT_BROKER_HOST=remote.example.invalid \
+    mqtt-security /usr/local/bin/nexolab-dynsec-admin \
+    create-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
+    /run/secrets/nexolab/receipt-publisher-password
+expect_denied receipt-plaintext-remote-node-grant \
+  compose exec -T -e NEXOLAB_MQTT_BROKER_HOST=remote.example.invalid \
+    mqtt-security /usr/local/bin/nexolab-dynsec-admin \
+    grant-node-receipts "$NODE_A_USERNAME" "$ORGANIZATION_A" "$NODE_A"
 chmod 0644 "$SECRETS_DIR/receipt-publisher-password"
 expect_denied receipt-publisher-world-readable-secret \
   admin create-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
