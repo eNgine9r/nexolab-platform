@@ -205,6 +205,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/lib/postgresql-backup-client.sh",
     "scripts/nexolab-safe-pg-incident-backup.sh",
     "scripts/tests/test_nexolab_incident_pg_backup.py",
+    "scripts/validate-site-dr-inventory-v2.py",
+    "tests/test_ci_site_dr_inventory_v2.py",
     "scripts/generate-offline-bundle-manifest.py",
     "scripts/install-offline-bundle.sh",
     "scripts/offline-bundle-smoke.sh",
@@ -273,6 +275,8 @@ DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
 DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
+    "scripts/validate-site-dr-inventory-v2.py",
+    "tests/test_ci_site_dr_inventory_v2.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
