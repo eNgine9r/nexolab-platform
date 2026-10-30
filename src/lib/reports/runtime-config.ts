@@ -1,3 +1,5 @@
+import { resolveOfflineBrowserApiBaseUrl } from "@/lib/telemetry/offline-dual-access-origin";
+
 export class ReportClientError extends Error {
   constructor(
     message: string,
@@ -31,7 +33,10 @@ export function getReportsApiBaseUrl(): string {
 
   let parsed: URL;
   try {
-    parsed = new URL(value);
+    parsed = new URL(resolveOfflineBrowserApiBaseUrl(
+      value,
+      process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS,
+    ));
   } catch (error) {
     throw new ReportClientError("Reports API URL must be an absolute URL.", undefined, "configuration", {
       cause: error,
