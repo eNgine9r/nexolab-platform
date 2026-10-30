@@ -27,7 +27,7 @@ REQUIRED = {
     "local-auth-private-key": ("telemetry-service", "operator_secret_snapshot", "pem"),
     "local-auth-public-key": ("telemetry-service", "operator_secret_snapshot", "pem"),
     "central-ingestion-spool": ("telemetry-service", "online_sqlite_backup", "sqlite_backup"),
-    "edge-mqtt-persistence": ("edge-mqtt", "service_quiesce", "deterministic_tar"),
+    "edge-mqtt-persistence": ("mqtt", "service_quiesce", "deterministic_tar"),
 }
 REBUILDABLE = {"central-ingestion-spool", "edge-mqtt-persistence"}
 NO_VOLUME = {"local-auth-private-key", "local-auth-public-key"}
@@ -44,7 +44,7 @@ STORAGE_FIELDS = {
     "restore_target_identity_sha256", "restore_receipt_sha256",
 }
 SOURCE_FIELDS = {
-    "compose_service", "image_sha256", "source_identity_sha256",
+    "compose_project", "compose_service", "image_sha256", "source_identity_sha256",
     "authority_sha256", "observed_at",
 }
 CAPTURE_FIELDS = {
@@ -133,6 +133,7 @@ def validate_site_inventory(value: object) -> None:
     assets = inventory["assets"]
     require(isinstance(assets, list) and len(assets) == len(REQUIRED), "incomplete or unexpected asset inventory")
     seen: set[str] = set()
+    source_volumes: set[str] = set()
     group: str | None = None
     auth_pair: list[str] = []
 
@@ -153,6 +154,8 @@ def validate_site_inventory(value: object) -> None:
             object_keys(asset, {"id", "disposition", "source", "capture", "restore"} | ({"storage_backend"} if identifier == "object-storage" else set()), identifier)
         src_fields = SOURCE_FIELDS if identifier in NO_VOLUME else SOURCE_FIELDS | {"source_volume"}
         source = object_keys(asset["source"], src_fields, f"{identifier}.source")
+        expected_project = "nexolab-edge" if identifier in {"edge-sqlite-outbox", "edge-mqtt-persistence"} else "nexolab-central"
+        require(source["compose_project"] == expected_project, f"{identifier}: Compose project identity mismatch")
         require(source["compose_service"] == service, f"{identifier}: service identity mismatch")
         for name in ("image_sha256", "source_identity_sha256", "authority_sha256"):
             digest(source[name], f"{identifier}.source.{name}")
@@ -165,6 +168,8 @@ def validate_site_inventory(value: object) -> None:
                 and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", volume) is not None,
                 f"{identifier}: invalid source volume",
             )
+            require(volume not in source_volumes, f"{identifier}: duplicate source volume")
+            source_volumes.add(volume)
         if identifier == "object-storage":
             require(
                 source["source_volume"].endswith("-object-storage-versitygw-data"),
