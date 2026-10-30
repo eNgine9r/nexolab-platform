@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1431,
-      "branch": "docs/1431-site-dr-inventory-gate"
+      "issue": 1433,
+      "branch": "feat/1433-site-dr-inventory-v2-contract"
     },
     "next_work_package": null
   },
@@ -9025,7 +9025,7 @@
       "title": "Reconcile actual VersityGW, MQTT, edge SQLite and auth backup inventory before protected site restore",
       "branch": "docs/1431-site-dr-inventory-gate",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Source-only actual-site multi-store backup inventory and restore readiness gate: reconcile 5-asset v1 synthetic policy with VersityGW, edge SQLite and protected local storage; do not capture or restore live data.",
       "permitted_paths": [
@@ -9044,7 +9044,45 @@
         "site_mutation": "none",
         "artifact": "docs/operations/site-dr-inventory-gate-1431.md",
         "core_issue1399": "still_blocked_on_full_dr",
-        "next_implementation_wp": "complete_store_capture_policy_v2_pending"
+        "next_implementation_wp": "complete_store_capture_policy_v2_pending",
+        "source_only_pr1432": "merged",
+        "source_only_ci": "CI_and_Telemetry_success",
+        "site_restore": "not_performed"
+      }
+    },
+    {
+      "issue": 1433,
+      "title": "Versioned fail-closed complete-site backup inventory contract (VersityGW + edge SQLite)",
+      "branch": "feat/1433-site-dr-inventory-v2-contract",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1431
+      ],
+      "scope": "Source-only offline v2 inventory validation for full site stores with denied unsafe/incomplete state; preserve legacy v1 DR policy and leave site backup, restore, activation out of scope",
+      "permitted_paths": [
+        "scripts/validate-site-dr-inventory-v2.py",
+        "tests/test_ci_site_dr_inventory_v2.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/site-dr-inventory-v2.md",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "implementation": "source_only",
+        "site_runtime": "unverified",
+        "hardware": "unverified",
+        "full_dr": "not_complete",
+        "production_mutation": false,
+        "required_external_workflows": [
+          "Offline Bundle"
+        ],
+        "merged_1431": true,
+        "pr": "pending"
       }
     }
   ],

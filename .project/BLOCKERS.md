@@ -1,3 +1,7 @@
+## 2026-10-30 — #1433 site DR v2 validation is not operational backup
+
+#1431 source-only inventory merged; #1433 is a feature-branch validator and deterministic fixtures only. No independent actual VersityGW, MQTT, SQLite/outbox, auth-key encrypted off-device backup or isolated restoration exists in site evidence. SSD last reported 28G available, not proof of separate media. V2 attestation can never itself authorize #1399 site cutover. NEXUS direct remote command execution still unverified; Raspberry remains unchanged.
+
 ## 2026-10-30 — #1431 offline DR inventory blockers after #1430 merge
 
 PR #1430 source-only helper merged (`eb3b42135f188e9a916313c9d335b32f49f020d9`), but #1428 full DR remains open. Actual installed VersityGW `nexolab-central-object-storage-versitygw-data` vs five-asset DR v1 legacy object-storage volume, missing edge SQLite/outbox, unclassified edge MQTT and central ingestion persistence require verified source inventory, consistency gate and independent encrypted off-device restore. Root SSD had 28G free after partial PostgreSQL archive. No dedicated backup medium or verified key custody available in evidence. This blocks #1399 protected Dashboard/Telemetry API Docker network repair and any site activation; docs-only #1431 proceeds without runtime mutation.

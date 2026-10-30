@@ -1,3 +1,7 @@
+## 2026-10-30 — #1433 complete-site DR v2 inventory implementation (source only)
+
+PR #1432 (#1431 inventory) merged into main after Core CI and Telemetry GREEN. #1433 feature branch `feat/1433-site-dr-inventory-v2-contract` implements a strict offline JSON receipt validator for 8 protected stores, including actual VersityGW source identity, edge SQLite/outbox and classified auxiliary data, with structurally required encrypted/off-device/isolated restore evidence; legacy DR v1 policy untouched. Source-only isolated tests and CI impact/offline routing are in progress. This is NOT a real complete backup, off-device custody or fresh-volume restore. #1399 site Docker/network recovery stays blocked on actual DR and owner approval. Raspberry runtime/hardware unchanged.
+
 ## 2026-10-30 — PR #1430 merged; #1431 offline DR inventory source-only
 
 PR #1430 merged into main at `eb3b42135f188e9a916313c9d335b32f49f020d9` after all six exact-head workflows GREEN. Scope is only bounded, source-pinned one-time PostgreSQL emergency dump helper. Operator-reported 1,181,154,608-byte archive passed TOC; no isolated PostgreSQL restore or complete multi-store encrypted backup accepted. Source implementation does not deploy or restart services.
