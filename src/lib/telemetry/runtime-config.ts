@@ -1,3 +1,7 @@
+import {
+  resolveOfflineBrowserApiBaseUrl,
+  resolveOfflineBrowserWebSocketUrl,
+} from "./offline-dual-access-origin";
 import { TelemetryClientError } from "./errors";
 import type { TelemetryMode, TelemetryRuntimeConfig } from "./types";
 
@@ -55,9 +59,18 @@ export function validateTelemetryRuntimeConfig(input: TelemetryRuntimeConfigInpu
 }
 
 export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
-  return validateTelemetryRuntimeConfig({
+  const config = validateTelemetryRuntimeConfig({
     mode: process.env.NEXT_PUBLIC_NEXOLAB_DATA_MODE,
     apiBaseUrl: process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL,
     websocketUrl: process.env.NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL,
+  });
+  if (config.mode !== "live") {
+    return config;
+  }
+  const flag = process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS;
+  return Object.freeze({
+    mode: "live" as const,
+    apiBaseUrl: resolveOfflineBrowserApiBaseUrl(config.apiBaseUrl, flag),
+    websocketUrl: resolveOfflineBrowserWebSocketUrl(config.websocketUrl, flag),
   });
 }
