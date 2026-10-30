@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T09:38:17.553Z",
+  "timestamp": "2026-10-30T09:59:16.964Z",
   "actor": "ChatGPT",
-  "event": "1431_site_dr_inventory_after_1430_merge",
+  "event": "1433_complete_site_dr_v2_contract_feature_branch",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1431,
-    "branch": "docs/1431-site-dr-inventory-gate",
-    "status": "source_only_inventory_doc_implemented_ci_pending",
+    "issue": 1433,
+    "branch": "feat/1433-site-dr-inventory-v2-contract",
+    "status": "offline_validator_and_fixtures_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2710,6 +2710,15 @@
       "edge_sqlite_protection": "missing_in_dr_v1",
       "off_device_encrypted_copy": "unverified",
       "protected_site_mutation": false
+    },
+    "issue_1433_site_dr_v2": {
+      "issue": 1433,
+      "source_only": true,
+      "legacy_v1_policy_unchanged": true,
+      "site_data_backup": "not_performed",
+      "isolated_restore": "not_performed",
+      "no_site_mutation": true,
+      "hardware": "unverified"
     }
   },
   "observations": [
@@ -3925,7 +3934,7 @@
       }
     }
   ],
-  "next_action": "Finish #1431 exact-head docs/format/state checks and focused PR; then implement a separately scoped non-destructive multi-store DR capture/manifest contract. Site backup, isolated off-device restore, network/IPAM and #1399 login recovery remain blocked until independently accepted and separately approved.",
+  "next_action": "Validate #1433 exact-head CI including offline workflow; fix only source contract or routing failures, then merge GREEN. No live backup/restore or #1399 activation: require encrypted independent complete site backup, isolated restore and separate approved cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
