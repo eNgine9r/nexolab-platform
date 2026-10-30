@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T10:36:00Z",
+  "timestamp": "2026-10-30T10:55:00Z",
   "actor": "ChatGPT",
-  "event": "1435_readonly_multistore_site_preflight_source_only",
+  "event": "1437_synthetic_8_store_encrypted_fixture_recovery_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1435,
-    "branch": "feat/1435-readonly-site-dr-preflight",
-    "status": "source_only_readonly_preflight_and_tests_ci_pending",
+    "issue": 1437,
+    "branch": "feat/1437-offline-multistore-fixture-recovery",
+    "status": "isolated_fixture_implementation_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2728,6 +2728,16 @@
       "isolated_restore": "not_performed",
       "owner_hardware": "unverified",
       "no_site_mutation": true
+    },
+    "issue_1437_fixture": {
+      "issue": 1437,
+      "source_only": true,
+      "synthetic_only": true,
+      "real_site_backup": "not_performed",
+      "off_device_copy": "not_performed",
+      "actual_isolated_restore": "not_performed",
+      "site_activation": "not_authorized",
+      "hardware": "unverified"
     }
   },
   "observations": [
@@ -3943,7 +3953,7 @@
       }
     }
   ],
-  "next_action": "Review and validate #1435 exact-head CI/offline contracts. Do not run on Raspberry until independently verified protected destination and operator review; do not perform #1399 site recovery without actual complete encrypted multi-store backup and isolated restore.",
+  "next_action": "Run exact-head PR #1437 CI including synthetic AES-256-GCM roundtrip fixtures, offline bundle and backward compatibility. Fix failures in feature branch; merge only GREEN. Require independent encrypted site capture/key custody and isolated restoration before protected #1399 cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
