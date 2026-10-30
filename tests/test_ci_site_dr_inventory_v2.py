@@ -28,6 +28,7 @@ def fixture() -> dict:
     pairs = {"local-auth-private-key", "local-auth-public-key"}
     for i, (identifier, (service, boundary, fmt)) in enumerate(MODULE.REQUIRED.items(), start=1):
         source = {
+            "compose_project": "nexolab-edge" if identifier in {"edge-sqlite-outbox", "edge-mqtt-persistence"} else "nexolab-central",
             "compose_service": service,
             "image_sha256": h(i + 10),
             "source_identity_sha256": h(i + 30),
@@ -127,6 +128,17 @@ class SiteDRInventoryContractTests(unittest.TestCase):
         d = fixture()
         get(d, "object-storage")["source"]["compose_service"] = "versitygw"
         self.blocked(d, "service identity mismatch")
+
+    def test_reject_edge_mqtt_project_identity_drift(self) -> None:
+        d = fixture()
+        get(d, "edge-mqtt-persistence")["source"]["compose_project"] = "nexolab-central"
+        self.blocked(d, "Compose project identity mismatch")
+
+    def test_reject_reusing_one_live_volume_for_two_stores(self) -> None:
+        d = fixture()
+        volume = get(d, "postgresql")["source"]["source_volume"]
+        get(d, "mqtt-dynamic-security")["source"]["source_volume"] = volume
+        self.blocked(d, "duplicate source volume")
 
     def test_reject_duplicate_asset(self) -> None:
         d = fixture()
