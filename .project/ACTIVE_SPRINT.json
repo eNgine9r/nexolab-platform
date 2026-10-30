@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1410,
-      "branch": "feature/1410-durable-receipt-contract"
+      "issue": 1445,
+      "branch": "feature/1445-central-committed-receipt-outbox"
     },
     "next_work_package": null
   },
@@ -9309,7 +9309,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9326,7 +9326,7 @@
       ],
       "evidence": {
         "source_only": true,
-        "broker_acl": "not_verified",
+        "broker_acl": "not_installed_verified",
         "central_publisher": "not_implemented",
         "edge_subscriber": "not_implemented",
         "atomic_sqlite_prune": "not_implemented",
@@ -9336,7 +9336,85 @@
           "unit": "pending",
           "offline": "pending"
         },
-        "pr": 1411
+        "pr": 1411,
+        "merge_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f"
+      }
+    },
+    {
+      "issue": 1445,
+      "title": "Central PostgreSQL-committed telemetry receipt publisher with durable retry",
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410
+      ],
+      "scope": "Atomic PostgreSQL receipt intents, isolated publisher and QoS1 callback; runtime integration/ACL/Edge not installed.",
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1446,
+        "head_sha": "653ce1a4adb876b68b5bad31d3f7754395c47084",
+        "source_only": true,
+        "broker_acl": "unverified",
+        "site_activation": "not_performed"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Revalidate expired container vulnerability exceptions and fix critical image CVEs",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "scope": "Source-only exact-image Trivy fixes and 49 individually scoped temporary HIGH risk decisions; independent security owner approval pending.",
+      "permitted_paths": [
+        "security/",
+        "services/telemetry-service/",
+        "infrastructure/object-storage/",
+        "docs/architecture/"
+      ],
+      "evidence": {
+        "pr": 1448,
+        "head_sha": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+        "workflow_green": 22,
+        "residual_high": 49,
+        "critical": 0,
+        "expires_on": "2026-11-06",
+        "security_owner_review": "pending"
+      }
+    },
+    {
+      "issue": 1449,
+      "title": "Dedicated MQTT receipt publisher and exact per-node subscriber ACL (source-only)",
+      "branch": "security/1449-dedicated-receipt-mqtt-acl",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1445,
+        1447
+      ],
+      "scope": "Opt-in broker role provisioning, exact literal receipt subscription and real isolated broker acceptance; no site ACL or hardware change.",
+      "permitted_paths": [
+        "infrastructure/mqtt/dynamic-security/",
+        "services/telemetry-service/bin/",
+        "services/telemetry-service/tests/",
+        "scripts/run-mqtt-broker-security-acceptance.sh",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1450,
+        "head_sha": "b2107165e8d111690688410d2f805083a484f7c5",
+        "broker_acceptance": "success",
+        "image_amd64_arm64": "success",
+        "full_ci": "in_progress",
+        "source_only": true,
+        "site_acl": "not_performed",
+        "hardware": "unverified"
       }
     }
   ],
@@ -9412,6 +9490,14 @@
       "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
+    },
+    {
+      "source_issue": 1447,
+      "title": "Security owner review/removal of 49 exact residual HIGH, expiry 2026-11-06",
+      "status": "blocked",
+      "due_on": "2026-11-06",
+      "owner": "platform-security",
+      "rule": "All 22 PR #1448 exact-head workflows GREEN, but 49 HIGH remain; re-check fixed versions, CVE reachability and explicit risk ownership before merge or site release. Do not renew blanket exceptions."
     }
   ],
   "observations": [
@@ -10893,6 +10979,25 @@
         "pg_backup_executed": false,
         "private_restored": false,
         "protected_site_unmodified": true
+      }
+    },
+    {
+      "source": "github_actions",
+      "observed_at": "2026-10-30T16:30:00Z",
+      "kind": "1449_isolated_receipt_acl_verified",
+      "data": {
+        "issue": 1449,
+        "pr": 1450,
+        "head_sha": "b2107165e8d111690688410d2f805083a484f7c5",
+        "broker_security_run": 41090376089,
+        "broker_security": "success",
+        "broker_control": "success",
+        "artifact_id": 12993517133,
+        "sha256": "27ae2542fa492bdc21b8abacf35635df1eb5b455804749465f0d043ec73286d8",
+        "source_only": true,
+        "live_acl": "not_performed",
+        "required_ci": "in_progress",
+        "security_dependency": 1447
       }
     }
   ],

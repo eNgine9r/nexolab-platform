@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T12:37:00Z",
+  "timestamp": "2026-10-30T16:30:00Z",
   "actor": "ChatGPT",
-  "event": "1410_durable_receipt_v1_contract_reconciled_with_main",
+  "event": "1449_receipt_acl_source_only_isolated_broker_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1410,
-    "branch": "feature/1410-durable-receipt-contract",
-    "status": "v1_schema_replay_freshness_validator_ci_pending",
+    "issue": 1445,
+    "branch": "feature/1445-central-committed-receipt-outbox",
+    "status": "draft_source_only_acl_dependency_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3985,9 +3985,24 @@
         "free_ssd_space_after_pg_dump": "28G",
         "complete_dr_proof": "pending"
       }
+    },
+    {
+      "source": "github_actions",
+      "observed_at": "2026-10-30T16:30:00Z",
+      "kind": "1449_disposable_broker_accepted",
+      "data": {
+        "issue": 1449,
+        "pr": 1450,
+        "head_sha": "b2107165e8d111690688410d2f805083a484f7c5",
+        "run": 41090376089,
+        "status": "success",
+        "evidence_sha256": "27ae2542fa492bdc21b8abacf35635df1eb5b455804749465f0d043ec73286d8",
+        "production_mutation": false,
+        "live_broker_verified": false
+      }
     }
   ],
-  "next_action": "Run 23 new targeted protocol tests via mandatory test_ci_ discovery, exact-head GitHub CI and external workflows. Review security/topic/tenant/replay/freshness boundaries and merge PR #1411 only full GREEN. No production broker/Edge or Modbus changes; full reliability #1397 blocked until actual Central publisher and Edge replay acceptance.",
+  "next_action": "Verify #1450 exact-head full CI; keep Draft while independent #1447 security 49 HIGH review and expired main gate unresolved. Implement production connection only after protected #1428 full encrypted backup/restore, #1399 safe LAN network plan and separate owner approval. #1445 remains Draft; no Edge SQLite subscriber or live ACL.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
