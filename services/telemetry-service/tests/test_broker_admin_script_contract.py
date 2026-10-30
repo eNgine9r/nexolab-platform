@@ -35,7 +35,7 @@ def test_receipt_acl_commands_are_opt_in_and_no_legacy_acl_is_changed() -> None:
     source = PACKAGED_ADMIN.read_text(encoding="utf-8")
     node = source.split("create_node() {", 1)[1].split("create_ingestion() {", 1)[0]
     ingestion = source.split("create_ingestion() {", 1)[1].split(
-        "# Explicit receipt grants only.", 1
+        "# Receipt permissions are explicit,", 1
     )[0]
     assert "/receipts" not in node
     assert "/receipts" not in ingestion
@@ -63,3 +63,15 @@ def test_isolated_broker_receipt_acceptance_has_real_negative_controls() -> None
         "receipt-after-restart.txt",
     ):
         assert required in source
+
+
+
+def test_receipt_security_requires_default_deny_and_exact_existing_node_role() -> None:
+    source = PACKAGED_ADMIN.read_text(encoding="utf-8")
+    assert "verify_receipt_default_deny" in source
+    assert "Receipt ACL requires all broker defaults to deny." in source
+    assert 'verify_receipt_role "$base_role" "$base_acl"' in source
+    assert "subscribeLiteral" in source
+    assert "subscribePattern" not in source.split("grant_node_receipts() {", 1)[1].split(
+        "command=", 1
+    )[0]

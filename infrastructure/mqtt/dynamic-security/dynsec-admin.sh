@@ -303,6 +303,20 @@ create_ingestion() {
 
 
 # Receipt permissions are explicit, never part of create-node/create-ingestion.
+
+verify_receipt_default_deny() {
+  defaults="$(ctrl getDefaultACLAccess | sed 's/[[:space:]]//g' | sed '/^$/d' | sort)"
+  expected="$(printf '%s\n' \
+    'publishClientSend:deny' \
+    'publishClientReceive:deny' \
+    'subscribe:deny' \
+    'unsubscribe:deny' | sort)"
+  [ "$defaults" = "$expected" ] || {
+    echo "Receipt ACL requires all broker defaults to deny." >&2
+    exit 82
+  }
+}
+
 receipt_acls() {
   ctrl getRole "$1" | awk '
     /^ACLs:/ { active=1; sub(/^ACLs:[[:space:]]*/, ""); if(length($0)) print; next }
@@ -331,7 +345,7 @@ verify_receipt_client() {
   detail="$(client_definition "$1")"
   [ "$(receipt_members "$detail" Roles)" = "$2" ] &&
     [ -z "$(receipt_members "$detail" Groups)" ] &&
-    printf '%s\n' "$detail" | grep -Eq '^Disabled:[[:space:]]*false' || {
+    ! printf '%s\n' "$detail" | grep -Eq '^Disabled:[[:space:]]*(true|1)[[:space:]]*$' || {
     echo "Unexpected receipt client roles/groups/status; refusing." >&2
     exit 80
   }
@@ -350,6 +364,7 @@ create_receipt_publisher() {
     [ "$cid" != "nexolab-central-ingestion" ] || {
     echo "Dedicated receipt client-id required." >&2; exit 81;
   }
+  verify_receipt_default_deny
   role=nexolab-central-receipts-only
   exact="publishClientSend:allow:nexolab/v1/+/+/receipts(priority:100)"
   if role_exists "$role"; then
@@ -392,6 +407,13 @@ grant_node_receipts() {
   [ "$cid_existing" = "nexolab-$org-$node" ] || {
     echo "Node receipt client-id mismatch." >&2; exit 80;
   }
+  verify_receipt_default_deny
+  base_role="nexolab-node-$org-$node"
+  base_acl="$(printf '%s\n' \
+    "publishClientSend:allow:nexolab/v1/$org/$node/telemetry(priority:100)" \
+    "publishClientSend:allow:nexolab/v1/$org/$node/health(priority:100)" \
+    "publishClientSend:allow:nexolab/v1/$org/$node/status(priority:100)" | sort)"
+  verify_receipt_role "$base_role" "$base_acl"
   old="nexolab-node-$org-$node (priority: 100)"
   role="nexolab-node-receipts-$org-$node"
   new="$role (priority: 100)"
