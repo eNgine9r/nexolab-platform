@@ -48,6 +48,25 @@ On success, the script prints `PG_BACKUP_ARCHIVE=CREATED`,
 `PG_RESTORE_TOC=PASS`, `PG_RESTORE_ACTUAL=NOT_PERFORMED`, byte length and SHA.
 If it blocks, **do not bypass capacity limits**, prune data or reduce the reserve.
 
+## Owner-executed partial snapshot evidence (2026-10-30)
+
+The owner terminal reports exact helper SHA-256 verified before execution:
+`634758e1585d92efd7dce74433afec4796e81e4b5349fe213439c21c5a86a7bc`.
+The separate `--check` invocation returned `PG_BACKUP_PREFLIGHT=PASS`
+and `PG_BACKUP_PERFORMED=NO` (check-only; expected). The subsequent real
+invocation reported `PG_BACKUP_ARCHIVE=CREATED` and `PG_RESTORE_TOC=PASS`.
+
+- File: `/var/backups/nexolab/pg-incident-20261030T090951Z.dump`.
+- Compressed archive: **1,181,154,608 bytes**.
+- Reported SHA-256: `3726b69b6a10b3cebe56b1982459126c68e25daa86958cd410fdd3d894722f06`.
+- Disk after operation: 234G total, 195G used, 28G available (88%).
+- `PG_RESTORE_ACTUAL=NOT_PERFORMED`; no isolated recovery or off-device
+  encrypted copy has yet been evidenced.
+
+This is operator-reported terminal evidence, not independent archive custody
+or full disaster recovery. The working PostgreSQL and site Docker runtime were
+not restored or restarted by the helper.
+
 ## Important non-acceptance boundary
 
 `pg_restore --list` verifies the archive table of contents, **not**
