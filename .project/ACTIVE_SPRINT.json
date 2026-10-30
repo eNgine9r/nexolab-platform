@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1428,
-      "branch": "fix/1428-bounded-incident-pg-backup"
+      "issue": 1431,
+      "branch": "docs/1431-site-dr-inventory-gate"
     },
     "next_work_package": null
   },
@@ -9013,7 +9013,38 @@
         "protected_cross_store_off_device_restore": "unverified",
         "full_dr_restore": "not_performed",
         "docker_network_recovery": "not_performed",
-        "owner_goal": "authenticated_dashboard_login_first"
+        "owner_goal": "authenticated_dashboard_login_first",
+        "source_only_pr1430": "merged",
+        "merged_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
+        "source_only_ci": "all_six_workflows_success",
+        "pending_full_dr": true
+      }
+    },
+    {
+      "issue": 1431,
+      "title": "Reconcile actual VersityGW, MQTT, edge SQLite and auth backup inventory before protected site restore",
+      "branch": "docs/1431-site-dr-inventory-gate",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Source-only actual-site multi-store backup inventory and restore readiness gate: reconcile 5-asset v1 synthetic policy with VersityGW, edge SQLite and protected local storage; do not capture or restore live data.",
+      "permitted_paths": [
+        "docs/operations/site-dr-inventory-gate-1431.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "parent_issue": 1428,
+        "pr1430_merged_commit": "eb3b42135f188e9a916313c9d335b32f49f020d9",
+        "source_only": true,
+        "full_site_dr": "not_verified",
+        "hardware": "unverified",
+        "site_mutation": "none",
+        "artifact": "docs/operations/site-dr-inventory-gate-1431.md",
+        "core_issue1399": "still_blocked_on_full_dr",
+        "next_implementation_wp": "complete_store_capture_policy_v2_pending"
       }
     }
   ],

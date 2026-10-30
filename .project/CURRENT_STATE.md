@@ -1,3 +1,9 @@
+## 2026-10-30 — PR #1430 merged; #1431 offline DR inventory source-only
+
+PR #1430 merged into main at `eb3b42135f188e9a916313c9d335b32f49f020d9` after all six exact-head workflows GREEN. Scope is only bounded, source-pinned one-time PostgreSQL emergency dump helper. Operator-reported 1,181,154,608-byte archive passed TOC; no isolated PostgreSQL restore or complete multi-store encrypted backup accepted. Source implementation does not deploy or restart services.
+
+New independent Issue #1431 / branch `docs/1431-site-dr-inventory-gate` documents current DR v1 five-asset assumptions vs actual VersityGW named volume, edge SQLite/outbox, central ingestion and edge MQTT durability. Inventory and restore gate: `docs/operations/site-dr-inventory-gate-1431.md`. Actual complete DR, off-device key custody, site storage identity and Dashboard/API recovery remain unverified; #1399 no cutover approval. Hardware RS-485 disconnected intentionally, no hardware write.
+
 ## 2026-10-30 — #1428 guarded PostgreSQL snapshot prerequisite to NEXOLAB login recovery
 
 Owner's explicit current priority is authenticated Dashboard on `http://172.18.48.66:3000` and the real Telemetry API on `:8082`; intentionally unplugged RS-485 adapters are **not** a prerequisite. Actual installed `ffdefc4550d71e211724de1154ffe9057f905c9c` Dashboard/Telemetry/VersityGW containers were observed running but with no Docker networks or host ports. PostgreSQL is running and locally queryable (19 GB). Root SSD has 29 GB available; last displayed backup in scanned local paths is Oct 14; no NEXOLAB application-data systemd backup timer was observed.
