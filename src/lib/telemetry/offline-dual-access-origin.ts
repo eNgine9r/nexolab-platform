@@ -1,0 +1,105 @@
+/** Explicit opt-in browser routing for an offline Raspberry Pi.
+ * Docker bind, host firewall, CORS and authentication remain separate gates.
+ */
+
+export type OfflineBrowserLocation = { origin: string } | null;
+
+export function currentOfflineBrowserLocation(): OfflineBrowserLocation {
+  return typeof window === "undefined" ? null : { origin: window.location.origin };
+}
+
+function isPrivateIPv4(host: string): boolean {
+  const parts = host.split(".");
+  if (parts.length !== 4 || parts.some((part) => !/^(0|[1-9][0-9]{0,2})$/.test(part))) {
+    return false;
+  }
+  const octets = parts.map(Number);
+  if (octets.some((value) => value > 255)) {
+    return false;
+  }
+  const [first, second] = octets;
+  const privateTen = first === 10;
+  const privateSeventeen = first === 172 && second >= 16 && second <= 31;
+  const privateOneNinetyTwo = first === 192 && second === 168;
+  return privateTen || privateSeventeen || privateOneNinetyTwo;
+}
+
+function localBrowserHostname(location: OfflineBrowserLocation): string | null {
+  if (!location) {
+    // SSR never derives trusted addresses from the request Host header.
+    return null;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(location.origin);
+  } catch {
+    throw new Error("Invalid offline dashboard browser origin");
+  }
+  const isLoopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  const trustedBrowser = isLoopback || isPrivateIPv4(parsed.hostname);
+  if (
+    parsed.protocol !== "http:" ||
+    parsed.port !== "3000" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash ||
+    !trustedBrowser
+  ) {
+    throw new Error("Offline dashboard requires an explicit private IPv4 or loopback origin on port 3000");
+  }
+  return parsed.hostname;
+}
+
+function resolveBrowserHost(
+  configured: string,
+  featureFlag: string | undefined,
+  location: OfflineBrowserLocation,
+  expectedProtocol: "http:" | "ws:",
+  expectedPath: string,
+): string {
+  if (featureFlag !== "true") {
+    return configured;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    throw new Error("Invalid configured offline API or WebSocket URL");
+  }
+  if (
+    parsed.protocol !== expectedProtocol ||
+    parsed.port !== "8082" ||
+    !["localhost", "127.0.0.1"].includes(parsed.hostname) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== expectedPath ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new Error("Dual offline access requires pinned loopback API and WebSocket configuration");
+  }
+  const hostname = localBrowserHostname(location);
+  if (!hostname) {
+    return configured;
+  }
+  parsed.hostname = hostname;
+  return expectedPath === "/" ? parsed.origin : parsed.toString();
+}
+
+export function resolveOfflineBrowserApiBaseUrl(
+  configured: string,
+  featureFlag: string | undefined,
+  location: OfflineBrowserLocation = currentOfflineBrowserLocation(),
+): string {
+  return resolveBrowserHost(configured, featureFlag, location, "http:", "/");
+}
+
+export function resolveOfflineBrowserWebSocketUrl(
+  configured: string,
+  featureFlag: string | undefined,
+  location: OfflineBrowserLocation = currentOfflineBrowserLocation(),
+): string {
+  return resolveBrowserHost(configured, featureFlag, location, "ws:", "/api/v1/telemetry/live");
+}

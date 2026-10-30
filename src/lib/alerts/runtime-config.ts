@@ -1,3 +1,5 @@
+import { resolveOfflineBrowserApiBaseUrl } from "@/lib/telemetry/offline-dual-access-origin";
+
 export class AlertClientError extends Error {
   constructor(
     message: string,
@@ -31,7 +33,9 @@ export function getAlertsApiBaseUrl(): string {
 
   let parsed: URL;
   try {
-    parsed = new URL(value);
+    parsed = new URL(
+      resolveOfflineBrowserApiBaseUrl(value, process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS),
+    );
   } catch (error) {
     throw new AlertClientError("Alerts API URL must be an absolute URL.", undefined, "configuration", {
       cause: error,

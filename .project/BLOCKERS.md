@@ -1,3 +1,7 @@
+## 2026-10-30 — #1426 dual-access release and protected site restore blocked
+
+NEXOLAB must serve Pi-attached loopback and isolated PC clients without internet, but existing protected runtime remains in `lan` mode with detached Docker ports/networks (#1399). New browser host resolution is source-only, opt-in and disabled by default, not a deployed feature. The Sessions API consumer remains unmodified because the connected write action was blocked by safety policy; browser login, CORS, explicit access ports, private AP/Ethernet addressing, UI behavior and real read-only RS-485 evidence are not verified. Exact protected backup-restore and rollback are absent. RDC monthly quota exhausted; NEXUS Commander execution failed, and NEXUS provider task quota exhausted. No uncontrolled network, package or hardware mutation permitted.
+
 ## 2026-10-29 — #1409 verified overlap and unresolved site recovery gates
 
 Actual Pi routing: physical LAN `172.18.48.0/21` overlaps Docker edge `172.18.0.0/16`. Other bridges consume `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale has observed per-peer host routes. Candidate `172.26.0.0/24` is locally disjoint but not reserved across upstream LAN, VLAN or VPN.
