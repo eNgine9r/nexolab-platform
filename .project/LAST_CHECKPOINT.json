@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T18:48:00Z",
+  "timestamp": "2026-10-30T07:00:00Z",
   "actor": "ChatGPT",
-  "event": "1409_provisional_cidr_unapproved_nonzero_exit_guard",
+  "event": "1426_offline_dual_browser_source_foundation_draft",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1409,
-    "branch": "feature/1409-edge-ipam-readonly-inventory",
-    "status": "source_only_18_isolated_tests_fail_closed_ci_pending",
+    "issue": 1426,
+    "branch": "feature/1426-offline-dual-browser-origin-contract",
+    "status": "draft_source_only_client_contract_not_released",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3888,9 +3888,27 @@
         "site_activation": "not_performed",
         "hardware_acceptance": "not_verified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "kind": "issue_1426_dual_offline_browser_origin_draft",
+      "data": {
+        "issue": 1426,
+        "stage": "source_only_opt_in_resolver",
+        "current_pi_mode": "lan_verified_by_bounded_nexus_read",
+        "hardware": "unverified",
+        "docker_networks": "incident_1399_still_unrepaired",
+        "offline_pi_screen": "not_accepted",
+        "ethernet_isolated_pc": "not_accepted",
+        "wifi_ap": "not_accepted",
+        "local_auth_CORS": "not_accepted",
+        "sessions_consumer": "not_updated_due_write_tool_block",
+        "deployment": false
+      }
     }
   ],
-  "next_action": "Verify exact-head CI, offline bundle and telemetry for PR #1425 after Prettier/runbook and unapproved-candidate nonzero fix; merge only when GREEN. Site IPAM migration remains blocked on upstream CIDR reservation, independent fresh backup restore, protected rollback and explicit Product Owner approval.",
+  "next_action": "Review CI for #1426 source-only opt-in local-browser origin resolver; address blocked sessions consumer through authorized safe change; verify browser auth and offline API/WS. Production Pi runtime recovery #1399, exact CIDR/backup/rollback and separately approved site cutover still required.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
