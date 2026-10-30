@@ -10,8 +10,9 @@ const WS = "ws://127.0.0.1:8082/api/v1/telemetry/live";
 
 describe("explicit offline dual-browser origin contract", () => {
   it("preserves legacy config when not opted in", () => {
-    expect(resolveOfflineBrowserApiBaseUrl(API, undefined, { origin: "http://192.168.50.1:3000" })).toBe(API);
-    expect(resolveOfflineBrowserWebSocketUrl(WS, "false", { origin: "http://192.168.50.1:3000" })).toBe(WS);
+    const remote = { origin: "http://192.168.50.1:3000" };
+    expect(resolveOfflineBrowserApiBaseUrl(API, undefined, remote)).toBe(API);
+    expect(resolveOfflineBrowserWebSocketUrl(WS, "false", remote)).toBe(WS);
   });
 
   it("never derives server-side API hosts from request headers", () => {
@@ -59,9 +60,8 @@ describe("explicit offline dual-browser origin contract", () => {
     "http://127.0.0.1:8082/?token=bad",
     "http://user:pass@127.0.0.1:8082",
   ])("rejects non-pinned backend origin %s", (api) => {
-    expect(() => resolveOfflineBrowserApiBaseUrl(api, "true", { origin: "http://192.168.50.1:3000" })).toThrow(
-      /pinned loopback/,
-    );
+    const remote = { origin: "http://192.168.50.1:3000" };
+    expect(() => resolveOfflineBrowserApiBaseUrl(api, "true", remote)).toThrow(/pinned loopback/);
   });
 
   it("rejects an unexpected WebSocket path", () => {
