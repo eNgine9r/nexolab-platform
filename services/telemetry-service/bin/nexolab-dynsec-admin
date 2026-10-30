@@ -302,13 +302,12 @@ create_ingestion() {
 }
 
 
-# Explicit receipt grants only. The standard create-node and create-ingestion
-# commands never enable receipt publishing or subscribing.
+# Receipt permissions are explicit, never part of create-node/create-ingestion.
 receipt_acls() {
   ctrl getRole "$1" | awk '
-    /^ACLs:/ {active=1; sub(/^ACLs:[[:space:]]*/, ""); if(length($0)) print; next}
-    active && /^[[:alpha:]][[:alnum:]_]*:/ {exit}
-    active {if(length($0)) print}
+    /^ACLs:/ { active=1; sub(/^ACLs:[[:space:]]*/, ""); if(length($0)) print; next }
+    active && /^[[:alpha:]][[:alnum:]_]*:/ { exit }
+    active { if(length($0)) print }
   ' | sed 's/[[:space:]]//g' | sed '/^$/d' | sort
 }
 receipt_members() {
@@ -318,8 +317,8 @@ receipt_members() {
       if(length($0)) print
       next
     }
-    active && /^[[:alpha:]][[:alnum:]_]*:/ {exit}
-    active {sub(/^[[:space:]]+/, ""); if(length($0)) print}
+    active && /^[[:alpha:]][[:alnum:]_]*:/ { exit }
+    active { sub(/^[[:space:]]+/, ""); if(length($0)) print }
   ' | sort
 }
 verify_receipt_role() {
@@ -378,109 +377,11 @@ grant_node_receipts() {
   org=$2
   node=$3
   printf '%s\n' "$org" | grep -Eq \
-    '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ -n "$command" ] || usage
-shift
-prepare_control_options
-
-case "$command" in
-  create-receipt-publisher)
-    [ "$#" -eq 3 ] || usage
-    create_receipt_publisher "$1" "$2" "$3"
-    ;;
-  grant-node-receipts)
-    [ "$#" -eq 3 ] || usage
-    grant_node_receipts "$1" "$2" "$3"
-    ;;
-  bootstrap-defaults)
-    [ "$#" -eq 0 ] || usage
-    bootstrap_defaults
-    ;;
-  create-node)
-    [ "$#" -eq 5 ] || usage
-    create_node "$1" "$2" "$3" "$4" "$5"
-    ;;
-  create-ingestion)
-    [ "$#" -eq 3 ] || usage
-    create_ingestion "$1" "$2" "$3"
-    ;;
-  rotate-password)
-    [ "$#" -eq 2 ] || usage
-    set_client_password "$1" "$2"
-    ;;
-  disable-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl disableClient "$1" >/dev/null
-    ;;
-  enable-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl enableClient "$1" >/dev/null
-    ;;
-  delete-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl deleteClient "$1" >/dev/null
-    ;;
-  get-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl getClient "$1"
-    ;;
-  list-clients)
-    [ "$#" -eq 0 ] || usage
-    ctrl listClients
-    ;;
-  *)
-    usage
-    ;;
-esac
- || {
+    '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || {
     echo "Noncanonical organization ID." >&2; exit 78;
   }
   [ "$(printf %s "$node" | wc -c)" -le 64 ] &&
-    printf '%s\n' "$node" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?[ -n "$command" ] || usage
-shift
-prepare_control_options
-
-case "$command" in
-  bootstrap-defaults)
-    [ "$#" -eq 0 ] || usage
-    bootstrap_defaults
-    ;;
-  create-node)
-    [ "$#" -eq 5 ] || usage
-    create_node "$1" "$2" "$3" "$4" "$5"
-    ;;
-  create-ingestion)
-    [ "$#" -eq 3 ] || usage
-    create_ingestion "$1" "$2" "$3"
-    ;;
-  rotate-password)
-    [ "$#" -eq 2 ] || usage
-    set_client_password "$1" "$2"
-    ;;
-  disable-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl disableClient "$1" >/dev/null
-    ;;
-  enable-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl enableClient "$1" >/dev/null
-    ;;
-  delete-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl deleteClient "$1" >/dev/null
-    ;;
-  get-client)
-    [ "$#" -eq 1 ] || usage
-    ctrl getClient "$1"
-    ;;
-  list-clients)
-    [ "$#" -eq 0 ] || usage
-    ctrl listClients
-    ;;
-  *)
-    usage
-    ;;
-esac
- || {
+    printf '%s\n' "$node" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' || {
     echo "Unsafe node receipt identity." >&2; exit 78;
   }
   [ "$user" = "node:$org:$node" ] && client_exists "$user" || {
@@ -526,6 +427,15 @@ shift
 prepare_control_options
 
 case "$command" in
+  create-receipt-publisher)
+    [ "$#" -eq 3 ] || usage
+    create_receipt_publisher "$1" "$2" "$3"
+    ;;
+  grant-node-receipts)
+    [ "$#" -eq 3 ] || usage
+    grant_node_receipts "$1" "$2" "$3"
+    ;;
+
   bootstrap-defaults)
     [ "$#" -eq 0 ] || usage
     bootstrap_defaults
