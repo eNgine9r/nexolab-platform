@@ -1,3 +1,7 @@
+## 2026-10-30 — #1439 operational capture approval remains structurally and physically unverified
+
+#1437 fixture-only DR merged. #1439 is a source-only structural plan gate, NOT a production backup tool. Actual root/backup device separation, independent encrypted backup medium and key custody, real per-store consistency, MQTT/SQLite high-water continuity, and full isolated restore have not been evidenced on Raspberry. A structurally valid operator receipt cannot certify its own authenticity. No protected #1399 site Docker/IPAM recovery or Modbus/hardware writes permitted. Preserve active VersityGW and old MinIO volumes.
+
 ## 2026-10-30 — #1437 fixture-only DR cannot authorize production recovery
 
 #1435 source-only read-only preflight merged GREEN. #1437 exercises only synthetic data in isolated temporary directories. Actual Raspberry asset identity, full PostgreSQL/VersityGW/MQTT/edge SQLite/auth consistent capture, independent encrypted off-device copy and successful isolated site restore remain UNVERIFIED. No verified separate protected backup destination/key custody has been provided. Retain old MinIO and new VersityGW volumes; do not touch Docker/IPAM or hardware to resolve #1399. Synthetic receipt must never be classified as real hardware or production acceptance.
