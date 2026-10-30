@@ -274,3 +274,118 @@ def test_publisher_refreshes_expired_receipt_before_broker_send(database):
     assert sent[0]["receipt_id"] != old["receipt_id"]
     assert datetime.fromisoformat(sent[0]["accepted_at"].replace("Z", "+00:00")) > yesterday_plus_week
     assert rows(database)[0]["receipt_id"] == sent[0]["receipt_id"]
+
+
+def test_authorized_node_cursor_and_sample_rollback_are_atomic_on_postgres(
+    database, monkeypatch
+):
+    """Database failure must never advance the trusted ingress high-water cursor.
+
+    Registry objects here are synthetic tests, NOT evidence of real broker ACL.
+    """
+    from sqlalchemy.orm import Session
+    from app.nodes.ingress import NodeIngressAuthorizer
+    from app.nodes.models import (
+        CentralNode,
+        CentralNodeCredential,
+        CentralNodeIngressCursor,
+    )
+    from app.security.models import SecurityOrganization
+
+    org = str(uuid4())
+    node_record_id = str(uuid4())
+    credential_id = str(uuid4())
+    observed = datetime.now(UTC)
+    with Session(database.engine) as session:
+        with session.begin():
+            session.add(SecurityOrganization(id=org, slug=f"receipt-ci-{uuid4().hex[:12]}", name="Receipt CI"))
+            session.flush()
+            session.add(
+                CentralNode(
+                    id=node_record_id,
+                    organization_id=org,
+                    node_id=NODE,
+                    display_name="Receipt test node",
+                    state="active",
+                    state_reason="isolated PostgreSQL test",
+                    created_by="test",
+                    created_at=observed,
+                    updated_at=observed,
+                )
+            )
+            session.flush()
+            session.add(
+                CentralNodeCredential(
+                    id=credential_id,
+                    organization_id=org,
+                    node_record_id=node_record_id,
+                    generation=1,
+                    secret_salt="0" * 64,
+                    secret_hash="0" * 64,
+                    secret_fingerprint="0" * 16,
+                    idempotency_key=f"receipt-ci-{uuid4()}",
+                    command_sha256="0" * 64,
+                    issued_by="test",
+                    issued_at=observed,
+                )
+            )
+
+    try:
+        gate = NodeIngressAuthorizer(database)
+        topic = f"nexolab/v1/{org}/{NODE}/telemetry"
+        first, raw = make_event(1)
+        allowed, reason, detail, inserted = gate.authorize_and_persist_committed(
+            first, raw, topic, observed
+        )
+        assert allowed is True and inserted is True
+        assert len(rows(database)) == 1
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 1
+
+        second, raw2 = make_event(2)
+        original = database._upsert_latest
+
+        def force_failure(*args, **kwargs):
+            raise RuntimeError("forced_before_commit")
+
+        monkeypatch.setattr(database, "_upsert_latest", force_failure)
+        with pytest.raises(RuntimeError, match="forced_before_commit"):
+            gate.authorize_and_persist_committed(second, raw2, topic, observed)
+        monkeypatch.setattr(database, "_upsert_latest", original)
+
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 1
+            assert session.query(TelemetrySample).filter_by(
+                event_id=str(second.event_id)
+            ).count() == 0
+            assert session.query(TelemetryCommittedReceipt).filter_by(
+                event_id=str(second.event_id)
+            ).count() == 0
+        allowed, _, _, inserted = gate.authorize_and_persist_committed(
+            second, raw2, topic, observed
+        )
+        assert allowed is True and inserted is True
+        with Session(database.engine) as session:
+            cursor = session.query(CentralNodeIngressCursor).filter_by(
+                node_record_id=node_record_id
+            ).one()
+            assert cursor.last_sequence == 2
+    finally:
+        with Session(database.engine) as session:
+            with session.begin():
+                session.query(CentralNodeIngressCursor).filter_by(
+                    node_record_id=node_record_id
+                ).delete()
+                session.query(CentralNodeCredential).filter_by(
+                    id=credential_id
+                ).delete()
+                session.query(CentralNode).filter_by(
+                    id=node_record_id
+                ).delete()
+                session.query(SecurityOrganization).filter_by(id=org).delete()

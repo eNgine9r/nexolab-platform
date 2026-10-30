@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import time
+
+import pytest
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -202,5 +204,30 @@ def test_registry_enforcement_requires_topic_and_sequence(tmp_path: Path) -> Non
         == 1
     )
     ingestor.stop()
+    assert database.count_samples() == 0
+    database.dispose()
+
+
+def test_committed_receipt_entrypoint_refuses_sqlite_before_cursor_mutation(
+    tmp_path: Path,
+) -> None:
+    database, _ = build_active_node(tmp_path)
+    authorizer = NodeIngressAuthorizer(database)
+    raw = json.loads(
+        telemetry_payload(node_id="edge-01", event_id=str(uuid4()), sequence=1)
+    )
+    from app.contracts import TelemetryEvent
+
+    with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
+        authorizer.authorize_and_persist_committed(
+            TelemetryEvent.model_validate(raw),
+            raw,
+            build_node_topic(ORGANIZATION_ID, "edge-01", "telemetry"),
+            datetime.now(UTC),
+        )
+    with Session(database.engine) as session:
+        from app.nodes.models import CentralNodeIngressCursor
+
+        assert session.query(CentralNodeIngressCursor).count() == 0
     assert database.count_samples() == 0
     database.dispose()
