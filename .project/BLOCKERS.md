@@ -1,6 +1,8 @@
-## 2026-10-29 20:22 EET — #1409 actual route evidence: CIDR reservation, backup and rollback blocked
+## 2026-10-29 — #1409 verified overlap and unresolved site recovery gates
 
-Actual Pi `ip -4 route show table all` and `docker network inspect`: physical LAN `172.18.48.0/21` overlaps edge Docker `172.18.0.0/16`. Other bridges consume `172.17/16` and `172.19/16`–`172.25/16`; Tailscale has `100.113.204.81/32` and observed /32 peer routes. Provisional `172.26.0.0/24` is **locally nonoverlapping, not site-reserved or approved**. Confirm full upstream VLAN/plant allocations and Tailscale routes before choosing; default route 172.18.48.1 exists but offline LOCAL_LAN must not depend on it. Need exact installed package Compose/IPAM hash, independent recent backup + *isolated restore*, stable named volumes/rollback and on-site owner-approved cutover before actual network modification. Remote terminal connector quota blocks direct RDC; NEXUS execution handler failed. PR #1425 source CI formerly failed Prettier runbook formatting, corrected for current exact-head rerun; no PR merge before GREEN. Site remains not operational, hardware not verified after reboot.
+Actual Pi routing: physical LAN `172.18.48.0/21` overlaps Docker edge `172.18.0.0/16`. Other bridges consume `172.17.0.0/16` and `172.19.0.0/16` through `172.25.0.0/16`. Tailscale has observed per-peer host routes. Candidate `172.26.0.0/24` is locally disjoint but not reserved across upstream LAN, VLAN or VPN.
+
+A protected migration remains blocked on the exact installed Compose/IPAM authority, current PostgreSQL, edge SQLite, MQTT and object-storage backup with independently verified restore, rollback to the previous topology, site network reservations, physical recovery access and a separately reviewed Product Owner approval for the exact change. NEXUS Commander supports bounded file reads but command execution is failing; Remote Desktop Commander monthly quota is exhausted. CI for source-only PR #1425 must pass before merge. No host or Docker runtime mutation has occurred.
 
 ## 2026-10-29 — #1409 source-only IPAM inventory; production cutover explicitly blocked
 
