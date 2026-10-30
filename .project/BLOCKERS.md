@@ -1,3 +1,7 @@
+## 2026-10-30 — #1441 read-only backup health reveals operational DR gaps
+
+#1439 source-only handoff contract merged GREEN; it has not delivered an actual independent backup. #1441 read-only monitor is a source-only observer, not scheduling or data protection. Last site evidence has only a partial real PostgreSQL archive, no independently verified 8-store encrypted off-device copy, no actual isolated restore and no application backup timer. Raspberry local main is behind remote by 23 commits (read-only Commander evidence), do not update/cut over until safe separate approval. Legacy MinIO and active VersityGW volumes must remain untouched, no Modbus/hardware writes.
+
 ## 2026-10-30 — #1439 operational capture approval remains structurally and physically unverified
 
 #1437 fixture-only DR merged. #1439 is a source-only structural plan gate, NOT a production backup tool. Actual root/backup device separation, independent encrypted backup medium and key custody, real per-store consistency, MQTT/SQLite high-water continuity, and full isolated restore have not been evidenced on Raspberry. A structurally valid operator receipt cannot certify its own authenticity. No protected #1399 site Docker/IPAM recovery or Modbus/hardware writes permitted. Preserve active VersityGW and old MinIO volumes.
