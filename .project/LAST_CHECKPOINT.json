@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-29T17:17:19.369Z",
+  "timestamp": "2026-10-29T18:48:00Z",
   "actor": "ChatGPT",
-  "event": "1423_boot_observer_oci_runtime_digests_source_only",
+  "event": "1409_provisional_cidr_unapproved_nonzero_exit_guard",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1423,
-    "branch": "fix/1423-boot-observer-oci-runtime-digests",
-    "status": "source_fix_tests_added_ci_and_native_site_unverified",
+    "issue": 1409,
+    "branch": "feature/1409-edge-ipam-readonly-inventory",
+    "status": "source_only_18_isolated_tests_fail_closed_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3835,9 +3835,62 @@
         "docker_network_recovery": "not_performed",
         "site_cutover_authorized": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:28:00Z",
+      "kind": "1409_site_ipam_readonly_inventory_stage1",
+      "data": {
+        "issue": 1409,
+        "source_only": true,
+        "pi_image_identity": "6_of_6_accepted_runtime_digests",
+        "protected_manifest": "sha_source_bundle_root_verified",
+        "current_pi_lan": "172.18.48.0/21",
+        "current_edge_bridge": "172.18.0.0/16",
+        "dashboard_api_storage": "networks_detached",
+        "mqtt": "central_attachment_missing",
+        "rollback_package": "catalog_present_not_restore_tested",
+        "last_visible_large_backup": "2026-10-14_no_current_restore_proof",
+        "remote_commander": "limit_exhausted",
+        "nexus_execution": "handler_failed",
+        "local_actual_route_inventory": "not_collected",
+        "site_reserved_cidr": "not_selected",
+        "production_cutover_authorized": false,
+        "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:38:00Z",
+      "kind": "issue_1409_live_pi_route_ipam_inventory_oct29",
+      "data": {
+        "issue": 1409,
+        "host_eth0": "172.18.48.66/21",
+        "physical_lan": "172.18.48.0/21",
+        "docker_edge_bridge": "172.18.0.0/16",
+        "docker_other_bridges": [
+          "172.17.0.0/16",
+          "172.19.0.0/16",
+          "172.20.0.0/16",
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.23.0.0/16",
+          "172.24.0.0/16",
+          "172.25.0.0/16"
+        ],
+        "tailscale_address": "100.113.204.81/32",
+        "tailscale_routes": "seven_ipv4_host_routes_only_in_observed_table_52",
+        "provisional_candidate": "172.26.0.0/24",
+        "candidate_status": "locally_disjoint_not_site_approved",
+        "default_route": "172.18.48.1_via_eth0",
+        "runbook_prettier_failure": "corrected_source_new_ci_pending",
+        "backup_restore": "not_verified",
+        "site_activation": "not_performed",
+        "hardware_acceptance": "not_verified"
+      }
     }
   ],
-  "next_action": "Verify exact-head CI for #1423; run native Pi read-only membership against manifest identity.runtime_digests; preserve #1399/#1409 recovery owner gate, confirm fresh backed-up data and rollback before any site mutation.",
+  "next_action": "Verify exact-head CI, offline bundle and telemetry for PR #1425 after Prettier/runbook and unapproved-candidate nonzero fix; merge only when GREEN. Site IPAM migration remains blocked on upstream CIDR reservation, independent fresh backup restore, protected rollback and explicit Product Owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

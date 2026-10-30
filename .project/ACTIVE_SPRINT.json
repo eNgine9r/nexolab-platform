@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1423,
-      "branch": "fix/1423-boot-observer-oci-runtime-digests"
+      "issue": 1409,
+      "branch": "feature/1409-edge-ipam-readonly-inventory"
     },
     "next_work_package": null
   },
@@ -8912,7 +8912,7 @@
       "title": "Use immutable OCI runtime_digests in packaged boot observer",
       "branch": "fix/1423-boot-observer-oci-runtime-digests",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Correct source-only network recovery observer to accept only image identities pinned in the immutable package runtime_digests and reject missing/foreign digests; no site mutation.",
       "permitted_paths": [
@@ -8926,9 +8926,50 @@
         "prior_incorrect_check": "compared_docker_Image_only_to_manifest_image_id",
         "targeted_unit_tests": "added_pending_actual_execution",
         "native_operator_digest_check": "pending",
-        "exact_head_ci": "pending",
+        "exact_head_ci": "green",
         "production_mutation": false,
-        "hardware_acceptance": "unverified"
+        "hardware_acceptance": "unverified",
+        "pull_request": 1424,
+        "pull_request_merge": "b7fc68926045aebaa4502cf1e73e491c0d25d388",
+        "native_pi_image_digest_membership": "6_of_6_pass"
+      }
+    },
+    {
+      "issue": 1409,
+      "title": "Migrate live Edge Docker bridge away from overlapping physical LAN without telemetry loss",
+      "branch": "feature/1409-edge-ipam-readonly-inventory",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Stage 1 only: bounded read-only full Pi interface/all-routes/Docker subnet inventory, explicit RFC1918 candidate conflict analysis, mock regression tests, protected owner-gated runbook; no live network rewrite.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-edge-docker-ipam-readiness.py",
+        "infrastructure/offline/tests/test_edge_docker_ipam_readiness.py",
+        "docs/operations/edge-docker-ipam-1409.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/tests/standalone-offline-runtime-contract.sh"
+      ],
+      "evidence": {
+        "mock_test_cases_added": 18,
+        "local_tests": "not_run",
+        "exact_head_ci": "pending",
+        "actual_Raspberry_readonly_route_inventory": "blocked_remote_execution",
+        "docker_network_cutover": "not_performed",
+        "backup_restore": "unverified",
+        "site_owner_approval": false,
+        "ci_test_runner": "scripts/tests/standalone-offline-runtime-contract.sh executes 16 isolated tests",
+        "offline_lan_without_default_route": "covered_by_regression",
+        "actual_pi_route_inventory": "received_from_owner_2026_10_29_20_22_eet",
+        "provisional_candidate": "172.26.0.0/24",
+        "site_cidr_reservation": "unverified",
+        "ipam_src_compatibility": "source_only_no_site_cutover",
+        "test_cases": 18,
+        "initial_ci_format_failure": "runbook_prettier",
+        "next_ci": "pending",
+        "unapproved_candidate_exit": "nonzero_fail_closed"
       }
     }
   ],
@@ -10419,6 +10460,59 @@
         "backup_restore": "unverified",
         "docker_network_recovery": "not_performed",
         "site_cutover_authorized": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:28:00Z",
+      "kind": "1409_site_ipam_readonly_inventory_stage1",
+      "data": {
+        "issue": 1409,
+        "source_only": true,
+        "pi_image_identity": "6_of_6_accepted_runtime_digests",
+        "protected_manifest": "sha_source_bundle_root_verified",
+        "current_pi_lan": "172.18.48.0/21",
+        "current_edge_bridge": "172.18.0.0/16",
+        "dashboard_api_storage": "networks_detached",
+        "mqtt": "central_attachment_missing",
+        "rollback_package": "catalog_present_not_restore_tested",
+        "last_visible_large_backup": "2026-10-14_no_current_restore_proof",
+        "remote_commander": "limit_exhausted",
+        "nexus_execution": "handler_failed",
+        "local_actual_route_inventory": "not_collected",
+        "site_reserved_cidr": "not_selected",
+        "production_cutover_authorized": false,
+        "hardware_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-29T18:38:00Z",
+      "kind": "issue_1409_live_pi_route_ipam_inventory_oct29",
+      "data": {
+        "issue": 1409,
+        "host_eth0": "172.18.48.66/21",
+        "physical_lan": "172.18.48.0/21",
+        "docker_edge_bridge": "172.18.0.0/16",
+        "docker_other_bridges": [
+          "172.17.0.0/16",
+          "172.19.0.0/16",
+          "172.20.0.0/16",
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.23.0.0/16",
+          "172.24.0.0/16",
+          "172.25.0.0/16"
+        ],
+        "tailscale_address": "100.113.204.81/32",
+        "tailscale_routes": "seven_ipv4_host_routes_only_in_observed_table_52",
+        "provisional_candidate": "172.26.0.0/24",
+        "candidate_status": "locally_disjoint_not_site_approved",
+        "default_route": "172.18.48.1_via_eth0",
+        "runbook_prettier_failure": "corrected_source_new_ci_pending",
+        "backup_restore": "not_verified",
+        "site_activation": "not_performed",
+        "hardware_acceptance": "not_verified"
       }
     }
   ],
