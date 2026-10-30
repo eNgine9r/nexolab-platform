@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1439,
-      "branch": "feat/1439-protected-capture-approval-gate"
+      "issue": 1441,
+      "branch": "feat/1441-offline-dr-readonly-health"
     },
     "next_work_package": null
   },
@@ -9185,7 +9185,7 @@
       "title": "Protected eight-store operational backup execution and capacity approval gate",
       "branch": "feat/1439-protected-capture-approval-gate",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1437
       ],
@@ -9211,10 +9211,51 @@
         "hardware": "unverified",
         "production_mutation": false,
         "checks": {
-          "status": "pending",
+          "ci": "success",
+          "offline_bundle": "success",
+          "telemetry": "success",
+          "dashboard": "success",
+          "refrigeration": "success",
+          "telegram": "success"
+        },
+        "pr": "pending",
+        "pr1440": "merged",
+        "site_backup": "not_performed",
+        "real_restore": "not_performed"
+      }
+    },
+    {
+      "issue": 1441,
+      "title": "Offline read-only backup health audit for missing scheduler, stale and partial site evidence",
+      "branch": "feat/1441-offline-dr-readonly-health",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1439
+      ],
+      "scope": "Source-only offline DR health observer: read-only exact systemd timer metadata, bounded sanitized v2 receipt, root disk headroom, fail-closed 8-store freshness and proof gaps; no execution of backup, service mutation or site cutover.",
+      "permitted_paths": [
+        "scripts/nexolab-dr-readonly-health.py",
+        "tests/test_ci_dr_readonly_health.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/dr-readonly-backup-health-1441.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "code": "source_only_readonly",
+        "pr": "pending",
+        "checks": {
+          "core_ci": "pending",
           "offline_bundle": "pending"
         },
-        "pr": "pending"
+        "site_execution": "not_performed",
+        "real_backup": "not_performed",
+        "hardware": "unverified"
       }
     }
   ],
