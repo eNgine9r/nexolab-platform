@@ -130,6 +130,13 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
 
     def test_deletion_trigger_failure_rolls_back_receipt_ledger(self) -> None:
         (event_id,) = self.pending()
+        # Persist an informational receipt first so the table definitely
+        # exists outside the failed final-ACK transaction. The final receipt's
+        # new ledger insert must roll back, leaving only this earlier entry.
+        self.assertEqual(
+            self.apply(self.receipt(event_id, level="durably_spooled")),
+            "informational",
+        )
         raw = self.receipt(event_id)
         self.queue._connection.execute(
             """
@@ -143,7 +150,7 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         self.assertEqual(self.queue.size(), 1)
         self.assertEqual(self.queue._connection.execute(
             "SELECT COUNT(*) FROM committed_receipt_ledger"
-        ).fetchone()[0], 0)
+        ).fetchone()[0], 1)
         self.queue._connection.execute("DROP TRIGGER prevent_receipt_delete")
         self.assertEqual(self.apply(raw), "prune_allowed")
 
