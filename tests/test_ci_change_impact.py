@@ -20,7 +20,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         paths = [
             "contracts/durable_receipt_v1.py",
             "contracts/telemetry-durable-receipt.v1.schema.json",
-            "tests/test_durable_receipt_protocol.py",
+            "tests/test_ci_durable_receipt_protocol.py",
         ]
         result = classify(paths)
         self.assertFalse(result["fail_closed"])
