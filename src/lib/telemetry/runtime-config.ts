@@ -67,6 +67,9 @@ export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
   if (config.mode !== "live") {
     return config;
   }
+  if (!config.apiBaseUrl || !config.websocketUrl) {
+    throw new TelemetryClientError("configuration", "Live telemetry API and WebSocket URLs are required");
+  }
   const flag = process.env.NEXT_PUBLIC_NEXOLAB_OFFLINE_DUAL_ACCESS;
   return Object.freeze({
     mode: "live" as const,
