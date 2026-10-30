@@ -20,16 +20,53 @@ This proves neither physical off-device custody nor actual restore. It also does
 
 The existing synthetic software DR drill documents **five** entries in `security/disaster-recovery-assets.json`; `scripts/validate-disaster-recovery-assets.py` requires **exactly** these five IDs. Its bundle implementation is `scripts/nexolab-backup-bundle.py` (`nexolab-dr-v1`, AES-256-GCM, 32-byte file key), and `scripts/run-disaster-recovery-acceptance.sh` tests a synthetic isolated stack. Do not interpret simulated acceptance as a site recovery receipt or casually add another entry to the v1 policy.
 
-| Protection boundary | Current source-backed mapping | Consistency/capture requirement | Site status |
-| --- | --- | --- | --- |
-| Central PostgreSQL | `postgres` and `nexolab-central-postgres-data`; v1 policy uses logical `pg_custom` | Bounded read-only logical snapshot, TOC **and restore to new database**; verify schema head, protected rows, immutable evidence and timestamps | **Partial**: owner-reported archive/TOC, no actual restore |
-| Private S3 object store | Central Compose deliberately retains logical service **`minio`**, but its image runs **VersityGW**; current Compose volume resolves to `nexolab-central-object-storage-versitygw-data` with default prefix. Existing v1 policy still names **`nexolab-central-object-storage-data`** (legacy). | Verify `runtime/object-storage-migration/authority.json`, installed immutable image/volume and active bucket first. Protect actual VersityGW POSIX object tree, metadata, ACL/private access, object size/count/hash; require a bounded consistent snapshot and no source deletion. | **Mapping conflict** between v1 policy and current Compose; no fresh site capture |
-| Central MQTT / Dynamic Security | `mqtt` and `nexolab-central-mqtt-data` in version-manager inventory and v1 policy | Consistency of persistence + security identities, ACLs, roles, disabled clients; determine controlled quiesce or safe snapshot gate; never reset broker | **Unverified**; no fresh matching-site snapshot |
-| Edge Device Agent SQLite/outbox | Current source inventory lists `nexolab-edge_edge-data`; existing `docs/operations/edge-sqlite-cutover-recovery.md` supports guarded `sqlite3.Connection.backup()` with quick_check, queue/high-water and sequence evidence | Capture source and WAL-consistent SQLite snapshot, registry revision, queue depth, high-water/sequence counters and post-capture delta; **do not copy a live .db directly** or restore stale state over newer samples | **Missing from DR v1 policy** and full central DR drill |
-| Edge MQTT persistence | Version manager also preserves `nexolab-edge_mqtt-data` | Determine whether durable queued telemetry or unique broker state requires protection independently of central MQTT | **Unclassified**; do not assume disposable |
-| Central Telemetry ingestion data | Current Compose lists `central-telemetry-ingestion-data`; version manager retains `nexolab-central-telemetry-ingestion-data` | Establish if this is rebuildable transient state, non-replayable ingestion data, or part of the recovery boundary; verify without deleting | **Unclassified** |
-| Local authentication | v1 policy protects RSA private/public key pair from `/run/secrets/nexolab/local-auth-*.pem` | Capture as one protected keypair into encrypted custody without plaintext logs; verify mode, match, restored existing sessions/login/permissions; tokens/passwords are not bundled by v1 drill | **Unverified actual-site custody**, even though synthetic drill covers keypair |
-| Release and storage authority | Pinned installed `ffdefc4550d71e211724de1154ffe9057f905c9c` baseline, source/bundle identities and migration authority are referenced by checkpoint | Preserve manifest/hash lineage and exact volume/image matching; never retarget production to guessed source names | **Site authority referenced, current read-only recheck required** |
+### Central PostgreSQL
+
+- **Source-backed mapping:** `postgres` and `nexolab-central-postgres-data`; v1 policy uses logical `pg_custom`
+- **Consistency and capture:** Bounded read-only logical snapshot, TOC **and restore to new database**; verify schema head, protected rows, immutable evidence and timestamps
+- **Site status:** **Partial**: owner-reported archive/TOC, no actual restore
+
+### Private S3 object store
+
+- **Source-backed mapping:** Central Compose deliberately retains logical service **`minio`**, but its image runs **VersityGW**; current Compose volume resolves to `nexolab-central-object-storage-versitygw-data` with default prefix. Existing v1 policy still names **`nexolab-central-object-storage-data`** (legacy).
+- **Consistency and capture:** Verify `runtime/object-storage-migration/authority.json`, installed immutable image/volume and active bucket first. Protect actual VersityGW POSIX object tree, metadata, ACL/private access, object size/count/hash; require a bounded consistent snapshot and no source deletion.
+- **Site status:** **Mapping conflict** between v1 policy and current Compose; no fresh site capture
+
+### Central MQTT / Dynamic Security
+
+- **Source-backed mapping:** `mqtt` and `nexolab-central-mqtt-data` in version-manager inventory and v1 policy
+- **Consistency and capture:** Consistency of persistence + security identities, ACLs, roles, disabled clients; determine controlled quiesce or safe snapshot gate; never reset broker
+- **Site status:** **Unverified**; no fresh matching-site snapshot
+
+### Edge Device Agent SQLite/outbox
+
+- **Source-backed mapping:** Current source inventory lists `nexolab-edge_edge-data`; existing `docs/operations/edge-sqlite-cutover-recovery.md` supports guarded `sqlite3.Connection.backup()` with quick_check, queue/high-water and sequence evidence
+- **Consistency and capture:** Capture source and WAL-consistent SQLite snapshot, registry revision, queue depth, high-water/sequence counters and post-capture delta; **do not copy a live .db directly** or restore stale state over newer samples
+- **Site status:** **Missing from DR v1 policy** and full central DR drill
+
+### Edge MQTT persistence
+
+- **Source-backed mapping:** Version manager also preserves `nexolab-edge_mqtt-data`
+- **Consistency and capture:** Determine whether durable queued telemetry or unique broker state requires protection independently of central MQTT
+- **Site status:** **Unclassified**; do not assume disposable
+
+### Central Telemetry ingestion data
+
+- **Source-backed mapping:** Current Compose lists `central-telemetry-ingestion-data`; version manager retains `nexolab-central-telemetry-ingestion-data`
+- **Consistency and capture:** Establish if this is rebuildable transient state, non-replayable ingestion data, or part of the recovery boundary; verify without deleting
+- **Site status:** **Unclassified**
+
+### Local authentication
+
+- **Source-backed mapping:** v1 policy protects RSA private/public key pair from `/run/secrets/nexolab/local-auth-*.pem`
+- **Consistency and capture:** Capture as one protected keypair into encrypted custody without plaintext logs; verify mode, match, restored existing sessions/login/permissions; tokens/passwords are not bundled by v1 drill
+- **Site status:** **Unverified actual-site custody**, even though synthetic drill covers keypair
+
+### Release and storage authority
+
+- **Source-backed mapping:** Pinned installed `ffdefc4550d71e211724de1154ffe9057f905c9c` baseline, source/bundle identities and migration authority are referenced by checkpoint
+- **Consistency and capture:** Preserve manifest/hash lineage and exact volume/image matching; never retarget production to guessed source names
+- **Site status:** **Site authority referenced, current read-only recheck required**
 
 A meaningful backup is an **application-consistent set**, not an unordered concatenation of unrelated copies. If service quiesce is required for MQTT, S3 or edge state, that is a **separate owner-reviewed protected operation**; no implied permission to stop acquisition.
 
