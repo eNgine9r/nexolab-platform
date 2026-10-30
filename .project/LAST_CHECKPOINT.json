@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T11:49:00Z",
+  "timestamp": "2026-10-30T12:15:00Z",
   "actor": "ChatGPT",
-  "event": "1441_readonly_offline_backup_health_source_only",
+  "event": "1443_packagekit_installed_state_readonly_regression_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1441,
-    "branch": "feat/1441-offline-dr-readonly-health",
-    "status": "read_only_health_probe_source_and_tests_ci_pending",
+    "issue": 1443,
+    "branch": "fix/1443-packagekit-installed-state-regression",
+    "status": "source_audit_hardening_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2756,6 +2756,13 @@
       "hardware": "unverified",
       "site_activation": "not_authorized",
       "raspberry_git": "clean_behind_23"
+    },
+    "issue_1443_packagekit": {
+      "source_only": true,
+      "dpkg_installed_status_validation": "implemented",
+      "hardware": "unverified",
+      "live_package_mutation": "not_performed",
+      "production_update": "not_authorized"
     }
   },
   "observations": [
@@ -3971,7 +3978,7 @@
       }
     }
   ],
-  "next_action": "Run exact-head CI, offline bundle and negative tests for #1441; merge only all GREEN. Never treat timer metadata, inventory structural approval, or synthetic fixture as actual encrypted multi-store backup/isolated restore. #1428/#1399 protected operations require separately approved disk and key custody.",
+  "next_action": "Run exact-head #1443 Python policy tests and GitHub CI/Offline Bundle; fix failures, merge only six GREEN. Do not change APT holds/PackageKit or Docker without separate backup/rollback and owner authorization. Parent #1428 and #1399 remain blocked.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
