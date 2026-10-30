@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import importlib.util
+from contextlib import redirect_stdout
 import io
 import json
 from pathlib import Path
 import subprocess
 import unittest
-from unittest.mock import Mock, patch, redirect_stdout
+from unittest.mock import patch
 
 SOURCE = Path(__file__).resolve().parents[1] / "verify-host-container-runtime-package-policy.py"
 SPEC = importlib.util.spec_from_file_location("host_package_policy", SOURCE)
