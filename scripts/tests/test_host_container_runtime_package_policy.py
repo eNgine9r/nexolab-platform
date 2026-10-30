@@ -109,7 +109,7 @@ class PackagePolicyTests(unittest.TestCase):
 
     def test_bad_package_version_blocks(self):
         with self.assertRaisesRegex(module.PackagePolicyError, "invalid_protected_package_version"):
-            module.inspect(command(version="1.0\nInjected"))
+            module.inspect(command(version="1.0 invalid"))
 
     def test_other_unrelated_valid_hold_is_ignored(self):
         result = module.inspect(command(held=(*module.PACKAGES, "linux-image-arm64")))
