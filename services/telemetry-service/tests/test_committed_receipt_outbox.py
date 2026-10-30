@@ -154,3 +154,65 @@ def test_identity_fails_closed_on_noncanonical_and_bool_sequence():
         CommittedReceiptIdentity(ORG, NODE, True)
     with pytest.raises(ValueError, match="noncanonical_receipt_organization"):
         CommittedReceiptIdentity(ORG.upper(), NODE, 1)
+
+
+
+def test_broker_ack_failure_keeps_durable_pending_and_retry(database):
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    delivered = []
+    def sender(topic, payload):
+        delivered.append((topic, payload))
+        return len(delivered) > 1
+
+    publisher = CommittedReceiptPublisher(database, sender)
+    start = datetime.now(UTC)
+    first = publisher.run_once(now=start)
+    assert first.status == "retry"
+    assert rows(database)[0]["published_at"] is None
+    assert publisher.run_once(now=start + timedelta(seconds=1)).status == "idle"
+    second = publisher.run_once(now=start + timedelta(seconds=3))
+    assert second.status == "published"
+    assert len(delivered) == 2
+    assert delivered[0][1] == delivered[1][1]
+    assert rows(database)[0]["published_at"] is not None
+
+
+def test_restart_before_ack_claim_expires_and_replays(database):
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    first = CommittedReceiptPublisher(database, lambda *_: False)
+    start = datetime.now(UTC)
+    assert first.run_once(now=start).status == "retry"
+    recovered = CommittedReceiptPublisher(database, lambda *_: True)
+    assert recovered.run_once(now=start + timedelta(seconds=3)).status == "published"
+    assert rows(database)[0]["attempts"] == 2
+
+
+def test_duplicate_replay_requeues_confirmed_receipt_with_fresh_identity(database):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity())
+    assert CommittedReceiptPublisher(database, lambda *_: True).run_once().status == "published"
+    receipt = rows(database)[0]["receipt_id"]
+    assert database.persist(event, raw, receipt_identity=identity()) is False
+    current = rows(database)[0]
+    assert current["published_at"] is None
+    assert current["receipt_id"] != receipt
+    assert current["payload"]["event_id"] == raw["event_id"]
+
+
+def test_sender_cannot_claim_postgres_from_sqlite(tmp_path):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    db = Database(f"sqlite:///{tmp_path / 'sender-refuse.db'}")
+    with pytest.raises(RuntimeError, match="postgresql_required_for_committed_receipt"):
+        CommittedReceiptPublisher(db, lambda *_: True)
+    db.dispose()

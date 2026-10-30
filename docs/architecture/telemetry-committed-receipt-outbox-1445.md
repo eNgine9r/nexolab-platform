@@ -21,3 +21,16 @@ Current code adds opt-in `Database.persist(..., receipt_identity=...)` and an ad
 4. Canonical Sprint/checkpoint reconciliation, no site cutover without full protected backup + restore, rollback evidence and owner approval.
 
 No hardware writes, secrets or production volumes are touched.
+
+## Current sender-core increment
+
+`app/committed_receipt_publisher.py` provides a **not-runtime-wired** bounded
+one-attempt publisher with PostgreSQL row locking, durable retry lease, exponential
+backoff, duplicate-after-PUBACK reissue and pending age/count diagnostics.
+Its injected `sender` returns true only for a broker PUBACK according to the
+caller's contract. Neither this interface nor any mock test proves a broker
+principal, installed ACL, actual Edge receipt delivery or lossless behavior.
+
+Publisher construction refuses SQLite. Receipt intent construction refuses
+SQLite. Integration tests require a real PostgreSQL test database. Pending
+broker/identity/real-MQTT tests and runtime wiring remain **unfinished**.

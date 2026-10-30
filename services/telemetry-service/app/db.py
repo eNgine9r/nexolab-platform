@@ -503,6 +503,35 @@ class Database:
                 or existing["topic"] != identity.receipt_topic
             ):
                 raise ValueError("receipt_outbox_identity_conflict")
+            if existing["published_at"] is not None:
+                pending = connection.scalar(
+                    select(func.count())
+                    .select_from(table)
+                    .where(table.c.published_at.is_(None))
+                )
+                if pending is None or pending >= max_pending:
+                    raise RuntimeError("receipt_outbox_capacity_reached")
+                # A valid replay may request a fresh receipt if an old MQTT
+                # reply was dropped or exceeded the seven-day freshness budget.
+                # The original immutable PostgreSQL sample is first verified
+                # by persist() before this reissue is permitted.
+                payload, observed = prepare_committed_receipt(
+                    event_id=event_id,
+                    identity=identity,
+                    receipt_id=str(uuid4()),
+                )
+                connection.execute(
+                    table.update()
+                    .where(table.c.event_id == event_id)
+                    .values(
+                        receipt_id=payload["receipt_id"],
+                        payload=payload,
+                        committed_at=observed,
+                        published_at=None,
+                        attempts=0,
+                        next_attempt_at=None,
+                    )
+                )
             return
         pending = connection.scalar(
             select(func.count())
