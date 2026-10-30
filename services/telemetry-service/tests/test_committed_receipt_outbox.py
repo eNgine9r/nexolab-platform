@@ -228,13 +228,15 @@ def test_publisher_cannot_ack_new_receipt_after_concurrent_duplicate(database):
     def send_then_reissue(topic, payload):
         # The original broker ACK races a valid reissue. The newer receipt
         # is still pending and MUST NOT be marked delivered by this ACK.
+        new_receipt_id = str(uuid4())
+        prior_payload = rows(database)[0]["payload"]
         with database.engine.begin() as connection:
             connection.execute(
                 TelemetryCommittedReceipt.__table__.update()
                 .where(TelemetryCommittedReceipt.event_id == str(event.event_id))
                 .values(
-                    receipt_id=str(uuid4()),
-                    payload=dict(rows(database)[0]["payload"], receipt_id=str(uuid4())),
+                    receipt_id=new_receipt_id,
+                    payload=dict(prior_payload, receipt_id=new_receipt_id),
                     attempts=0,
                     published_at=None,
                 )
