@@ -9336,8 +9336,7 @@
           "unit": "pending",
           "offline": "pending"
         },
-        "pr": 1411,
-        "merge_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f"
+        "pr": 1411
       }
     },
     {
@@ -10982,7 +10981,7 @@
       }
     },
     {
-      "source": "github_actions",
+      "source": "github",
       "observed_at": "2026-10-30T16:30:00Z",
       "kind": "1449_isolated_receipt_acl_verified",
       "data": {
