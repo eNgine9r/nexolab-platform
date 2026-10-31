@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T12:37:00Z",
+  "timestamp": "2026-10-31T11:03:28Z",
   "actor": "ChatGPT",
-  "event": "1410_durable_receipt_v1_contract_reconciled_with_main",
+  "event": "1451_legacy_puback_prune_explicitly_blocked_340_edge_tests_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1410,
-    "branch": "feature/1410-durable-receipt-contract",
-    "status": "v1_schema_replay_freshness_validator_ci_pending",
+    "issue": 1451,
+    "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+    "status": "source_only_guard_green_exact_head_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3985,9 +3985,39 @@
         "free_ssd_space_after_pg_dump": "28G",
         "complete_dr_proof": "pending"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-30T19:43:23Z",
+      "kind": "1451_edge_sqlite_339_tests_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "65f6e6815ad707d0f640f0470569a2f86b82dbdc",
+        "run_id": 41117448969,
+        "python_tests": 339,
+        "unit": "success",
+        "source_only": true,
+        "hardware": "unverified",
+        "live_site": "not_touched"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-31T11:03:28Z",
+      "kind": "1451_receipt_only_prune_guard_340_tests_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "b4fa35c75418b7307ab66e94528df206194423bc",
+        "run_id": 41195189557,
+        "python_tests": 340,
+        "legacy_puback_delete": "forbidden",
+        "installed_site": "not_touched"
+      }
     }
   ],
-  "next_action": "Run 23 new targeted protocol tests via mandatory test_ci_ discovery, exact-head GitHub CI and external workflows. Review security/topic/tenant/replay/freshness boundaries and merge PR #1411 only full GREEN. No production broker/Edge or Modbus changes; full reliability #1397 blocked until actual Central publisher and Edge replay acceptance.",
+  "next_action": "Review final exact-head CI on PR #1452; inherited container security gate blocked until separate #1447 owner review. Do NOT enable new queue in DeviceAgent: legacy flush still calls direct delete and intentionally raises. Build independent source-only authenticated subscriber/retry acceptance only after central #1445 and ACL #1449 verification, then protected #1428/#1399 site authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
