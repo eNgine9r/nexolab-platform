@@ -36,6 +36,15 @@ class CommittedReceiptQueue(OfflineQueue):
     It cannot be safely activated by a configuration flag alone.
     """
 
+    def delete(self, record_id: int) -> None:
+        """Never allow legacy MQTT PUBACK code to prune a receipt-mode row.
+
+        A future device-agent mode switch must implement correct QoS1 replay
+        without calling this method. Direct deletion bypasses final durable
+        PostgreSQL acknowledgement and is forbidden for this queue class.
+        """
+        raise ReceiptProtocolError("postgres_committed_receipt_required")
+
     def apply_committed_receipt(
         self,
         payload: bytes,

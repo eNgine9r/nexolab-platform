@@ -15,3 +15,7 @@ Source-only SQL and hermetic tests do not prove broker identity, real Central Po
 ## Local integrity and bounded contention
 
 The staged ledger refuses a receipt when the **existing** SQLite outbox row's `event_id` column disagrees with its serialized `event_id`, or the serialized node, optional organization or optional stream identity disagrees with trusted local configuration. Duplicate JSON keys in a local queued payload are rejected. An unauthorized, corrupted, malformed, future-dated, replayed or out-of-order receipt never removes a row. A bounded SQLite `BEGIN IMMEDIATE` lock timeout and retry exhaustion preserve the original pending event; a later retry succeeds after the lock is released. These checks are isolated synthetic SQLite tests, not real Edge offline acceptance.
+
+## Guard against accidental legacy PUBACK pruning
+
+`CommittedReceiptQueue.delete()` deliberately **rejects every direct deletion** with `postgres_committed_receipt_required`. This blocks the inherited MQTT QoS1 PUBACK deletion path if someone accidentally swaps the queue type without implementing authenticated receipt replay. The only permitted prune is the final receipt's strictly validated atomic SQLite transaction. It is still **not safe to instantiate this candidate inside the existing production `DeviceAgent`**: its unchanged `flush_queue()` would fail closed on the explicit guard. A complete opt-in runtime implementation must separately provide bounded publish attempts, replay/backpressure, broker identity proof and explicit rollback testing before activation.

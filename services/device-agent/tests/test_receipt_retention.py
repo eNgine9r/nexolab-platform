@@ -73,6 +73,19 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
             central_publisher_authorized=auth,
         )
 
+    def test_inherited_puback_delete_path_is_rejected_without_pruning(self) -> None:
+        (event_id,) = self.pending()
+        record_id = self.queue._connection.execute(
+            "SELECT id FROM outbound_queue WHERE event_id=?", (event_id,)
+        ).fetchone()[0]
+        with self.assertRaisesRegex(
+            ReceiptProtocolError, "postgres_committed_receipt_required"
+        ):
+            self.queue.delete(int(record_id))
+        self.assertEqual(self.queue.size(), 1)
+        self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
+        self.assertEqual(self.queue.size(), 0)
+
     def test_final_receipt_deletes_exactly_oldest_and_persists_replay_ledger(self) -> None:
         first, second = self.pending(2)
         raw = self.receipt(first)
