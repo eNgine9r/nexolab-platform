@@ -9431,7 +9431,11 @@
         "source_only": true,
         "device_agent_runtime": "unchanged",
         "actual_broker_accepted": "unverified",
-        "hardware": "unverified"
+        "hardware": "unverified",
+        "legacy_puback_delete": "explicitly_rejected",
+        "edge_image_test_count": 340,
+        "edge_image_workflow_id": 41195189557,
+        "receipt_subscriber": "not_implemented"
       }
     }
   ],
@@ -11005,6 +11009,22 @@
         "hardware": "unverified",
         "production_mutation": false,
         "security_dependency": 1447
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-31T11:03:28Z",
+      "kind": "1451_legacy_puback_delete_guard_source_only_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "b4fa35c75418b7307ab66e94528df206194423bc",
+        "edge_image_run": 41195189557,
+        "python_tests": 340,
+        "legacy_direct_delete": "rejected",
+        "full_ci": "pending",
+        "production_mutation": false,
+        "site_acceptance": "unverified"
       }
     }
   ],
