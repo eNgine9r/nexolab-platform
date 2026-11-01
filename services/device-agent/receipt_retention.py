@@ -7,8 +7,9 @@ verified broker identity/ACL, NEVER from the untrusted receipt body/topic.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from durable_receipt_v1 import (
@@ -44,6 +45,82 @@ class CommittedReceiptQueue(OfflineQueue):
         PostgreSQL acknowledgement and is forbidden for this queue class.
         """
         raise ReceiptProtocolError("postgres_committed_receipt_required")
+
+    def oldest_receipt_replay_candidate(self) -> tuple[int, str, str, str] | None:
+        """Read the oldest immutable SQLite event without modifying it.
+
+        Unlike the legacy PUBACK queue loop this preserves the column event_id
+        so a replay caller can fail closed if the JSON payload was corrupted.
+        Never skip a foreign/legacy row to bypass strict FIFO ordering.
+        """
+
+        def operation() -> tuple[int, str, str, str] | None:
+            row = self._connection.execute(
+                """
+                SELECT id, event_id, topic, payload
+                FROM outbound_queue ORDER BY id LIMIT 1
+                """
+            ).fetchone()
+            if row is None:
+                return None
+            return int(row[0]), str(row[1]), str(row[2]), str(row[3])
+
+        with self._lock:
+            return self._retry_busy("oldest_receipt_replay_candidate", operation)
+
+    def replay_capacity_snapshot(self, *, now: datetime | None = None) -> dict[str, object]:
+        """Read-only, bounded local queue/disk indicators; not a retention guarantee.
+
+        No credentials, raw payloads or site paths are returned. The metric
+        cannot establish complete site backup, disk endurance or network ACK.
+        """
+        clock = datetime.now(timezone.utc) if now is None else now
+        if clock.tzinfo is None or clock.utcoffset() is None:
+            raise ValueError("timezone_aware_clock_required")
+
+        def operation() -> tuple[int, int, str | None]:
+            row = self._connection.execute(
+                """
+                SELECT COUNT(*), COALESCE(SUM(LENGTH(CAST(payload AS BLOB))), 0),
+                       (SELECT created_at FROM outbound_queue ORDER BY id LIMIT 1)
+                FROM outbound_queue
+                """
+            ).fetchone()
+            return int(row[0]), int(row[1]), row[2]
+
+        with self._lock:
+            count, payload_bytes, oldest_at = self._retry_busy(
+                "replay_capacity_snapshot", operation
+            )
+        age_seconds: float | None = None
+        timestamp_valid = True
+        if oldest_at is not None:
+            try:
+                parsed = datetime.fromisoformat(oldest_at)
+                if parsed.tzinfo is None or parsed.utcoffset() is None:
+                    raise ValueError("timezone_missing")
+                age_seconds = max(0.0, (clock - parsed).total_seconds())
+            except (TypeError, ValueError, OverflowError):
+                timestamp_valid = False
+
+        database_bytes = sum(
+            candidate.stat().st_size if candidate.exists() else 0
+            for candidate in (
+                self._database_path,
+                self._database_path.with_name(self._database_path.name + "-wal"),
+                self._database_path.with_name(self._database_path.name + "-shm"),
+            )
+        )
+        return {
+            "schema_version": 1,
+            "pending_count": count,
+            "pending_payload_bytes": payload_bytes,
+            "sqlite_file_bytes": database_bytes,
+            "filesystem_free_bytes": shutil.disk_usage(self._database_path.parent).free,
+            "oldest_pending_age_seconds": age_seconds,
+            "oldest_timestamp_valid": timestamp_valid,
+            "retention_guaranteed": False,
+        }
 
     def apply_committed_receipt(
         self,

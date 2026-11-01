@@ -19,3 +19,39 @@ The staged ledger refuses a receipt when the **existing** SQLite outbox row's `e
 ## Guard against accidental legacy PUBACK pruning
 
 `CommittedReceiptQueue.delete()` deliberately **rejects every direct deletion** with `postgres_committed_receipt_required`. This blocks the inherited MQTT QoS1 PUBACK deletion path if someone accidentally swaps the queue type without implementing authenticated receipt replay. The only permitted prune is the final receipt's strictly validated atomic SQLite transaction. It is still **not safe to instantiate this candidate inside the existing production `DeviceAgent`**: its unchanged `flush_queue()` would fail closed on the explicit guard. A complete opt-in runtime implementation must separately provide bounded publish attempts, replay/backpressure, broker identity proof and explicit rollback testing before activation.
+
+## 2026-11-01 — Bounded FIFO replay and capacity observation (still source-only)
+
+`receipt_replay.CommittedReceiptReplay` is a new **unwired** library that
+publishes at most the oldest pending org-scoped telemetry event per call, using
+the original durable event ID and node sequence. A callback must return exactly
+`True` only after MQTT QoS1 broker PUBACK. Any broker PUBACK leaves the
+SQLite row untouched until separately authenticated `postgres_committed`
+receipt validation. Every attempt, including an acknowledged publish, is
+throttled by bounded exponential backoff (default 5–300 s); even repeated
+calls cannot flood a stalled subscriber. Legacy/unscoped or cross-tenant
+oldest rows block replay without skipping FIFO order. Malformed or corrupted
+queued payloads fail closed before network calls.
+
+`CommittedReceiptQueue.oldest_receipt_replay_candidate` reads the original
+SQLite event ID, topic and JSON payload without mutation.
+`CommittedReceiptQueue.replay_capacity_snapshot` reports queue depth,
+UTF-8 payload bytes, SQLite file bytes, free filesystem bytes, and age of the
+oldest pending record. Invalid timestamps remain unknown, never zero;
+these indicators do **not** prove retention guarantees or independent backups.
+
+This stage has no integration with the production `DeviceAgent`, no
+MQTT subscriber or installed broker-authentication proof, no default-on
+mode, and no site activation. Source-only regression includes original event
+preservation, FIFO after actual committed receipt, PUBACK without prune,
+informational ACK, restart, invalid sequence, duplicate keys, wrong node,
+unscoped and wrong tenant, bounded retry and disk-capacity observation.
+On Raspberry Pi ARM64 in an isolated Python virtualenv with existing
+pinned requirements: 357/357 Device Agent module tests and 23/23 v1
+receipt contract tests passed. This is software-only, not real broker,
+network outage, disk-full, power-loss or hardware acceptance.
+
+Release remains blocked by #1445 central producer, #1449 verified broker
+ACL, #1447 residual security decision, #1428 complete site backup/restore
+and #1399 guarded network recovery. Full CI on this branch may fail until
+the independent security exception repair lands; never bypass it.

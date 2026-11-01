@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-31T11:03:28Z",
+  "timestamp": "2026-11-01T19:47:46Z",
   "actor": "ChatGPT",
-  "event": "1451_legacy_puback_prune_explicitly_blocked_340_edge_tests_green",
+  "event": "1451_arm64_bounded_fifo_replay_and_capacity_tests",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1451,
     "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "source_only_guard_green_exact_head_ci_pending",
+    "status": "source_only_replay_and_capacity_tests_green_release_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2772,6 +2772,19 @@
       "mqtt_acl": "not_verified",
       "hardware": "unverified",
       "offline_ci": "pending"
+    },
+    "issue_1451_replay_20261101": {
+      "verified_branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+      "arm64_platform": "aarch64_python_3.13.5",
+      "module_tests": 357,
+      "receipt_contract_tests": 23,
+      "replay_tests": 17,
+      "isolated_venv_pinned_requirements": true,
+      "new_runtime_wiring": false,
+      "production_modified": false,
+      "site_backup_restore": "unverified",
+      "hardware_acceptance": "unverified",
+      "external_security_gate": "blocked_pending_independent_merge_and_risk_approval"
     }
   },
   "observations": [
@@ -4017,7 +4030,7 @@
       }
     }
   ],
-  "next_action": "Review final exact-head CI on PR #1452; inherited container security gate blocked until separate #1447 owner review. Do NOT enable new queue in DeviceAgent: legacy flush still calls direct delete and intentionally raises. Build independent source-only authenticated subscriber/retry acceptance only after central #1445 and ACL #1449 verification, then protected #1428/#1399 site authorization.",
+  "next_action": "Keep PR #1452 Draft; publish focused code and checkpoint, inspect exact-head CI, do not merge/deploy with security/central/broker/site recovery gates open. Integrate authenticated subscriber only after independent broker ACL evidence.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

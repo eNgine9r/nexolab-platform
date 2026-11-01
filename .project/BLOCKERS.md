@@ -1,3 +1,7 @@
+## 2026-11-01 — #1451 replay code is not production-enabled
+
+Isolated ARM64 Device Agent 357/357 and receipt-contract 23/23 software tests pass for bounded FIFO publish/backoff and read-only capacity observations. Installed broker receipt publisher identity and per-node ACL, real receipt subscriber, central PostgreSQL committed publisher, end-to-end broker outage/restart, measured finite disk-fill budget and protected site backup/restore remain unverified. The production agent still uses its legacy PUBACK deletion path; do not activate or swap in `CommittedReceiptQueue` until integrated dependencies #1445/#1449 and security #1447 pass with actual evidence. #1399 Docker/IPAM cutover blocked separately. No data deletion, network change, installed ACL, Raspberry runtime mutation or hardware write authorized.
+
 ## 2026-10-31 — #1451 receipt-only class explicitly rejects unsafe PUBACK deletes
 
 Source-only `CommittedReceiptQueue.delete()` now rejects direct deletion after MQTT PUBACK, with a passing 340-test Edge Image build at `b4fa35c`. **Do not instantiate this class in the current production DeviceAgent**: unchanged `flush_queue()` still calls `queue.delete()` and would fail closed rather than perform correct receipt-driven backpressure/retry. Broker-authenticated exact-topic receive, strict default-OFF mode, measured disk capacity and central PG transaction proof remain unimplemented. No physical hardware acceptance. #1445/#1449 Draft dependencies and #1447 49-HIGH risk review plus #1428/#1399 protected site safeguards remain blocking.

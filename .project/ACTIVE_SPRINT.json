@@ -9435,7 +9435,17 @@
         "legacy_puback_delete": "explicitly_rejected",
         "edge_image_test_count": 340,
         "edge_image_workflow_id": 41195189557,
-        "receipt_subscriber": "not_implemented"
+        "receipt_subscriber": "not_implemented",
+        "arm64_replay_20261101": "source_only_passed",
+        "arm64_device_agent_module_tests": 357,
+        "arm64_durable_contract_tests": 23,
+        "new_replay_capacity_tests": 17,
+        "bounded_retry_backoff": "implemented_unwired",
+        "fifo_puback_prune": "forbidden",
+        "queue_capacity_reporting": "read_only_source_only",
+        "site_acceptance": "unverified",
+        "full_ci": "blocked_independent_security_gate",
+        "production_mutation": false
       }
     }
   ],
