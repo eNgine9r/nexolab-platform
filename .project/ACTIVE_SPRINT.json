@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1410,
-      "branch": "feature/1410-durable-receipt-contract"
+      "issue": 1453,
+      "branch": "fix/1453-offline-idna-host-guard"
     },
     "next_work_package": null
   },
@@ -9337,6 +9337,36 @@
           "offline": "pending"
         },
         "pr": 1411
+      }
+    },
+    {
+      "issue": 1453,
+      "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
+      "branch": "fix/1453-offline-idna-host-guard",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
+      "permitted_paths": [
+        ".github/workflows/offline-bundle.yml",
+        "tests/test_ci_offline_bundle_workflow_contract.py",
+        "docs/operations/offline-bundle-idna-1453.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "arm64_local_contract_tests": 30,
+        "arm64_ci_contract_tests": 383,
+        "ci_contract_skipped": 1,
+        "node_exact": "v22.23.1_shasum_verified",
+        "offline_runtime_required": true,
+        "github_ci": "pending",
+        "production_mutation": false,
+        "hardware": "unverified",
+        "independent_security_gate": "blocked"
       }
     }
   ],

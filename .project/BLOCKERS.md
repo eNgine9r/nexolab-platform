@@ -1,3 +1,7 @@
+## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
+
+Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Exact-head GitHub workflows and Offline Bundle validation must pass before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
 ## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
 
 #1410/PR #1411 implements source-only schema and fail-closed validator; installed central MQTT broker publisher authorization, per-node ACL, sender authenticity, trusted persistent replay ledger, central PostgreSQL commit receipt publication, Edge atomic SQLite retention/prune, and actual offline loss/restart tests are NOT IMPLEMENTED or verified. Existing Edge may still delete queue rows after broker PUBACK. Full #1397 resilience and any no-loss claim remain blocked on separate central/edge WPs and real acceptance. Do not change broker credentials, subscriptions, persistence, Docker, site IPAM or Modbus writes during contract-only work.

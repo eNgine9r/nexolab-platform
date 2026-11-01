@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T12:37:00Z",
+  "timestamp": "2026-11-01T20:26:06Z",
   "actor": "ChatGPT",
-  "event": "1410_durable_receipt_v1_contract_reconciled_with_main",
+  "event": "1453_invalid_idna_local_lan_host_gate_arm64_contract_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1410,
-    "branch": "feature/1410-durable-receipt-contract",
-    "status": "v1_schema_replay_freshness_validator_ci_pending",
+    "issue": 1453,
+    "branch": "fix/1453-offline-idna-host-guard",
+    "status": "isolated_node_v22_23_1_383_ci_contract_tests_passed_remote_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2772,6 +2772,19 @@
       "mqtt_acl": "not_verified",
       "hardware": "unverified",
       "offline_ci": "pending"
+    },
+    "issue_1453_idna_20261101": {
+      "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
+      "arm64_node_version": "v22.23.1",
+      "node_shasum_verified": true,
+      "targeted_ci_contract_tests": 30,
+      "overall_ci_contract_tests": 383,
+      "skipped_ci_contract_tests": 1,
+      "source_only": true,
+      "site_runtime_mutation": false,
+      "hardware_acceptance": "unverified",
+      "exact_head_remote_ci": "pending",
+      "independent_supply_chain_policy": "blocked_by_expired_security_exceptions"
     }
   },
   "observations": [
@@ -3987,7 +4000,7 @@
       }
     }
   ],
-  "next_action": "Run 23 new targeted protocol tests via mandatory test_ci_ discovery, exact-head GitHub CI and external workflows. Review security/topic/tenant/replay/freshness boundaries and merge PR #1411 only full GREEN. No production broker/Edge or Modbus changes; full reliability #1397 blocked until actual Central publisher and Edge replay acceptance.",
+  "next_action": "Create Draft PR for #1453 and observe all exact-head CI incl Offline Bundle. Fix only scope defects; retain independent #1447 security/risk-owner gate; never merge with RED checks or perform site cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
