@@ -9363,10 +9363,12 @@
         "ci_contract_skipped": 1,
         "node_exact": "v22.23.1_shasum_verified",
         "offline_runtime_required": true,
-        "github_ci": "pending",
+        "github_ci": "pending_updated_exact_head",
         "production_mutation": false,
         "hardware": "unverified",
-        "independent_security_gate": "blocked"
+        "independent_security_gate": "blocked",
+        "first_github_ci_job": "124968515497_failed_idna_icu_portability",
+        "cross_version_decoded_hostname_guard": "added_source_only"
       }
     }
   ],

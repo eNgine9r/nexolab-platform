@@ -20,3 +20,13 @@ tests successful (one built-in skip). No DNS lookup, production runtime
 mutation, site package change, Modbus or hardware write. GitHub exact-head
 checks are the merge authority. Independent supply-chain HIGH exception
 approval #1447 remains outside this PR; do not waive or merge RED.
+
+## Cross-version fail-closed refinement
+
+The initial guard only rejected `domainToUnicode(host) === ""`; this passed
+on isolated Node v22.23.1 ARM64 but GitHub runner's Node/ICU did not reject
+all malformed A-labels. The source now also rejects undecoded A-labels and
+decoded host strings containing characters outside Unicode letters, marks,
+numbers, ASCII dot and hyphen. This is an intentionally conservative
+LOCAL_LAN admission policy; runtime URLs are still ASCII canonical A-labels,
+and there is no remote Unicode dataset or DNS dependency.

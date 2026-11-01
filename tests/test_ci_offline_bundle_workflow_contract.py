@@ -280,6 +280,8 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("must use a usable destination port, not port 0", self.workflow)
         self.assertIn("must use canonical ASCII DNS labels", self.workflow)
         self.assertIn("domainToUnicode(host)", self.workflow)
+        self.assertIn("decodedHost === host", self.workflow)
+        self.assertIn(r"\p{L}\p{M}\p{N}", self.workflow)
         self.assertIn("must use valid IDNA Punycode DNS labels", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
