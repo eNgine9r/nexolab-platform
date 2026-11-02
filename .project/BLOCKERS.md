@@ -1,3 +1,19 @@
+## 2026-11-02 — #1445 production bridge still gated despite 38 PG parity tests
+
+Canonical Edge contract parity is now an automated PostgreSQL-backed source regression, locally verified 38/38 PASS on isolated PG17 ARM64. It does not prove installed PostgreSQL 16 version, real site MQTT publisher credentials/TLS/dynamic broker authorization, installed Edge subscriber, site encrypted backup/restore #1428, live network #1399 or hardware. Security #1447 49 HIGH risk-owner decision and independently failing Container Supply Chain remain hard merge gates. Do not interpret synthetic PUBACK or test's trusted receipt flag as real authentication.
+
+## 2026-11-02 — #1445 integrated software verified in synthetic broker; real site still BLOCKED
+
+Raspberry engineering fixtures now prove real PostgreSQL 17.11 commit, a broker-enforced synthetic static ACL, real Mosquitto MQTT 3.1.1 QoS1 PUBACK and subscriber delivery, and source-only Edge SQLite prune. This does NOT establish installed Mosquitto Dynamic Security ACL, real central publisher credentials, production PostgreSQL 16 deployment, installed DeviceAgent, independent encrypted backup and restore (#1428), LAN Docker/IPAM repair (#1399), or physical hardware acceptance. Independent #1447 risk-owner sign-off remains required: the main security exception registry expired on 2026-10-20, causing Container Supply Chain and Core Merge Gate RED. No exception bypass or production writes.
+
+## 2026-11-02 — #1445 software PG acceptance expanded; site gates remain
+
+PostgreSQL 17.11 synthetic-only ARM64 execution now passes all 37 focused tests (0 skips), plus canonical Edge receipt contract interoperability with a synthetic publisher callback. Runtime PostgreSQL 16 version-specific compatibility, genuine central MQTT identity and Edge subscription, broker ACL, protected site backup/restore, physical node outage, disk persistence and production cutover remain UNVERIFIED. Security #1447 still requires independent approval of 49 residual HIGH; expired 2026-10-20 registry in main fails Container Supply Chain. Source-only test evidence cannot justify bypassing this gate.
+
+## 2026-11-02 — #1445 source-only producer cannot prove site acceptance
+
+Strict sender schema rejects messages Edge would refuse and local targeted 20 tests pass; 17 tests requiring isolated PostgreSQL were SKIPPED, not accepted. Live central broker ACL and subscriber identity are unverified. #1447 security HIGH exceptions require review; #1449 least-privilege broker source and #1451 Edge source are separate Draft branches. #1428 backup and #1399 network still block protected site cutover. No production DB, MQTT ACL, Docker, Modbus or hardware write.
+
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
 The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
@@ -5,6 +21,18 @@ The stale main selection of merged Issue #1453 is cleared in state-only #1458. T
 ## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
 
 Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
+## 2026-10-30 — #1445 and #1447 updated source review gates
+
+#1445 PR #1446 now contains an isolated atomic PostgreSQL NodeIngressAuthorizer sample+cursor+receipt path and a uniqueness constraint on (organization, node, sequence), including older missing-sequence replay checks. **This method is not called by the production ingestion worker.** Authenticated dedicated central MQTT publisher identities and real per-node broker-enforced receipt ACL, Edge receipt subscriber and SQLite acknowledgement retention, real bounded storage acceptance and ARM64 offline restart/data-loss tests remain missing. Old production ingress semantics have NOT been changed. Full exact-head CI pending; do not merge or activate based on mocked sender acceptance.
+
+#1447 PR #1448 has source-only Pillow/msgpack/Go fixes with previous actual x86_64 image scan showing zero CRITICAL, 49 HIGH remaining. New exact-49 HIGH tuple exception policy, bounded through 2026-11-06, and fail-closed fixed-version regression are pending complete CI and explicit security-owner decision. libwebsockets DoS exposure is residual; current Debian Trixie has no reported fixed version. No existing release authorization can be inferred from source-only exceptions.
+
+#1399 site IPAM/network overlap and #1428 protected full encrypted backup + isolated restore still prevent production/site cutover or deployment. No Modbus/hardware/site write permitted.
+
+## 2026-10-30 — #1445 committed receipt outbox Draft is not an authenticated publisher
+
+Source-only Draft PR #1446 provides a proposed PostgreSQL-only receipt outbox transaction and deterministic test coverage; there is no connected central receipt publisher, proven MQTT ACL, authenticated transport identity, Edge SQLite prune/replay, real PostgreSQL migration site execution, real MQTT delivery/retry or full exact-head acceptance yet. Ingress cursor high-water behavior on older-event replay also needs integration review. Do not merge or activate on production merely from unit tests. #1428 full encrypted backup/isolated restore and #1399 protected runtime recovery remain separate owner-gated blockers.
 
 ## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
 

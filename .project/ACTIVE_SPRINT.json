@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1445,
+      "branch": "feature/1445-central-committed-receipt-outbox"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9306,7 +9309,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9329,11 +9332,78 @@
         "atomic_sqlite_prune": "not_implemented",
         "hardware": "unverified",
         "checks": {
-          "ci": "pending",
-          "unit": "pending",
-          "offline": "pending"
+          "ci": "success",
+          "telemetry": "not_applicable_contract_only",
+          "offline": "success"
         },
-        "pr": 1411
+        "pr": 1411,
+        "merged_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
+        "production_mutation": false
+      }
+    },
+    {
+      "issue": 1445,
+      "title": "Central PostgreSQL-committed telemetry receipt publisher with durable retry",
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410
+      ],
+      "scope": "Source-only central authenticated committed receipt publication with PostgreSQL-transactional outbox and durable retry; no broker ACL/Edge/site cutover",
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "contracts/",
+        "docs/architecture/",
+        "docs/operations/",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "pr": 1446,
+        "head_sha": "bb77384c1027cfd1952eafe37c94358f6b3fa914",
+        "source_only": true,
+        "postgres_guard": "added",
+        "producer": "source_implemented_not_runtime_connected",
+        "mq_acl": "unverified",
+        "edge_ack": "not_implemented",
+        "site_activation": "not_performed",
+        "hardware": "unverified",
+        "checks": {
+          "targeted": "previous_exact_head_passed_new_commit_pending",
+          "required_workflows": "in_progress"
+        },
+        "publisher_core": "source_implemented_not_mqtt_connected",
+        "ingress_atomic_cursor_sample": "source_implemented_not_runtime_connected",
+        "out_of_order_replay": "source_implemented_pending_ci",
+        "node_sequence_unique_constraint": "source_implemented_pending_ci",
+        "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review",
+        "receipt_mqtt_edge_compatible_strict_validation": "source_only_passed",
+        "local_focused_tests_passed": 37,
+        "postgres_integration_tests_skipped": 0,
+        "production_mutation": false,
+        "github_ci": "pending_new_head",
+        "independent_security_gate": "blocked_owner_review",
+        "arm64_postgres_fixture_version": "17.11_debian13",
+        "arm64_pg_receipt_tests_passed": 38,
+        "arm64_pg_receipt_tests_skipped": 0,
+        "pg_real_write_canonical_edge_contract": "passed_with_synthetic_broker_puback",
+        "postgres16_site_runtime": "unverified",
+        "site_mqtt_acl": "unverified",
+        "github_exact_head_ci": "pending_followup",
+        "central_mqtt_publisher": "source_implemented_not_runtime_connected",
+        "real_mosquitto_2_0_21_qos1": "synthetic_static_acl_delivery_passed",
+        "actual_pg17_to_mqtt_to_edge_sqlite": "source_only_end_to_end_passed",
+        "wrong_tenant_receipt_delivery": "denied_in_synthetic_static_acl",
+        "node_forged_receipt_delivery": "denied_in_synthetic_static_acl",
+        "site_mqtt_dynamic_security": "unverified",
+        "site_postgresql16": "unverified",
+        "site_device_agent": "unwired_unverified",
+        "fixtures_stopped": true,
+        "canonical_edge_protocol_ci_regression": "committed_source_only_test",
+        "postgres16_exact_new_head_ci": "pending"
       }
     },
     {
@@ -10965,6 +11035,74 @@
         "workflows_green": 3,
         "closed": true,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:46:38Z",
+      "kind": "1445_source_only_receipt_schema_strict_and_models_import_fixed",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests_passed": 20,
+        "postgres_tests_skipped": 17,
+        "production_mutation": false,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T12:43:47Z",
+      "kind": "1445_real_isolated_postgres17_arm64_receipt_acceptance",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 37,
+        "skips": 0,
+        "db_isolated": true,
+        "unix_socket_only": true,
+        "production_mutation": false,
+        "canonical_edge_contract": "passed_synthetic_puback",
+        "postgres16_production": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:30:33Z",
+      "kind": "1445_actual_pg17_qos1_broker_edge_sqlite_synthetic_fixture",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "broker_version": "2.0.21",
+        "postgres_version": "17.11",
+        "static_acl": "fixture_only",
+        "actual_broker_qos1": "pass",
+        "correct_node_delivery": "pass",
+        "wrong_tenant_nondelivery": "pass",
+        "forged_node_publish_nondelivery": "pass",
+        "exact_receipt_sqlite_prune": "pass",
+        "fixture_servers_stopped": true,
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:18:55Z",
+      "kind": "1445_postgresql_edge_canonical_receipt_ci_regression",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 38,
+        "skipped": 0,
+        "actual_transaction": true,
+        "broker_puback": "synthetic",
+        "ci_regression_checked_in": true,
+        "production_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],

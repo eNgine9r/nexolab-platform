@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
@@ -466,6 +467,6 @@ def test_postgres_circuit_migration_round_trip() -> None:
     try:
         assert TABLES <= set(inspect(upgraded).get_table_names())
         with upgraded.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20260908_0037"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == ScriptDirectory(str(service_root / "migrations")).get_current_head()
     finally:
         upgraded.dispose()

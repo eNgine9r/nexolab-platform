@@ -1,3 +1,19 @@
+## 2026-11-02 — #1445 permanently tested PostgreSQL-to-Edge receipt parity
+
+Added a source-only CI regression: actual PostgreSQL commit produces an exact v1 receipt accepted by canonical Edge validator before a **synthetic** broker PUBACK can mark receipt intent published. Standalone PostgreSQL fixtures now register cross-domain SQLAlchemy tables, avoiding test collection-order issues. Isolated ARM64 PostgreSQL 17.11 suite 38/38 PASS, zero skips. GitHub PostgreSQL 16 exact new-head CI still pending, site broker/dynamic ACL and production activation unverified. Release security #1447 remains blocked by expired 2026-10-20 registry and owner review. No production data or hardware changes.
+
+## 2026-11-02 — #1445 isolated REAL MQTT QoS1 / PostgreSQL → Edge receipt proof
+
+In private Raspberry ARM64 engineering fixtures (not installed runtime), real PostgreSQL 17.11 committed telemetry and durable receipt intent; CommittedReceiptPublisher used a real Mosquitto 2.0.21 127.0.0.1:18884 ACL/password broker; an independent Edge node subscriber received exact MQTT QoS1 bytes, and temporary SQLite pruned only after applying final receipt. Separate negatives confirmed wrong-tenant receipt and node-forged receipt non-delivery. MQTT 3.1.1 SUBACK was **not** treated as delivery authorization evidence. Both fixture services stopped; installed Postgres process remained healthy and live MQTT port 1883 unchanged. Actual production PG16 + Dynamic Security TLS/site ACL, installed DeviceAgent wiring and hardware/outage acceptance remain UNVERIFIED.
+
+## 2026-11-02 — #1445 real PostgreSQL 17.11 ARM64 test: 37/37 PASS
+
+In a temporary owner-user Postgres 17.11 cluster, bound to a Unix socket only and using synthetic credentials/data, 37/37 committed receipt outbox and MQTT sender tests passed with no skips; a separate real PG write → canonical Edge receipt validator probe passed with a simulated broker PUBACK. Previously 17 tests skipped without a PG fixture. Production Postgres remains 16 and completely untouched: no production migration or site receipt wiring verified. Independent #1447 security owner review, #1449 MQTT receipt ACL, #1451 Edge subscriber, #1428 complete backup/restore, and #1399 network recovery still block release.
+
+## 2026-11-02 — #1445 MQTT sender rejects Edge-incompatible receipts
+
+On the isolated Raspberry engineering worktree, the source-only Central MQTT sender now rejects duplicate receipt JSON keys, invalid node IDs, stale/future/invalid acceptance timestamps BEFORE returning broker-PUBACK success; unit tests use a current timestamp. The standalone SQLite non-PostgreSQL refusal test explicitly registers models instead of depending on import order. Twenty focused tests passed; 17 PostgreSQL integration tests skipped because no isolated PostgreSQL test instance was available and the installed site DB was not touched. Main #1453/#1458 completion and #1445 active work preserved. Existing #1447 security, #1449 MQTT ACL, #1428 protected backups, #1399 site network, and #1451 Edge wiring remain gating; no production changes.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
@@ -5,6 +21,18 @@ GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f
 ## 2026-11-01 — #1453 offline bundle IDNA A-label fail-closed regression
 
 CI run 41343615543 for #1451 revealed two malformed Punycode hostnames accepted by offline package URL dispatch. #1453 fixes only .github/workflows/offline-bundle.yml and matching source-only tests; maintains canonical valid Punycode, same-host and offline LOCAL_LAN checks. On isolated Raspberry ARM64 exact-main engineering branch, pinned Node v22.23.1 checksum verified; 30/30 workflow-contract and 383/383 test_ci_* tests PASS (one skipped). No installed-site/runtime, secret, hardware or Modbus action. First PR #1454 head 92314f4 failed GitHub runner Unicode/ICU portability; follow-up guard rejects empty/unchanged or non-letter/mark/number Unicode decoded host and reruns 383/383 ARM64 tests. New exact-head CI pending; independent #1447 security exception expiry remains a separate RED gate, not waived.
+
+## 2026-10-30 — #1445 / #1447 source-only verification checkpoint
+
+Current `main` remains `528ff5256d379ffd4a8ec77d831264db9180a47f`. Source-only Issue #1445 / Draft PR #1446 reached `bb77384c1027cfd1952eafe37c94358f6b3fa914`. The opt-in PostgreSQL-transactional telemetry sample/receipt outbox, acknowledgement retry core and atomic NodeIngressAuthorizer cursor/sample commit path are implemented but **NOT** connected to the deployed MQTT broker or installed runtime. A unique `organization_id/node_id/node_sequence` outbox index and exact older-sequence replay tests reject conflicting events without silently discarding earlier uncommitted telemetry. Current exact-head workflow completion is pending; no end-to-end offline or ARM64 hardware evidence.
+
+Separate P0 security Issue #1447 / Draft PR #1448 at `0b50d7df348ea4234607a84ce4c692ee0c66ff59`: actual five-image CI scans (source `66c30bd496193e4ea334df9d80deac07aea0f772`) reduced findings from 74 HIGH / 5 CRITICAL to 49 HIGH / 0 CRITICAL; current 49 residual HIGH have 7-day exact tuple reviews expiring 2026-11-06, with an explicit `libwebsockets19t64` DoS residual risk. Vulnerability exceptions remain **a security-owner review item, not a permission to deploy**. Full exact-head security and release CI are not yet GREEN.
+
+#1399 physical LAN/IPAM and #1428 multi-store encrypted backup + isolated restore are hard-gated; no Raspberry Pi/site, PostgreSQL production migration, secret, broker ACL, Modbus or hardware write occurred. Protected production release and an application-level no-loss claim remain **blocked**.
+
+## 2026-10-30 — #1445 central committed receipt outbox Draft (source only)
+
+#1410 contract PR #1411 merged to main at 528ff5256d379ffd4a8ec77d831264db9180a47f; Issue #1410 closed. #1445 feature branch `feature/1445-central-committed-receipt-outbox` / Draft PR #1446 stages an opt-in SQL-transactional receipt outbox intent, additive migration, identity/capacity/rollback tests and a PostgreSQL-only fail-closed runtime guard. Existing production code does NOT pass receipt identities; no MQTT receipt publisher, durable retry, ACL validation or edge consumer exists yet. Latest CI is pending for this new candidate. No actual PostgreSQL migration or Raspberry site/network/DB/Modbus write performed. Full #1397 reliability remains blocked; #1428 independent multi-store backup/restore and #1399 site recovery remain hard-gated.
 
 ## 2026-10-30 — #1410 durability receipt contract re-based on actual main
 

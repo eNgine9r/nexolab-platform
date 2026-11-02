@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-02T19:18:55Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1445_postgresql_canonical_edge_v1_ci_regression_38_pass",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1445,
+    "branch": "feature/1445-central-committed-receipt-outbox",
+    "status": "source_only_postgres17_38_pass_canonical_edge_ci_test_added_security_gate_red",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2773,6 +2773,45 @@
       "hardware": "unverified",
       "offline_ci": "pending"
     },
+    "issue_1445_receipt_outbox": {
+      "source_only": true,
+      "pr": 1446,
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "verified_head_sha": null,
+      "staged_candidate_sha": "07d0d35d744d3b312bce63f695ad11d163ced6cd",
+      "postgres_only_guard": "added",
+      "transactional_intent": "implemented_source_only",
+      "central_mqtt_publisher": "source_only_no_runtime_wiring",
+      "mq_acl": "unverified",
+      "edge_replay": "not_implemented",
+      "site_migration": "not_performed",
+      "site_runtime": "unchanged",
+      "hardware": "unverified",
+      "mqtt_sender_strict_json_identity_freshness": "passed_source_only",
+      "local_tests_passed": 37,
+      "postgres_tests_skipped": 0,
+      "live_db_modified": false,
+      "site_mqtt_acl": "unverified",
+      "hardware_acceptance": "unverified",
+      "github_exact_head": "pending_new_commit",
+      "arm64_postgres17_receipt_tests": "37_pass_0_skip",
+      "postgres_isolation": "unix_socket_only_test_db",
+      "canonical_edge_receipt_probe": "passed_with_simulated_puback",
+      "site_postgres16": "unverified",
+      "site_acl": "unverified",
+      "actual_pg17_to_mqtt_to_sqlite": "passed_private_synthetic_fixture",
+      "mosquitto_2_0_21_static_acl": "verified_private_fixture_only",
+      "real_qos1_delivery": "pass",
+      "wrong_tenant_and_forged_node_non_delivery": "pass",
+      "fixture_servers_stopped": true,
+      "site_pg16": "unverified",
+      "site_dynamic_security_acl": "unverified",
+      "installed_device_agent": "unverified",
+      "postgres17_arm64_parity_tests": "38_pass_zero_skips",
+      "canonical_edge_contract_regression": "added_to_telemetry_service_ci",
+      "puback": "synthetic_fixture_only",
+      "installed_mqtt_dynamic_security": "unverified"
+    },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
       "arm64_node_version": "v22.23.1",
@@ -4026,9 +4065,66 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:46:38Z",
+      "kind": "1445_source_only_receipt_schema_strict_and_models_import_fixed",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests_passed": 20,
+        "postgres_tests_skipped": 17,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T12:43:47Z",
+      "kind": "1445_real_isolated_postgres17_arm64_receipt_acceptance",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 37,
+        "skips": 0,
+        "db_isolated": true,
+        "production_mutation": false,
+        "canonical_edge_contract": "synthetic_puback_pass"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:30:33Z",
+      "kind": "1445_actual_pg17_qos1_broker_edge_sqlite_synthetic_fixture",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "outcome": "pass",
+        "static_acl_fixture": true,
+        "actual_qos1_puback": true,
+        "edge_sqlite_prune": true,
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:18:55Z",
+      "kind": "1445_postgresql_edge_canonical_receipt_ci_regression",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests": 38,
+        "skipped": 0,
+        "ci_regression_checked_in": true,
+        "broker_puback": "synthetic",
+        "production_mutation": false
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Publish focused Central #1445 source regression; inspect exact-head GitHub Telemetry PostgreSQL16, Core CI and security. Stay Draft while #1447 risk-owner HIGH acceptance, #1449 broker Dynamic Security and #1451 installed Edge and protected #1428/#1399 site preflight remain unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
