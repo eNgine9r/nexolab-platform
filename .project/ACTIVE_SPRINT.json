@@ -9447,7 +9447,6 @@
         "full_ci": "pending_post_main_merge",
         "production_mutation": false,
         "main_idna_fix_1453": "merged_and_integrated",
-        "main_merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
         "core_ci": "must_recheck_new_head",
         "security_supply_chain": "blocked_independent_owner_review",
         "post_main_merge_arm64_device_agent_tests": 357,
@@ -9488,7 +9487,6 @@
         "first_github_ci_job": "124968515497_failed_idna_icu_portability",
         "cross_version_decoded_hostname_guard": "added_source_only",
         "pr": 1454,
-        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
         "offline_bundle": "success",
         "telemetry_service": "success"
       }
@@ -11080,6 +11078,20 @@
         "full_ci": "pending",
         "production_mutation": false,
         "site_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:09:58Z",
+      "kind": "1453_idna_fix_merged_to_main_with_1451_feature_sync",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "merged": true,
+        "exact_head_workflows_green": 3,
+        "feature_branch_issue": 1451,
+        "production_mutation": false
       }
     }
   ],
