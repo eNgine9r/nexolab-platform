@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 real PostgreSQL 17.11 ARM64 test: 37/37 PASS
+
+In a temporary owner-user Postgres 17.11 cluster, bound to a Unix socket only and using synthetic credentials/data, 37/37 committed receipt outbox and MQTT sender tests passed with no skips; a separate real PG write → canonical Edge receipt validator probe passed with a simulated broker PUBACK. Previously 17 tests skipped without a PG fixture. Production Postgres remains 16 and completely untouched: no production migration or site receipt wiring verified. Independent #1447 security owner review, #1449 MQTT receipt ACL, #1451 Edge subscriber, #1428 complete backup/restore, and #1399 network recovery still block release.
+
 ## 2026-11-02 — #1445 MQTT sender rejects Edge-incompatible receipts
 
 On the isolated Raspberry engineering worktree, the source-only Central MQTT sender now rejects duplicate receipt JSON keys, invalid node IDs, stale/future/invalid acceptance timestamps BEFORE returning broker-PUBACK success; unit tests use a current timestamp. The standalone SQLite non-PostgreSQL refusal test explicitly registers models instead of depending on import order. Twenty focused tests passed; 17 PostgreSQL integration tests skipped because no isolated PostgreSQL test instance was available and the installed site DB was not touched. Main #1453/#1458 completion and #1445 active work preserved. Existing #1447 security, #1449 MQTT ACL, #1428 protected backups, #1399 site network, and #1451 Edge wiring remain gating; no production changes.

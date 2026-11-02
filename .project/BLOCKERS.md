@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 software PG acceptance expanded; site gates remain
+
+PostgreSQL 17.11 synthetic-only ARM64 execution now passes all 37 focused tests (0 skips), plus canonical Edge receipt contract interoperability with a synthetic publisher callback. Runtime PostgreSQL 16 version-specific compatibility, genuine central MQTT identity and Edge subscription, broker ACL, protected site backup/restore, physical node outage, disk persistence and production cutover remain UNVERIFIED. Security #1447 still requires independent approval of 49 residual HIGH; expired 2026-10-20 registry in main fails Container Supply Chain. Source-only test evidence cannot justify bypassing this gate.
+
 ## 2026-11-02 — #1445 source-only producer cannot prove site acceptance
 
 Strict sender schema rejects messages Edge would refuse and local targeted 20 tests pass; 17 tests requiring isolated PostgreSQL were SKIPPED, not accepted. Live central broker ACL and subscriber identity are unverified. #1447 security HIGH exceptions require review; #1449 least-privilege broker source and #1451 Edge source are separate Draft branches. #1428 backup and #1399 network still block protected site cutover. No production DB, MQTT ACL, Docker, Modbus or hardware write.

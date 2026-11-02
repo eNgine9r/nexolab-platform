@@ -60,3 +60,34 @@ on unrelated test import order. On an isolated Raspberry Python environment,
 database were skipped. These SKIPs are **not** PostgreSQL integration
 acceptance; the installed site DB was not accessed, and the source remains
 unwired to production.
+
+## 2026-11-02 — Real isolated ARM64 PostgreSQL test and Edge contract handoff
+
+To avoid running database integration tests against site PostgreSQL 16, an
+engineer-owned PostgreSQL **17.11** binary was extracted into a private
+worktree-adjacent fixture on `nexolab-edge-01`. The cluster listened on
+**Unix socket only**, `listen_addresses=''` (no TCP); database
+`nexolab_1445_fixture` contained only synthetic records. No system package,
+site PostgreSQL container, production database, broker identity or network
+configuration was changed.
+
+The standalone PostgreSQL connector's SQL_ASCII default initially exposed
+server metadata as bytes; setting `PGCLIENTENCODING=UTF8` for the fixture
+corrected test connectivity without changing application code. The focused
+suite `test_committed_receipt_outbox.py` plus
+`test_committed_receipt_mqtt.py` then completed **37/37 PASS** (zero skip)
+against actual PostgreSQL 17.11 on ARM64, covering transactional intent,
+rollbacks, retry, duplicate commit, sequence isolation, and MQTT sender
+validation. A separate synthetic end-to-end contract probe persisted an
+actual PostgreSQL telemetry+receipt intent and replayed its canonical payload
+through `contracts/durable_receipt_v1.py::validate_for_pending` after an
+explicitly simulated broker PUBACK; this probe also **PASS**. The simulated
+PUBACK and `central_publisher_authorized=True` fixture are **not real
+broker-ACL authentication**, Edge delivery or hardware acceptance.
+
+Production uses PostgreSQL **16**, not 17: this result is meaningful
+PostgreSQL transactional evidence but **does not verify the exact production
+server version** or site migration/restore. Physical Edge/server outage,
+power-loss recovery, real broker authorization and protected backups remain
+hard acceptance gates. The test fixture will be shut down without touching
+site services.

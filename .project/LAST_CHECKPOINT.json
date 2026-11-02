@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T09:46:38Z",
+  "timestamp": "2026-11-02T12:43:47Z",
   "actor": "ChatGPT",
-  "event": "1445_source_only_edge_compatible_mqtt_sender_and_main_1458_sync",
+  "event": "1445_arm64_real_postgres17_receipt_suite_37_pass_edge_contract_probe",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1445,
     "branch": "feature/1445-central-committed-receipt-outbox",
-    "status": "source_only_strict_mqtt_receipt_validation_tests_green_site_pg_unverified_exact_ci_pending",
+    "status": "source_only_pg17_37_pass_exact_postgres16_and_site_unverified_security_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2781,19 +2781,24 @@
       "staged_candidate_sha": "07d0d35d744d3b312bce63f695ad11d163ced6cd",
       "postgres_only_guard": "added",
       "transactional_intent": "implemented_source_only",
-      "central_mqtt_publisher": "not_implemented",
+      "central_mqtt_publisher": "source_only_no_runtime_wiring",
       "mq_acl": "unverified",
       "edge_replay": "not_implemented",
       "site_migration": "not_performed",
       "site_runtime": "unchanged",
       "hardware": "unverified",
       "mqtt_sender_strict_json_identity_freshness": "passed_source_only",
-      "local_tests_passed": 20,
-      "postgres_tests_skipped": 17,
+      "local_tests_passed": 37,
+      "postgres_tests_skipped": 0,
       "live_db_modified": false,
       "site_mqtt_acl": "unverified",
       "hardware_acceptance": "unverified",
-      "github_exact_head": "pending"
+      "github_exact_head": "pending_followup",
+      "arm64_postgres17_receipt_tests": "37_pass_0_skip",
+      "postgres_isolation": "unix_socket_only_test_db",
+      "canonical_edge_receipt_probe": "passed_with_simulated_puback",
+      "site_postgres16": "unverified",
+      "site_acl": "unverified"
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -4061,9 +4066,24 @@
         "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T12:43:47Z",
+      "kind": "1445_real_isolated_postgres17_arm64_receipt_acceptance",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 37,
+        "skips": 0,
+        "db_isolated": true,
+        "production_mutation": false,
+        "canonical_edge_contract": "synthetic_puback_pass"
+      }
     }
   ],
-  "next_action": "Rerun targeted synthetic Central MQTT tests and CI policy after main sync, then push exact HEAD for GitHub workflows. Source-only. Require independent #1447 HIGH security owner review, #1449 broker ACL, #1451 Edge consumer, #1428 protected site backup and #1399 network before deployment.",
+  "next_action": "Verify changed-file formatting and State Model, stop isolated PostgreSQL fixture safely, push source-only 37/37 evidence for exact-head GitHub CI. PR #1446 remains Draft because main security #1447 expiration, real Postgres 16 and ACL/site backup/hardware evidence are unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

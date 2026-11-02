@@ -9366,7 +9366,7 @@
         "head_sha": "bb77384c1027cfd1952eafe37c94358f6b3fa914",
         "source_only": true,
         "postgres_guard": "added",
-        "producer": "not_implemented",
+        "producer": "source_implemented_not_runtime_connected",
         "mq_acl": "unverified",
         "edge_ack": "not_implemented",
         "site_activation": "not_performed",
@@ -9381,11 +9381,19 @@
         "node_sequence_unique_constraint": "source_implemented_pending_ci",
         "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review",
         "receipt_mqtt_edge_compatible_strict_validation": "source_only_passed",
-        "local_focused_tests_passed": 20,
-        "postgres_integration_tests_skipped": 17,
+        "local_focused_tests_passed": 37,
+        "postgres_integration_tests_skipped": 0,
         "production_mutation": false,
         "github_ci": "pending_new_head",
-        "independent_security_gate": "blocked_owner_review"
+        "independent_security_gate": "blocked_owner_review",
+        "arm64_postgres_fixture_version": "17.11_debian13",
+        "arm64_pg_receipt_tests_passed": 37,
+        "arm64_pg_receipt_tests_skipped": 0,
+        "pg_real_write_canonical_edge_contract": "passed_with_synthetic_broker_puback",
+        "postgres16_site_runtime": "unverified",
+        "site_mqtt_acl": "unverified",
+        "github_exact_head_ci": "pending_followup",
+        "central_mqtt_publisher": "source_implemented_not_runtime_connected"
       }
     },
     {
@@ -11031,6 +11039,23 @@
         "production_mutation": false,
         "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T12:43:47Z",
+      "kind": "1445_real_isolated_postgres17_arm64_receipt_acceptance",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 37,
+        "skips": 0,
+        "db_isolated": true,
+        "unix_socket_only": true,
+        "production_mutation": false,
+        "canonical_edge_contract": "passed_synthetic_puback",
+        "postgres16_production": "unverified"
       }
     }
   ],
