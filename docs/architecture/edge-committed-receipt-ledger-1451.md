@@ -78,7 +78,7 @@ hardware acceptance is implied.
 
 ## 2026-11-02 — Synthetic actual SQLite_FULL rollback
 
-A focused regression bounds a *temporary* SQLite fixture to its existing page
+A focused regression bounds a _temporary_ SQLite fixture to its existing page
 count using `PRAGMA max_page_count`; attempting a final committed receipt
 raises real `sqlite3.OperationalError: database or disk is full`. Its oldest
 telemetry event and failed receipt ledger remain untouched, the SQLite
