@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 isolated REAL MQTT QoS1 / PostgreSQL → Edge receipt proof
+
+In private Raspberry ARM64 engineering fixtures (not installed runtime), real PostgreSQL 17.11 committed telemetry and durable receipt intent; CommittedReceiptPublisher used a real Mosquitto 2.0.21 127.0.0.1:18884 ACL/password broker; an independent Edge node subscriber received exact MQTT QoS1 bytes, and temporary SQLite pruned only after applying final receipt. Separate negatives confirmed wrong-tenant receipt and node-forged receipt non-delivery. MQTT 3.1.1 SUBACK was **not** treated as delivery authorization evidence. Both fixture services stopped; installed Postgres process remained healthy and live MQTT port 1883 unchanged. Actual production PG16 + Dynamic Security TLS/site ACL, installed DeviceAgent wiring and hardware/outage acceptance remain UNVERIFIED.
+
 ## 2026-11-02 — #1445 real PostgreSQL 17.11 ARM64 test: 37/37 PASS
 
 In a temporary owner-user Postgres 17.11 cluster, bound to a Unix socket only and using synthetic credentials/data, 37/37 committed receipt outbox and MQTT sender tests passed with no skips; a separate real PG write → canonical Edge receipt validator probe passed with a simulated broker PUBACK. Previously 17 tests skipped without a PG fixture. Production Postgres remains 16 and completely untouched: no production migration or site receipt wiring verified. Independent #1447 security owner review, #1449 MQTT receipt ACL, #1451 Edge subscriber, #1428 complete backup/restore, and #1399 network recovery still block release.

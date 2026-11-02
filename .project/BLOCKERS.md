@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 integrated software verified in synthetic broker; real site still BLOCKED
+
+Raspberry engineering fixtures now prove real PostgreSQL 17.11 commit, a broker-enforced synthetic static ACL, real Mosquitto MQTT 3.1.1 QoS1 PUBACK and subscriber delivery, and source-only Edge SQLite prune. This does NOT establish installed Mosquitto Dynamic Security ACL, real central publisher credentials, production PostgreSQL 16 deployment, installed DeviceAgent, independent encrypted backup and restore (#1428), LAN Docker/IPAM repair (#1399), or physical hardware acceptance. Independent #1447 risk-owner sign-off remains required: the main security exception registry expired on 2026-10-20, causing Container Supply Chain and Core Merge Gate RED. No exception bypass or production writes.
+
 ## 2026-11-02 — #1445 software PG acceptance expanded; site gates remain
 
 PostgreSQL 17.11 synthetic-only ARM64 execution now passes all 37 focused tests (0 skips), plus canonical Edge receipt contract interoperability with a synthetic publisher callback. Runtime PostgreSQL 16 version-specific compatibility, genuine central MQTT identity and Edge subscription, broker ACL, protected site backup/restore, physical node outage, disk persistence and production cutover remain UNVERIFIED. Security #1447 still requires independent approval of 49 residual HIGH; expired 2026-10-20 registry in main fails Container Supply Chain. Source-only test evidence cannot justify bypassing this gate.

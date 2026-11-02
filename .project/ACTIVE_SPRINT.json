@@ -9393,7 +9393,15 @@
         "postgres16_site_runtime": "unverified",
         "site_mqtt_acl": "unverified",
         "github_exact_head_ci": "pending_followup",
-        "central_mqtt_publisher": "source_implemented_not_runtime_connected"
+        "central_mqtt_publisher": "source_implemented_not_runtime_connected",
+        "real_mosquitto_2_0_21_qos1": "synthetic_static_acl_delivery_passed",
+        "actual_pg17_to_mqtt_to_edge_sqlite": "source_only_end_to_end_passed",
+        "wrong_tenant_receipt_delivery": "denied_in_synthetic_static_acl",
+        "node_forged_receipt_delivery": "denied_in_synthetic_static_acl",
+        "site_mqtt_dynamic_security": "unverified",
+        "site_postgresql16": "unverified",
+        "site_device_agent": "unwired_unverified",
+        "fixtures_stopped": true
       }
     },
     {
@@ -11056,6 +11064,26 @@
         "production_mutation": false,
         "canonical_edge_contract": "passed_synthetic_puback",
         "postgres16_production": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:30:33Z",
+      "kind": "1445_actual_pg17_qos1_broker_edge_sqlite_synthetic_fixture",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "broker_version": "2.0.21",
+        "postgres_version": "17.11",
+        "static_acl": "fixture_only",
+        "actual_broker_qos1": "pass",
+        "correct_node_delivery": "pass",
+        "wrong_tenant_nondelivery": "pass",
+        "forged_node_publish_nondelivery": "pass",
+        "exact_receipt_sqlite_prune": "pass",
+        "fixture_servers_stopped": true,
+        "production_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],

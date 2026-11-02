@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T12:43:47Z",
+  "timestamp": "2026-11-02T13:30:33Z",
   "actor": "ChatGPT",
-  "event": "1445_arm64_real_postgres17_receipt_suite_37_pass_edge_contract_probe",
+  "event": "1445_actual_pg17_real_mqtt_qos1_to_edge_sqlite_synthetic_integration_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1445,
     "branch": "feature/1445-central-committed-receipt-outbox",
-    "status": "source_only_pg17_37_pass_exact_postgres16_and_site_unverified_security_blocked",
+    "status": "source_only_real_pg17_broker_qos1_edge_sqlite_pass_independent_security_and_site_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2793,12 +2793,20 @@
       "live_db_modified": false,
       "site_mqtt_acl": "unverified",
       "hardware_acceptance": "unverified",
-      "github_exact_head": "pending_followup",
+      "github_exact_head": "pending_new_commit",
       "arm64_postgres17_receipt_tests": "37_pass_0_skip",
       "postgres_isolation": "unix_socket_only_test_db",
       "canonical_edge_receipt_probe": "passed_with_simulated_puback",
       "site_postgres16": "unverified",
-      "site_acl": "unverified"
+      "site_acl": "unverified",
+      "actual_pg17_to_mqtt_to_sqlite": "passed_private_synthetic_fixture",
+      "mosquitto_2_0_21_static_acl": "verified_private_fixture_only",
+      "real_qos1_delivery": "pass",
+      "wrong_tenant_and_forged_node_non_delivery": "pass",
+      "fixture_servers_stopped": true,
+      "site_pg16": "unverified",
+      "site_dynamic_security_acl": "unverified",
+      "installed_device_agent": "unverified"
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -4081,9 +4089,24 @@
         "production_mutation": false,
         "canonical_edge_contract": "synthetic_puback_pass"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:30:33Z",
+      "kind": "1445_actual_pg17_qos1_broker_edge_sqlite_synthetic_fixture",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "outcome": "pass",
+        "static_acl_fixture": true,
+        "actual_qos1_puback": true,
+        "edge_sqlite_prune": true,
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
     }
   ],
-  "next_action": "Verify changed-file formatting and State Model, stop isolated PostgreSQL fixture safely, push source-only 37/37 evidence for exact-head GitHub CI. PR #1446 remains Draft because main security #1447 expiration, real Postgres 16 and ACL/site backup/hardware evidence are unverified.",
+  "next_action": "Re-run State Model and source-only focused tests; push exact HEAD and confirm GitHub CI. Keep Draft until independent #1447 platform security risk owner, real dynamic ACL #1449, Edge installed consumer #1451 and site #1428 backups/#1399 network acceptance; no production or Modbus writes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

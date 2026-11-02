@@ -91,3 +91,58 @@ server version** or site migration/restore. Physical Edge/server outage,
 power-loss recovery, real broker authorization and protected backups remain
 hard acceptance gates. The test fixture will be shut down without touching
 site services.
+
+## 2026-11-02 — Isolated real Mosquitto + actual PG commit → Edge SQLite proof
+
+An additional, bounded cross-component acceptance ran on `nexolab-edge-01`
+in a private, non-installed **PostgreSQL 17.11** cluster and a separately
+extracted **Mosquitto 2.0.21** broker. PostgreSQL used an owner-only Unix
+socket, no TCP listener; Mosquitto listened only on
+`127.0.0.1:18884` (the live broker remains on `127.0.0.1:1883`).
+No system-wide package install, Docker/IPAM change or live MQTT/PG access.
+
+The synthetic broker required passwords and had separate static ACLs:
+`fixture-central` could publish only to
+`nexolab/v1/+/+/receipts`; `fixture-edge` could read only
+`nexolab/v1/00000000-0000-0000-0000-000000000001/receipt-edge-01/receipts`.
+The credentials and test database lived only in restricted engineering
+fixture directories, outside the repository.
+
+Verified black-box behavior:
+
+1. Real central `CommittedReceiptMqttSender` published a valid v1 receipt
+   through Paho MQTT 3.1.1 using non-retained QoS1, obtained actual broker
+   PUBACK, and an independent authenticated subscriber received the exact
+   bytes. Edge's temporary SQLite outbox was **not** pruned on PUBACK;
+   the source-only final-receipt consumer pruned the correct pending event
+   only after applying the received payload. A new SQLite connection verified
+   the durable result.
+2. Real Mosquitto did **not** deliver a valid receipt for a different tenant
+   to a subscriber restricted to its own tenant, even when an MQTT 3.1.1
+   `SUBACK` appeared successful. Therefore tests must assert **delivery or
+   non-delivery**, not infer ACL authorization from SUBACK alone.
+3. A node-client attempt to publish a forged receipt to its own topic was
+   **not delivered** to the subscribed node.
+4. An independently verified actual PostgreSQL telemetry+receipt-intent
+   commit flowed through `CommittedReceiptPublisher.run_once`, the actual
+   QoS1 Mosquitto transport, exact-topic Edge subscriber, and source-only
+   SQLite receipt-ledger prune; all steps **PASS**. This used synthetic node
+   and tenant identities and an explicitly trusted synthetic ACL fixture.
+
+Reproducibility fingerprints of the executed fixture scripts retained in
+the _private engineering workspace_ (not production or committed scripts):
+
+- MQTT ACL/delivery fixture SHA256
+  `472565e4e780e9f6c28824a64b212996c65897f5fb20cececc295a700db61ec8`.
+- PostgreSQL → MQTT → Edge proof SHA256
+  `c4fa9312704f58ed8f01bce9c116e13b3abb00831349cc69bc04ca1f28828e77`.
+
+Both engineering services were explicitly stopped after the tests;
+`nexolab-central-postgres-1` remained **healthy**, and the installed broker
+continued listening at its existing loopback port. This is **not** validation
+of the installed Mosquitto Dynamic Security ACL, TLS/site identity,
+PostgreSQL 16 in the real live topology, production `DeviceAgent` wiring,
+actual energy-meter values, physical hardware or outage/reboot recovery.
+The test explicitly passes `central_publisher_authorized=True` because
+the _synthetic_ ACL origin was independently controlled and verified;
+no production authentication verdict can be inferred from that boolean.
