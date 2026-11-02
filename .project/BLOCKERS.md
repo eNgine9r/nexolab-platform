@@ -1,3 +1,11 @@
+## 2026-11-02 — #1460 exact-head Merge Gate initially blocked by missing workflow registration
+
+On HEAD 8276efb, Telemetry service GREEN, Core internal quality GREEN, final Merge Gate FAILED due missing required Authenticated Dashboard, Offline Bundle, Refrigeration Browser workflows. This is an actual fail-closed finding; source-only classifier + offline path registration in the current feature branch addresses it without disabling gates. The new exact-head GitHub workflows MUST all complete GREEN before any merge. Independent full backup/off-device/encryption and site issue #1428 remain unverified.
+
+## 2026-11-02 — #1460 preflight BLOCKED until full-store inventory and backup acceptance
+
+Actual read-only Pi preflight expects exit 78. The source DR v1 policy omits Edge SQLite/outbox and still names legacy MinIO source, whose VersityGW physical authority is not verified. Free staging space alone does not establish independent encrypted off-device capacity, complete multi-store consistency, key custody or isolated restore. No backup was created. Parent #1428 complete offline backup scheduling remains pending; #1399 live network and #1447 security approval remain separate blockers. Do not select old microSD as backup or mutate containers.
+
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
 The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.

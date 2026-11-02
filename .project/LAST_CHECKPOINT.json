@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-02T20:17:44Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1460_ci_route_unknown_dr_files_fixed_preserving_exact_workflow_gate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1460,
+    "branch": "feature/1460-offline-backup-preflight",
+    "status": "source_only_ci_routing_fix_pending_exact_head_full_green",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2800,6 +2800,33 @@
       "selection": "no_active_main_work_package",
       "site_runtime": "not_modified",
       "hardware": "unverified"
+    },
+    "issue_1460_offline_backup_preflight": {
+      "parent_issue": 1428,
+      "unit_tests": 15,
+      "staging_available_bytes": 27934715904,
+      "expected_exit_code": 78,
+      "policy_missing_edge_sqlite": true,
+      "minio_versitygw_authority": "unreconciled",
+      "actual_backup": "not_performed",
+      "isolated_restore": "not_performed",
+      "encrypted_off_device_copy": "unverified",
+      "site_timer": "not_installed",
+      "site_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending_new_commit",
+      "broader_dr_tests": 40,
+      "ci_contract_tests": 384,
+      "ci_contract_tests_skipped": 1,
+      "same_disk_pytest_fixture": "passed",
+      "initial_github_telemetry_service": "green",
+      "initial_core_merge_gate": "failed_missing_three_external",
+      "classifier_known_dr_source_paths": "added",
+      "offline_bundle_trigger": "added",
+      "routing_tests": 80,
+      "dr_tests": 40,
+      "offline_bundle_required": true,
+      "full_external_matrix_required_due_to_classifier": true
     }
   },
   "observations": [
@@ -4026,9 +4053,36 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:59:07Z",
+      "kind": "1460_readonly_dr_policy_space_preflight",
+      "data": {
+        "issue": 1460,
+        "parent": 1428,
+        "unit_tests": 15,
+        "exit_code": 78,
+        "available_bytes": 27934715904,
+        "backup_performed": false,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T20:17:44Z",
+      "kind": "1460_ci_routing_fixed_with_real_required_full_workflows",
+      "data": {
+        "issue": 1460,
+        "pr": 1461,
+        "ci_contracts": 384,
+        "routing_tests": 80,
+        "offline_bundle_required": true,
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Publish exact source-only CI routing fix preserving full external Merge Gate. Require Authenticated Dashboard, Offline Bundle, Refrigeration Browser, Telemetry service and Core CI GREEN at identical HEAD before Draft PR merge. Site backup and isolated restore unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

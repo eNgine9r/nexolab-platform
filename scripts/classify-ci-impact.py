@@ -184,6 +184,8 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/nexolab-offline-backup-preflight.py",
+    "scripts/tests/test_nexolab_offline_backup_preflight.py",
     "scripts/prepare-version-update-lock.py",
     "scripts/tests/test_prepare_version_update_lock.py",
     "scripts/deploy-complete-partial-frontends.py",
@@ -285,6 +287,8 @@ DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
 }
 
 DISASTER_RECOVERY_TOOLING_PATHS = {
+    "scripts/nexolab-offline-backup-preflight.py",
+    "scripts/tests/test_nexolab_offline_backup_preflight.py",
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
     "scripts/validate-site-dr-inventory-v2.py",
