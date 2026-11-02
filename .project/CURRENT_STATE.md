@@ -1,3 +1,7 @@
+## 2026-11-02 — #1460 Merge Gate fail-closed CI routing repaired in source
+
+PR #1461 head 8276efb had Telemetry service CI GREEN and all Core jobs GREEN, but Core NEXOLAB Merge Gate RED because two newly introduced backup preflight paths were unknown to classify-ci-impact, so it required Dashboard, Refrigeration and Offline workflows even though only Telemetry triggered. The next source-only change explicitly registers exact read-only DR script/test paths as known offline deployment tools, requires actual Offline Bundle, updates PR path trigger, and adds CI routing regression. The classifier itself still requires all three external workflows, which have existing path triggers for this change. No gate disabled or bypassed; exact new-head checks must pass before merge.
+
 ## 2026-11-02 — #1460 read-only offline backup preflight under parent #1428
 
 Source-only no-write diagnostic verifies protected policy completeness, missing Edge SQLite, legacy MinIO / current VersityGW source authority conflict, staging symlink/ownership safeguards and a 20GiB reserve + 4GiB new archive budget. Host read-only staging check returned expected BLOCKED/78 (27,934,715,904 available bytes) and hermetic 15 unit tests PASS; no actual backup, off-device copy or restore. Parent #1428 still incomplete, issue #1431 inventory discovery already merged but physical mappings remain unresolved. No systemd timer or production changes.

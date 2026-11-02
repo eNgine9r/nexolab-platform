@@ -67,3 +67,18 @@ The targeted tests are explicitly registered in the existing Telemetry service
 GitHub Actions PostgreSQL 16 test workflow and its pull-request path filters.
 This CI contract does **not** claim PostgreSQL, backup or site activation
 from the read-only preflight itself.
+
+## GitHub exact-head release gate
+
+Initial source-only CI completed Telemetry service and Core quality but
+correctly failed Merge Gate: two new DR script/test paths were unregistered,
+so the fail-closed impact classifier required Dashboard, Offline Bundle and
+Refrigeration browser workflows, which could not start from path filters.
+
+The correction explicitly registers both exact paths as known DR tooling,
+requires Offline Bundle, and adds them to its pull-request trigger. Changing
+the central classifier itself STILL requires all three external workflows;
+the existing Dashboard/Refrigeration triggers include that exact file.
+A narrowly scoped regression in tests/test_ci_change_impact.py verifies both
+behaviors. The Merge Gate is not disabled or weakened. Any future GitHub GREEN
+is still not evidence of live backup or independent recovery acceptance.

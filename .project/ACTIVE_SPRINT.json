@@ -9419,7 +9419,10 @@
         ".project/ACTIVE_SPRINT.json",
         ".project/BLOCKERS.md",
         ".project/LAST_CHECKPOINT.json",
-        ".github/workflows/telemetry-service.yml"
+        ".github/workflows/telemetry-service.yml",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml"
       ],
       "evidence": {
         "source_only": true,
@@ -9434,12 +9437,18 @@
         "backup_timer": "not_installed",
         "site_mutation": false,
         "hardware": "unverified",
-        "github_exact_head": "pending",
+        "github_exact_head": "pending_new_commit",
         "broader_dr_tests": 40,
-        "ci_contract_tests": 383,
+        "ci_contract_tests": 384,
         "ci_contract_tests_skipped": 1,
         "same_disk_test_fixture": "validated",
-        "ci_regression_registered": "telemetry_service_workflow_source_and_test_path"
+        "ci_regression_registered": "telemetry_service_workflow_source_and_test_path",
+        "initial_telemetry_exact_head_ci": "success_8276efb",
+        "initial_core_ci": "failed_missing_required_external_workflow_registration",
+        "ci_routing_repair": "known_dr_exact_paths_preserve_all_required_workflows",
+        "classifier_unit_tests": 80,
+        "offline_bundle_required_for_dr_tooling": true,
+        "full_external_matrix_due_to_classifier_change": true
       }
     }
   ],
@@ -11024,6 +11033,21 @@
         "site_mutation": false,
         "backup_performed": false,
         "restore_performed": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T20:17:44Z",
+      "kind": "1460_ci_routing_fixed_with_real_required_full_workflows",
+      "data": {
+        "issue": 1460,
+        "pr": 1461,
+        "ci_contracts": 384,
+        "routing_tests": 80,
+        "dr_tests": 40,
+        "offline_bundle_required": true,
+        "dashboard_and_refrigeration_required_for_ci_governance": true,
+        "site_mutation": false
       }
     }
   ],

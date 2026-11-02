@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T19:59:07Z",
+  "timestamp": "2026-11-02T20:17:44Z",
   "actor": "ChatGPT",
-  "event": "1460_source_only_readonly_offline_backup_preflight_expected_block",
+  "event": "1460_ci_route_unknown_dr_files_fixed_preserving_exact_workflow_gate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1460,
     "branch": "feature/1460-offline-backup-preflight",
-    "status": "source_only_15_hermetic_tests_pass_live_site_preflight_blocked_exit78",
+    "status": "source_only_ci_routing_fix_pending_exact_head_full_green",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2814,11 +2814,19 @@
       "site_timer": "not_installed",
       "site_mutation": false,
       "hardware": "unverified",
-      "github_exact_head": "pending",
+      "github_exact_head": "pending_new_commit",
       "broader_dr_tests": 40,
-      "ci_contract_tests": 383,
+      "ci_contract_tests": 384,
       "ci_contract_tests_skipped": 1,
-      "same_disk_pytest_fixture": "passed"
+      "same_disk_pytest_fixture": "passed",
+      "initial_github_telemetry_service": "green",
+      "initial_core_merge_gate": "failed_missing_three_external",
+      "classifier_known_dr_source_paths": "added",
+      "offline_bundle_trigger": "added",
+      "routing_tests": 80,
+      "dr_tests": 40,
+      "offline_bundle_required": true,
+      "full_external_matrix_required_due_to_classifier": true
     }
   },
   "observations": [
@@ -4059,9 +4067,22 @@
         "backup_performed": false,
         "site_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T20:17:44Z",
+      "kind": "1460_ci_routing_fixed_with_real_required_full_workflows",
+      "data": {
+        "issue": 1460,
+        "pr": 1461,
+        "ci_contracts": 384,
+        "routing_tests": 80,
+        "offline_bundle_required": true,
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Publish #1460 source-only read-only preflight and inspect exact-head GitHub CI. Parent #1428 remains unfinished; independent source map #1431, full-store encrypted off-device backup, actual isolated restore, protected timer and owner site approval required.",
+  "next_action": "Publish exact source-only CI routing fix preserving full external Merge Gate. Require Authenticated Dashboard, Offline Bundle, Refrigeration Browser, Telemetry service and Core CI GREEN at identical HEAD before Draft PR merge. Site backup and isolated restore unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
