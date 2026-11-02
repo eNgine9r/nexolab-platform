@@ -75,3 +75,15 @@ the blocking older row. The repair is source-only; the fixture's direct
 SQLite cleanup is never part of the production code. No installed
 subscriber, broker ACL identity, central PG commitment, offline site or
 hardware acceptance is implied.
+
+## 2026-11-02 — Synthetic actual SQLite_FULL rollback
+
+A focused regression bounds a *temporary* SQLite fixture to its existing page
+count using `PRAGMA max_page_count`; attempting a final committed receipt
+raises real `sqlite3.OperationalError: database or disk is full`. Its oldest
+telemetry event and failed receipt ledger remain untouched, the SQLite
+transaction ends cleanly, and clearing only the fixture-local limit permits
+the identical receipt to commit atomically. This demonstrates transactional
+failure and recovery under a bounded synthetic page ceiling, not actual site
+SSD endurance, full-disk stress, battery-backed power-loss testing or disaster
+recovery. No production database is accessed.

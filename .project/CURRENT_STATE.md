@@ -1,3 +1,7 @@
+## 2026-11-02 — #1451 bounded SQLite_FULL acceptance, source-only
+
+A disposable SQLite test uses real `PRAGMA max_page_count` to force SQLITE_FULL at the first final-receipt ledger transaction (not a mocked exception and not host disk fill). The original telemetry row remains queued and the receipt-ledger table is absent after the failure; `connection.in_transaction` is false. After resetting only that disposable DB's page limit, the identical authenticated synthetic receipt atomically prunes its exact row. **No site SQLite quota, installed outbox, live PG/broker identity or host disk altered.** Isolated ARM64 360/360 Device Agent tests, 23/23 durable protocol tests and 383/383 CI contracts (one policy test skipped) PASS. Offline/hardware/site acceptance stays unverified.
+
 ## 2026-11-02 — #1451 strict global FIFO receipt acceptance after #1458 main sync
 
 Scoped final/informational receipts may not bypass an older legacy, health or foreign-tenant SQLite queue row. Added synthetic regression; 359/359 ARM64 Device Agent and 23/23 receipt protocol tests passed before sync. Independent merged main#1458 state closure preserved; Edge remains SOURCE ONLY, unwired, with site security/backups/network blockers unresolved. No hardware, broker or production changes.

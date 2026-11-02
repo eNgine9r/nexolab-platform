@@ -9448,7 +9448,7 @@
         "production_mutation": false,
         "main_idna_fix_1453": "merged_and_integrated",
         "core_ci": "must_recheck_new_head",
-        "security_supply_chain": "blocked_independent_owner_review",
+        "security_supply_chain": "blocked_expired_exception_2026_10_20",
         "post_main_merge_arm64_device_agent_tests": 357,
         "post_main_merge_receipt_contract_tests": 23,
         "post_main_merge_offline_url_tests": 30,
@@ -9458,7 +9458,12 @@
         "post_fifo_arm64_device_agent_tests": 359,
         "post_fifo_arm64_receipt_contract_tests": 23,
         "current_main_integrated": true,
-        "github_ci": "pending_new_exact_head"
+        "github_ci": "pending_new_head",
+        "sqlite_full_bounded_fixture": "real_sqlite_full_atomic_rollback_and_recovery",
+        "latest_arm64_module_tests": 360,
+        "latest_arm64_receipt_contract_tests": 23,
+        "latest_arm64_ci_contract_tests": 383,
+        "ci_contract_tests_skipped": 1
       }
     },
     {
@@ -11149,6 +11154,22 @@
         "merged": true,
         "feature_issue": 1451,
         "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:17:25Z",
+      "kind": "1451_arm64_sqlite_full_transaction_regression",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "module_tests": 360,
+        "receipt_contract_tests": 23,
+        "ci_contract_tests": 383,
+        "sqlite_full_rollback": "pass",
+        "fixture_only": true,
+        "site_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],

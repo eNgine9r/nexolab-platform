@@ -316,6 +316,47 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
                 self.assertEqual(self.queue.size(), 1)
         self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
 
+    def test_sqlite_full_during_receipt_transaction_rolls_back_and_recovers(self) -> None:
+        # PRAGMA max_page_count confines the failure to a disposable SQLite
+        # fixture without filling the Raspberry disk. This exercises the real
+        # SQLITE_FULL failure, not a mocked connection or injected exception.
+        (event_id,) = self.pending()
+        raw = self.receipt(event_id)
+        original_page_limit = self.queue._connection.execute(
+            "PRAGMA max_page_count"
+        ).fetchone()[0]
+        current_pages = self.queue._connection.execute(
+            "PRAGMA page_count"
+        ).fetchone()[0]
+        self.queue._connection.execute(f"PRAGMA max_page_count = {current_pages}")
+        try:
+            self.assertEqual(
+                self.queue._connection.execute(
+                    "PRAGMA max_page_count"
+                ).fetchone()[0],
+                current_pages,
+            )
+            with self.assertRaisesRegex(
+                sqlite3.OperationalError, "database or disk is full"
+            ):
+                self.apply(raw)
+            self.assertFalse(self.queue._connection.in_transaction)
+            self.assertEqual(self.queue.size(), 1)
+            self.assertEqual(
+                self.queue._connection.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE name='committed_receipt_ledger'"
+                ).fetchall(),
+                [],
+            )
+        finally:
+            # Restore only the synthetic fixture's SQLite page budget.
+            self.queue._connection.execute(
+                f"PRAGMA max_page_count = {original_page_limit}"
+            )
+        self.assertEqual(self.apply(raw), "prune_allowed")
+        self.assertEqual(self.queue.size(), 0)
+
     def test_contended_sqlite_transaction_preserves_row_and_recovers(self) -> None:
         (event_id,) = self.pending()
         raw = self.receipt(event_id)

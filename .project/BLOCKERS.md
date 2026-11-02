@@ -1,3 +1,7 @@
+## 2026-11-02 — #1451 disk exhaustion guard tested, site acceptance still RED
+
+SQLite_FULL rollback and bounded recovery have been reproduced in a temporary test database with a max-page quota, **not** on the installed Raspberry SQLite or persistent site storage. This regression does not establish real available capacity, backup/restore, broker-ACL sender authenticity, central PostgreSQL receipt publisher or field hardware acceptance. #1447, #1445, #1449, #1428 and #1399 remain gates. Supply chain on #1452 latest checked head 02093ab failed because exceptions[0] expired 2026-10-20; no security expiry changes or owner risk acceptance made.
+
 ## 2026-11-02 — #1451 global FIFO and offline source-only release gate
 
 Source-only final-receipt prune now rejects any older foreign/legacy/health row ahead of canonical scoped telemetry, including informational receipt handling. This regression does not verify installed ACL identity, central PG durable commit, site backup/restore or live offline delivery; #1447/#1445/#1449/#1428/#1399 remain blocked for release. No site writes.

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T06:22:20Z",
+  "timestamp": "2026-11-02T09:17:25Z",
   "actor": "ChatGPT",
-  "event": "1451_fix_global_fifo_foreign_row_acceptance_merged_main_1458",
+  "event": "1451_sqlite_full_receipt_rollback_verified_arm64_360",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1451,
     "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "arm64_fifo_regression_source_verified_github_ci_pending_site_unverified",
+    "status": "source_only_arm64_sqlite_full_and_fifo_verified_git_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2790,13 +2790,17 @@
       "post_main_merge_arm64_idna_tests": 30,
       "post_main_merge_arm64_ci_policy_tests": 383,
       "post_main_merge_ci_policy_skipped": 1,
-      "github_exact_head": "pending",
+      "github_exact_head": "pending_new_commit",
       "site_acceptance": "unverified",
       "global_fifo_receipt_prune": "source_only_fail_closed",
-      "arm64_device_agent_module_tests": 359,
+      "arm64_device_agent_module_tests": 360,
       "arm64_receipt_protocol_contract_tests": 23,
       "main_integrated": true,
-      "site_runtime_mutation": false
+      "site_runtime_mutation": false,
+      "sqlite_full_test": "real_bounded_sqlite_page_limit",
+      "sqlite_full_rollback": "verified_source_only",
+      "arm64_durable_protocol_tests": 23,
+      "arm64_ci_contract_tests": 383
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -4107,9 +4111,24 @@
         "feature_issue": 1451,
         "runtime_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:17:25Z",
+      "kind": "1451_arm64_sqlite_full_transaction_regression",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "module_tests": 360,
+        "receipt_contract_tests": 23,
+        "ci_contract_tests": 383,
+        "sqlite_full_rollback": "pass",
+        "fixture_only": true,
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Revalidate exact merged-head state, targeted ARM64 Device Agent, protocol and CI contracts; publish HEAD and inspect GitHub full CI. Continue source-only code; prohibit site/Modbus or unsafe broker writes. #1447 security, #1445 central, #1449 ACL, #1428 backups and #1399 network remain blockers.",
+  "next_action": "Push source-only #1451 SQLite_FULL regression and inspect exact HEAD CI. No merge while #1447 exceptions expired. Central #1445, broker ACL #1449, independent backups #1428 and runtime network #1399 require acceptance before site cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
