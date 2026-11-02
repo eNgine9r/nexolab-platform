@@ -38,3 +38,25 @@ broker/identity/real-MQTT tests and runtime wiring remain **unfinished**.
 ### Per-node publish ordering
 
 CommittedReceiptPublisher source-only scheduler excludes a newer pending sequence when any earlier sequence for the same organization/node is still unpublished, even if its retry lease is backed off or another worker holds the earlier row. Other nodes can publish independently. This prevents a known older receipt from being overtaken, **but cannot prove whether a yet-uncommitted earlier sample exists**. Broker PUBACK does not prove Edge acceptance: subscriber-side pending FIFO, durable replay requests, ACL acceptance and isolated outages remain separate gates.
+
+## 2026-11-02 — Fail-closed MQTT transport receipt schema (source-only)
+
+The staged dedicated QoS1 sender must not treat broker PUBACK as a successful
+receipt when the emitted body could be rejected by the Edge v1 validator.
+Before publication it rejects JSON duplicate keys (including nested
+duplicates), non-canonical node identities, timestamps without time zones,
+unparseable timestamps, timestamps older than seven days or more than five
+minutes ahead of the local trusted clock, oversized timestamp strings, and
+other topic/identity mismatches. Retained bytes must match the original event
+record and exact trusted receipt topic; only PostgreSQL-backed intent may
+call the transport after separately verified broker publisher ACL. A sender
+callback returning True is never proof of Edge delivery.
+
+The test fixture uses a current UTC acceptance timestamp so its positive
+test does not expire with calendar time. Its standalone SQLite refusal test
+now explicitly registers the documented SQLAlchemy models rather than relying
+on unrelated test import order. On an isolated Raspberry Python environment,
+20 focused tests passed and 17 tests requiring an independent PostgreSQL
+database were skipped. These SKIPs are **not** PostgreSQL integration
+acceptance; the installed site DB was not accessed, and the source remains
+unwired to production.

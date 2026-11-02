@@ -7,6 +7,8 @@ until dedicated MQTT identity/ACL review and isolated acceptance are complete.
 from __future__ import annotations
 
 import json
+import re
+from datetime import UTC, datetime, timedelta
 from threading import Event
 from typing import Any
 from uuid import UUID
@@ -116,7 +118,18 @@ class CommittedReceiptMqttSender:
         if not 0 < len(body) <= MAX_RECEIPT_BYTES:
             return False
         try:
-            payload = json.loads(body)
+            # Any duplicate key can make the Edge's strict validator reject
+            # this receipt *after* we mark its broker publication successful.
+            # Reject it before MQTT PUBACK can retire the central outbox.
+            def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+                unique: dict[str, Any] = {}
+                for key, value in pairs:
+                    if key in unique:
+                        raise ValueError("duplicate_receipt_json_key")
+                    unique[key] = value
+                return unique
+
+            payload = json.loads(body, object_pairs_hook=reject_duplicate_keys)
             if not isinstance(payload, dict):
                 return False
             expected = {
@@ -136,9 +149,18 @@ class CommittedReceiptMqttSender:
                 if not isinstance(value, str) or str(UUID(value)) != value:
                     return False
             node = payload["node_id"]
-            if not isinstance(node, str) or not node or "/" in node or "+" in node or "#" in node:
+            if not isinstance(node, str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", node
+            ):
                 return False
-            if not isinstance(payload["accepted_at"], str):
+            accepted_at = payload["accepted_at"]
+            if not isinstance(accepted_at, str) or len(accepted_at) > 40:
+                return False
+            observed = datetime.fromisoformat(accepted_at.replace("Z", "+00:00"))
+            if observed.tzinfo is None or observed.utcoffset() is None:
+                return False
+            clock = datetime.now(UTC)
+            if observed < clock - timedelta(days=7) or observed > clock + timedelta(minutes=5):
                 return False
             return topic == f'nexolab/v1/{payload["organization_id"]}/{node}/receipts'
         except (UnicodeDecodeError, ValueError, TypeError, KeyError, AttributeError):

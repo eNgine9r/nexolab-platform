@@ -140,6 +140,11 @@ def test_rollback_does_not_leave_phantom_receipt(database, monkeypatch):
 
 
 def test_non_postgres_cannot_claim_postgresql_commit(tmp_path):
+    # This test must not depend on unrelated test import order to populate
+    # cross-domain SQLAlchemy metadata before creating a fresh SQLite DB.
+    from app.model_registry import register_models
+
+    register_models()
     fake = Database(f"sqlite:///{tmp_path / 'refuse.db'}")
     fake.create_schema()
     event, raw = make_event()

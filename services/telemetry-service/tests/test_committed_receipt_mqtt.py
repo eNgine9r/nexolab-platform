@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -101,7 +102,7 @@ def receipt(sequence: int = 1) -> tuple[str, bytes]:
         "stream": "telemetry",
         "node_sequence": sequence,
         "receipt_level": "postgres_committed",
-        "accepted_at": "2026-10-30T14:00:00Z",
+        "accepted_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     }
     return topic, json.dumps(obj).encode("utf-8")
 
@@ -169,3 +170,54 @@ def test_transport_requires_separate_nonempty_credentials(tmp_path):
             password_file="missing",
             tls_config=MQTTTLSConfig(enabled=False),
         )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "duplicate_event_id",
+        "duplicate_node_id",
+        "invalid_node",
+        "invalid_date",
+        "missing_timezone",
+        "stale_date",
+        "future_date",
+        "oversized_date",
+    ],
+)
+def test_receipt_sender_rejects_undeliverable_edge_payloads(tmp_path, mutation):
+    sender, client = make_sender(tmp_path)
+    sender.start()
+    topic, raw = receipt()
+    payload = json.loads(raw)
+    if mutation == "duplicate_event_id":
+        raw = raw.replace(
+            b'"event_id":',
+            b'"event_id":"00000000-0000-0000-0000-000000000001","event_id":',
+            1,
+        )
+    elif mutation == "duplicate_node_id":
+        raw = raw.replace(b'"node_id":', b'"node_id":"foreign","node_id":', 1)
+    elif mutation == "invalid_node":
+        payload["node_id"] = "bad node"
+        topic = f'nexolab/v1/{ORG}/bad node/receipts'
+        raw = json.dumps(payload).encode("utf-8")
+    else:
+        if mutation == "invalid_date":
+            payload["accepted_at"] = "not-a-date"
+        elif mutation == "missing_timezone":
+            payload["accepted_at"] = "2026-11-02T10:00:00"
+        elif mutation == "stale_date":
+            payload["accepted_at"] = (
+                datetime.now(UTC) - timedelta(days=8)
+            ).isoformat()
+        elif mutation == "future_date":
+            payload["accepted_at"] = (
+                datetime.now(UTC) + timedelta(minutes=6)
+            ).isoformat()
+        else:
+            payload["accepted_at"] = "2" * 41
+        raw = json.dumps(payload).encode("utf-8")
+    assert sender(topic, raw) is False
+    assert client.sent == []
+    sender.stop()
