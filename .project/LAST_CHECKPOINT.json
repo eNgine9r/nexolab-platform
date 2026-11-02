@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:09:58Z",
+  "timestamp": "2026-11-02T06:22:20Z",
   "actor": "ChatGPT",
-  "event": "1451_exact_head_ci_regression_discovered_volatile_merge_sha_moved_to_observations",
+  "event": "1451_fix_global_fifo_foreign_row_acceptance_merged_main_1458",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1451,
     "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "local_arm64_tests_green_repository_state_validator_fixed_git_ci_pending",
+    "status": "arm64_fifo_regression_source_verified_github_ci_pending_site_unverified",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2790,8 +2790,13 @@
       "post_main_merge_arm64_idna_tests": 30,
       "post_main_merge_arm64_ci_policy_tests": 383,
       "post_main_merge_ci_policy_skipped": 1,
-      "github_exact_head": "pending_new_merge_commit",
-      "site_acceptance": "unverified"
+      "github_exact_head": "pending",
+      "site_acceptance": "unverified",
+      "global_fifo_receipt_prune": "source_only_fail_closed",
+      "arm64_device_agent_module_tests": 359,
+      "arm64_receipt_protocol_contract_tests": 23,
+      "main_integrated": true,
+      "site_runtime_mutation": false
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -2812,6 +2817,14 @@
       "offline_bundle": "success",
       "telemetry_service": "success",
       "issue_status": "closed"
+    },
+    "issue_1458_state_reconciliation": {
+      "issue": 1458,
+      "scope": "state_only",
+      "closed_1453_sprint_entry": true,
+      "selection": "no_active_main_work_package",
+      "site_runtime": "not_modified",
+      "hardware": "unverified"
     }
   },
   "observations": [
@@ -4069,9 +4082,34 @@
         "feature_branch_issue": 1451,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T06:22:20Z",
+      "kind": "1458_state_main_sync_with_1451_fifo",
+      "data": {
+        "issue": 1458,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "merged": true,
+        "feature_issue": 1451,
+        "runtime_mutation": false
+      }
     }
   ],
-  "next_action": "Re-run direct validate-project-state.py and all affected CI policy tests; push focused state-only repair. Keep #1452 Draft; #1447 security approval and #1445/#1449/#1428/#1399 remain blocked.",
+  "next_action": "Revalidate exact merged-head state, targeted ARM64 Device Agent, protocol and CI contracts; publish HEAD and inspect GitHub full CI. Continue source-only code; prohibit site/Modbus or unsafe broker writes. #1447 security, #1445 central, #1449 ACL, #1428 backups and #1399 network remain blockers.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -1,3 +1,11 @@
+## 2026-11-02 — #1451 global FIFO and offline source-only release gate
+
+Source-only final-receipt prune now rejects any older foreign/legacy/health row ahead of canonical scoped telemetry, including informational receipt handling. This regression does not verify installed ACL identity, central PG durable commit, site backup/restore or live offline delivery; #1447/#1445/#1449/#1428/#1399 remain blocked for release. No site writes.
+
+## 2026-11-02 — main governance corrected, deployment still blocked
+
+The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
+
 ## 2026-11-02 — #1451 integrated the merged offline IDNA guard #1453
 
 PR #1454 for Issue #1453 merged into main at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91 after three exact-head GREEN workflows, closing #1453. Feature #1451 keeps the source-only bounded replay/SQLite ledger and the verified fail-closed URL guard without editing live DeviceAgent, broker ACL or site. Installed security #1447, Central receipt #1445, MQTT ACL #1449, protected backup #1428 and network #1399 remain release gates. No production, hardware or Modbus writes.

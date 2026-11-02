@@ -9453,7 +9453,12 @@
         "post_main_merge_receipt_contract_tests": 23,
         "post_main_merge_offline_url_tests": 30,
         "post_main_merge_ci_contract_tests": 383,
-        "post_main_merge_ci_contract_skips": 1
+        "post_main_merge_ci_contract_skips": 1,
+        "global_fifo_receipt_acceptance": "fail_closed_foreign_oldest",
+        "post_fifo_arm64_device_agent_tests": 359,
+        "post_fifo_arm64_receipt_contract_tests": 23,
+        "current_main_integrated": true,
+        "github_ci": "pending_new_exact_head"
       }
     },
     {
@@ -9489,6 +9494,33 @@
         "pr": 1454,
         "offline_bundle": "success",
         "telemetry_service": "success"
+      }
+    },
+    {
+      "issue": 1458,
+      "title": "Reconcile merged #1453 Sprint and checkpoint in main",
+      "branch": "docs/1458-reconcile-1453-merged",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1453
+      ],
+      "scope": "State-only closure of merged #1453; keep unmerged dependency WPs as GitHub/Draft sources; no runtime activation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "main_merged_1453_reconciled": true,
+        "site_mutation": false,
+        "hardware": "unverified",
+        "local_validator": "success",
+        "ci_policy_contract_tests": 383,
+        "state_tests": 13,
+        "state_tests_skipped": 1
       }
     }
   ],
@@ -11092,6 +11124,31 @@
         "exact_head_workflows_green": 3,
         "feature_branch_issue": 1451,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T06:22:20Z",
+      "kind": "1458_state_main_sync_with_1451_fifo",
+      "data": {
+        "issue": 1458,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "merged": true,
+        "feature_issue": 1451,
+        "runtime_mutation": false
       }
     }
   ],

@@ -1,3 +1,11 @@
+## 2026-11-02 — #1451 strict global FIFO receipt acceptance after #1458 main sync
+
+Scoped final/informational receipts may not bypass an older legacy, health or foreign-tenant SQLite queue row. Added synthetic regression; 359/359 ARM64 Device Agent and 23/23 receipt protocol tests passed before sync. Independent merged main#1458 state closure preserved; Edge remains SOURCE ONLY, unwired, with site security/backups/network blockers unresolved. No hardware, broker or production changes.
+
+## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
+
+GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
+
 ## 2026-11-02 — #1451 guarded main integration verified on ARM64
 
 After incorporating main@7bff23d (#1453 Punycode offline URL fix), the isolated feature branch completed 357/357 Device Agent tests, 23/23 receipt protocol tests, 30/30 URL contract tests and 383/383 CI policy tests (one skip). No installed DeviceAgent wiring, actual broker subscription or site/runtime/hardware mutation. New exact-head GitHub CI is pending; inherited HIGH security exception expiration remains release-blocking.
