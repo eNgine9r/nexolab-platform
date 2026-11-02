@@ -1,3 +1,7 @@
+## 2026-11-02 — #1449 source-only MQTT Dynamic Security ACL branch synced with main
+
+Source-only branch #1449 retains its opt-in central-only receipt publishing identity and exact per-node subscription ACL, now incorporates merged #1453 offline IDNA fix and #1458 main state reconciliation. No production ACL, credentials, network or broker changed. Prior isolated broker evidence remains source-only; fresh exact-head GitHub workflows pending. Security #1447 49 HIGH owner decision, central #1445, Edge #1451, protected backups #1428 and site IPAM #1399 remain release gates.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
@@ -5,6 +9,10 @@ GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f
 ## 2026-11-01 — #1453 offline bundle IDNA A-label fail-closed regression
 
 CI run 41343615543 for #1451 revealed two malformed Punycode hostnames accepted by offline package URL dispatch. #1453 fixes only .github/workflows/offline-bundle.yml and matching source-only tests; maintains canonical valid Punycode, same-host and offline LOCAL_LAN checks. On isolated Raspberry ARM64 exact-main engineering branch, pinned Node v22.23.1 checksum verified; 30/30 workflow-contract and 383/383 test_ci_* tests PASS (one skipped). No installed-site/runtime, secret, hardware or Modbus action. First PR #1454 head 92314f4 failed GitHub runner Unicode/ICU portability; follow-up guard rejects empty/unchanged or non-letter/mark/number Unicode decoded host and reruns 383/383 ARM64 tests. New exact-head CI pending; independent #1447 security exception expiry remains a separate RED gate, not waived.
+
+## 2026-10-30 — #1449 dedicated receipt ACL isolated acceptance, Draft PR #1450
+
+PR #1450 at `b2107165e8d111690688410d2f805083a484f7c5` adds two explicit receipt-only Mosquitto Dynamic Security commands and real isolated broker acceptance. MQTT Broker Security Acceptance [41090376089](https://github.com/eNgine9r/nexolab-platform/actions/runs/41090376089): **GREEN**, dual AMD64/ARM64 dynamic security image build GREEN; Broker Control Acceptance GREEN. Confirmed correct-node receipt delivery, denied spoofing by broker non-delivery, wrong-tenant/node isolation, idempotent ACL grants and delivery after broker restart. Evidence ZIP ID 12993517133, SHA256 `27ae2542fa492bdc21b8abacf35635df1eb5b455804749465f0d043ec73286d8`. This evidence applies to **disposable CI broker only**. Full exact-head PR checks still in progress. Original `main` remains 528ff5256d379ffd4a8ec77d831264db9180a47f; #1445 central publisher / Draft PR #1446 still unmerged. Independent security #1447 / Draft PR #1448 passed 22 workflows but retains 49 HIGH risk records pending owner review. **No installed broker ACL, credentials, Edge SQLite queue, Raspberry Pi site/network/database, Modbus or hardware write performed.** #1428/#1399 protected site gates remain blocked.
 
 ## 2026-10-30 — #1410 durability receipt contract re-based on actual main
 

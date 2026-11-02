@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-02T13:39:14Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1449_opt_in_acl_main_1453_1458_source_sync_no_live_broker_mutation",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1449,
+    "branch": "security/1449-dedicated-receipt-mqtt-acl",
+    "status": "source_only_acl_main_sync_pending_exact_head_ci_security_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2800,6 +2800,15 @@
       "selection": "no_active_main_work_package",
       "site_runtime": "not_modified",
       "hardware": "unverified"
+    },
+    "issue_1449_mqtt_acl": {
+      "source_only": true,
+      "main_integrated": true,
+      "installed_broker_acl": "unverified",
+      "site_tls": "unverified",
+      "production_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending"
     }
   },
   "observations": [
@@ -4016,6 +4025,21 @@
     },
     {
       "source": "github",
+      "observed_at": "2026-10-30T16:30:00Z",
+      "kind": "1449_disposable_broker_accepted",
+      "data": {
+        "issue": 1449,
+        "pr": 1450,
+        "head_sha": "b2107165e8d111690688410d2f805083a484f7c5",
+        "run": 41090376089,
+        "status": "success",
+        "evidence_sha256": "27ae2542fa492bdc21b8abacf35635df1eb5b455804749465f0d043ec73286d8",
+        "production_mutation": false,
+        "live_broker_verified": false
+      }
+    },
+    {
+      "source": "github",
       "observed_at": "2026-11-02T03:15:04Z",
       "kind": "1453_offline_idna_main_merged_green",
       "data": {
@@ -4026,9 +4050,20 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:39:14Z",
+      "kind": "1449_acl_source_main_1458_sync",
+      "data": {
+        "issue": 1449,
+        "pr": 1450,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "live_acl_mutation": false
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Re-run source-only broker ACL tests, State Model, CI contracts and actual exact-head GitHub workflows. Keep Draft without site ACL changes. Owner security risk acceptance #1447, full backup #1428, network #1399, central #1445 and Edge #1451 remain gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
