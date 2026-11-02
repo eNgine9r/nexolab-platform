@@ -9418,7 +9418,8 @@
         ".project/CURRENT_STATE.md",
         ".project/ACTIVE_SPRINT.json",
         ".project/BLOCKERS.md",
-        ".project/LAST_CHECKPOINT.json"
+        ".project/LAST_CHECKPOINT.json",
+        ".github/workflows/telemetry-service.yml"
       ],
       "evidence": {
         "source_only": true,
@@ -9437,7 +9438,8 @@
         "broader_dr_tests": 40,
         "ci_contract_tests": 383,
         "ci_contract_tests_skipped": 1,
-        "same_disk_test_fixture": "validated"
+        "same_disk_test_fixture": "validated",
+        "ci_regression_registered": "telemetry_service_workflow_source_and_test_path"
       }
     }
   ],

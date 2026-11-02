@@ -62,3 +62,8 @@ This source-only safety slice under parent #1428 is a **preflight blocker/report
 
 Permitted scope: the diagnostic, hermetic tests, this runbook, canonical
 project state. No hardware, database, production files, or services changed.
+
+The targeted tests are explicitly registered in the existing Telemetry service
+GitHub Actions PostgreSQL 16 test workflow and its pull-request path filters.
+This CI contract does **not** claim PostgreSQL, backup or site activation
+from the read-only preflight itself.
