@@ -55,3 +55,23 @@ Release remains blocked by #1445 central producer, #1449 verified broker
 ACL, #1447 residual security decision, #1428 complete site backup/restore
 and #1399 guarded network recovery. Full CI on this branch may fail until
 the independent security exception repair lands; never bypass it.
+
+## 2026-11-02 — Enforce global FIFO at committed receipt acceptance
+
+The first isolated implementation searched for the oldest row **matching the
+scoped telemetry topic** while its replay counterpart refused to skip an older
+legacy, foreign-tenant or health row. This mismatch could accept a final
+PostgreSQL receipt and prune a later event despite an earlier, unreplayable
+outbox record. The receipt transaction now reads the **globally** oldest row,
+rejects `oldest_pending_topic_not_scoped` when the topic does not equal the
+trusted canonical telemetry topic, and leaves all queued rows and the receipt
+ledger unchanged. The exact FIFO guard applies to both final
+`postgres_committed` and informational `durably_spooled` receipts.
+
+Synthetic fixtures cover legacy `nexolab/telemetry`, wrong-organization
+`nexolab/v1/.../telemetry`, foreign `health` stream, no accidental ledger
+insert, and successful scoped receipt only after fixture-local resolution of
+the blocking older row. The repair is source-only; the fixture's direct
+SQLite cleanup is never part of the production code. No installed
+subscriber, broker ACL identity, central PG commitment, offline site or
+hardware acceptance is implied.

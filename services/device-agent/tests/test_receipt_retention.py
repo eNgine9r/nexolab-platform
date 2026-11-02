@@ -97,6 +97,85 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         self.assertEqual(self.apply(self.receipt(second, 2)), "prune_allowed")
         self.assertEqual(self.queue.size(), 0)
 
+    def test_older_foreign_topics_block_later_valid_receipt_without_prune(self) -> None:
+        # The replay path refuses to bypass an older foreign/legacy queue row.
+        # Receipt acceptance must enforce the same global FIFO invariant.
+        for foreign_topic in (
+            "nexolab/telemetry",
+            f"nexolab/v1/{uuid.uuid4()}/{NODE}/telemetry",
+            f"nexolab/v1/{ORG}/{NODE}/health",
+        ):
+            with self.subTest(foreign_topic=foreign_topic):
+                foreign_event = str(uuid.uuid4())
+                self.queue.enqueue(
+                    foreign_topic,
+                    json.dumps({"event_id": foreign_event, "node_id": NODE}),
+                    foreign_event,
+                )
+                (scoped_event,) = self.pending()
+                raw = self.receipt(
+                    scoped_event,
+                    sequence=json.loads(self.queue.oldest()[1][2])["node_sequence"],
+                )
+                ledger_existed = self.queue._connection.execute(
+                    "SELECT COUNT(*) FROM sqlite_master "
+                    "WHERE name='committed_receipt_ledger'"
+                ).fetchone()[0]
+                ledger_count = (
+                    self.queue._connection.execute(
+                        "SELECT COUNT(*) FROM committed_receipt_ledger"
+                    ).fetchone()[0]
+                    if ledger_existed else 0
+                )
+                with self.assertRaisesRegex(
+                    ReceiptProtocolError, "oldest_pending_topic_not_scoped"
+                ):
+                    self.apply(raw)
+                self.assertEqual(self.queue.size(), 2)
+                self.assertEqual(
+                    self.queue._connection.execute(
+                        "SELECT COUNT(*) FROM sqlite_master "
+                        "WHERE name='committed_receipt_ledger'"
+                    ).fetchone()[0],
+                    ledger_existed,
+                )
+                if ledger_existed:
+                    self.assertEqual(
+                        self.queue._connection.execute(
+                            "SELECT COUNT(*) FROM committed_receipt_ledger"
+                        ).fetchone()[0], ledger_count,
+                    )
+                # Synthetic fixture-only repair/removal of the blocking row;
+                # public receipt-mode delete() must remain forbidden.
+                with self.queue._connection:
+                    self.queue._connection.execute(
+                        "DELETE FROM outbound_queue WHERE event_id=?", (foreign_event,)
+                    )
+                self.assertEqual(self.apply(raw), "prune_allowed")
+                self.assertEqual(self.queue.size(), 0)
+
+    def test_older_foreign_queue_row_remains_after_informational_receipt(self) -> None:
+        foreign_id = str(uuid.uuid4())
+        self.queue.enqueue("nexolab/telemetry", "{}", foreign_id)
+        (scoped_event,) = self.pending()
+        raw = self.receipt(scoped_event, level="durably_spooled")
+        with self.assertRaisesRegex(
+            ReceiptProtocolError, "oldest_pending_topic_not_scoped"
+        ):
+            self.apply(raw)
+        self.assertEqual(
+            [row[0] for row in self.queue._connection.execute(
+                "SELECT event_id FROM outbound_queue ORDER BY id"
+            )],
+            [foreign_id, scoped_event],
+        )
+        self.assertEqual(
+            self.queue._connection.execute(
+                "SELECT name FROM sqlite_master WHERE name='committed_receipt_ledger'"
+            ).fetchall(),
+            [],
+        )
+
     def test_spool_only_is_informational_and_duplicate_is_rejected(self) -> None:
         (event_id,) = self.pending()
         raw = self.receipt(event_id, level="durably_spooled")

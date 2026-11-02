@@ -171,21 +171,26 @@ class CommittedReceiptQueue(OfflineQueue):
                 ).fetchone()
                 if seen is not None:
                     raise ReceiptProtocolError("receipt_id_already_processed")
+                # Replay always selects the globally oldest row. Never
+                # acknowledge a later scoped event while an older legacy,
+                # foreign-tenant or other-stream row blocks actual publishing.
+                # A topic-filtered query here would bypass that FIFO guard
+                # and silently prune an event the Edge could not yet replay.
                 row = self._connection.execute(
                     """
-                    SELECT id, event_id, payload
+                    SELECT id, event_id, topic, payload
                     FROM outbound_queue
-                    WHERE topic=?
                     ORDER BY id
                     LIMIT 1
-                    """,
-                    (telemetry_topic,),
+                    """
                 ).fetchone()
                 if row is None:
                     raise ReceiptProtocolError("no_matching_pending_telemetry")
+                if row[2] != telemetry_topic:
+                    raise ReceiptProtocolError("oldest_pending_topic_not_scoped")
                 try:
                     trusted_payload = json.loads(
-                        str(row[2]), object_pairs_hook=_strict_local_pairs
+                        str(row[3]), object_pairs_hook=_strict_local_pairs
                     )
                 except (ValueError, TypeError) as exc:
                     raise ReceiptProtocolError("invalid_local_pending_payload") from exc
