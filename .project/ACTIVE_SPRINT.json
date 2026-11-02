@@ -60,10 +60,7 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1453,
-      "branch": "fix/1453-offline-idna-host-guard"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -9344,7 +9341,7 @@
       "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
       "branch": "fix/1453-offline-idna-host-guard",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
       "permitted_paths": [
@@ -9363,12 +9360,42 @@
         "ci_contract_skipped": 1,
         "node_exact": "v22.23.1_shasum_verified",
         "offline_runtime_required": true,
-        "github_ci": "pending_updated_exact_head",
+        "github_ci": "success",
         "production_mutation": false,
         "hardware": "unverified",
         "independent_security_gate": "blocked",
         "first_github_ci_job": "124968515497_failed_idna_icu_portability",
-        "cross_version_decoded_hostname_guard": "added_source_only"
+        "cross_version_decoded_hostname_guard": "added_source_only",
+        "pr": 1454,
+        "offline_bundle": "success",
+        "telemetry_service": "success"
+      }
+    },
+    {
+      "issue": 1458,
+      "title": "Reconcile merged #1453 Sprint and checkpoint in main",
+      "branch": "docs/1458-reconcile-1453-merged",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1453
+      ],
+      "scope": "State-only closure of merged #1453; keep unmerged dependency WPs as GitHub/Draft sources; no runtime activation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "main_merged_1453_reconciled": true,
+        "site_mutation": false,
+        "hardware": "unverified",
+        "local_validator": "success",
+        "ci_policy_contract_tests": 383,
+        "state_tests": 13,
+        "state_tests_skipped": 1
       }
     }
   ],
@@ -10925,6 +10952,19 @@
         "pg_backup_executed": false,
         "private_restored": false,
         "protected_site_unmodified": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
       }
     }
   ],
