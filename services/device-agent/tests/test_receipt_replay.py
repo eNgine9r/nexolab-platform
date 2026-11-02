@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -154,6 +156,68 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(other.attempt_once(self.puback, now_monotonic=1), "puback_waiting_receipt")
         self.assertEqual(json.loads(self.sent[-1][1])["event_id"], event_id)
         self.assertEqual(self.queue.size(), 1)
+
+    def test_independent_python_process_replays_same_durable_row_after_puback(self) -> None:
+        # Start with an acknowledged publish, but no PostgreSQL receipt.
+        # A fresh OS process must recover the immutable event and sequence
+        # from the same temporary SQLite file, not from Python memory.
+        event_id = self.pending()
+        self.assertEqual(
+            self.replay.attempt_once(self.puback, now_monotonic=1),
+            "puback_waiting_receipt",
+        )
+        original_payload = self.queue.oldest()[0][2]
+        self.assertEqual(json.loads(original_payload)["node_sequence"], 1)
+        self.queue._connection.close()
+
+        child_code = """
+import json
+import sys
+from pathlib import Path
+from receipt_replay import CommittedReceiptReplay
+from receipt_retention import CommittedReceiptQueue
+db, org, node = sys.argv[1:]
+q = CommittedReceiptQueue(Path(db))
+sent = []
+def publish(topic, payload):
+    sent.append((topic, payload))
+    return True
+replay = CommittedReceiptReplay(q, organization_id=org, node_id=node)
+outcome = replay.attempt_once(publish, now_monotonic=10.0)
+print(json.dumps({
+    "outcome": outcome,
+    "pending": q.size(),
+    "sent": sent,
+    "broker_pubacks": replay.snapshot(now_monotonic=10.0)["broker_pubacks_total"],
+}, separators=(",", ":")))
+q._connection.close()
+"""
+        child = subprocess.run(
+            [sys.executable, "-B", "-c", child_code, str(self.path), ORG, NODE],
+            cwd=Path(__file__).resolve().parents[1],
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+        self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
+        result = json.loads(child.stdout)
+        self.assertEqual(result["outcome"], "puback_waiting_receipt")
+        self.assertEqual(result["pending"], 1)
+        self.assertEqual(result["broker_pubacks"], 1)
+        self.assertEqual(result["sent"], [[TOPIC, original_payload]])
+
+        self.queue = CommittedReceiptQueue(self.path)
+        self.assertEqual(self.queue.size(), 1)
+        self.assertEqual(self.queue.oldest()[0][2], original_payload)
+        # The final receipt is the only allowed prune after *both* PUBACKs.
+        self.assertEqual(self.apply(self.receipt(event_id, 1)), "prune_allowed")
+        self.queue._connection.close()
+        last = CommittedReceiptQueue(self.path)
+        try:
+            self.assertEqual(last.size(), 0)
+        finally:
+            last._connection.close()
 
     def test_legacy_unscoped_topic_fail_closed_without_skipping(self) -> None:
         self.pending(topic="nexolab/telemetry")

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T09:17:25Z",
+  "timestamp": "2026-11-02T09:30:02Z",
   "actor": "ChatGPT",
-  "event": "1451_sqlite_full_receipt_rollback_verified_arm64_360",
+  "event": "1451_durable_outbox_independent_process_replay_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1451,
     "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "source_only_arm64_sqlite_full_and_fifo_verified_git_ci_pending",
+    "status": "source_only_process_restart_verified_github_ci_pending_independent_security_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2790,7 +2790,7 @@
       "post_main_merge_arm64_idna_tests": 30,
       "post_main_merge_arm64_ci_policy_tests": 383,
       "post_main_merge_ci_policy_skipped": 1,
-      "github_exact_head": "pending_new_commit",
+      "github_exact_head": "pending",
       "site_acceptance": "unverified",
       "global_fifo_receipt_prune": "source_only_fail_closed",
       "arm64_device_agent_module_tests": 360,
@@ -2800,7 +2800,12 @@
       "sqlite_full_test": "real_bounded_sqlite_page_limit",
       "sqlite_full_rollback": "verified_source_only",
       "arm64_durable_protocol_tests": 23,
-      "arm64_ci_contract_tests": 383
+      "arm64_ci_contract_tests": 383,
+      "independent_python_process_reopen": "passed_source_only",
+      "two_synthetic_broker_pubacks_no_prune": true,
+      "synthetic_final_receipt_exact_prune": true,
+      "real_broker": "unverified",
+      "field_reboot": "unverified"
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -4126,9 +4131,22 @@
         "fixture_only": true,
         "site_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:30:02Z",
+      "kind": "1451_edge_real_process_boundary_receipt_fixture",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "independent_python_process": "pass",
+        "two_synthetic_pubacks_no_prune": "pass",
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
     }
   ],
-  "next_action": "Push source-only #1451 SQLite_FULL regression and inspect exact HEAD CI. No merge while #1447 exceptions expired. Central #1445, broker ACL #1449, independent backups #1428 and runtime network #1399 require acceptance before site cutover.",
+  "next_action": "Run targeted tests and exact-head GitHub CI for the independent-process replay fixture; retain PR #1452 Draft. Do not activate before #1447 owner security decision, central #1445, broker #1449, protected backups #1428 and site network #1399.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -87,3 +87,19 @@ the identical receipt to commit atomically. This demonstrates transactional
 failure and recovery under a bounded synthetic page ceiling, not actual site
 SSD endurance, full-disk stress, battery-backed power-loss testing or disaster
 recovery. No production database is accessed.
+
+## 2026-11-02 — Independent Python-process SQLite replay proof
+
+An isolated test first persists one telemetry event with its exact
+`event_id` and `node_sequence`, receives a synthetic QoS1 PUBACK and
+intentionally leaves the row queued. It closes the original SQLite connection,
+launches a **separate Python OS process** with the same temporary SQLite file
+and checks the new process resends the original payload and still retains the
+row after its second PUBACK. Only a synthetic separately authorized
+`postgres_committed` v1 receipt in the reopened test fixture atomically
+prunes the row. A final SQLite reopen sees an empty queue.
+
+This demonstrates application-process restart persistence, not a physical
+Raspberry reboot, actual MQTT broker, site ACL identity, central PostgreSQL
+transaction, disk power-loss durability, network partition or hardware
+acceptance. Live `DeviceAgent` remains unwired.

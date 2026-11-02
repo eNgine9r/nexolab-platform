@@ -1,3 +1,7 @@
+## 2026-11-02 — #1451 real independent-process replay (source-only)
+
+The isolated Edge receipt library and temporary SQLite file were exercised across a separate Python OS process: two QoS1 PUBACKs preserved the same event ID, sequence and pending row; only a separately authenticated synthetic final receipt allowed atomic pruning after reopen. Software-only process boundary, not a physical Pi reboot or real MQTT/site evidence. Source #1451 still remains Draft and unconnected to installed DeviceAgent. No production/network/hardware changes.
+
 ## 2026-11-02 — #1451 bounded SQLite_FULL acceptance, source-only
 
 A disposable SQLite test uses real `PRAGMA max_page_count` to force SQLITE_FULL at the first final-receipt ledger transaction (not a mocked exception and not host disk fill). The original telemetry row remains queued and the receipt-ledger table is absent after the failure; `connection.in_transaction` is false. After resetting only that disposable DB's page limit, the identical authenticated synthetic receipt atomically prunes its exact row. **No site SQLite quota, installed outbox, live PG/broker identity or host disk altered.** Isolated ARM64 360/360 Device Agent tests, 23/23 durable protocol tests and 383/383 CI contracts (one policy test skipped) PASS. Offline/hardware/site acceptance stays unverified.

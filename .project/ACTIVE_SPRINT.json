@@ -9458,12 +9458,15 @@
         "post_fifo_arm64_device_agent_tests": 359,
         "post_fifo_arm64_receipt_contract_tests": 23,
         "current_main_integrated": true,
-        "github_ci": "pending_new_head",
+        "github_ci": "pending_new_exact_head",
         "sqlite_full_bounded_fixture": "real_sqlite_full_atomic_rollback_and_recovery",
         "latest_arm64_module_tests": 360,
         "latest_arm64_receipt_contract_tests": 23,
         "latest_arm64_ci_contract_tests": 383,
-        "ci_contract_tests_skipped": 1
+        "ci_contract_tests_skipped": 1,
+        "replay_after_independent_os_process": "source_only_passed",
+        "real_broker_receipt": "unverified",
+        "site_restart": "unverified"
       }
     },
     {
@@ -11169,6 +11172,21 @@
         "sqlite_full_rollback": "pass",
         "fixture_only": true,
         "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:30:02Z",
+      "kind": "1451_edge_real_process_boundary_receipt_fixture",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "source_only": true,
+        "independent_python_process": "pass",
+        "two_synthetic_pubacks_no_prune": "pass",
+        "synthetic_final_receipt_prune": "pass",
+        "production_mutation": false,
         "hardware": "unverified"
       }
     }
