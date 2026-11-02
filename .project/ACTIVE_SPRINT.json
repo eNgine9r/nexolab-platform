@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1460,
+      "branch": "feature/1460-offline-backup-preflight"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9397,6 +9400,45 @@
         "state_tests": 13,
         "state_tests_skipped": 1
       }
+    },
+    {
+      "issue": 1460,
+      "title": "Fail-closed read-only complete-backup inventory and capacity preflight",
+      "branch": "feature/1460-offline-backup-preflight",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1431
+      ],
+      "scope": "Source-only read-only complete-store DR policy and 20GiB reserve + 4GiB maximum archive capacity preflight. Parent #1428 remains incomplete; no live data, network, hardware or backup schedule modification.",
+      "permitted_paths": [
+        "scripts/nexolab-offline-backup-preflight.py",
+        "scripts/tests/test_nexolab_offline_backup_preflight.py",
+        "docs/operations/offline-backup-preflight-1460.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "unit_tests": 15,
+        "site_readonly_exit_code": 78,
+        "site_staging_available_bytes": 27934715904,
+        "policy_missing_edge_sqlite": true,
+        "legacy_storage_minio_unreconciled": true,
+        "actual_backup": "not_performed",
+        "restore": "not_performed",
+        "encrypted_off_device_copy": "unverified",
+        "backup_timer": "not_installed",
+        "site_mutation": false,
+        "hardware": "unverified",
+        "github_exact_head": "pending",
+        "broader_dr_tests": 40,
+        "ci_contract_tests": 383,
+        "ci_contract_tests_skipped": 1,
+        "same_disk_test_fixture": "validated"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10965,6 +11007,21 @@
         "workflows_green": 3,
         "closed": true,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:59:07Z",
+      "kind": "1460_readonly_dr_policy_space_preflight",
+      "data": {
+        "issue": 1460,
+        "parent": 1428,
+        "unit_tests": 15,
+        "exit_code": 78,
+        "available_bytes": 27934715904,
+        "site_mutation": false,
+        "backup_performed": false,
+        "restore_performed": false
       }
     }
   ],

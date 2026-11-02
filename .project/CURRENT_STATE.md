@@ -1,3 +1,7 @@
+## 2026-11-02 — #1460 read-only offline backup preflight under parent #1428
+
+Source-only no-write diagnostic verifies protected policy completeness, missing Edge SQLite, legacy MinIO / current VersityGW source authority conflict, staging symlink/ownership safeguards and a 20GiB reserve + 4GiB new archive budget. Host read-only staging check returned expected BLOCKED/78 (27,934,715,904 available bytes) and hermetic 15 unit tests PASS; no actual backup, off-device copy or restore. Parent #1428 still incomplete, issue #1431 inventory discovery already merged but physical mappings remain unresolved. No systemd timer or production changes.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
