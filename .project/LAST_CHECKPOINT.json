@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-02T09:30:02Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1451_durable_outbox_independent_process_replay_source_only",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1451,
+    "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+    "status": "source_only_process_restart_verified_github_ci_pending_independent_security_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2773,6 +2773,40 @@
       "hardware": "unverified",
       "offline_ci": "pending"
     },
+    "issue_1451_replay_20261101": {
+      "verified_branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+      "arm64_platform": "aarch64_python_3.13.5",
+      "module_tests": 357,
+      "receipt_contract_tests": 23,
+      "replay_tests": 17,
+      "isolated_venv_pinned_requirements": true,
+      "new_runtime_wiring": false,
+      "production_modified": false,
+      "site_backup_restore": "unverified",
+      "hardware_acceptance": "unverified",
+      "external_security_gate": "blocked_pending_independent_merge_and_risk_approval",
+      "post_main_merge_arm64_module_tests": 357,
+      "post_main_merge_arm64_contract_tests": 23,
+      "post_main_merge_arm64_idna_tests": 30,
+      "post_main_merge_arm64_ci_policy_tests": 383,
+      "post_main_merge_ci_policy_skipped": 1,
+      "github_exact_head": "pending",
+      "site_acceptance": "unverified",
+      "global_fifo_receipt_prune": "source_only_fail_closed",
+      "arm64_device_agent_module_tests": 360,
+      "arm64_receipt_protocol_contract_tests": 23,
+      "main_integrated": true,
+      "site_runtime_mutation": false,
+      "sqlite_full_test": "real_bounded_sqlite_page_limit",
+      "sqlite_full_rollback": "verified_source_only",
+      "arm64_durable_protocol_tests": 23,
+      "arm64_ci_contract_tests": 383,
+      "independent_python_process_reopen": "passed_source_only",
+      "two_synthetic_broker_pubacks_no_prune": true,
+      "synthetic_final_receipt_exact_prune": true,
+      "real_broker": "unverified",
+      "field_reboot": "unverified"
+    },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
       "arm64_node_version": "v22.23.1",
@@ -2787,11 +2821,11 @@
       "independent_supply_chain_policy": "blocked_by_expired_security_exceptions",
       "first_remote_ci_job": "124968515497_failed_invalid_a_labels",
       "node_icu_compatibility": "empty_unchanged_or_non_allowed_unicode_decoding_rejected",
-      "issue_status": "closed",
+      "source_pr": 1454,
       "github_ci": "success",
       "offline_bundle": "success",
       "telemetry_service": "success",
-      "production_mutation": false
+      "issue_status": "closed"
     },
     "issue_1458_state_reconciliation": {
       "issue": 1458,
@@ -4016,6 +4050,50 @@
     },
     {
       "source": "github",
+      "observed_at": "2026-10-30T19:43:23Z",
+      "kind": "1451_edge_sqlite_339_tests_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "65f6e6815ad707d0f640f0470569a2f86b82dbdc",
+        "run_id": 41117448969,
+        "python_tests": 339,
+        "unit": "success",
+        "source_only": true,
+        "hardware": "unverified",
+        "live_site": "not_touched"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-31T11:03:28Z",
+      "kind": "1451_receipt_only_prune_guard_340_tests_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "b4fa35c75418b7307ab66e94528df206194423bc",
+        "run_id": 41195189557,
+        "python_tests": 340,
+        "legacy_puback_delete": "forbidden",
+        "installed_site": "not_touched"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:09:58Z",
+      "kind": "1453_idna_fix_merged_to_main_with_1451_feature_sync",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "merged": true,
+        "exact_head_workflows_green": 3,
+        "feature_branch_issue": 1451,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
       "observed_at": "2026-11-02T03:15:04Z",
       "kind": "1453_offline_idna_main_merged_green",
       "data": {
@@ -4026,9 +4104,49 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T06:22:20Z",
+      "kind": "1458_state_main_sync_with_1451_fifo",
+      "data": {
+        "issue": 1458,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "merged": true,
+        "feature_issue": 1451,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:17:25Z",
+      "kind": "1451_arm64_sqlite_full_transaction_regression",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "module_tests": 360,
+        "receipt_contract_tests": 23,
+        "ci_contract_tests": 383,
+        "sqlite_full_rollback": "pass",
+        "fixture_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:30:02Z",
+      "kind": "1451_edge_real_process_boundary_receipt_fixture",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "independent_python_process": "pass",
+        "two_synthetic_pubacks_no_prune": "pass",
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Run targeted tests and exact-head GitHub CI for the independent-process replay fixture; retain PR #1452 Draft. Do not activate before #1447 owner security decision, central #1445, broker #1449, protected backups #1428 and site network #1399.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

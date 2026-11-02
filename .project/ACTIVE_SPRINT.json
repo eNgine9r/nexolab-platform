@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1451,
+      "branch": "feature/1451-edge-sqlite-committed-receipt-ledger"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9306,7 +9309,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9329,11 +9332,141 @@
         "atomic_sqlite_prune": "not_implemented",
         "hardware": "unverified",
         "checks": {
-          "ci": "pending",
-          "unit": "pending",
-          "offline": "pending"
+          "ci": "success",
+          "unit": "success",
+          "offline": "success"
         },
         "pr": 1411
+      }
+    },
+    {
+      "issue": 1445,
+      "title": "Central PostgreSQL-committed receipt outbox and publisher",
+      "branch": "feature/1445-central-committed-receipt-outbox",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410
+      ],
+      "scope": "Atomic PostgreSQL central receipt intent and opt-in QoS1 publisher; no site activation.",
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1446,
+        "source_only": true,
+        "site": "not_activated",
+        "acl": "not_installed"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Container CVE remediation and exact HIGH risk re-review",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "scope": "Fix container CRITICALs and review 49 exact HIGH risks before merge.",
+      "permitted_paths": [
+        "config/security/",
+        "services/",
+        "infrastructure/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1448,
+        "source_only": true,
+        "workflow_success": 22,
+        "residual_high": 49,
+        "security_owner_approval": "pending"
+      }
+    },
+    {
+      "issue": 1449,
+      "title": "Dedicated receipt MQTT broker ACL source-only proof",
+      "branch": "security/1449-dedicated-receipt-mqtt-acl",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1445,
+        1447
+      ],
+      "scope": "Dedicated receipt publisher identity and per-node literal subscriber ACL; disposable broker proof only.",
+      "permitted_paths": [
+        "infrastructure/mqtt/dynamic-security/",
+        "services/telemetry-service/bin/",
+        "services/telemetry-service/tests/",
+        "scripts/run-mqtt-broker-security-acceptance.sh",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1450,
+        "source_only": true,
+        "live_broker_acl": "not_installed"
+      }
+    },
+    {
+      "issue": 1451,
+      "title": "Opt-in Edge SQLite committed-receipt ledger and atomic oldest-only prune",
+      "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1410,
+        1445,
+        1449
+      ],
+      "scope": "Stage isolated, non-runtime SQLite receipt ledger with strict identity and FIFO validation, without changing current production PUBACK deletion.",
+      "permitted_paths": [
+        "services/device-agent/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "pr": 1452,
+        "source_only": true,
+        "device_agent_runtime": "unchanged",
+        "actual_broker_accepted": "unverified",
+        "hardware": "unverified",
+        "legacy_puback_delete": "explicitly_rejected",
+        "edge_image_test_count": 340,
+        "edge_image_workflow_id": 41195189557,
+        "receipt_subscriber": "not_implemented",
+        "arm64_replay_20261101": "source_only_passed",
+        "arm64_device_agent_module_tests": 357,
+        "arm64_durable_contract_tests": 23,
+        "new_replay_capacity_tests": 17,
+        "bounded_retry_backoff": "implemented_unwired",
+        "fifo_puback_prune": "forbidden",
+        "queue_capacity_reporting": "read_only_source_only",
+        "site_acceptance": "unverified",
+        "full_ci": "pending_post_main_merge",
+        "production_mutation": false,
+        "main_idna_fix_1453": "merged_and_integrated",
+        "core_ci": "must_recheck_new_head",
+        "security_supply_chain": "blocked_expired_exception_2026_10_20",
+        "post_main_merge_arm64_device_agent_tests": 357,
+        "post_main_merge_receipt_contract_tests": 23,
+        "post_main_merge_offline_url_tests": 30,
+        "post_main_merge_ci_contract_tests": 383,
+        "post_main_merge_ci_contract_skips": 1,
+        "global_fifo_receipt_acceptance": "fail_closed_foreign_oldest",
+        "post_fifo_arm64_device_agent_tests": 359,
+        "post_fifo_arm64_receipt_contract_tests": 23,
+        "current_main_integrated": true,
+        "github_ci": "pending_new_exact_head",
+        "sqlite_full_bounded_fixture": "real_sqlite_full_atomic_rollback_and_recovery",
+        "latest_arm64_module_tests": 360,
+        "latest_arm64_receipt_contract_tests": 23,
+        "latest_arm64_ci_contract_tests": 383,
+        "ci_contract_tests_skipped": 1,
+        "replay_after_independent_os_process": "source_only_passed",
+        "real_broker_receipt": "unverified",
+        "site_restart": "unverified"
       }
     },
     {
@@ -10956,6 +11089,53 @@
     },
     {
       "source": "github",
+      "observed_at": "2026-10-30T19:43:23Z",
+      "kind": "1451_edge_sqlite_source_only_acceptance",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "65f6e6815ad707d0f640f0470569a2f86b82dbdc",
+        "edge_image_run": 41117448969,
+        "edge_image": "success",
+        "python_tests": 339,
+        "full_ci": "pending",
+        "hardware": "unverified",
+        "production_mutation": false,
+        "security_dependency": 1447
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-31T11:03:28Z",
+      "kind": "1451_legacy_puback_delete_guard_source_only_green",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "head_sha": "b4fa35c75418b7307ab66e94528df206194423bc",
+        "edge_image_run": 41195189557,
+        "python_tests": 340,
+        "legacy_direct_delete": "rejected",
+        "full_ci": "pending",
+        "production_mutation": false,
+        "site_acceptance": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:09:58Z",
+      "kind": "1453_idna_fix_merged_to_main_with_1451_feature_sync",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "merged": true,
+        "exact_head_workflows_green": 3,
+        "feature_branch_issue": 1451,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
       "observed_at": "2026-11-02T03:15:04Z",
       "kind": "1453_offline_idna_main_merged_green",
       "data": {
@@ -10965,6 +11145,49 @@
         "workflows_green": 3,
         "closed": true,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T06:22:20Z",
+      "kind": "1458_state_main_sync_with_1451_fifo",
+      "data": {
+        "issue": 1458,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "merged": true,
+        "feature_issue": 1451,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:17:25Z",
+      "kind": "1451_arm64_sqlite_full_transaction_regression",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "module_tests": 360,
+        "receipt_contract_tests": 23,
+        "ci_contract_tests": 383,
+        "sqlite_full_rollback": "pass",
+        "fixture_only": true,
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:30:02Z",
+      "kind": "1451_edge_real_process_boundary_receipt_fixture",
+      "data": {
+        "issue": 1451,
+        "pr": 1452,
+        "source_only": true,
+        "independent_python_process": "pass",
+        "two_synthetic_pubacks_no_prune": "pass",
+        "synthetic_final_receipt_prune": "pass",
+        "production_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],

@@ -1,10 +1,38 @@
+## 2026-11-02 — #1451 subprocess replay evidence does not satisfy field acceptance
+
+Independent process SQLite reopen now verifies queued telemetry survives after PUBACK and can later be pruned by exact final receipt. The real authenticated central publisher, broker ACL proof, downtime/reconnect/site reboot, encrypted independent full backup/restore, and physical measurement acceptance are STILL UNVERIFIED (#1445/#1449/#1428/#1399). Security gate #1447 remains RED on expired exceptions since 2026-10-20 and 49 HIGH owner decision remains pending; never bypass. No installed device, site database or network writes occurred.
+
+## 2026-11-02 — #1451 disk exhaustion guard tested, site acceptance still RED
+
+SQLite_FULL rollback and bounded recovery have been reproduced in a temporary test database with a max-page quota, **not** on the installed Raspberry SQLite or persistent site storage. This regression does not establish real available capacity, backup/restore, broker-ACL sender authenticity, central PostgreSQL receipt publisher or field hardware acceptance. #1447, #1445, #1449, #1428 and #1399 remain gates. Supply chain on #1452 latest checked head 02093ab failed because exceptions[0] expired 2026-10-20; no security expiry changes or owner risk acceptance made.
+
+## 2026-11-02 — #1451 global FIFO and offline source-only release gate
+
+Source-only final-receipt prune now rejects any older foreign/legacy/health row ahead of canonical scoped telemetry, including informational receipt handling. This regression does not verify installed ACL identity, central PG durable commit, site backup/restore or live offline delivery; #1447/#1445/#1449/#1428/#1399 remain blocked for release. No site writes.
+
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
 The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
 
+## 2026-11-02 — #1451 integrated the merged offline IDNA guard #1453
+
+PR #1454 for Issue #1453 merged into main at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91 after three exact-head GREEN workflows, closing #1453. Feature #1451 keeps the source-only bounded replay/SQLite ledger and the verified fail-closed URL guard without editing live DeviceAgent, broker ACL or site. Installed security #1447, Central receipt #1445, MQTT ACL #1449, protected backup #1428 and network #1399 remain release gates. No production, hardware or Modbus writes.
+
 ## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
 
 Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
+## 2026-11-01 — #1451 replay code is not production-enabled
+
+Isolated ARM64 Device Agent 357/357 and receipt-contract 23/23 software tests pass for bounded FIFO publish/backoff and read-only capacity observations. Installed broker receipt publisher identity and per-node ACL, real receipt subscriber, central PostgreSQL committed publisher, end-to-end broker outage/restart, measured finite disk-fill budget and protected site backup/restore remain unverified. The production agent still uses its legacy PUBACK deletion path; do not activate or swap in `CommittedReceiptQueue` until integrated dependencies #1445/#1449 and security #1447 pass with actual evidence. #1399 Docker/IPAM cutover blocked separately. No data deletion, network change, installed ACL, Raspberry runtime mutation or hardware write authorized.
+
+## 2026-10-31 — #1451 receipt-only class explicitly rejects unsafe PUBACK deletes
+
+Source-only `CommittedReceiptQueue.delete()` now rejects direct deletion after MQTT PUBACK, with a passing 340-test Edge Image build at `b4fa35c`. **Do not instantiate this class in the current production DeviceAgent**: unchanged `flush_queue()` still calls `queue.delete()` and would fail closed rather than perform correct receipt-driven backpressure/retry. Broker-authenticated exact-topic receive, strict default-OFF mode, measured disk capacity and central PG transaction proof remain unimplemented. No physical hardware acceptance. #1445/#1449 Draft dependencies and #1447 49-HIGH risk review plus #1428/#1399 protected site safeguards remain blocking.
+
+## 2026-10-30 — #1451 cannot activate receipt-based SQLite deletion without authenticated central completion
+
+#1451 / Draft PR #1452 source-only Edge ledger passed 339 isolated Edge image tests on `65f6e6815ad707d0f640f0470569a2f86b82dbdc`, but **no installed MQTT receiver, verified central identity, automatic subscribe/prune, bounded telemetry replay, site capacity test or hardware acceptance** exists. Do not claim lossless telemetry or activate in production. Central publisher #1445/Draft #1446 and broker ACL #1449/Draft #1450 must be integrated with actual installed evidence; security #1447/Draft #1448 has 49 residual HIGH pending platform-security approval. #1428 protected encrypted backup+restore and #1399 safe LAN recovery are independent hard blockers. Base main exceptions expired 2026-10-20, so inherited security CI is not merge-ready. The earlier BuildKit layer `not_found` is a separate transient job failure; rerun of failed job was accepted, then canceled by workflow concurrency, so do not describe it as fixed.
 
 ## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
 

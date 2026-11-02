@@ -1,10 +1,42 @@
+## 2026-11-02 — #1451 real independent-process replay (source-only)
+
+The isolated Edge receipt library and temporary SQLite file were exercised across a separate Python OS process: two QoS1 PUBACKs preserved the same event ID, sequence and pending row; only a separately authenticated synthetic final receipt allowed atomic pruning after reopen. Software-only process boundary, not a physical Pi reboot or real MQTT/site evidence. Source #1451 still remains Draft and unconnected to installed DeviceAgent. No production/network/hardware changes.
+
+## 2026-11-02 — #1451 bounded SQLite_FULL acceptance, source-only
+
+A disposable SQLite test uses real `PRAGMA max_page_count` to force SQLITE_FULL at the first final-receipt ledger transaction (not a mocked exception and not host disk fill). The original telemetry row remains queued and the receipt-ledger table is absent after the failure; `connection.in_transaction` is false. After resetting only that disposable DB's page limit, the identical authenticated synthetic receipt atomically prunes its exact row. **No site SQLite quota, installed outbox, live PG/broker identity or host disk altered.** Isolated ARM64 360/360 Device Agent tests, 23/23 durable protocol tests and 383/383 CI contracts (one policy test skipped) PASS. Offline/hardware/site acceptance stays unverified.
+
+## 2026-11-02 — #1451 strict global FIFO receipt acceptance after #1458 main sync
+
+Scoped final/informational receipts may not bypass an older legacy, health or foreign-tenant SQLite queue row. Added synthetic regression; 359/359 ARM64 Device Agent and 23/23 receipt protocol tests passed before sync. Independent merged main#1458 state closure preserved; Edge remains SOURCE ONLY, unwired, with site security/backups/network blockers unresolved. No hardware, broker or production changes.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
 
+## 2026-11-02 — #1451 guarded main integration verified on ARM64
+
+After incorporating main@7bff23d (#1453 Punycode offline URL fix), the isolated feature branch completed 357/357 Device Agent tests, 23/23 receipt protocol tests, 30/30 URL contract tests and 383/383 CI policy tests (one skip). No installed DeviceAgent wiring, actual broker subscription or site/runtime/hardware mutation. New exact-head GitHub CI is pending; inherited HIGH security exception expiration remains release-blocking.
+
+## 2026-11-02 — #1451 integrated the merged offline IDNA guard #1453
+
+PR #1454 for Issue #1453 merged into main at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91 after three exact-head GREEN workflows, closing #1453. Feature #1451 keeps the source-only bounded replay/SQLite ledger and the verified fail-closed URL guard without editing live DeviceAgent, broker ACL or site. Installed security #1447, Central receipt #1445, MQTT ACL #1449, protected backup #1428 and network #1399 remain release gates. No production, hardware or Modbus writes.
+
 ## 2026-11-01 — #1453 offline bundle IDNA A-label fail-closed regression
 
 CI run 41343615543 for #1451 revealed two malformed Punycode hostnames accepted by offline package URL dispatch. #1453 fixes only .github/workflows/offline-bundle.yml and matching source-only tests; maintains canonical valid Punycode, same-host and offline LOCAL_LAN checks. On isolated Raspberry ARM64 exact-main engineering branch, pinned Node v22.23.1 checksum verified; 30/30 workflow-contract and 383/383 test_ci_* tests PASS (one skipped). No installed-site/runtime, secret, hardware or Modbus action. First PR #1454 head 92314f4 failed GitHub runner Unicode/ICU portability; follow-up guard rejects empty/unchanged or non-letter/mark/number Unicode decoded host and reruns 383/383 ARM64 tests. New exact-head CI pending; independent #1447 security exception expiry remains a separate RED gate, not waived.
+
+## 2026-11-01 — #1451 source-only FIFO receipt replay and capacity observation
+
+On the isolated ARM64 Raspberry engineering checkout, `receipt_replay.py` now attempts at most one original oldest org-scoped event per call with capped retry/backoff and no MQTT-PUBACK deletion. `receipt_retention.py` adds read-only event-ID-preserving FIFO and capacity/oldest-age observations; seventeen new replay/capacity tests pass. The entire Device Agent suite passed 357/357 on ARM64, plus 23/23 receipt-contract tests, with existing pinned Python requirements in a separate virtualenv. No production agent wiring, installed broker ACL, real central PostgreSQL receipt delivery, hardware test, site backup/restore or runtime modification. Draft PR #1452 remains unreleasable while #1447/#1445/#1449/#1428/#1399 dependencies and exact-head security CI remain open.
+
+## 2026-10-31 — #1451 Edge receipt-only deletion guard verified (Draft PR #1452)
+
+`b4fa35c75418b7307ab66e94528df206194423bc`: `CommittedReceiptQueue.delete()` now **always rejects direct legacy MQTT PUBACK row deletion** (`postgres_committed_receipt_required`), preventing accidental unsafe substitution of the legacy queue inside DeviceAgent. The existing production DeviceAgent still uses its original `OfflineQueue` implementation; do not switch without bounded authenticated subscriber/replay. The staged `apply_committed_receipt` transaction remains the sole allowed final-receipt prune path. **Exact-head Edge Image [41195189557](https://github.com/eNgine9r/nexolab-platform/actions/runs/41195189557) GREEN: 340 Python tests OK**, including direct deletion rejection and final receipt acceptance. Other exact-head required CI was still running at this checkpoint. No installed MQTT broker authorization or central PostgreSQL receipt evidence; source-only, no Raspberry/Modbus/production mutation. Full merge remains blocked by inherited expired container vulnerability exceptions and security-owner review of #1448 residual HIGH; protected offline backup #1428 and LAN safety #1399 remain hard gates.
+
+## 2026-10-30 — Edge committed receipt SQLite ledger #1451 / Draft PR #1452
+
+Feature branch `feature/1451-edge-sqlite-committed-receipt-ledger` at `65f6e6815ad707d0f640f0470569a2f86b82dbdc` stages a **non-production** `CommittedReceiptQueue`, atomic `BEGIN IMMEDIATE` replay ledger and single oldest-row `postgres_committed` prune, with byte-identical receipt v1 protocol. Actual Edge Image run [41117448969](https://github.com/eNgine9r/nexolab-platform/actions/runs/41117448969) **GREEN**, **339 Python tests OK**, including local outbox identity tampering, duplicate keys, future/stale receipt, SQLite lock recovery, rollback and process restart. Additional exact-head workflows pending as of 2026-10-30T19:43:23Z. The instance of `DeviceAgent` in production is UNCHANGED; it still prunes after MQTT PUBACK. This staged ledger does not subscribe to authenticated receipts, change existing runtime, or prove end-to-end lossless acquisition. Container Supply Chain is also blocked on the base `main` expired exceptions (#1447 Draft PR #1448, 49 HIGH owner-review outstanding), with a separate BuildKit `error writing layer blob: not_found` infrastructure error observed in prior run 41107751995. #1445 central receipt publisher and #1449 exact-topic ACL remain Draft. #1428 protected backup/restore and #1399 physical LAN network safety remain hard-gated. No Raspberry production disk, MQTT config, telemetry, Modbus/hardware, site traffic, credentials or restore operations were touched.
 
 ## 2026-10-30 — #1410 durability receipt contract re-based on actual main
 
