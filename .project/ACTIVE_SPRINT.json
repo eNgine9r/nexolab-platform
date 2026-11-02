@@ -9379,7 +9379,75 @@
         "ingress_atomic_cursor_sample": "source_implemented_not_runtime_connected",
         "out_of_order_replay": "source_implemented_pending_ci",
         "node_sequence_unique_constraint": "source_implemented_pending_ci",
-        "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review"
+        "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review",
+        "receipt_mqtt_edge_compatible_strict_validation": "source_only_passed",
+        "local_focused_tests_passed": 20,
+        "postgres_integration_tests_skipped": 17,
+        "production_mutation": false,
+        "github_ci": "pending_new_head",
+        "independent_security_gate": "blocked_owner_review"
+      }
+    },
+    {
+      "issue": 1453,
+      "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
+      "branch": "fix/1453-offline-idna-host-guard",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
+      "permitted_paths": [
+        ".github/workflows/offline-bundle.yml",
+        "tests/test_ci_offline_bundle_workflow_contract.py",
+        "docs/operations/offline-bundle-idna-1453.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "arm64_local_contract_tests": 30,
+        "arm64_ci_contract_tests": 383,
+        "ci_contract_skipped": 1,
+        "node_exact": "v22.23.1_shasum_verified",
+        "offline_runtime_required": true,
+        "github_ci": "success",
+        "production_mutation": false,
+        "hardware": "unverified",
+        "independent_security_gate": "blocked",
+        "first_github_ci_job": "124968515497_failed_idna_icu_portability",
+        "cross_version_decoded_hostname_guard": "added_source_only",
+        "pr": 1454,
+        "offline_bundle": "success",
+        "telemetry_service": "success"
+      }
+    },
+    {
+      "issue": 1458,
+      "title": "Reconcile merged #1453 Sprint and checkpoint in main",
+      "branch": "docs/1458-reconcile-1453-merged",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1453
+      ],
+      "scope": "State-only closure of merged #1453; keep unmerged dependency WPs as GitHub/Draft sources; no runtime activation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "main_merged_1453_reconciled": true,
+        "site_mutation": false,
+        "hardware": "unverified",
+        "local_validator": "success",
+        "ci_policy_contract_tests": 383,
+        "state_tests": 13,
+        "state_tests_skipped": 1
       }
     }
   ],
@@ -10936,6 +11004,33 @@
         "pg_backup_executed": false,
         "private_restored": false,
         "protected_site_unmodified": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:46:38Z",
+      "kind": "1445_source_only_receipt_schema_strict_and_models_import_fixed",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests_passed": 20,
+        "postgres_tests_skipped": 17,
+        "production_mutation": false,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "hardware": "unverified"
       }
     }
   ],

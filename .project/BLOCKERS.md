@@ -1,3 +1,15 @@
+## 2026-11-02 — #1445 source-only producer cannot prove site acceptance
+
+Strict sender schema rejects messages Edge would refuse and local targeted 20 tests pass; 17 tests requiring isolated PostgreSQL were SKIPPED, not accepted. Live central broker ACL and subscriber identity are unverified. #1447 security HIGH exceptions require review; #1449 least-privilege broker source and #1451 Edge source are separate Draft branches. #1428 backup and #1399 network still block protected site cutover. No production DB, MQTT ACL, Docker, Modbus or hardware write.
+
+## 2026-11-02 — main governance corrected, deployment still blocked
+
+The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
+
+## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
+
+Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
 ## 2026-10-30 — #1445 and #1447 updated source review gates
 
 #1445 PR #1446 now contains an isolated atomic PostgreSQL NodeIngressAuthorizer sample+cursor+receipt path and a uniqueness constraint on (organization, node, sequence), including older missing-sequence replay checks. **This method is not called by the production ingestion worker.** Authenticated dedicated central MQTT publisher identities and real per-node broker-enforced receipt ACL, Edge receipt subscriber and SQLite acknowledgement retention, real bounded storage acceptance and ARM64 offline restart/data-loss tests remain missing. Old production ingress semantics have NOT been changed. Full exact-head CI pending; do not merge or activate based on mocked sender acceptance.

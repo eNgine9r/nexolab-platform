@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-30T15:00:40Z",
+  "timestamp": "2026-11-02T09:46:38Z",
   "actor": "ChatGPT",
-  "event": "1445_atomic_ingress_replay_and_security_dependency_checkpoint",
+  "event": "1445_source_only_edge_compatible_mqtt_sender_and_main_1458_sync",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1445,
     "branch": "feature/1445-central-committed-receipt-outbox",
-    "status": "source_only_atomic_replay_and_publisher_core_ci_pending",
+    "status": "source_only_strict_mqtt_receipt_validation_tests_green_site_pg_unverified_exact_ci_pending",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2786,6 +2786,41 @@
       "edge_replay": "not_implemented",
       "site_migration": "not_performed",
       "site_runtime": "unchanged",
+      "hardware": "unverified",
+      "mqtt_sender_strict_json_identity_freshness": "passed_source_only",
+      "local_tests_passed": 20,
+      "postgres_tests_skipped": 17,
+      "live_db_modified": false,
+      "site_mqtt_acl": "unverified",
+      "hardware_acceptance": "unverified",
+      "github_exact_head": "pending"
+    },
+    "issue_1453_idna_20261101": {
+      "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
+      "arm64_node_version": "v22.23.1",
+      "node_shasum_verified": true,
+      "targeted_ci_contract_tests": 30,
+      "overall_ci_contract_tests": 383,
+      "skipped_ci_contract_tests": 1,
+      "source_only": true,
+      "site_runtime_mutation": false,
+      "hardware_acceptance": "unverified",
+      "exact_head_remote_ci": "pending",
+      "independent_supply_chain_policy": "blocked_by_expired_security_exceptions",
+      "first_remote_ci_job": "124968515497_failed_invalid_a_labels",
+      "node_icu_compatibility": "empty_unchanged_or_non_allowed_unicode_decoding_rejected",
+      "issue_status": "closed",
+      "github_ci": "success",
+      "offline_bundle": "success",
+      "telemetry_service": "success",
+      "production_mutation": false
+    },
+    "issue_1458_state_reconciliation": {
+      "issue": 1458,
+      "scope": "state_only",
+      "closed_1453_sprint_entry": true,
+      "selection": "no_active_main_work_package",
+      "site_runtime": "not_modified",
       "hardware": "unverified"
     }
   },
@@ -4000,9 +4035,35 @@
         "free_ssd_space_after_pg_dump": "28G",
         "complete_dr_proof": "pending"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T09:46:38Z",
+      "kind": "1445_source_only_receipt_schema_strict_and_models_import_fixed",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests_passed": 20,
+        "postgres_tests_skipped": 17,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "production_mutation": false
+      }
     }
   ],
-  "next_action": "Verify #1446 bb77384c exact-head PostgreSQL, migrations, API and offline CI; verify independent #1447 Draft PR #1448 0b50d7df fresh policy and scan CI. Do not claim central MQTT ACL, production data durability or site readiness without real evidence. Keep drafts while blockers remain.",
+  "next_action": "Rerun targeted synthetic Central MQTT tests and CI policy after main sync, then push exact HEAD for GitHub workflows. Source-only. Require independent #1447 HIGH security owner review, #1449 broker ACL, #1451 Edge consumer, #1428 protected site backup and #1399 network before deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

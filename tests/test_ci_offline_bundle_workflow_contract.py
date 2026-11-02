@@ -279,6 +279,10 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("is not a valid WHATWG browser URL", self.workflow)
         self.assertIn("must use a usable destination port, not port 0", self.workflow)
         self.assertIn("must use canonical ASCII DNS labels", self.workflow)
+        self.assertIn("domainToUnicode(host)", self.workflow)
+        self.assertIn("decodedHost === host", self.workflow)
+        self.assertIn(r"\p{L}\p{M}\p{N}", self.workflow)
+        self.assertIn("must use valid IDNA Punycode DNS labels", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
 
@@ -325,6 +329,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://nexolab.local:3000", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
             ("http://xn--bcher-kva.local:3000", "http://xn--bcher-kva.local:8082", "ws://xn--bcher-kva.local:8082/api/v1/telemetry/live"),
             ("http://xn--zca.local:3000", "http://xn--zca.local:8082", "ws://xn--zca.local:8082/api/v1/telemetry/live"),
+            ("http://lab.xn--bcher-kva.local:3000", "http://lab.xn--bcher-kva.local:8082", "ws://lab.xn--bcher-kva.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in valid_cases:
             with self.subTest(dashboard=dashboard):
@@ -354,6 +359,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://-nexolab.local:3000", "http://-nexolab.local:8082", "ws://-nexolab.local:8082/api/v1/telemetry/live"),
             ("http://xn--a.local:3000", "http://xn--a.local:8082", "ws://xn--a.local:8082/api/v1/telemetry/live"),
             ("http://xn--rv6q.local:3000", "http://xn--rv6q.local:8082", "ws://xn--rv6q.local:8082/api/v1/telemetry/live"),
+            ("http://lab.xn--rv6q.local:3000", "http://lab.xn--rv6q.local:8082", "ws://lab.xn--rv6q.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
