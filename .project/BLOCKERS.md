@@ -1,3 +1,15 @@
+## 2026-11-02 — #1449 broker ACL source-only main synchronization
+
+The opt-in provisioning code remains separate from installed Mosquitto Dynamic Security configuration; **do not install** receipt publisher or subscriber ACLs until #1447 security risk-owner review and #1428 protected backup/restore and site network #1399 acceptance. A synthetic static broker test on source #1445 cannot substitute for actual installed Dynamic Security acceptance. No hardware/Modbus/site writes.
+
+## 2026-11-02 — main governance corrected, deployment still blocked
+
+The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
+
+## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
+
+Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
 ## 2026-10-30 — #1449 ACL source gate not a site authorization
 
 Draft PR #1450 / Issue #1449 verified synthetic Mosquitto Dynamic Security role restrictions and QoS1 receipt routing at source `b2107165e8d111690688410d2f805083a484f7c5` (Broker Security acceptance GREEN). Does NOT authorize real broker changes: credentials are not provisioned on installed Raspberry; no Edge authenticated receipt consumer or atomic SQLite prune; no real broker/site restored after failure; no remote TLS/field hardware acceptance. The 49 HIGH residual records in independent #1447 Draft PR #1448 require platform-security approval despite 22 GREEN CI workflows; `main` still contains expired 48 CVE exceptions, so non-security feature PRs remain blocked on their own exact-head Container Supply Chain. #1428 encrypted backups and isolated restore plus #1399 site network recovery remain hard-gated.

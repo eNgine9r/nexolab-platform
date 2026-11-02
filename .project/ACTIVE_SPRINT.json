@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1445,
-      "branch": "feature/1445-central-committed-receipt-outbox"
+      "issue": 1449,
+      "branch": "security/1449-dedicated-receipt-mqtt-acl"
     },
     "next_work_package": null
   },
@@ -9413,7 +9413,73 @@
         "full_ci": "in_progress",
         "source_only": true,
         "site_acl": "not_performed",
-        "hardware": "unverified"
+        "hardware": "unverified",
+        "main_1458_integrated": true,
+        "installed_dynamic_security_acl": "unverified",
+        "github_ci": "pending_new_exact_head",
+        "production_mutation": false
+      }
+    },
+    {
+      "issue": 1453,
+      "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
+      "branch": "fix/1453-offline-idna-host-guard",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
+      "permitted_paths": [
+        ".github/workflows/offline-bundle.yml",
+        "tests/test_ci_offline_bundle_workflow_contract.py",
+        "docs/operations/offline-bundle-idna-1453.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "arm64_local_contract_tests": 30,
+        "arm64_ci_contract_tests": 383,
+        "ci_contract_skipped": 1,
+        "node_exact": "v22.23.1_shasum_verified",
+        "offline_runtime_required": true,
+        "github_ci": "success",
+        "production_mutation": false,
+        "hardware": "unverified",
+        "independent_security_gate": "blocked",
+        "first_github_ci_job": "124968515497_failed_idna_icu_portability",
+        "cross_version_decoded_hostname_guard": "added_source_only",
+        "pr": 1454,
+        "offline_bundle": "success",
+        "telemetry_service": "success"
+      }
+    },
+    {
+      "issue": 1458,
+      "title": "Reconcile merged #1453 Sprint and checkpoint in main",
+      "branch": "docs/1458-reconcile-1453-merged",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1453
+      ],
+      "scope": "State-only closure of merged #1453; keep unmerged dependency WPs as GitHub/Draft sources; no runtime activation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "main_merged_1453_reconciled": true,
+        "site_mutation": false,
+        "hardware": "unverified",
+        "local_validator": "success",
+        "ci_policy_contract_tests": 383,
+        "state_tests": 13,
+        "state_tests_skipped": 1
       }
     }
   ],
@@ -10997,6 +11063,31 @@
         "live_acl": "not_performed",
         "required_ci": "in_progress",
         "security_dependency": 1447
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T13:39:14Z",
+      "kind": "1449_acl_source_main_1458_sync",
+      "data": {
+        "issue": 1449,
+        "pr": 1450,
+        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
+        "live_acl_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],
