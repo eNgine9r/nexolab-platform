@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T13:30:33Z",
+  "timestamp": "2026-11-02T19:18:55Z",
   "actor": "ChatGPT",
-  "event": "1445_actual_pg17_real_mqtt_qos1_to_edge_sqlite_synthetic_integration_verified",
+  "event": "1445_postgresql_canonical_edge_v1_ci_regression_38_pass",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1445,
     "branch": "feature/1445-central-committed-receipt-outbox",
-    "status": "source_only_real_pg17_broker_qos1_edge_sqlite_pass_independent_security_and_site_blocked",
+    "status": "source_only_postgres17_38_pass_canonical_edge_ci_test_added_security_gate_red",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2806,7 +2806,11 @@
       "fixture_servers_stopped": true,
       "site_pg16": "unverified",
       "site_dynamic_security_acl": "unverified",
-      "installed_device_agent": "unverified"
+      "installed_device_agent": "unverified",
+      "postgres17_arm64_parity_tests": "38_pass_zero_skips",
+      "canonical_edge_contract_regression": "added_to_telemetry_service_ci",
+      "puback": "synthetic_fixture_only",
+      "installed_mqtt_dynamic_security": "unverified"
     },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
@@ -4104,9 +4108,23 @@
         "production_mutation": false,
         "hardware": "unverified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:18:55Z",
+      "kind": "1445_postgresql_edge_canonical_receipt_ci_regression",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "tests": 38,
+        "skipped": 0,
+        "ci_regression_checked_in": true,
+        "broker_puback": "synthetic",
+        "production_mutation": false
+      }
     }
   ],
-  "next_action": "Re-run State Model and source-only focused tests; push exact HEAD and confirm GitHub CI. Keep Draft until independent #1447 platform security risk owner, real dynamic ACL #1449, Edge installed consumer #1451 and site #1428 backups/#1399 network acceptance; no production or Modbus writes.",
+  "next_action": "Publish focused Central #1445 source regression; inspect exact-head GitHub Telemetry PostgreSQL16, Core CI and security. Stay Draft while #1447 risk-owner HIGH acceptance, #1449 broker Dynamic Security and #1451 installed Edge and protected #1428/#1399 site preflight remain unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

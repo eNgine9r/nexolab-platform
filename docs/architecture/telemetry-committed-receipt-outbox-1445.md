@@ -146,3 +146,26 @@ actual energy-meter values, physical hardware or outage/reboot recovery.
 The test explicitly passes `central_publisher_authorized=True` because
 the _synthetic_ ACL origin was independently controlled and verified;
 no production authentication verdict can be inferred from that boolean.
+
+## 2026-11-02 — Persistent CI regression for PostgreSQL receipt/Edge protocol parity
+
+`tests/test_committed_receipt_outbox.py` now exercises an actual transactional
+PostgreSQL commit and the staged central receipt publisher. Its synthetic
+broker callback independently validates the bytes against the canonical
+`contracts/durable_receipt_v1.py::validate_for_pending` used by Edge. The
+test checks that the committed PostgreSQL receipt intent exists before any
+publish, that sender preflight accepts the exact canonical topic and payload,
+and that a synthetic broker ACK marks the durable intent published only after
+the callback validates the message. Because this is a permanently checked-in
+test within the existing Telemetry service suite, GitHub's PostgreSQL 16
+workflow will exercise this contract for future revisions.
+
+Stand-alone PostgreSQL test fixtures explicitly load the SQLAlchemy model
+registry before creating schema, removing a dependency on unrelated test
+module import ordering. On a _separate, synthetic PostgreSQL 17.11_ database
+and a Raspberry ARM64 engineering checkout this expanded suite passed
+**38/38 tests, zero skips**. This is an independently reproduced local
+PostgreSQL result, not yet evidence of exact-head GitHub CI or an installed
+site PostgreSQL 16 runtime. `central_publisher_authorized=True` and the
+PUBACK callback are **synthetic-only**. The test never calls production MQTT,
+a physical controller, site PostgreSQL or the real Edge subscriber.

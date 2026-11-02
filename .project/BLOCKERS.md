@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 production bridge still gated despite 38 PG parity tests
+
+Canonical Edge contract parity is now an automated PostgreSQL-backed source regression, locally verified 38/38 PASS on isolated PG17 ARM64. It does not prove installed PostgreSQL 16 version, real site MQTT publisher credentials/TLS/dynamic broker authorization, installed Edge subscriber, site encrypted backup/restore #1428, live network #1399 or hardware. Security #1447 49 HIGH risk-owner decision and independently failing Container Supply Chain remain hard merge gates. Do not interpret synthetic PUBACK or test's trusted receipt flag as real authentication.
+
 ## 2026-11-02 — #1445 integrated software verified in synthetic broker; real site still BLOCKED
 
 Raspberry engineering fixtures now prove real PostgreSQL 17.11 commit, a broker-enforced synthetic static ACL, real Mosquitto MQTT 3.1.1 QoS1 PUBACK and subscriber delivery, and source-only Edge SQLite prune. This does NOT establish installed Mosquitto Dynamic Security ACL, real central publisher credentials, production PostgreSQL 16 deployment, installed DeviceAgent, independent encrypted backup and restore (#1428), LAN Docker/IPAM repair (#1399), or physical hardware acceptance. Independent #1447 risk-owner sign-off remains required: the main security exception registry expired on 2026-10-20, causing Container Supply Chain and Core Merge Gate RED. No exception bypass or production writes.

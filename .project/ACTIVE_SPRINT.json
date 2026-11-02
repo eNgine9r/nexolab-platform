@@ -9387,7 +9387,7 @@
         "github_ci": "pending_new_head",
         "independent_security_gate": "blocked_owner_review",
         "arm64_postgres_fixture_version": "17.11_debian13",
-        "arm64_pg_receipt_tests_passed": 37,
+        "arm64_pg_receipt_tests_passed": 38,
         "arm64_pg_receipt_tests_skipped": 0,
         "pg_real_write_canonical_edge_contract": "passed_with_synthetic_broker_puback",
         "postgres16_site_runtime": "unverified",
@@ -9401,7 +9401,9 @@
         "site_mqtt_dynamic_security": "unverified",
         "site_postgresql16": "unverified",
         "site_device_agent": "unwired_unverified",
-        "fixtures_stopped": true
+        "fixtures_stopped": true,
+        "canonical_edge_protocol_ci_regression": "committed_source_only_test",
+        "postgres16_exact_new_head_ci": "pending"
       }
     },
     {
@@ -11082,6 +11084,23 @@
         "forged_node_publish_nondelivery": "pass",
         "exact_receipt_sqlite_prune": "pass",
         "fixture_servers_stopped": true,
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T19:18:55Z",
+      "kind": "1445_postgresql_edge_canonical_receipt_ci_regression",
+      "data": {
+        "issue": 1445,
+        "pr": 1446,
+        "postgres_version": "17.11",
+        "tests": 38,
+        "skipped": 0,
+        "actual_transaction": true,
+        "broker_puback": "synthetic",
+        "ci_regression_checked_in": true,
         "production_mutation": false,
         "hardware": "unverified"
       }

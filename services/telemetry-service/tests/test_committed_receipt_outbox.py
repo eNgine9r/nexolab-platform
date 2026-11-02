@@ -39,6 +39,11 @@ def database():
     url = os.environ.get("DATABASE_URL", "")
     if not url.startswith("postgresql"):
         pytest.skip("PostgreSQL integration database required for committed receipts")
+    # Standalone tests must register every FK target before create_all; do
+    # not rely on unrelated test collection/import order for SQLAlchemy.
+    from app.model_registry import register_models
+
+    register_models()
     db = Database(url)
     db.create_schema()
     yield db
@@ -137,6 +142,65 @@ def test_rollback_does_not_leave_phantom_receipt(database, monkeypatch):
     with database.engine.connect() as connection:
         assert connection.scalar(select(func.count()).select_from(TelemetrySample)) == 0
     assert rows(database) == []
+
+
+def test_real_postgres_receipt_passes_canonical_edge_contract(database):
+    """Actual PostgreSQL commit to Edge v1 parity; broker ACK stays synthetic.
+
+    This regression runs in the Telemetry CI PostgreSQL 16 service. It must
+    fail if the central publisher ever emits a schema or freshness that the
+    shared Edge contract would reject. No installed broker or Edge is used.
+    """
+    import json
+    import runpy
+    from pathlib import Path
+
+    from app.committed_receipt_mqtt import CommittedReceiptMqttSender
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    contract_file = (
+        Path(__file__).resolve().parents[3]
+        / "contracts"
+        / "durable_receipt_v1.py"
+    )
+    validate_for_pending = runpy.run_path(str(contract_file))["validate_for_pending"]
+
+    event, raw = make_event()
+    assert database.persist(event, raw, receipt_identity=identity()) is True
+    original = rows(database)
+    assert len(original) == 1
+    assert original[0]["published_at"] is None
+    published: list[tuple[str, bytes]] = []
+
+    def synthetic_broker_puback(topic: str, body: bytes) -> bool:
+        # The real committed row must exist before any receipt is published.
+        record = rows(database)
+        assert len(record) == 1 and record[0]["published_at"] is None
+        assert record[0]["event_id"] == raw["event_id"]
+        assert CommittedReceiptMqttSender._identity_matches(topic, body)
+        assert validate_for_pending(
+            body,
+            topic=topic,
+            central_publisher_authorized=True,  # synthetic fixture, NOT site ACL proof
+            expected_event_id=raw["event_id"],
+            expected_organization_id=ORG,
+            expected_node_id=NODE,
+            expected_node_sequence=1,
+            oldest_pending_sequence=1,
+            seen_receipt_ids=set(),
+        ) == "prune_allowed"
+        published.append((topic, body))
+        return True  # synthetic PUBACK: NOT evidence of a real broker
+
+    result = CommittedReceiptPublisher(
+        database, synthetic_broker_puback
+    ).run_once()
+    assert result.status == "published"
+    assert result.event_id == raw["event_id"]
+    assert len(published) == 1
+    assert published[0][0] == f"nexolab/v1/{ORG}/{NODE}/receipts"
+    assert json.loads(published[0][1])["event_id"] == raw["event_id"]
+    assert rows(database)[0]["published_at"] is not None
 
 
 def test_non_postgres_cannot_claim_postgresql_commit(tmp_path):

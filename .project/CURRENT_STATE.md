@@ -1,3 +1,7 @@
+## 2026-11-02 — #1445 permanently tested PostgreSQL-to-Edge receipt parity
+
+Added a source-only CI regression: actual PostgreSQL commit produces an exact v1 receipt accepted by canonical Edge validator before a **synthetic** broker PUBACK can mark receipt intent published. Standalone PostgreSQL fixtures now register cross-domain SQLAlchemy tables, avoiding test collection-order issues. Isolated ARM64 PostgreSQL 17.11 suite 38/38 PASS, zero skips. GitHub PostgreSQL 16 exact new-head CI still pending, site broker/dynamic ACL and production activation unverified. Release security #1447 remains blocked by expired 2026-10-20 registry and owner review. No production data or hardware changes.
+
 ## 2026-11-02 — #1445 isolated REAL MQTT QoS1 / PostgreSQL → Edge receipt proof
 
 In private Raspberry ARM64 engineering fixtures (not installed runtime), real PostgreSQL 17.11 committed telemetry and durable receipt intent; CommittedReceiptPublisher used a real Mosquitto 2.0.21 127.0.0.1:18884 ACL/password broker; an independent Edge node subscriber received exact MQTT QoS1 bytes, and temporary SQLite pruned only after applying final receipt. Separate negatives confirmed wrong-tenant receipt and node-forged receipt non-delivery. MQTT 3.1.1 SUBACK was **not** treated as delivery authorization evidence. Both fixture services stopped; installed Postgres process remained healthy and live MQTT port 1883 unchanged. Actual production PG16 + Dynamic Security TLS/site ACL, installed DeviceAgent wiring and hardware/outage acceptance remain UNVERIFIED.
