@@ -189,6 +189,7 @@ jobs:
           local_host="$(
             node - "$dashboard_origin" "$api_base_url" "$websocket_url" <<'JSURL'
           const { isIP } = require("node:net");
+          const { domainToUnicode } = require("node:url");
 
           const [dashboardRaw, apiRaw, websocketRaw] = process.argv.slice(2);
 
@@ -262,6 +263,20 @@ jobs:
             );
             if (!validDnsLabels) {
               fail("Runtime URLs must use canonical ASCII DNS labels");
+            }
+            // A syntactically ASCII "xn--" label can still encode a disallowed
+            // IDNA code point (e.g. a control or an unassigned Unicode value).
+            // WHATWG URL accepts some of these as canonical ASCII, so require
+            // an actual local, offline IDNA decode before accepting the host.
+            if (labels.some((label) => label.startsWith("xn--"))) {
+              // WHATWG/ICU versions differ: an invalid A-label may decode to
+              // an empty string, stay undecoded, or expose a disallowed code
+              // point. Fail closed for all three, without DNS or external APIs.
+              const decodedHost = domainToUnicode(host);
+              if (!decodedHost || decodedHost === host ||
+                  !/^[\p{L}\p{M}\p{N}.-]+$/u.test(decodedHost)) {
+                fail("Runtime URLs must use valid IDNA Punycode DNS labels");
+              }
             }
             const localDns = !host.includes(".") ||
               host.endsWith(".local") ||

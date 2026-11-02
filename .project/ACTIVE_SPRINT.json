@@ -9444,8 +9444,53 @@
         "fifo_puback_prune": "forbidden",
         "queue_capacity_reporting": "read_only_source_only",
         "site_acceptance": "unverified",
-        "full_ci": "blocked_independent_security_gate",
-        "production_mutation": false
+        "full_ci": "pending_post_main_merge",
+        "production_mutation": false,
+        "main_idna_fix_1453": "merged_and_integrated",
+        "main_merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "core_ci": "must_recheck_new_head",
+        "security_supply_chain": "blocked_independent_owner_review",
+        "post_main_merge_arm64_device_agent_tests": 357,
+        "post_main_merge_receipt_contract_tests": 23,
+        "post_main_merge_offline_url_tests": 30,
+        "post_main_merge_ci_contract_tests": 383,
+        "post_main_merge_ci_contract_skips": 1
+      }
+    },
+    {
+      "issue": 1453,
+      "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
+      "branch": "fix/1453-offline-idna-host-guard",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
+      "permitted_paths": [
+        ".github/workflows/offline-bundle.yml",
+        "tests/test_ci_offline_bundle_workflow_contract.py",
+        "docs/operations/offline-bundle-idna-1453.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "arm64_local_contract_tests": 30,
+        "arm64_ci_contract_tests": 383,
+        "ci_contract_skipped": 1,
+        "node_exact": "v22.23.1_shasum_verified",
+        "offline_runtime_required": true,
+        "github_ci": "success",
+        "production_mutation": false,
+        "hardware": "unverified",
+        "independent_security_gate": "blocked",
+        "first_github_ci_job": "124968515497_failed_idna_icu_portability",
+        "cross_version_decoded_hostname_guard": "added_source_only",
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "offline_bundle": "success",
+        "telemetry_service": "success"
       }
     }
   ],

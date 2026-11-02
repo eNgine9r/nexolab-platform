@@ -1,3 +1,11 @@
+## 2026-11-02 — #1451 integrated the merged offline IDNA guard #1453
+
+PR #1454 for Issue #1453 merged into main at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91 after three exact-head GREEN workflows, closing #1453. Feature #1451 keeps the source-only bounded replay/SQLite ledger and the verified fail-closed URL guard without editing live DeviceAgent, broker ACL or site. Installed security #1447, Central receipt #1445, MQTT ACL #1449, protected backup #1428 and network #1399 remain release gates. No production, hardware or Modbus writes.
+
+## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
+
+Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
+
 ## 2026-11-01 — #1451 replay code is not production-enabled
 
 Isolated ARM64 Device Agent 357/357 and receipt-contract 23/23 software tests pass for bounded FIFO publish/backoff and read-only capacity observations. Installed broker receipt publisher identity and per-node ACL, real receipt subscriber, central PostgreSQL committed publisher, end-to-end broker outage/restart, measured finite disk-fill budget and protected site backup/restore remain unverified. The production agent still uses its legacy PUBACK deletion path; do not activate or swap in `CommittedReceiptQueue` until integrated dependencies #1445/#1449 and security #1447 pass with actual evidence. #1399 Docker/IPAM cutover blocked separately. No data deletion, network change, installed ACL, Raspberry runtime mutation or hardware write authorized.

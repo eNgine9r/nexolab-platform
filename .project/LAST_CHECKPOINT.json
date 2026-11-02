@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-01T19:47:46Z",
+  "timestamp": "2026-11-02T03:07:13Z",
   "actor": "ChatGPT",
-  "event": "1451_arm64_bounded_fifo_replay_and_capacity_tests",
+  "event": "1451_main_1453_merge_arm64_regression_passed",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1451,
     "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "source_only_replay_and_capacity_tests_green_release_blocked",
+    "status": "arm64_357_23_30_383_pass_gh_exact_head_pending_security_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2784,7 +2784,35 @@
       "production_modified": false,
       "site_backup_restore": "unverified",
       "hardware_acceptance": "unverified",
-      "external_security_gate": "blocked_pending_independent_merge_and_risk_approval"
+      "external_security_gate": "blocked_pending_independent_merge_and_risk_approval",
+      "post_main_merge_arm64_module_tests": 357,
+      "post_main_merge_arm64_contract_tests": 23,
+      "post_main_merge_arm64_idna_tests": 30,
+      "post_main_merge_arm64_ci_policy_tests": 383,
+      "post_main_merge_ci_policy_skipped": 1,
+      "github_exact_head": "pending_new_merge_commit",
+      "site_acceptance": "unverified"
+    },
+    "issue_1453_idna_20261101": {
+      "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
+      "arm64_node_version": "v22.23.1",
+      "node_shasum_verified": true,
+      "targeted_ci_contract_tests": 30,
+      "overall_ci_contract_tests": 383,
+      "skipped_ci_contract_tests": 1,
+      "source_only": true,
+      "site_runtime_mutation": false,
+      "hardware_acceptance": "unverified",
+      "exact_head_remote_ci": "pending",
+      "independent_supply_chain_policy": "blocked_by_expired_security_exceptions",
+      "first_remote_ci_job": "124968515497_failed_invalid_a_labels",
+      "node_icu_compatibility": "empty_unchanged_or_non_allowed_unicode_decoding_rejected",
+      "source_pr": 1454,
+      "merged_main_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+      "github_ci": "success",
+      "offline_bundle": "success",
+      "telemetry_service": "success",
+      "issue_status": "closed"
     }
   },
   "observations": [
@@ -4030,7 +4058,7 @@
       }
     }
   ],
-  "next_action": "Keep PR #1452 Draft; publish focused code and checkpoint, inspect exact-head CI, do not merge/deploy with security/central/broker/site recovery gates open. Integrate authenticated subscriber only after independent broker ACL evidence.",
+  "next_action": "Rerun Device Agent ARM64 357 and receipt v1 23 plus all exact-head GitHub CI after benign main sync; keep PR #1452 Draft while independent security #1447 and Central/ACL/site DR unresolved. Never deploy or activate without verified broker identity and backups.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

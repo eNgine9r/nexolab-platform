@@ -1,3 +1,15 @@
+## 2026-11-02 — #1451 guarded main integration verified on ARM64
+
+After incorporating main@7bff23d (#1453 Punycode offline URL fix), the isolated feature branch completed 357/357 Device Agent tests, 23/23 receipt protocol tests, 30/30 URL contract tests and 383/383 CI policy tests (one skip). No installed DeviceAgent wiring, actual broker subscription or site/runtime/hardware mutation. New exact-head GitHub CI is pending; inherited HIGH security exception expiration remains release-blocking.
+
+## 2026-11-02 — #1451 integrated the merged offline IDNA guard #1453
+
+PR #1454 for Issue #1453 merged into main at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91 after three exact-head GREEN workflows, closing #1453. Feature #1451 keeps the source-only bounded replay/SQLite ledger and the verified fail-closed URL guard without editing live DeviceAgent, broker ACL or site. Installed security #1447, Central receipt #1445, MQTT ACL #1449, protected backup #1428 and network #1399 remain release gates. No production, hardware or Modbus writes.
+
+## 2026-11-01 — #1453 offline bundle IDNA A-label fail-closed regression
+
+CI run 41343615543 for #1451 revealed two malformed Punycode hostnames accepted by offline package URL dispatch. #1453 fixes only .github/workflows/offline-bundle.yml and matching source-only tests; maintains canonical valid Punycode, same-host and offline LOCAL_LAN checks. On isolated Raspberry ARM64 exact-main engineering branch, pinned Node v22.23.1 checksum verified; 30/30 workflow-contract and 383/383 test_ci_* tests PASS (one skipped). No installed-site/runtime, secret, hardware or Modbus action. First PR #1454 head 92314f4 failed GitHub runner Unicode/ICU portability; follow-up guard rejects empty/unchanged or non-letter/mark/number Unicode decoded host and reruns 383/383 ARM64 tests. New exact-head CI pending; independent #1447 security exception expiry remains a separate RED gate, not waived.
+
 ## 2026-11-01 — #1451 source-only FIFO receipt replay and capacity observation
 
 On the isolated ARM64 Raspberry engineering checkout, `receipt_replay.py` now attempts at most one original oldest org-scoped event per call with capped retry/backoff and no MQTT-PUBACK deletion. `receipt_retention.py` adds read-only event-ID-preserving FIFO and capacity/oldest-age observations; seventeen new replay/capacity tests pass. The entire Device Agent suite passed 357/357 on ARM64, plus 23/23 receipt-contract tests, with existing pinned Python requirements in a separate virtualenv. No production agent wiring, installed broker ACL, real central PostgreSQL receipt delivery, hardware test, site backup/restore or runtime modification. Draft PR #1452 remains unreleasable while #1447/#1445/#1449/#1428/#1399 dependencies and exact-head security CI remain open.
