@@ -1,3 +1,7 @@
+## 2026-11-02 — main governance corrected, deployment still blocked
+
+The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.
+
 ## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
 
 Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
