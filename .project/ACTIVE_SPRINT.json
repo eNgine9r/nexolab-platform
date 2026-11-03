@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1464,
-      "branch": "feature/1464-edge-ipam-approval-overlay"
+      "issue": 1466,
+      "branch": "feature/1466-readonly-lan-auth-probe"
     },
     "next_work_package": null
   },
@@ -9450,7 +9450,7 @@
       "title": "Opt-in explicit Edge bridge IPAM without site-unsafe default",
       "branch": "feature/1464-edge-ipam-approval-overlay",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1409
       ],
@@ -9481,6 +9481,47 @@
         "ci_policy_contract_tests": 383,
         "ci_policy_skipped": 1,
         "real_pi_readonly_candidate": "candidate_unapproved_exit1",
+        "site_mutation": false,
+        "source_only_merged": "observed_GREEN",
+        "live_subnet_migration": "not_implemented"
+      }
+    },
+    {
+      "issue": 1466,
+      "title": "Offline read-only Dashboard and Session API access probe",
+      "branch": "feature/1466-readonly-lan-auth-probe",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1399
+      ],
+      "scope": "Source-only local-only fixed-path unauthenticated login/access smoke probe. No scheduled host automation or live modifications.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-site-lan-access.py",
+        "infrastructure/offline/tests/test_site_lan_access.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-auth-path-smoke-1466.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "standalone_unit_tests": 18,
+        "pi_live_readonly_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "pi_live_no_credentials": true,
+        "pi_live_site_mutation": false,
+        "browser_owner_authentication": "unverified",
+        "hardware": "unverified",
+        "site_automatic_monitor": "not_installed",
+        "github_exact_head": "pending",
+        "standalone_offline_contract": "PASS",
+        "ci_contract_tests": 383,
+        "ci_contract_skips": 1,
+        "state_model_v2": "PASS",
+        "docs_prettier": "PASS",
+        "actual_lan_smoke": "LOCAL_LAN_AUTH_PATH_REACHABLE",
         "site_mutation": false
       }
     }
@@ -11102,6 +11143,47 @@
         "exact_head_checks": "3/3_GREEN",
         "site_supervisor_enabled": false,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_green_merged",
+      "data": {
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_real_lan_access_smoke_no_credentials",
+      "data": {
+        "issue": 1466,
+        "unit_tests": 18,
+        "site_read_only": true,
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "api_session_unauthenticated": "401",
+        "dashboard_http": "200",
+        "no_site_changes": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_live_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "ci_contracts": 383,
+        "skip": 1,
+        "offline_contract": "PASS",
+        "runtime_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "site_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],

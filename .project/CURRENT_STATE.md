@@ -1,3 +1,7 @@
+## 2026-11-03 — #1466 original LOCAL_LAN login/API access smoke (read-only)
+
+After an exact-head all-GREEN 3/3 result, the source-only Edge subnet overlay #1464/PR #1465 was squash merged to main as a758570094b0f217133dc98787cbc6d077d588b2, leaving the production Edge CIDR unchanged and the installed automatic recovery blocked on site approval. The next #1466 source-only Work Package adds a bounded local-literal-IPv4 Dashboard+Session API health probe to distinguish healthy database/metrics from actual browser access. On the real Raspberry the original Dashboard :3000 HTML/login, API :8082 ready, unauthenticated session 401 and exact LAN CORS all PASS without credentials, browser login or hardware writes. The local probe is not a service, not a recurring monitor and is not installed in the site's protected package. The physical LAN/Edge Docker overlap #1409, hardware #1429 and protected reboot acceptance #1399 remain unresolved.
+
 ## 2026-11-03 — #1462 protected recovery source merged after 3/3 GREEN
 
 GitHub PR #1463 was squash-merged to main at 9dd88ae96b09603801e794497b21fc6ca3032a5e after all three exact-head workflows including Merge Gate were GREEN. This is source-only with 16 real-lock regression tests and offline contracts; no Raspberry auto-supervisor installed, CIDR migration, site reboot, database or Modbus write. Live Docker was separately hardened with approved APT holds and live-restore (not part of source merge). Parent #1399 remains open pending protected real offline boot and hardware acceptance.

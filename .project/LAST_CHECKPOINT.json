@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T08:59:57Z",
+  "timestamp": "2026-11-03T10:08:52Z",
   "actor": "ChatGPT",
-  "event": "1464_edge_ipam_branch_reconciled_with_merged_1462",
+  "event": "1466_source_only_lan_login_probe_verified_pending_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1464,
-    "branch": "feature/1464-edge-ipam-approval-overlay",
-    "status": "source_only_compose_ipam_14_tests_pass_site_unapproved",
+    "issue": 1466,
+    "branch": "feature/1466-readonly-lan-auth-probe",
+    "status": "read_only_probe_18_tests_offline_ci_contracts_pass",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2843,6 +2843,24 @@
       "standalone_offline_contract": "PASS",
       "site_readonly_exit": 1,
       "site_readonly_status": "candidate_unapproved"
+    },
+    "issue_1466_lan_auth_access_smoke": {
+      "source_only": true,
+      "unit_tests": 18,
+      "site_dashboard": "HTTP200",
+      "site_login": "HTTP200_form",
+      "site_api_ready": "HTTP200_database_mqtt_ready",
+      "site_session": "HTTP401_without_credentials",
+      "exact_cors": "PASS",
+      "user_login": "unverified",
+      "hardware": "unverified",
+      "offline_contract": "PASS",
+      "site_automatic_monitor": "not_installed",
+      "site_mutation": false,
+      "github_exact_head": "pending",
+      "ci_contracts": 383,
+      "ci_expected_skips": 1,
+      "actual_pi_readonly": "LOCAL_LAN_AUTH_PATH_REACHABLE"
     }
   },
   "observations": [
@@ -4115,9 +4133,44 @@
         "sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
         "site_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_merged_green",
+      "data": {
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "ci": "3/3_GREEN",
+        "site_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_local_unauthenticated_access_path",
+      "data": {
+        "issue": 1466,
+        "script": "read_only",
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "tests": 18,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_lan_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "offline_contract": "PASS",
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Complete #1464 exact-head source-only CI and merge if GREEN; #1409 live Edge CIDR migration remains blocked on actual site reserved network approval, exact data rollback and protected source identity. #1399 auto supervisor remains disabled pending physical network safety. Do not reboot, change network IPAM or run Modbus write.",
+  "next_action": "Push #1466 source-only local Dashboard/Session API probe Draft PR; validate exact-head GitHub CI. Recurring local alert and owner-authenticated browser acceptance require separate reviewed WP. Do not activate protected Docker network repair while #1409 CIDR overlap persists.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
