@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T08:36:31Z",
+  "timestamp": "2026-11-03T08:59:57Z",
   "actor": "ChatGPT",
-  "event": "1462_real_flock_regression_prevent_exclusive_lock_self_conflict",
+  "event": "1464_edge_ipam_branch_reconciled_with_merged_1462",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1462,
-    "branch": "feature/1462-guarded-central-network-recovery",
-    "status": "source_guard_tested_14_hermetic_live_cidr_blocked",
+    "issue": 1464,
+    "branch": "feature/1464-edge-ipam-approval-overlay",
+    "status": "source_only_compose_ipam_14_tests_pass_site_unapproved",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2813,7 +2813,6 @@
       "site_cidr_migration": "not_performed",
       "production_mutation": false,
       "hardware": "unverified",
-      "github_exact_head": "pending_new_commit",
       "source_unit_tests": 16,
       "existing_observer_tests": 23,
       "existing_cidr_tests": 16,
@@ -2822,7 +2821,28 @@
       "update_locks": "exclusive_during_recovery",
       "offline_contract": "passed",
       "real_linux_flock_reentrancy": "positive_fixture_test_pass",
-      "full_offline_contract": "PASS"
+      "full_offline_contract": "PASS",
+      "exact_head_checks": "3_of_3_GREEN",
+      "source_only_merged": true,
+      "site_auto_recovery_enabled": false,
+      "source_only_merge": "observed_complete"
+    },
+    "issue_1464_edge_ipam_approval_overlay": {
+      "unit_tests": 14,
+      "source_only": true,
+      "positive_compose_config": "PASS",
+      "missing_explicit_subnet": "FAIL_CLOSED",
+      "site_cidr_conflict": "172.18.48.0/21_vs_172.18.0.0/16",
+      "proposed_candidate": "not_site_approved",
+      "live_migration": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "edge_ipam_source_guard_tests": 18,
+      "ci_policy_contract_tests": 383,
+      "ci_policy_skipped": 1,
+      "standalone_offline_contract": "PASS",
+      "site_readonly_exit": 1,
+      "site_readonly_status": "candidate_unapproved"
     }
   },
   "observations": [
@@ -4072,9 +4092,32 @@
         "external_ci": "pending",
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_explicit_edge_ipam_source_only",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "site_cutover": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
+        "site_mutation": false
+      }
     }
   ],
-  "next_action": "Verify #1462 unit, offline acceptance, core CI and State Model v2; push Draft PR. Resolve #1409 edge CIDR with reserved subnet and separately approved maintenance prior to installing protected automatic site repair. Do not run --execute on overlapped live host.",
+  "next_action": "Complete #1464 exact-head source-only CI and merge if GREEN; #1409 live Edge CIDR migration remains blocked on actual site reserved network approval, exact data rollback and protected source identity. #1399 auto supervisor remains disabled pending physical network safety. Do not reboot, change network IPAM or run Modbus write.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

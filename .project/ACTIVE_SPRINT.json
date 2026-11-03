@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1462,
-      "branch": "feature/1462-guarded-central-network-recovery"
+      "issue": 1464,
+      "branch": "feature/1464-edge-ipam-approval-overlay"
     },
     "next_work_package": null
   },
@@ -9406,7 +9406,7 @@
       "title": "Guarded offline central Docker network recovery after sandbox detachment",
       "branch": "feature/1462-guarded-central-network-recovery",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1399,
         1409
@@ -9433,7 +9433,6 @@
         "systemd_supervisor": "not_installed",
         "production_mutation": false,
         "hardware_acceptance": "unverified",
-        "github_exact_head": "pending_new_commit",
         "existing_boot_observer_tests": 23,
         "existing_cidr_guard_tests": 16,
         "offline_bundle_ci_registration": "included_in_standalone_offline_runtime_contract",
@@ -9441,7 +9440,48 @@
         "auth_key_bind_mount_checks": "read_only_required_and_negative_tested",
         "update_locks": "exclusive_across_all_operations",
         "standalone_offline_contract": "passed",
-        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock"
+        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock",
+        "installed_auto_supervisor": "not_enabled",
+        "source_only_work_package": "completed_not_activated"
+      }
+    },
+    {
+      "issue": 1464,
+      "title": "Opt-in explicit Edge bridge IPAM without site-unsafe default",
+      "branch": "feature/1464-edge-ipam-approval-overlay",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1409
+      ],
+      "scope": "Source-only opt-in exact subnet Compose overlay and hermetic config/route tests; no live production network migration.",
+      "permitted_paths": [
+        "infrastructure/compose/compose.edge-safe-ipam.yaml",
+        "infrastructure/offline/tests/test_edge_safe_ipam_overlay.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-safe-ipam-overlay-1464.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "unit_tests": 14,
+        "required_subnet_without_default": true,
+        "docker_compose_synthetic_config": "PASS",
+        "real_pi_subnet_proposal": "candidate_unapproved_not_site_authorized",
+        "live_site_migration": false,
+        "live_docker_recreate": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "source_unit_tests": 14,
+        "edge_ipam_guard_unit_tests": 18,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_policy_skipped": 1,
+        "real_pi_readonly_candidate": "candidate_unapproved_exit1",
+        "site_mutation": false
       }
     }
   ],
@@ -11035,6 +11075,32 @@
         "tested_real_flock": true,
         "tests": 16,
         "offline_integration": "PASS",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_source_edge_ipam_overlay",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "source_only": true,
+        "real_site_cidr": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "merge_sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
+        "exact_head_checks": "3/3_GREEN",
+        "site_supervisor_enabled": false,
         "production_mutation": false
       }
     }

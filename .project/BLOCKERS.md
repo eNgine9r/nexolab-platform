@@ -1,3 +1,11 @@
+## 2026-11-03 — #1462 source-only merge does not remove site boot blocker
+
+PR #1463 source recovery code is merged GREEN; it is not installed as a Raspberry systemd auto-repair agent. The real site still has physical LAN versus Edge Docker bridge overlap and cannot execute the fail-closed network recovery. Parent #1399 and #1409 physical site acceptance remain blocked.
+
+## 2026-11-03 — #1464 source-only edge subnet override not production IPAM approval
+
+The new source-only Edge IPAM overlay requires an explicit subnet, not a guessed/default 10.x or 172.x range. An operator-nominated 172.26.0.0/24 is only locally disjoint in existing Pi route inventory and remains candidate_unapproved; no site reservation evidence exists. #1409 live network cutover must protect bound Device Agent, MQTT queue, Edge SQLite and real RS485 buses with actual rollback and separate owner approval. Inherited eth0/Edge Docker CIDR collision still blocks #1462 guarded automatic network recovery. Live Docker daemon changes, APT holds, service reloads and hardware writes not authorized by this source-only WP.
+
 ## 2026-11-03 — #1462 cannot auto-recover while LAN and Docker routes overlap
 
 Manual November 3 reconnect restored original LAN monitoring after Docker attachment loss; it did not fix Docker sandbox behavior across reboot. The follow-on source-only #1462 reconnect tool is blocked on read-only live site by physical LAN 172.18.48.0/21 versus edge Docker 172.18.0.0/16 (#1409). Device Agent remains unhealthy and must never be auto-fixed via hardware write or silently marked healthy. Root service activation, network/IPAM migration, independent data rollback and real reboot acceptance are not performed/verified. Do not install or run --execute on the conflicted production site. Parent #1399 remains open.
