@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1468,
-      "branch": "feature/1468-local-lan-access-alerts"
+      "issue": 1472,
+      "branch": "feature/1472-protected-lan-monitor-install-gate"
     },
     "next_work_package": null
   },
@@ -9575,7 +9575,7 @@
       "title": "Local offline Dashboard/Session outage alerts and hardened periodic probe",
       "branch": "feature/1468-local-lan-access-alerts",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1466
       ],
@@ -9618,7 +9618,54 @@
         "ci_policy_contract_tests": 384,
         "expected_policy_skips": 1,
         "native_systemd_verify": "PASS",
-        "site_activation": false
+        "site_activation": false,
+        "source_only_merged": "7_of_7_GREEN"
+      }
+    },
+    {
+      "issue": 1472,
+      "title": "Protected install-readiness for offline Dashboard/Session alerting",
+      "branch": "feature/1472-protected-lan-monitor-install-gate",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1468
+      ],
+      "scope": "Source-only fail-closed installed site/source/host metrics directory preflight and corrected systemd template, no site activation.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-lan-monitor-install-readiness.py",
+        "infrastructure/offline/tests/test_lan_monitor_install_readiness.py",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-site-install-gate-1472.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "new_hermetic_tests": 18,
+        "installed_package_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "requested_previous_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "actual_metrics_host_bind": "/home/nexolab/nexolab-platform/runtime/observability",
+        "actual_directory_mode": "0700_owned_nexolab",
+        "legacy_dr_file_mode": "0600_owned_nexolab",
+        "corrected_systemd_template": "exact_host_path_not_installed",
+        "pi_live_readonly_preflight": "BLOCKED_source_not_installed_exit78",
+        "site_activation": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "prior_collector_regression_tests": 18,
+        "prior_lan_access_regression_tests": 18,
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "ci_expected_skips": 1,
+        "systemd_analyze_verify": "PASS",
+        "source_python_ast": "PASS",
+        "markdown_prettier": "PASS",
+        "state_model_v2": "PASS",
+        "live_site_preflight": "BLOCKED_78_unaccepted_source"
       }
     }
   ],
@@ -11329,6 +11376,31 @@
         "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
         "checks": "3/3_GREEN",
         "live_ipam_migration": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_merged_green",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_checks": "7/7_GREEN",
+        "live_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_readonly_install_guard_source",
+      "data": {
+        "issue": 1472,
+        "tests": 18,
+        "source_only": true,
+        "site_activation": false,
+        "site_preflight": "blocked_older_installed_source",
         "hardware": "unverified"
       }
     }
