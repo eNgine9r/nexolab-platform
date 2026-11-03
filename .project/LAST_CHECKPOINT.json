@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T10:45:38Z",
+  "timestamp": "2026-11-03T11:31:19Z",
   "actor": "ChatGPT",
-  "event": "1468_offline_local_alerts_reconciled_with_merged_1469",
+  "event": "1472_lan_monitor_installer_source_only_blocked_unaccepted_site_release",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1468,
-    "branch": "feature/1468-local-lan-access-alerts",
-    "status": "source_only_18_tests_native_promtool_alerts_pass",
+    "issue": 1472,
+    "branch": "feature/1472-protected-lan-monitor-install-gate",
+    "status": "18_source_tests_pass_site_preflight_BLOCKED_missing_accepted_release",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2908,6 +2908,30 @@
       "offline_contract": "PASS",
       "native_promtool_alert_fixture": "committed_pass",
       "site_monitor_activation": false
+    },
+    "issue_1472_lan_monitor_install_gate": {
+      "source_only": true,
+      "source_unit_tests": 18,
+      "site_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "requested_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+      "actual_host_exporter_bind": "home_nexolab_nexolab_platform_runtime_observability",
+      "host_dir_owner_mode": "nexolab_0700",
+      "legacy_dr_file": "present_nexolab_0600",
+      "source_unit_mapping": "corrected_exact_host_path",
+      "real_pi_preflight": "blocked_exit78_old_accepted_source",
+      "site_systemd_timer": "not_installed",
+      "prometheus_optional_rules": "not_loaded",
+      "site_activation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "new_tests": 18,
+      "prior_collector_tests": 18,
+      "prior_lan_probe_tests": 18,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 384,
+      "ci_expected_skips": 1,
+      "systemd_analyze_verify": "PASS",
+      "state_model_v2": "PASS"
     }
   },
   "observations": [
@@ -4260,9 +4284,33 @@
         "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
         "live_network_migration": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_observability_merged",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_ci": "7_of_7_GREEN",
+        "site_activated": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_lan_monitor_source_gate",
+      "data": {
+        "issue": 1472,
+        "source_tests": 18,
+        "pi_readonly_site": "BLOCKED",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
     }
   ],
-  "next_action": "Run full offline runtime contract, CI policy and State Model v2 checks for #1468; create Draft PR and exact-head CI. Do not install source-only timer/alert rules on site until approved protected package and exporter directory path verified. Resolve Edge Docker physical CIDR #1409, protected rollback and real hardware/boot acceptance before auto-reconnect #1399. Exact-head source-only #1469/PR #1470 merged to main GREEN, but actual Edge Docker physical route collision remains unresolved.",
+  "next_action": "Complete #1472 source-only offline runtime/CI and State Model v2 validation; publish focused Draft PR. Actual site install of local alerting requires accepted immutable offline release containing correct source and template, verified exporter directory switch and rollback, owner-reviewed site activation. Do not install timer or Docker network auto-reconnect until separate protected acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
