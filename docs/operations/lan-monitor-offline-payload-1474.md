@@ -63,3 +63,13 @@ performed by this source-only change.
 Hermetic tests exercise the actual shell staging loop in a temporary
 directory and the exact provenance/hash-manifest inventory contract.
 Full offline bundle integration and GitHub CI remain required for merge.
+
+## Exact GitHub offline verification routing
+
+The single new source test path is explicitly registered with the
+fail-closed CI impact classifier and the Offline Bundle GitHub workflow
+trigger. This is a narrow exact-path rule, not a wildcard exception or a
+change to the required workflow policy. Tests verify that the payload file
+requires Offline Bundle while an unrelated unknown script still fails closed.
+Because this change also modifies CI governance, the branch correctly
+requires the normal browser acceptance workflows and final Merge Gate.

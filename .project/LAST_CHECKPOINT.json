@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T12:06:11Z",
+  "timestamp": "2026-11-03T12:14:07Z",
   "actor": "ChatGPT",
-  "event": "1474_optin_digest_bound_lan_monitor_offline_asset_source",
+  "event": "1474_optin_lan_monitor_bundle_ci_exact_route",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -2945,12 +2945,18 @@
       "source_release_path": "unavailable",
       "hardware": "unverified",
       "production_mutation": false,
-      "github_exact_head": "pending",
+      "github_exact_head": "pending_revised_commit",
       "full_offline_contract": "PASS",
-      "ci_policy_contract_tests": 384,
+      "ci_policy_contract_tests": 385,
       "ci_expected_skip": 1,
       "preexisting_version_manager_test_fixture_limits": "14_site_external_frontend_topology_guards_64_PASS",
-      "site_activation": false
+      "site_activation": false,
+      "ci_impact_tests": 81,
+      "offline_workflow_trigger": "exact_filename",
+      "source_change_impact": "no_unknown_paths",
+      "ci_expected_skips": 1,
+      "change_impact_tests": 81,
+      "sealed_assets_tests": 16
     }
   },
   "observations": [
@@ -4349,6 +4355,17 @@
         "allowlisted_assets": 5,
         "site_activation": false,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_ci_exact_route_source",
+      "data": {
+        "issue": 1474,
+        "route_tests": 81,
+        "unknown_files": 0,
+        "site_activation": false
       }
     }
   ],

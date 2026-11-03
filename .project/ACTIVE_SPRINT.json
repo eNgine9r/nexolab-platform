@@ -9688,7 +9688,10 @@
         ".project/CURRENT_STATE.md",
         ".project/ACTIVE_SPRINT.json",
         ".project/BLOCKERS.md",
-        ".project/LAST_CHECKPOINT.json"
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml"
       ],
       "evidence": {
         "source_only": true,
@@ -9701,14 +9704,24 @@
         "unprivileged_opt_source_path": "not_installed_or_accepted",
         "site_activation": false,
         "hardware": "unverified",
-        "github_exact_head": "pending",
+        "github_exact_head": "pending_revised_commit",
         "source_unit_tests": "16_PASS",
         "full_standalone_offline_contract": "PASS",
-        "ci_policy_contract_tests": 384,
+        "ci_policy_contract_tests": 385,
         "ci_expected_skip": 1,
         "original_package_policy_regression": "17_PASS",
         "installed_site_version_manager_fixture": "64_PASS_14_BLOCKED_by_existing_external_frontend_in_test_host",
-        "live_site_activation": false
+        "live_site_activation": false,
+        "change_impact_route_tests": 81,
+        "exact_offline_bundle_test_path_registered": true,
+        "ci_impact_fail_closed": false,
+        "ci_impact_unknown_files": 0,
+        "required_external_workflows": "Authenticated_Dashboard_Acceptance_Offline_Bundle_Refrigeration_Browser_Acceptance",
+        "source_test_cases": 16,
+        "change_impact_test_cases": 81,
+        "ci_expected_skips": 1,
+        "source_ast_bash_prettier": "PASS",
+        "git_diff_check": "PASS"
       }
     }
   ],
@@ -11469,6 +11482,19 @@
         "new_tests": 14,
         "default_include": false,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_exact_ci_classifier_and_offline_trigger_registered",
+      "data": {
+        "issue": 1474,
+        "tests": 81,
+        "fail_closed": false,
+        "unknown_files": 0,
+        "required_external": 3,
+        "production_mutation": false
       }
     }
   ],
