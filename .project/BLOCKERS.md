@@ -1,3 +1,7 @@
+## 2026-11-03 — #1464 source-only edge subnet override not production IPAM approval
+
+The new source-only Edge IPAM overlay requires an explicit subnet, not a guessed/default 10.x or 172.x range. An operator-nominated 172.26.0.0/24 is only locally disjoint in existing Pi route inventory and remains candidate_unapproved; no site reservation evidence exists. #1409 live network cutover must protect bound Device Agent, MQTT queue, Edge SQLite and real RS485 buses with actual rollback and separate owner approval. Inherited eth0/Edge Docker CIDR collision still blocks #1462 guarded automatic network recovery. Live Docker daemon changes, APT holds, service reloads and hardware writes not authorized by this source-only WP.
+
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
 The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.

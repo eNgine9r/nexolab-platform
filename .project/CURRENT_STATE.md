@@ -1,3 +1,7 @@
+## 2026-11-03 — #1464 explicit opt-in edge Docker IPAM source-only
+
+LOCAL_LAN Dashboard and central API were restored to healthy by operator-authorized Nov 3 minimum network repair; future restart recurrence risks remain. Source-only #1464 adds a required, explicitly site-reserved Edge Docker CIDR Compose overlay without silent defaults, proves existing project identity/volume/standalone topology with synthetic Docker Compose config and 14 negative/positive unit tests. On real Pi a locally disjoint candidate must still be NOT approved; physical eth0 172.18.48.0/21 versus old Edge bridge 172.18.0.0/16 remains a hard CIDR conflict. No site network change, Docker daemon restart, backup, hardware write or production cutover. Independent owner approval and rollback/actual offline hardware verification required.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.

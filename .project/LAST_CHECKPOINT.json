@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-03T08:25:36Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1464_explicit_edge_ipam_source_only_no_live_migration",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1464,
+    "branch": "feature/1464-edge-ipam-approval-overlay",
+    "status": "source_only_compose_ipam_14_tests_pass_site_unapproved",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2800,6 +2800,23 @@
       "selection": "no_active_main_work_package",
       "site_runtime": "not_modified",
       "hardware": "unverified"
+    },
+    "issue_1464_edge_ipam_approval_overlay": {
+      "unit_tests": 14,
+      "source_only": true,
+      "positive_compose_config": "PASS",
+      "missing_explicit_subnet": "FAIL_CLOSED",
+      "site_cidr_conflict": "172.18.48.0/21_vs_172.18.0.0/16",
+      "proposed_candidate": "not_site_approved",
+      "live_migration": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "edge_ipam_source_guard_tests": 18,
+      "ci_policy_contract_tests": 383,
+      "ci_policy_skipped": 1,
+      "standalone_offline_contract": "PASS",
+      "site_readonly_exit": 1,
+      "site_readonly_status": "candidate_unapproved"
     }
   },
   "observations": [
@@ -4026,9 +4043,21 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:25:36Z",
+      "kind": "1464_optin_explicit_edge_ipam_source_only",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "site_cutover": false,
+        "hardware": "unverified"
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Verify #1464 full offline/CI and publish Draft PR. Future site activation of Edge subnet requires exact reserved LAN/VPN CIDR, protected Pi image/data identity and rollback, separate owner-approved maintenance and real read-only hardware/post-reboot tests.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

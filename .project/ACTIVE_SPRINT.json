@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1464,
+      "branch": "feature/1464-edge-ipam-approval-overlay"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9397,6 +9400,45 @@
         "state_tests": 13,
         "state_tests_skipped": 1
       }
+    },
+    {
+      "issue": 1464,
+      "title": "Opt-in explicit Edge bridge IPAM without site-unsafe default",
+      "branch": "feature/1464-edge-ipam-approval-overlay",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1409
+      ],
+      "scope": "Source-only opt-in exact subnet Compose overlay and hermetic config/route tests; no live production network migration.",
+      "permitted_paths": [
+        "infrastructure/compose/compose.edge-safe-ipam.yaml",
+        "infrastructure/offline/tests/test_edge_safe_ipam_overlay.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-safe-ipam-overlay-1464.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "unit_tests": 14,
+        "required_subnet_without_default": true,
+        "docker_compose_synthetic_config": "PASS",
+        "real_pi_subnet_proposal": "candidate_unapproved_not_site_authorized",
+        "live_site_migration": false,
+        "live_docker_recreate": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "source_unit_tests": 14,
+        "edge_ipam_guard_unit_tests": 18,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_policy_skipped": 1,
+        "real_pi_readonly_candidate": "candidate_unapproved_exit1",
+        "site_mutation": false
+      }
     }
   ],
   "maintenance_actions": [
@@ -10964,6 +11006,19 @@
         "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
         "workflows_green": 3,
         "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:25:36Z",
+      "kind": "1464_optin_source_edge_ipam_overlay",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "source_only": true,
+        "real_site_cidr": "blocked",
         "production_mutation": false
       }
     }
