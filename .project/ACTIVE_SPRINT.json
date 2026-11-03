@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1469,
-      "branch": "feature/1469-guarded-edge-site-migration-readiness"
+      "issue": 1468,
+      "branch": "feature/1468-local-lan-access-alerts"
     },
     "next_work_package": null
   },
@@ -9531,7 +9531,7 @@
       "title": "Verify exact Edge network cutover identities and rollback gates read-only",
       "branch": "feature/1469-guarded-edge-site-migration-readiness",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1409,
         1464
@@ -9566,7 +9566,59 @@
         "state_model_v2": "PASS",
         "markdown_prettier": "PASS",
         "pi_site_readonly_exit": 78,
-        "site_protected_image_and_volume_identity": "verified"
+        "site_protected_image_and_volume_identity": "verified",
+        "source_only_green_merged": "observed"
+      }
+    },
+    {
+      "issue": 1468,
+      "title": "Local offline Dashboard/Session outage alerts and hardened periodic probe",
+      "branch": "feature/1468-local-lan-access-alerts",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1466
+      ],
+      "scope": "Source-only metrics collector, optional local Prometheus alerts, secure exporter directory-mode, hardened off-by-default systemd unit templates. No runtime activation or network repair.",
+      "permitted_paths": [
+        "infrastructure/offline/emit-lan-access-prometheus.py",
+        "infrastructure/offline/tests/test_lan_access_prometheus.py",
+        "scripts/serve-prometheus-textfile.py",
+        "infrastructure/compose/compose.observability.yaml",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.yml",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "infrastructure/systemd/nexolab-lan-access-probe.timer",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/lan-access-alerts-1468.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.test.yml"
+      ],
+      "evidence": {
+        "source_only": true,
+        "local_monitor_active": false,
+        "new_unit_tests": 18,
+        "ci_impact_tests": 80,
+        "actual_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "actual_pi_metrics": "temporary_test_file_only",
+        "native_promtool_rule_syntax": "5_of_5_PASS",
+        "native_promtool_firing_and_resolved": "PASS_in_isolated_fixture",
+        "offline_rule_activation": "OPT_IN_NOT_LOADED",
+        "mutated_production": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "promtool_rules": "5_of_5_PASS",
+        "promtool_alert_firing_and_resolved": "tracked_fixture_PASS",
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "expected_policy_skips": 1,
+        "native_systemd_verify": "PASS",
+        "site_activation": false
       }
     }
   ],
@@ -11251,6 +11303,32 @@
         "tests": 17,
         "site": "blocked_unapproved_candidate",
         "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_optin_alerting_work",
+      "data": {
+        "issue": 1468,
+        "unit_tests": 18,
+        "ci_impact_tests": 80,
+        "prometheus_rule_test": "PASS",
+        "site_activation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false,
         "hardware": "unverified"
       }
     }

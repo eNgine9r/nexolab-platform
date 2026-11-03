@@ -1,0 +1,33 @@
+# Source-only Prometheus 3.13 acceptance; never mounted into production rules/.
+rule_files:
+  - lan-access-alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: dashboard-failure-fires-and-recovers
+    interval: 1m
+    input_series:
+      - series: nexolab_lan_access_dashboard_ok
+        values: 1 0 0 0 1 1
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NexolabLanDashboardUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: NEXOLAB LAN Dashboard is unavailable
+              description: The original local monitoring Dashboard does not respond with the expected HTML identity.
+      - eval_time: 5m
+        alertname: NexolabLanDashboardUnavailable
+        exp_alerts: []
+  - name: no-collector-data-triggers-missing-probe
+    interval: 1m
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: NexolabLanAccessProbeMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: NEXOLAB local Dashboard access probe is missing or stale
+              description: The offline local probe has not reported a result in at least three minutes.
