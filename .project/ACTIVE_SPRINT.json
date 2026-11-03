@@ -9515,7 +9515,7 @@
         "browser_owner_authentication": "unverified",
         "hardware": "unverified",
         "site_automatic_monitor": "not_installed",
-        "github_exact_head": "pending",
+        "github_exact_head": "3_of_3_GREEN",
         "standalone_offline_contract": "PASS",
         "ci_contract_tests": 383,
         "ci_contract_skips": 1,
@@ -9523,6 +9523,50 @@
         "docs_prettier": "PASS",
         "actual_lan_smoke": "LOCAL_LAN_AUTH_PATH_REACHABLE",
         "site_mutation": false,
+        "source_only_merge": "observed_merged"
+      }
+    },
+    {
+      "issue": 1469,
+      "title": "Verify exact Edge network cutover identities and rollback gates read-only",
+      "branch": "feature/1469-guarded-edge-site-migration-readiness",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1409,
+        1464
+      ],
+      "scope": "Source-only fail-closed exact immutable image, named-volume, route candidate and site release evidence gate; no production cutover.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-edge-site-migration-gates.py",
+        "infrastructure/offline/tests/test_edge_site_migration_gates.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-site-migration-gates-1469.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "source_unit_tests": 17,
+        "pi_readonly_preflight": "BLOCKED_site_reservation_rollback_and_hardware_acceptance_required",
+        "site_candidate_subnet": "locally_disjoint_not_site_approved",
+        "protected_release_identity": "verified",
+        "edge_images_volumes_networks_ports": "verified",
+        "production_network_cutover": false,
+        "site_reboot_acceptance": "unverified",
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "existing_ipam_unit_tests": 18,
+        "existing_edge_overlay_unit_tests": 14,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_contract_expected_skips": 1,
+        "state_model_v2": "PASS",
+        "markdown_prettier": "PASS",
+        "pi_site_readonly_exit": 78,
+        "site_protected_image_and_volume_identity": "verified",
         "source_only_green_merged": "observed"
       }
     },
@@ -11240,14 +11284,26 @@
     },
     {
       "source": "github",
-      "observed_at": "2026-11-03T10:40:13Z",
-      "kind": "1466_source_only_merged_green",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_source_only_green_merged",
       "data": {
         "issue": 1466,
         "pr": 1467,
         "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
-        "checks": "3/3_GREEN",
-        "site_monitor_installed": false
+        "exact_head_ci": "3/3_GREEN",
+        "site_schedule_installed": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_edge_site_readonly_cutover_gate_initial",
+      "data": {
+        "issue": 1469,
+        "tests": 17,
+        "site": "blocked_unapproved_candidate",
+        "production_mutation": false,
+        "hardware": "unverified"
       }
     },
     {
@@ -11260,6 +11316,19 @@
         "ci_impact_tests": 80,
         "prometheus_rule_test": "PASS",
         "site_activation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false,
         "hardware": "unverified"
       }
     }

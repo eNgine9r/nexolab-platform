@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T10:40:13Z",
+  "timestamp": "2026-11-03T10:45:38Z",
   "actor": "ChatGPT",
-  "event": "1468_lan_access_alerting_source_only_optin_not_activated",
+  "event": "1468_offline_local_alerts_reconciled_with_merged_1469",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -2862,6 +2862,31 @@
       "ci_expected_skips": 1,
       "actual_pi_readonly": "LOCAL_LAN_AUTH_PATH_REACHABLE"
     },
+    "issue_1469_edge_site_migration_readiness": {
+      "source_only": true,
+      "source_unit_tests": 17,
+      "existing_lan_cidr": "172.18.48.0/21",
+      "existing_edge_bridge_cidr": "172.18.0.0/16",
+      "candidate": "172.26.0.0/24",
+      "candidate_status": "locally_disjoint_not_site_approved",
+      "pi_protected_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "pi_exact_edge_mqtt_agent_container_images": "verified",
+      "pi_existing_sqlite_mqtt_volume_names": "verified_not_recoverability",
+      "site_cutover": "blocked_missing_reservation_rollback_hardware_acceptance",
+      "actual_reboot": "not_performed",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending",
+      "existing_ipam_tests": 18,
+      "existing_overlay_tests": 14,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 383,
+      "ci_expected_skips": 1,
+      "state_model_v2": "PASS",
+      "pi_site_readonly_exit": 78,
+      "source_only_merged": "3_of_3_GREEN",
+      "live_cutover": false
+    },
     "issue_1468_local_lan_access_alerts": {
       "source_only": true,
       "unit_tests": 18,
@@ -4193,6 +4218,28 @@
     },
     {
       "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_merged_3_of_3_ci_green",
+      "data": {
+        "issue": 1466,
+        "pr": 1467,
+        "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
+        "site_auto_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_source_only_site_network_gates",
+      "data": {
+        "issue": 1469,
+        "unit_tests": 17,
+        "site_cutover": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
       "observed_at": "2026-11-03T10:40:13Z",
       "kind": "1468_source_only_metrics_and_alerts",
       "data": {
@@ -4202,9 +4249,20 @@
         "promtool_firing_resolved": "PASS",
         "site_activation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "live_network_migration": false
+      }
     }
   ],
-  "next_action": "Run full offline runtime contract, CI policy and State Model v2 checks for #1468; create Draft PR and exact-head CI. Do not install source-only timer/alert rules on site until approved protected package and exporter directory path verified. Resolve Edge Docker physical CIDR #1409, protected rollback and real hardware/boot acceptance before auto-reconnect #1399.",
+  "next_action": "Run full offline runtime contract, CI policy and State Model v2 checks for #1468; create Draft PR and exact-head CI. Do not install source-only timer/alert rules on site until approved protected package and exporter directory path verified. Resolve Edge Docker physical CIDR #1409, protected rollback and real hardware/boot acceptance before auto-reconnect #1399. Exact-head source-only #1469/PR #1470 merged to main GREEN, but actual Edge Docker physical route collision remains unresolved.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
