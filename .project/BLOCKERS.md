@@ -1,3 +1,7 @@
+## 2026-11-03 — #1462 cannot auto-recover while LAN and Docker routes overlap
+
+Manual November 3 reconnect restored original LAN monitoring after Docker attachment loss; it did not fix Docker sandbox behavior across reboot. The follow-on source-only #1462 reconnect tool is blocked on read-only live site by physical LAN 172.18.48.0/21 versus edge Docker 172.18.0.0/16 (#1409). Device Agent remains unhealthy and must never be auto-fixed via hardware write or silently marked healthy. Root service activation, network/IPAM migration, independent data rollback and real reboot acceptance are not performed/verified. Do not install or run --execute on the conflicted production site. Parent #1399 remains open.
+
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
 The stale main selection of merged Issue #1453 is cleared in state-only #1458. This governance repair does not prove completed telemetry persistence, publisher identity, backup, restore, online dashboard or physical device acceptance. Source-only Edge #1451, Central #1445 and broker security #1449 remain distinct Draft scopes; container security #1447 requires platform-security owner review, and site #1428/#1399 requires safe protected acceptance. Do not deploy merely because URL CI is GREEN.

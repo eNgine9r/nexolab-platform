@@ -1,3 +1,9 @@
+## 2026-11-03 — Original NEXOLAB LOCAL_LAN restored; #1462 guarded offline recovery source-only
+
+Actual Pi owner-authorized November 3 maintenance reattached the original Dashboard, Telemetry API, MQTT and VersityGW containers to existing Docker networks. Browser http://172.18.48.66:3000 and Telemetry API http://172.18.48.66:8082/health/ready returned HTTP 200; unauthenticated session correctly returned HTTP 401 with exact LAN CORS, and Chromium reached the login page. PostgreSQL contained fresh real measurements. Original images, volumes, credentials and Edge hardware were preserved; no Modbus write. Device Agent still reports communication errors and hardware acceptance remains incomplete.
+
+#1462 source-only guarded reconnect adds source-bound network repair planning and negative hermetic tests. A live Pi --check refuses because eth0 172.18.48.0/21 overlaps edge Docker 172.18.0.0/16 (#1409). No new systemd timer, production reconnection, reboot or auto-activation. Future site supervisor requires owner-reviewed safe Edge CIDR migration and rollback/actual offline runtime proof.
+
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
 GitHub Issue #1453 was closed by squash merge PR #1454 at 7bff23d1713aa389c63f8f5a7a2a993a4a268a91, with 3/3 exact-head workflows GREEN (Core CI, Offline Bundle, Telemetry service). This state-only Work Package changes #1453 to completed, clears its stale active selection in main and records the observed SHA only in timestamped observations per State Model v2. Other Draft branches #1451/#1445/#1449 remain unmerged and are not presented as completed site functionality. Independent security #1447, site backups #1428 and Docker-network recovery #1399 still block a production update; no site/Modbus/hardware actions occurred.
