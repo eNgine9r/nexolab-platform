@@ -349,7 +349,7 @@ jobs:
 
       - name: Restore trusted default-branch BuildKit cache
         id: buildx_cache_restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/nexolab-offline-buildx-cache
           key: nexolab-offline-buildx-v3-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
@@ -804,7 +804,7 @@ jobs:
 
       - name: Save verified default-branch BuildKit seed
         if: ${{ success() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && steps.buildx_cache_restore.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/nexolab-offline-buildx-cache
           key: nexolab-offline-buildx-v3-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
