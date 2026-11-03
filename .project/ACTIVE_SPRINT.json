@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1474,
-      "branch": "feature/1474-sealed-offline-lan-monitor-assets"
+      "issue": 1476,
+      "branch": "feature/1476-pinned-lan-monitor-runtime"
     },
     "next_work_package": null
   },
@@ -9674,7 +9674,7 @@
       "title": "Digest-bound opt-in LAN monitor assets in offline bundle",
       "branch": "feature/1474-sealed-offline-lan-monitor-assets",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1472
       ],
@@ -9721,7 +9721,53 @@
         "change_impact_test_cases": 81,
         "ci_expected_skips": 1,
         "source_ast_bash_prettier": "PASS",
-        "git_diff_check": "PASS"
+        "git_diff_check": "PASS",
+        "source_only_merge": "6_of_6_GREEN"
+      }
+    },
+    {
+      "issue": 1476,
+      "title": "Verify immutable runnable monitor release and pinned systemd ExecStart",
+      "branch": "feature/1476-pinned-lan-monitor-runtime",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1474
+      ],
+      "scope": "Source-only fail-closed exact accepted SHA256 offline package to unprivileged root-owned pinned release layout and pure hardened systemd ExecStart renderer; no site installation.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-lan-monitor-pinned-release.py",
+        "infrastructure/offline/tests/test_lan_monitor_pinned_release.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-pinned-release-1476.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "source_unit_tests": 20,
+        "real_pi_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "source_release_source": "bce9095e9b2c1657d10b47dd6d7ad3b478948951",
+        "protected_bundle_root_mode": "0750_uid10001",
+        "protected_bundle_unprivileged_read": "denied_as_designed",
+        "historical_opt_current_path": "missing",
+        "immutable_release_root": "/opt/nexolab-lan-monitor/releases",
+        "release_site_installed": false,
+        "rendered_unit_source_only": true,
+        "actual_site_readonly_preflight": "BLOCKED_78_source_mismatch",
+        "site_activation": false,
+        "hardware": "unverified",
+        "github_exact_head": "pending",
+        "previous_install_source_tests": 18,
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 385,
+        "expected_ci_policy_skip": 1,
+        "source_ast_and_shell": "PASS",
+        "markdown_prettier": "PASS",
+        "state_model_v2": "PASS",
+        "real_pi_readonly_preflight": "BLOCKED_78_source_mismatch"
       }
     }
   ],
@@ -11495,6 +11541,31 @@
         "unknown_files": 0,
         "required_external": 3,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:51:08Z",
+      "kind": "1474_source_bundle_merged_6_of_6_green",
+      "data": {
+        "issue": 1474,
+        "pr": 1475,
+        "merge_sha": "bce9095e9b2c1657d10b47dd6d7ad3b478948951",
+        "exact_head_checks": "6_of_6_GREEN",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:51:08Z",
+      "kind": "1476_source_pinned_runtime_layout",
+      "data": {
+        "issue": 1476,
+        "unit_tests": 20,
+        "site_preflight": "BLOCKED_78_source_mismatch",
+        "protected_site_permissions": "root_0750_uid10001",
+        "site_mutation": false,
+        "hardware": "unverified"
       }
     }
   ],
