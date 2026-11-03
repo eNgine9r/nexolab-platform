@@ -126,10 +126,17 @@ def create_plan(observation: dict[str, Any], inspect: Callable[[str, str], dict[
     return planned
 
 
-def check_live(mod: Any, root: Path, inspect: Callable[[str, str], dict[str, Any]]):
+def check_live(mod: Any, root: Path, inspect: Callable[[str, str], dict[str, Any]],
+               *, locks_already_held: bool = False):
     mod.inspect_host_cidr()
     digests = mod.validate_authority(root)
-    mod.check_update_locks(root)
+    # The protected worker/update-plane locks are already held EXCLUSIVELY
+    # during execute. Reopening their inodes for a second shared flock would
+    # self-conflict on Linux because each open has a distinct file description.
+    # Skipping this re-acquire is safe ONLY while the caller's ExitStack still
+    # owns the exact pair of exclusive locks.
+    if not locks_already_held:
+        mod.check_update_locks(root)
     observation = mod.diagnose_containers(digests, inspect)
     observation["status"] = ("manual_review_required" if observation["manual_only_services"]
                              else "drift_detected" if observation["container_drift"] else "ready")
@@ -186,7 +193,7 @@ def recover(
             current = mod.read_object(root / "current.json")
             if current.get("bundle_id") != approval_bundle or current.get("source_commit") != approval_source:
                 raise RecoveryBlocked("approved_release_no_longer_current")
-            digests, before, new_plan = check_live(mod, root, inspect)
+            digests, before, new_plan = check_live(mod, root, inspect, locks_already_held=True)
             if new_plan != plan:
                 raise RecoveryBlocked("network_state_changed_after_preflight")
             if before.get("manual_only_services"):

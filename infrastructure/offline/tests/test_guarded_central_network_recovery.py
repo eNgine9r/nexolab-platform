@@ -221,6 +221,17 @@ class ProtectedRecoveryTests(unittest.TestCase):
         self.assertEqual(r["status"], "blocked")
         self.assertEqual(self.actions, [])
 
+    def test_real_file_locks_do_not_self_deadlock_on_rechecked_preflight(self):
+        # Do NOT mock check_update_locks: this covers real Linux flock
+        # behavior with two separately opened file descriptions.
+        detached(self.o, roles=("dashboard",))
+        self.updatelocks.stop()
+        r = self.call(execute=True, **self.approval)
+        self.assertEqual(r["status"], "connection_restore_attempted", r)
+        self.assertEqual(r["operation_count"], 1)
+        self.assertEqual(len(self.actions), 1)
+        self.assertEqual(self.actions[0][-2:], ["nexolab-central", "nexolab-central-dashboard-1"])
+
     def test_protected_lock_already_held_blocks_execution(self):
         import fcntl
         detached(self.o, roles=("dashboard",))

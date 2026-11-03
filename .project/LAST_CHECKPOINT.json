@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T08:15:36Z",
+  "timestamp": "2026-11-03T08:36:31Z",
   "actor": "ChatGPT",
-  "event": "1462_guarded_central_network_recovery_source_only_cidr_blocked",
+  "event": "1462_real_flock_regression_prevent_exclusive_lock_self_conflict",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -2813,14 +2813,16 @@
       "site_cidr_migration": "not_performed",
       "production_mutation": false,
       "hardware": "unverified",
-      "github_exact_head": "pending",
-      "source_unit_tests": 15,
+      "github_exact_head": "pending_new_commit",
+      "source_unit_tests": 16,
       "existing_observer_tests": 23,
       "existing_cidr_tests": 16,
       "offline_contract_ci_registration": true,
       "auth_key_bind_mounts": "required_nonwritable",
       "update_locks": "exclusive_during_recovery",
-      "offline_contract": "passed"
+      "offline_contract": "passed",
+      "real_linux_flock_reentrancy": "positive_fixture_test_pass",
+      "full_offline_contract": "PASS"
     }
   },
   "observations": [
@@ -4058,6 +4060,17 @@
         "site_cidr_guard": "blocked",
         "site_mutation": false,
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression",
+      "data": {
+        "issue": 1462,
+        "source_tests": 16,
+        "external_ci": "pending",
+        "production_mutation": false
       }
     }
   ],

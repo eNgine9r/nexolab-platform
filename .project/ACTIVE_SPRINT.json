@@ -9428,19 +9428,20 @@
         "live_dashboard": "LAN_http_200_recovery_verified",
         "live_api": "LAN_http_200_recovery_verified",
         "site_readonly_preflight": "blocked_physical_docker_cidr_not_safe",
-        "source_unit_tests": 15,
+        "source_unit_tests": 16,
         "site_execute": false,
         "systemd_supervisor": "not_installed",
         "production_mutation": false,
         "hardware_acceptance": "unverified",
-        "github_exact_head": "pending",
+        "github_exact_head": "pending_new_commit",
         "existing_boot_observer_tests": 23,
         "existing_cidr_guard_tests": 16,
         "offline_bundle_ci_registration": "included_in_standalone_offline_runtime_contract",
-        "unit_tests_all": 54,
+        "unit_tests_all": 55,
         "auth_key_bind_mount_checks": "read_only_required_and_negative_tested",
         "update_locks": "exclusive_across_all_operations",
-        "standalone_offline_contract": "passed"
+        "standalone_offline_contract": "passed",
+        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock"
       }
     }
   ],
@@ -11023,6 +11024,18 @@
         "live_check": "blocked_cidr_overlap",
         "production_mutation": false,
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression_lock_recheck",
+      "data": {
+        "issue": 1462,
+        "tested_real_flock": true,
+        "tests": 16,
+        "offline_integration": "PASS",
+        "production_mutation": false
       }
     }
   ],

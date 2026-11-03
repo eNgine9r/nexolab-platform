@@ -66,3 +66,15 @@ is reported explicitly and never claimed to be production healthy.
 
 Deployment constraints: offline LOCAL_LAN, no mandatory cloud/CDN/service,
 no hardware/Modbus writes and no silent fake/demo telemetry.
+
+## Linux flock self-conflict regression
+
+The guarded execute path exclusively holds both source-pinned lock files.
+Preflight is repeated under this protection without opening the same lock
+files a second time for a shared flock: on Linux separate open file
+descriptions may conflict even in one process. A source regression uses
+**actual Linux file locks** (not mocked locks) with simulated Docker
+containers and checks the approved path remains executable after the
+guarded reread, while the separate contention test still blocks an active
+updater. Production live execute remains prohibited until all site gates
+are independently satisfied.
