@@ -1,3 +1,7 @@
+## 2026-11-03 — #1466 access smoke must not be mistaken for full hardware/site acceptance
+
+The source-only local login probe detects a closed Dashboard port, unusable login HTML, unready API dependencies, unexpected session authorization result or incorrect CORS. A positive run proves only **unauthenticated** path reachability from the probing Raspberry; it is not an owner login, independent LAN client, fresh telemetry/hardware acceptance or automatic recovery. No timer, alert rule, or site package installation was executed. Original site still has Edge Docker CIDR overlap #1409, real hardware faults #1429, no reboot acceptance #1399; #1464 source-only Compose overlay was merged GREEN but the live Docker Edge network was not migrated.
+
 ## 2026-11-03 — #1462 source-only merge does not remove site boot blocker
 
 PR #1463 source recovery code is merged GREEN; it is not installed as a Raspberry systemd auto-repair agent. The real site still has physical LAN versus Edge Docker bridge overlap and cannot execute the fail-closed network recovery. Parent #1399 and #1409 physical site acceptance remain blocked.
