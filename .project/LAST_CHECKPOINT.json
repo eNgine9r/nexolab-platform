@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T03:15:04Z",
+  "timestamp": "2026-11-03T08:36:31Z",
   "actor": "ChatGPT",
-  "event": "1453_merged_main_sprint_reconciliation_1458",
+  "event": "1462_real_flock_regression_prevent_exclusive_lock_self_conflict",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1458,
-    "branch": "docs/1458-reconcile-1453-merged",
-    "status": "state_source_reconciled_no_production_mutation",
+    "issue": 1462,
+    "branch": "feature/1462-guarded-central-network-recovery",
+    "status": "source_guard_tested_14_hermetic_live_cidr_blocked",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2800,6 +2800,29 @@
       "selection": "no_active_main_work_package",
       "site_runtime": "not_modified",
       "hardware": "unverified"
+    },
+    "issue_1462_guarded_central_network_recovery": {
+      "source_only": true,
+      "parent_issue": 1399,
+      "site_cidr_guard": "blocked_172_18_0_0_16_vs_172_18_48_0_21",
+      "local_lan_dashboard": "http_200",
+      "local_lan_api": "http_200",
+      "fixed_reconnect_roles": "mqtt telemetry-service dashboard minio",
+      "unit_tests": 14,
+      "systemd_service": "not_installed",
+      "site_cidr_migration": "not_performed",
+      "production_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending_new_commit",
+      "source_unit_tests": 16,
+      "existing_observer_tests": 23,
+      "existing_cidr_tests": 16,
+      "offline_contract_ci_registration": true,
+      "auth_key_bind_mounts": "required_nonwritable",
+      "update_locks": "exclusive_during_recovery",
+      "offline_contract": "passed",
+      "real_linux_flock_reentrancy": "positive_fixture_test_pass",
+      "full_offline_contract": "PASS"
     }
   },
   "observations": [
@@ -4026,9 +4049,32 @@
         "closed": true,
         "production_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_central_network_source_only",
+      "data": {
+        "issue": 1462,
+        "tests": 14,
+        "site_cidr_guard": "blocked",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression",
+      "data": {
+        "issue": 1462,
+        "source_tests": 16,
+        "external_ci": "pending",
+        "production_mutation": false
+      }
     }
   ],
-  "next_action": "Issue #1453 completed and merged. Continue #1451 Edge receipt source-only Draft, #1445 central publisher, #1449 broker ACL when security #1447 accepted; protect #1428 backups and #1399 site network before physical/site acceptance. Select next Sprint WP only from current ready GitHub evidence.",
+  "next_action": "Verify #1462 unit, offline acceptance, core CI and State Model v2; push Draft PR. Resolve #1409 edge CIDR with reserved subnet and separately approved maintenance prior to installing protected automatic site repair. Do not run --execute on overlapped live host.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

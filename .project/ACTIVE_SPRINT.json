@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1462,
+      "branch": "feature/1462-guarded-central-network-recovery"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9397,6 +9400,49 @@
         "state_tests": 13,
         "state_tests_skipped": 1
       }
+    },
+    {
+      "issue": 1462,
+      "title": "Guarded offline central Docker network recovery after sandbox detachment",
+      "branch": "feature/1462-guarded-central-network-recovery",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1399,
+        1409
+      ],
+      "scope": "Source-only fixed identity, persistent volume and bridge network recovery guard; no installed boot supervisor, site cutover or production writes.",
+      "permitted_paths": [
+        "infrastructure/offline/guarded-central-network-recovery.py",
+        "infrastructure/offline/tests/test_guarded_central_network_recovery.py",
+        "docs/operations/guarded-central-network-recovery-1462.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/tests/standalone-offline-runtime-contract.sh"
+      ],
+      "evidence": {
+        "source_only": true,
+        "installed_package_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "live_dashboard": "LAN_http_200_recovery_verified",
+        "live_api": "LAN_http_200_recovery_verified",
+        "site_readonly_preflight": "blocked_physical_docker_cidr_not_safe",
+        "source_unit_tests": 16,
+        "site_execute": false,
+        "systemd_supervisor": "not_installed",
+        "production_mutation": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending_new_commit",
+        "existing_boot_observer_tests": 23,
+        "existing_cidr_guard_tests": 16,
+        "offline_bundle_ci_registration": "included_in_standalone_offline_runtime_contract",
+        "unit_tests_all": 55,
+        "auth_key_bind_mount_checks": "read_only_required_and_negative_tested",
+        "update_locks": "exclusive_across_all_operations",
+        "standalone_offline_contract": "passed",
+        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10964,6 +11010,31 @@
         "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
         "workflows_green": 3,
         "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_network_recovery_source_only",
+      "data": {
+        "issue": 1462,
+        "parent": 1399,
+        "unit_tests": 14,
+        "live_check": "blocked_cidr_overlap",
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression_lock_recheck",
+      "data": {
+        "issue": 1462,
+        "tested_real_flock": true,
+        "tests": 16,
+        "offline_integration": "PASS",
         "production_mutation": false
       }
     }
