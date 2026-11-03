@@ -8,7 +8,7 @@ Usage: build-offline-bundle.sh --version VERSION --platform linux/amd64|linux/ar
   [--schema-head REVISION] [--upgrade-from-schema-head REVISION] \
   [--runtime-compatible-schema-head REVISION] \
   [--auth-provider disabled|local|acceptance|supabase] [--runtime-source-ref REF] \
-  [--external-frontend-artifact DIR] [--output DIR]
+  [--external-frontend-artifact DIR] [--include-lan-monitor-sources] [--output DIR]
 
 Builds a versioned NEXOLAB offline bundle. This command is intentionally run on a
 connected build host; the resulting archive is self-contained for disconnected
@@ -25,6 +25,7 @@ API_BASE_URL=""
 WEBSOCKET_URL=""
 AUTH_PROVIDER="disabled"
 EXTERNAL_FRONTEND_ARTIFACT=""
+INCLUDE_LAN_MONITOR_SOURCES=false
 RUNTIME_SOURCE_REF="HEAD"
 SCHEMA_HEAD=""
 UPGRADE_FROM_SCHEMA_HEADS=()
@@ -45,6 +46,7 @@ while (($#)); do
     --websocket-url) WEBSOCKET_URL="${2:?}"; shift 2 ;;
     --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
     --external-frontend-artifact) EXTERNAL_FRONTEND_ARTIFACT="${2:?}"; shift 2 ;;
+    --include-lan-monitor-sources) INCLUDE_LAN_MONITOR_SOURCES=true; shift ;;
     --runtime-source-ref) RUNTIME_SOURCE_REF="${2:?}"; shift 2 ;;
     --schema-head) SCHEMA_HEAD="${2:?}"; shift 2 ;;
     --upgrade-from-schema-head) UPGRADE_FROM_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
@@ -289,6 +291,23 @@ cp infrastructure/systemd/nexolab-update-check.service "$STAGING/deploy/systemd/
 cp infrastructure/systemd/nexolab-update-check.timer "$STAGING/deploy/systemd/"
 cp infrastructure/systemd/nexolab-update-request.service "$STAGING/deploy/systemd/"
 cp infrastructure/systemd/nexolab-update-request.path "$STAGING/deploy/systemd/"
+# Optional source-only local LAN monitoring payload. The allowlist is fixed
+# and digest-bound by the standard manifest. No systemd timer is activated.
+if [[ "$INCLUDE_LAN_MONITOR_SOURCES" == true ]]; then
+  for relative in \
+    infrastructure/offline/inspect-site-lan-access.py \
+    infrastructure/offline/emit-lan-access-prometheus.py \
+    infrastructure/systemd/nexolab-lan-access-probe.service \
+    infrastructure/systemd/nexolab-lan-access-probe.timer \
+    infrastructure/observability/prometheus/optional-rules/lan-access-alerts.yml; do
+    [[ -f "$relative" && ! -L "$relative" ]] || {
+      echo "ERROR: local monitor source missing or symlinked: $relative" >&2
+      exit 70
+    }
+    mkdir -p "$STAGING/$(dirname "$relative")"
+    cp -- "$relative" "$STAGING/$relative"
+  done
+fi
 cp scripts/verify-offline-bundle.py "$STAGING/scripts/"
 cp scripts/offline_image_archive.py "$STAGING/scripts/"
 cp scripts/object-storage-s3.py "$STAGING/scripts/"
@@ -330,13 +349,13 @@ cp docs/operations/local-version-management.md "$STAGING/docs/"
 cp docs/security/local-operator-authentication.md "$STAGING/docs/"
 chmod 0755 "$STAGING/scripts/"*.sh "$STAGING/scripts/"*.py
 
-python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$TOOLING_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" "$AUTH_PROVIDER" <<'PY'
+python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$TOOLING_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" "$AUTH_PROVIDER" "$INCLUDE_LAN_MONITOR_SOURCES" <<'PY'
 import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-output, source_commit, tooling_commit, version, platform, trivy_image, auth_provider = sys.argv[1:]
+output, source_commit, tooling_commit, version, platform, trivy_image, auth_provider, include_lan_monitor = sys.argv[1:]
 payload = {
     "schema_version": 1,
     "source_repository": "eNgine9r/nexolab-platform",
@@ -352,6 +371,8 @@ payload = {
     "network_policy": "connected build; disconnected runtime",
     "secrets_included": False,
 }
+if include_lan_monitor == "true":
+    payload["tooling_capabilities"].append("lan-access-monitor-source-only")
 Path(output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 

@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1472,
-      "branch": "feature/1472-protected-lan-monitor-install-gate"
+      "issue": 1474,
+      "branch": "feature/1474-sealed-offline-lan-monitor-assets"
     },
     "next_work_package": null
   },
@@ -9627,7 +9627,7 @@
       "title": "Protected install-readiness for offline Dashboard/Session alerting",
       "branch": "feature/1472-protected-lan-monitor-install-gate",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1468
       ],
@@ -9665,7 +9665,50 @@
         "source_python_ast": "PASS",
         "markdown_prettier": "PASS",
         "state_model_v2": "PASS",
-        "live_site_preflight": "BLOCKED_78_unaccepted_source"
+        "live_site_preflight": "BLOCKED_78_unaccepted_source",
+        "source_only_merge": "3_of_3_GREEN"
+      }
+    },
+    {
+      "issue": 1474,
+      "title": "Digest-bound opt-in LAN monitor assets in offline bundle",
+      "branch": "feature/1474-sealed-offline-lan-monitor-assets",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1472
+      ],
+      "scope": "Explicit optional source-only monitor assets in SHA256-bound offline bundle and all-or-none provenance verifier; no site activation.",
+      "permitted_paths": [
+        "scripts/build-offline-bundle.sh",
+        "scripts/verify-offline-bundle.py",
+        "scripts/tests/test_lan_monitor_offline_payload.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-offline-payload-1474.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "optional_flag_off_by_default": true,
+        "assets_in_offline_bundle": 5,
+        "offline_bundle_provenance": "lan-access-monitor-source-only",
+        "sealed_bundle_asset_unit_tests": 16,
+        "real_pi_site_timer": "not_installed",
+        "real_pi_site_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "unprivileged_opt_source_path": "not_installed_or_accepted",
+        "site_activation": false,
+        "hardware": "unverified",
+        "github_exact_head": "pending",
+        "source_unit_tests": "16_PASS",
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "ci_expected_skip": 1,
+        "original_package_policy_regression": "17_PASS",
+        "installed_site_version_manager_fixture": "64_PASS_14_BLOCKED_by_existing_external_frontend_in_test_host",
+        "live_site_activation": false
       }
     }
   ],
@@ -11402,6 +11445,30 @@
         "site_activation": false,
         "site_preflight": "blocked_older_installed_source",
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_green_merged",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "exact_head_ci": "3_of_3_GREEN",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_optional_monitor_bundle_source",
+      "data": {
+        "issue": 1474,
+        "assets": 5,
+        "new_tests": 14,
+        "default_include": false,
+        "site_mutation": false
       }
     }
   ],

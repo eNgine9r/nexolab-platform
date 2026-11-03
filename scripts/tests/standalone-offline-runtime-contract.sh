@@ -29,6 +29,7 @@ python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_edge_site_migration_gat
 python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_site_lan_access.py"
 python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_lan_access_prometheus.py"
 python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_lan_monitor_install_readiness.py"
+python3 -B "$REPO_ROOT/scripts/tests/test_lan_monitor_offline_payload.py"
 python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_packaged_boot_network_observer.py"
 python3 -B "$REPO_ROOT/infrastructure/offline/tests/test_guarded_central_network_recovery.py"
 python3 "$REPO_ROOT/scripts/tests/test_device_agent_startup_gate.py"

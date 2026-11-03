@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T11:31:19Z",
+  "timestamp": "2026-11-03T12:06:11Z",
   "actor": "ChatGPT",
-  "event": "1472_lan_monitor_installer_source_only_blocked_unaccepted_site_release",
+  "event": "1474_optin_digest_bound_lan_monitor_offline_asset_source",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1472,
-    "branch": "feature/1472-protected-lan-monitor-install-gate",
-    "status": "18_source_tests_pass_site_preflight_BLOCKED_missing_accepted_release",
+    "issue": 1474,
+    "branch": "feature/1474-sealed-offline-lan-monitor-assets",
+    "status": "source_only_14_hermetic_tests_pass_no_site_activation",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2932,6 +2932,25 @@
       "ci_expected_skips": 1,
       "systemd_analyze_verify": "PASS",
       "state_model_v2": "PASS"
+    },
+    "issue_1474_offline_lan_monitor_payload": {
+      "source_only": true,
+      "assets_allowlisted": 5,
+      "default_bundle_behavior": "unchanged",
+      "opt_in_provenance": "lan-access-monitor-source-only",
+      "hermetic_new_tests": 16,
+      "actual_builder_copy_loop_in_isolated_tmp": "PASS",
+      "real_pi_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "real_pi_systemd_monitor": "not_installed",
+      "source_release_path": "unavailable",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending",
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 384,
+      "ci_expected_skip": 1,
+      "preexisting_version_manager_test_fixture_limits": "14_site_external_frontend_topology_guards_64_PASS",
+      "site_activation": false
     }
   },
   "observations": [
@@ -4308,9 +4327,32 @@
         "site_mutation": false,
         "hardware": "unverified"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_merged_green",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_immutable_optional_lan_monitor_bundle",
+      "data": {
+        "issue": 1474,
+        "new_tests": 14,
+        "allowlisted_assets": 5,
+        "site_activation": false,
+        "production_mutation": false
+      }
     }
   ],
-  "next_action": "Complete #1472 source-only offline runtime/CI and State Model v2 validation; publish focused Draft PR. Actual site install of local alerting requires accepted immutable offline release containing correct source and template, verified exporter directory switch and rollback, owner-reviewed site activation. Do not install timer or Docker network auto-reconnect until separate protected acceptance.",
+  "next_action": "Run exact offline runtime, CI contracts, YAML/Markdown/shell/source checks and Pi read-only health; create Draft PR #1474 and verify exact-head GitHub workflows. A future owner-approved protected site installation must map sources into an accessible pinned release and verify metrics scrape and rollback. No production IPAM, systemd timer activation or Modbus write.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
