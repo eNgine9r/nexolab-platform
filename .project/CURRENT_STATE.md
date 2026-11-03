@@ -1,6 +1,20 @@
+## 2026-11-03 — #1462 protected recovery source merged after 3/3 GREEN
+
+GitHub PR #1463 was squash-merged to main at 9dd88ae96b09603801e794497b21fc6ca3032a5e after all three exact-head workflows including Merge Gate were GREEN. This is source-only with 16 real-lock regression tests and offline contracts; no Raspberry auto-supervisor installed, CIDR migration, site reboot, database or Modbus write. Live Docker was separately hardened with approved APT holds and live-restore (not part of source merge). Parent #1399 remains open pending protected real offline boot and hardware acceptance.
+
 ## 2026-11-03 — #1464 explicit opt-in edge Docker IPAM source-only
 
 LOCAL_LAN Dashboard and central API were restored to healthy by operator-authorized Nov 3 minimum network repair; future restart recurrence risks remain. Source-only #1464 adds a required, explicitly site-reserved Edge Docker CIDR Compose overlay without silent defaults, proves existing project identity/volume/standalone topology with synthetic Docker Compose config and 14 negative/positive unit tests. On real Pi a locally disjoint candidate must still be NOT approved; physical eth0 172.18.48.0/21 versus old Edge bridge 172.18.0.0/16 remains a hard CIDR conflict. No site network change, Docker daemon restart, backup, hardware write or production cutover. Independent owner approval and rollback/actual offline hardware verification required.
+
+## 2026-11-03 — #1462 real Linux lock reentrancy regression after first exact-head CI
+
+First #1462 Draft PR 1463 head fb6940b successfully passed 3/3 GitHub workflows, but review found that under live --execute the second source preflight reopened already exclusively locked worker/update-plane files and attempted a nonblocking shared flock. Distinct Linux open descriptions can conflict even within the same process, meaning all mock-lock tests passed but real recovery would self-block. Changed the rechecked preflight to re-use the same held exclusive locks within the protected ExitStack, not to reopen and acquire them. Added a positive regression using REAL Linux flock and only simulated Docker objects/actions. 16 new guard tests PASS; full offline integration/CI contracts and read-only live CIDR refusal rerun PASS. No site execution or new installed supervisor; source still BLOCKED on physical vs Docker route overlap #1409. New exact head CI required before any merge.
+
+## 2026-11-03 — Original NEXOLAB LOCAL_LAN restored; #1462 guarded offline recovery source-only
+
+Actual Pi owner-authorized November 3 maintenance reattached the original Dashboard, Telemetry API, MQTT and VersityGW containers to existing Docker networks. Browser http://172.18.48.66:3000 and Telemetry API http://172.18.48.66:8082/health/ready returned HTTP 200; unauthenticated session correctly returned HTTP 401 with exact LAN CORS, and Chromium reached the login page. PostgreSQL contained fresh real measurements. Original images, volumes, credentials and Edge hardware were preserved; no Modbus write. Device Agent still reports communication errors and hardware acceptance remains incomplete.
+
+#1462 source-only guarded reconnect adds source-bound network repair planning and negative hermetic tests. A live Pi --check refuses because eth0 172.18.48.0/21 overlaps edge Docker 172.18.0.0/16 (#1409). No new systemd timer, production reconnection, reboot or auto-activation. Future site supervisor requires owner-reviewed safe Edge CIDR migration and rollback/actual offline runtime proof.
 
 ## 2026-11-02 — #1458 main Sprint reconciled after merged #1453
 
