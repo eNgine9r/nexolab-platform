@@ -1,0 +1,46 @@
+# NEXOLAB #1468 — OPT-IN only. Do not place in auto-loaded rules/
+# until the local LAN probe timer, safe metrics exporter and site mapping
+# are installed and independently reviewed; otherwise false Missing alarms.
+groups:
+  - name: nexolab-lan-access
+    rules:
+      - alert: NexolabLanAccessProbeMissing
+        expr: absent(nexolab_lan_access_probe_last_run_timestamp_seconds) or (time() - nexolab_lan_access_probe_last_run_timestamp_seconds > 180)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB local Dashboard access probe is missing or stale
+          description: The offline local probe has not reported a result in at least three minutes.
+      - alert: NexolabLanAccessUnavailable
+        expr: nexolab_lan_access_all_checks_ok == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB original local access chain is broken
+          description: One or more of the five exact LAN Dashboard or Session API checks failed.
+      - alert: NexolabLanDashboardUnavailable
+        expr: nexolab_lan_access_dashboard_ok == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB LAN Dashboard is unavailable
+          description: The original local monitoring Dashboard does not respond with the expected HTML identity.
+      - alert: NexolabLanSessionApiUnavailable
+        expr: nexolab_lan_access_api_ready == 0 or nexolab_lan_access_login_form_ok == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB local login or API readiness failed
+          description: The local login form or the API/database/MQTT dependency readiness check failed.
+      - alert: NexolabLanSessionSecurityRegression
+        expr: nexolab_lan_access_session_401_protected == 0 or nexolab_lan_access_session_cors_exact == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB local Session API denied or CORS unexpectedly changed
+          description: Unauthenticated Session API must return HTTP 401 with exact local LAN CORS.

@@ -1,3 +1,7 @@
+## 2026-11-03 — #1468 automatic local alerts not yet active; avoid false confidence
+
+New LAN availability gauges, safe read-only textfile directory-mode source and opt-in Prometheus alerts are software-verified only. No systemd unit, timer, site metrics directory, exporter directory setting or optional alert rule activation has been installed in the protected Pi release. A source-only GREEN build or a test-metric file outside production does not mean a recurring monitor exists. Live activation requires exact protected package source/mount/owner/permissions, verified missing/failed/recovered alert deliveries, and separate operator approval. Physical Edge Docker 172.18.0.0/16 still overlaps eth0 LAN 172.18.48.0/21; #1409/ #1399 actual IPAM cutover and boot auto-recovery blocked, CP2104 hardware evidence #1429 incomplete.
+
 ## 2026-11-03 — #1466 access smoke must not be mistaken for full hardware/site acceptance
 
 The source-only local login probe detects a closed Dashboard port, unusable login HTML, unready API dependencies, unexpected session authorization result or incorrect CORS. A positive run proves only **unauthenticated** path reachability from the probing Raspberry; it is not an owner login, independent LAN client, fresh telemetry/hardware acceptance or automatic recovery. No timer, alert rule, or site package installation was executed. Original site still has Edge Docker CIDR overlap #1409, real hardware faults #1429, no reboot acceptance #1399; #1464 source-only Compose overlay was merged GREEN but the live Docker Edge network was not migrated.

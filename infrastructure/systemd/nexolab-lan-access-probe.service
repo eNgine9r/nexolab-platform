@@ -1,0 +1,29 @@
+# NEXOLAB #1468 source template only. DO NOT install/enable outside protected owner release.
+[Unit]
+Description=NEXOLAB protected original LAN Dashboard and Session API read-only probe
+Documentation=https://github.com/eNgine9r/nexolab-platform/issues/1468
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/nexolab/lan-access-probe.env
+
+[Service]
+Type=oneshot
+User=nexolab
+Group=nexolab
+EnvironmentFile=/etc/nexolab/lan-access-probe.env
+ExecStart=/usr/bin/python3 -I -B /opt/nexolab/current/infrastructure/offline/emit-lan-access-prometheus.py --host ${NEXOLAB_LAN_IPV4} --output /var/lib/nexolab-observability/lan-access.prom
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/nexolab-observability
+UMask=0027
+TimeoutStartSec=25s

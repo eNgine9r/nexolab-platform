@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T10:08:52Z",
+  "timestamp": "2026-11-03T10:40:13Z",
   "actor": "ChatGPT",
-  "event": "1466_source_only_lan_login_probe_verified_pending_exact_head_ci",
+  "event": "1468_lan_access_alerting_source_only_optin_not_activated",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1466,
-    "branch": "feature/1466-readonly-lan-auth-probe",
-    "status": "read_only_probe_18_tests_offline_ci_contracts_pass",
+    "issue": 1468,
+    "branch": "feature/1468-local-lan-access-alerts",
+    "status": "source_only_18_tests_native_promtool_alerts_pass",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -2861,6 +2861,28 @@
       "ci_contracts": 383,
       "ci_expected_skips": 1,
       "actual_pi_readonly": "LOCAL_LAN_AUTH_PATH_REACHABLE"
+    },
+    "issue_1468_local_lan_access_alerts": {
+      "source_only": true,
+      "unit_tests": 18,
+      "ci_impact_tests": 80,
+      "source_numeric_metrics": "verified_no_credentials",
+      "native_arm64_promtool_rules": "5_of_5_PASS",
+      "native_arm64_promtool_alert_firing_and_resolution": "PASS",
+      "live_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+      "test_output_only": "owner_private_temporary_directory",
+      "existing_dr_textfile_single_file_compatible": true,
+      "optional_alert_rule_loaded": false,
+      "site_systemd_unit_installed": false,
+      "site_timer_enabled": false,
+      "production_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "ci_policy_contract_tests": 384,
+      "expected_ci_skips": 1,
+      "offline_contract": "PASS",
+      "native_promtool_alert_fixture": "committed_pass",
+      "site_monitor_activation": false
     }
   },
   "observations": [
@@ -4168,9 +4190,21 @@
         "offline_contract": "PASS",
         "site_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_metrics_and_alerts",
+      "data": {
+        "issue": 1468,
+        "tests": 18,
+        "promtool_rules": "PASS",
+        "promtool_firing_resolved": "PASS",
+        "site_activation": false
+      }
     }
   ],
-  "next_action": "Push #1466 source-only local Dashboard/Session API probe Draft PR; validate exact-head GitHub CI. Recurring local alert and owner-authenticated browser acceptance require separate reviewed WP. Do not activate protected Docker network repair while #1409 CIDR overlap persists.",
+  "next_action": "Run full offline runtime contract, CI policy and State Model v2 checks for #1468; create Draft PR and exact-head CI. Do not install source-only timer/alert rules on site until approved protected package and exporter directory path verified. Resolve Edge Docker physical CIDR #1409, protected rollback and real hardware/boot acceptance before auto-reconnect #1399.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
