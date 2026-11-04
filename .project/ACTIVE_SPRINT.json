@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1490,
-      "title": "One-page quick device setup for disposable lab",
-      "branch": "feature/1490-quick-device-setup"
+      "issue": 1492,
+      "title": "Live USB adapter list on connect/disconnect",
+      "branch": "feature/1492-live-usb-list"
     },
     "next_work_package": null
   },
@@ -9832,6 +9832,43 @@
         "hardware": "unverified_instrument_not_connected",
         "owner_policy": "disposable_test_fast_iteration_no_unrelated_security_backup_approval",
         "code_origin": "dffb2a2dfca46bdb6141815a38fb7f30a4bc9df7"
+      }
+    },
+    {
+      "issue": 1492,
+      "title": "Live USB adapter list on connect/disconnect",
+      "branch": "feature/1492-live-usb-list",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1490
+      ],
+      "scope": "Refresh existing USB inventory in both onboarding views; remove absent adapters and reset disconnected selection/address; no scans started by polling.",
+      "evidence": {
+        "pr": 1493,
+        "source_commit": "ab1b4fe23ebe403f7a0502c654a18c49bcb38d22",
+        "targeted_ui_hook_search_tests": 28,
+        "touched_lint": "PASS",
+        "typecheck": "PASS",
+        "formatting": "PASS",
+        "native_external_build": "94kunGEdl0KQwE0_zZqqa",
+        "native_lan_build": "zDQHg9Cgh5cWeVsmYpFIS",
+        "test_ui_installation": "PASS_external3100_and_LAN3000_page_assets12_each_runtime_identity",
+        "refresh_interval_ms": 2000,
+        "inventory_request_deadline_ms": 5000,
+        "offline_review": "existing_local_inventory_API_no_new_external_dependency",
+        "software_disconnect_reconnect": "PASS_UI_option_removed_selection_and_address_cleared_no_stale_reselection",
+        "hardware_unplug_acceptance": "unverified_no_physical_disconnect_performed",
+        "full_repository_tests_run": false,
+        "runtime_services_changed": [
+          "test_external_frontend",
+          "test_LAN_frontend"
+        ],
+        "backend_changes": false,
+        "hardware_writes": false,
+        "data_deletion": false,
+        "rollback": "external_remove_1492_dropin_to_1490; LAN /app/.next-pre-1492 and runtime identity retained",
+        "ci": "No workflow runs or commit statuses attached to the stacked test PR at source head; not reported as CI GREEN."
       }
     }
   ],
