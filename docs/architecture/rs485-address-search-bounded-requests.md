@@ -11,3 +11,5 @@ The UI shows progress and response candidates, and requires an explicit selectio
 A response candidate is not proof of exact model, engineering scaling, calibration or fresh production telemetry. Existing commissioning preflight, binding, registry and activation checks remain separate. In particular, cross-bus Unit ID ownership and enrollment of an unconfigured production bus are not bypassed. A new adapter discovered by this flow is not automatically enrolled into polling.
 
 The core, API and UI run on the local installation without internet or paid services. Synthetic tests establish software behavior only. Protected package/recovery checks, explicit site cutover authorization and real isolated hardware evidence are required before site acceptance. Friendly-name persistence and broader serial-setting/model discovery remain follow-on work under #1478.
+
+Source review: integration PR #1488 depends on foundation PR #1483. Both target main during verification because the required workflows filter PR base branches. Scanner installation failure is tracked separately in #1487; no feature merge or site readiness is implied by local test success.
