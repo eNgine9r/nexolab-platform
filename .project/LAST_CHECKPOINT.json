@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T13:37:35.957Z",
+  "timestamp": "2026-11-04T15:15:52.141003+00:00",
   "actor": "ChatGPT",
-  "event": "1494_all_adapter_read_search_installed_with_actual_line_diagnostics",
+  "event": "1496_two_standalone_dixell_active_after_verified_restart",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1494,
-    "title": "Search all responding devices on connected RS485 adapters",
-    "branch": "feature/1494-scan-all-adapters"
+    "issue": 1496,
+    "title": "Standalone named instruments without refrigeration passports",
+    "branch": "feature/1496-standalone-instruments"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3048,6 +3048,45 @@
       "hardware_writes": false,
       "data_deletion": false,
       "full_repository_test_matrix": false
+    },
+    "standalone_instruments_1496": {
+      "pr": 1497,
+      "application_source": "f50baee2b9bc7ed68f504a68dae8b045a9d59440",
+      "restart_fix_source": "916ddedf09a123d40ec639fbc866fa5d66548416",
+      "frontend_tests": 38,
+      "central_tests": 32,
+      "agent_topology_tests": 32,
+      "lint_typecheck_format_compile": "PASS",
+      "migration": "20261104_0038_nullable_name_applied_and_retained_existing_rows",
+      "native_builds": {
+        "external": "myy9EpA2d2Eus40x2azuQ",
+        "lan": "_G3w2m_wCa2kvcUgtH7Xc"
+      },
+      "installed_pages_assets": "PASS_both_origins_12_assets_each",
+      "actual_standalone_devices": [
+        {
+          "address": 1,
+          "lifecycle": "active",
+          "target_equipment_key": null
+        },
+        {
+          "address": 2,
+          "lifecycle": "active",
+          "target_equipment_key": null
+        }
+      ],
+      "fresh_persisted_channels_per_device": 6,
+      "refrigeration_passports_created": 0,
+      "restart": "PASS_both_bus_scoped_assignments_and_FC03_preflight",
+      "legacy_test_profile": "obsolete_sdm120_1_archived_and_startup_optin_disabled_only_on_repurposed_adapter; prior_container_and_registry_retained",
+      "runtime_evidence": "standalone-1496/runtime-evidence.json and restart-evidence.json on Pi",
+      "browser": "actual_Chrome_search_found_two; unit2_Add_succeeded; Add_another_retained_results; extension_disconnected_before_final_visual_capture; final_two_active_and_fresh_rows_verified_on_actual_local_services",
+      "offline": "no_new_runtime_dependencies; existing local_API_SQLite_PostgreSQL_MQTT_only; no_new_disconnected_site_test",
+      "ci": "Offline_Auth_41852230672_PASS_on_application_source; restart_fix_41855488325_in_progress_at_checkpoint",
+      "modbus_writes": "none",
+      "hardware_parameter_changes": "none",
+      "telemetry_deletion": "none",
+      "production_release": "not_performed"
     }
   },
   "observations": [
@@ -4460,7 +4499,7 @@
       }
     }
   ],
-  "next_action": "Connect/check a powered Dixell and A/B wiring on A10Q34QC; click Find Devices without entering an address. Actual scan had no valid replies and one corrupt-address diagnostic; hardware acceptance remains unverified. Test UI is installed; no unrelated approval required.",
+  "next_action": "Owner may refresh and use standalone instruments without selecting a showcase. Current requested test flow is verified with both actual Dixell; source PR review/production packaging remain separate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4469,7 +4508,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-authorized reversible TEST installation: six Agent/central modules and both frontends; no topology, database/schema, hardware configuration or data deletion.",
+  "runtime_mutation": "Owner-authorized reversible TEST API/Agent/UI overlay, additive nullable name column and archival of the obsolete SDM120 software profile on the repurposed adapter. Both Dixell added independently. Prior container/config/registry and telemetry retained; no hardware/Modbus writes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

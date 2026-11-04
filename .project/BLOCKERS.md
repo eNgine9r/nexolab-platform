@@ -1,3 +1,7 @@
+## 2026-11-04 — #1496 standalone onboarding test blockers resolved
+
+Refrigeration passport coupling, cross-adapter unit ownership and restart rebinding are resolved for the requested test flow. Two actual independently named Dixell are active at1/2 without targets after restart. Obsolete TEST SDM120 profile on A10Q34QC is archived with retained rollback; historical missing adapters/global Agent degradation remain separate, visible limitations. No calibration, full-site offline/reboot or production release acceptance is implied. Source PR1497 remains draft; exact restart-source Offline Auth run41855488325 was still running at checkpoint. Browser extension disconnected after successful unit2 Add/Add another; final visual capture/mobile QA not claimed. No user action blocks current TEST use.
+
 ## 2026-11-04 — read-only search on all connected adapters #1494 / PR #1495
 
 The configured A10Q34QC (legacy rs485-sdm120) now offers scan alongside free adapters. Search checks all addresses1–247, optional automatic mode probes existing supported profiles on compatible line settings, groups responders by address and displays compatible profiles without claiming an exact model. Exception replies remain unknown; duplicate addresses cannot establish physical device counts. Configured buses use the existing client and operation lock; temporary adapters retain exclusive access. Corrupt replies are retried once, reported separately and do not stop later addresses. No registry enrollment, schema, dependencies, serial reconfiguration or Modbus/hardware writes.
