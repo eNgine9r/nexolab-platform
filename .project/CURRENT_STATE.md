@@ -1,3 +1,11 @@
+## 2026-11-04 — direct instrument readings #1498 / PR #1499
+
+Quick Add now returns to Connections. Active supported instruments offer a scoped Live readings link and a separate settings action. Dixell addresses1/2 open edge-01 K1/K2; supported LE-01MP and Embraco use their existing canonical activation identities. Unknown, incomplete and inactive identities expose setup only. Plain Ukrainian copy replaces technical commissioning language; activation status does not claim current online/fresh data.
+
+Verified:28 focused component/helper tests; touched ESLint, TypeScript, Prettier and diff checks PASS. Native ARM64 TEST builds OMG6ctCYO-kV7jRjGoue7 / 24eXIe1pzAg7HD_j2_pEk installed from exact source0b3e298756d7b5b65779937d09862be9e142e345. Both origins passed4 pages,19 script assets and runtime source/build identity. Actual persisted hardware readings after installation: two independent active standalone Dixell, six channels each, oldest below59s at16:02:02Z. Evidence: direct-data-1498/runtime-evidence.json and readings-evidence.json on Pi.
+
+Only TEST frontends changed; prior external drop-in and LAN .next retained with installer error rollback. Rollback was not exercised. No Agent/database changes, new dependencies, data deletion or hardware/Modbus writes. No disconnected runtime test. Local Chrome connector unavailable, so visual acceptance is unverified. PR1499 is draft/stacked on1497; GitHub reported no PR-triggered workflows/statuses for the source head, and no hosted GREEN/merge is claimed. Historical missing adapters still cause the previously recorded global Agent degraded state; both selected Dixell have fresh actual data. Broader production release gates remain separate.
+
 ## 2026-11-04 — standalone instrument onboarding #1496 / PR #1497
 
 Quick Add now saves the instrument name directly and needs no refrigeration passport or target selection. Standalone sessions proceed through the same read-only preflight/activation with organization, version/idempotency and transport checks; explicit linked workflows remain in Advanced. Default names and Add another retain the found-address list. Names/address appear in Connections.

@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1496,
-      "title": "Standalone named instruments without refrigeration passports",
-      "branch": "feature/1496-standalone-instruments"
+      "issue": 1498,
+      "title": "Direct readings from simplified instrument connections",
+      "branch": "feature/1498-direct-instrument-readings"
     },
     "next_work_package": null
   },
@@ -9966,10 +9966,41 @@
         "runtime_evidence": "standalone-1496/runtime-evidence.json and restart-evidence.json on Pi",
         "browser": "actual_Chrome_search_found_two; unit2_Add_succeeded; Add_another_retained_results; extension_disconnected_before_final_visual_capture; final_two_active_and_fresh_rows_verified_on_actual_local_services",
         "offline": "no_new_runtime_dependencies; existing local_API_SQLite_PostgreSQL_MQTT_only; no_new_disconnected_site_test",
-        "ci": "Offline_Auth_41852230672_PASS_on_application_source; restart_fix_41855488325_in_progress_at_checkpoint",
+        "ci": "Offline_Auth_41856357198_PASS_on_final_bdbc34cb_checkpoint",
         "modbus_writes": "none",
         "hardware_parameter_changes": "none",
         "telemetry_deletion": "none",
+        "production_release": "not_performed"
+      }
+    },
+    {
+      "issue": 1498,
+      "title": "Direct readings from simplified instrument connections",
+      "branch": "feature/1498-direct-instrument-readings",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1496
+      ],
+      "scope": "Frontend-only direct live readings links and plain instrument connections; preserve setup, scoped permissions and freshness semantics.",
+      "evidence": {
+        "pr": 1499,
+        "source_commit": "0b3e298756d7b5b65779937d09862be9e142e345",
+        "targeted_frontend_tests": 28,
+        "touched_eslint_typecheck_prettier": "PASS",
+        "native_builds": {
+          "external": "OMG6ctCYO-kV7jRjGoue7",
+          "lan": "24eXIe1pzAg7HD_j2_pEk"
+        },
+        "test_installation": "PASS_both_frontends_4_pages_and_19_script_assets_each;exact_source_and_build_identity",
+        "real_readings": "two_active_standalone_Dixell;6_channels_each;oldest_age_below_59s_at_2026-11-04T16:02:02Z",
+        "runtime_evidence": "direct-data-1498/runtime-evidence.json and readings-evidence.json on Pi",
+        "browser_visual": "unverified_local_Chrome_connector_unavailable",
+        "offline": "no_new_dependencies;existing_local_services;no_new_disconnected_runtime_test",
+        "hosted_ci": "no_PR_workflow_runs_or_combined_statuses_reported_on_source_head;draft_stacked_PR_not_merged",
+        "rollback": "previous_external_service_dropin_and_LAN_.next_pre_1498_retained;automatic_error_rollback_in_installer;rollback_not_exercised",
+        "agent_database_hardware_changes": "none",
+        "modbus_writes": "none",
         "production_release": "not_performed"
       }
     }

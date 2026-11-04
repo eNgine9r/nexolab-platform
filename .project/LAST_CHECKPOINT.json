@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T15:15:52.141003+00:00",
+  "timestamp": "2026-11-04T16:02:36.003737+00:00",
   "actor": "ChatGPT",
-  "event": "1496_two_standalone_dixell_active_after_verified_restart",
+  "event": "1498_direct_instrument_readings_TEST_UI_installed_and_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1496,
-    "title": "Standalone named instruments without refrigeration passports",
-    "branch": "feature/1496-standalone-instruments"
+    "issue": 1498,
+    "title": "Direct readings from simplified instrument connections",
+    "branch": "feature/1498-direct-instrument-readings"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3087,6 +3087,26 @@
       "hardware_parameter_changes": "none",
       "telemetry_deletion": "none",
       "production_release": "not_performed"
+    },
+    "direct_instrument_readings_1498": {
+      "pr": 1499,
+      "source_commit": "0b3e298756d7b5b65779937d09862be9e142e345",
+      "targeted_frontend_tests": 28,
+      "touched_eslint_typecheck_prettier": "PASS",
+      "native_builds": {
+        "external": "OMG6ctCYO-kV7jRjGoue7",
+        "lan": "24eXIe1pzAg7HD_j2_pEk"
+      },
+      "test_installation": "PASS_both_frontends_4_pages_and_19_script_assets_each;exact_source_and_build_identity",
+      "real_readings": "two_active_standalone_Dixell;6_channels_each;oldest_age_below_59s_at_2026-11-04T16:02:02Z",
+      "runtime_evidence": "direct-data-1498/runtime-evidence.json and readings-evidence.json on Pi",
+      "browser_visual": "unverified_local_Chrome_connector_unavailable",
+      "offline": "no_new_dependencies;existing_local_services;no_new_disconnected_runtime_test",
+      "hosted_ci": "no_PR_workflow_runs_or_combined_statuses_reported_on_source_head;draft_stacked_PR_not_merged",
+      "rollback": "previous_external_service_dropin_and_LAN_.next_pre_1498_retained;automatic_error_rollback_in_installer;rollback_not_exercised",
+      "agent_database_hardware_changes": "none",
+      "modbus_writes": "none",
+      "production_release": "not_performed"
     }
   },
   "observations": [
@@ -4499,7 +4519,7 @@
       }
     }
   ],
-  "next_action": "Owner may refresh and use standalone instruments without selecting a showcase. Current requested test flow is verified with both actual Dixell; source PR review/production packaging remain separate.",
+  "next_action": "Owner may refresh TEST UI, open Connections and select Readings for either standalone Dixell. Source PR1499 remains draft/stacked; hosted checks and visual browser acceptance remain separate from this authorized TEST delivery.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4508,7 +4528,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-authorized reversible TEST API/Agent/UI overlay, additive nullable name column and archival of the obsolete SDM120 software profile on the repurposed adapter. Both Dixell added independently. Prior container/config/registry and telemetry retained; no hardware/Modbus writes.",
+  "runtime_mutation": "Owner-authorized reversible TEST frontend-only overlay on external3100 and LAN3000. No Agent, database, topology, controller, Modbus or data changes in1498.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

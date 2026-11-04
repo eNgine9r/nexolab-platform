@@ -1,3 +1,7 @@
+## 2026-11-04 — #1498 TEST delivery verified; source/browser limitations retained
+
+Both TEST frontends are installed and HTTP/assets/runtime identities pass; both actual standalone Dixell retain six fresh channels. No blocker to refreshing and using this TEST UI. Local Chrome connector remains unavailable, so final visual browser acceptance is unverified. Draft stacked PR1499 has no PR-triggered workflows/statuses reported at source-head check; no merge or whole-production GREEN is claimed. No new dependencies; disconnected runtime and rollback execution were not retested. Historical missing-adapter/global Agent degradation remains separate from the two verified selected instruments.
+
 ## 2026-11-04 — #1496 standalone onboarding test blockers resolved
 
 Refrigeration passport coupling, cross-adapter unit ownership and restart rebinding are resolved for the requested test flow. Two actual independently named Dixell are active at1/2 without targets after restart. Obsolete TEST SDM120 profile on A10Q34QC is archived with retained rollback; historical missing adapters/global Agent degradation remain separate, visible limitations. No calibration, full-site offline/reboot or production release acceptance is implied. Source PR1497 remains draft; exact restart-source Offline Auth run41855488325 was still running at checkpoint. Browser extension disconnected after successful unit2 Add/Add another; final visual capture/mobile QA not claimed. No user action blocks current TEST use.
