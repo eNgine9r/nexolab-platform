@@ -62,7 +62,7 @@ export function QuickDeviceSetup(props: Props) {
   const locked = busy || searching || !props.canManage;
   const patch = (values: Partial<CommissioningSessionWrite>) => props.onDraft({ ...draft, ...values });
   const chooseConnection = (busId: string, source = inventory) => {
-    const item = source?.connections.find((entry) => entry.busId === busId);
+    const item = source?.connections.find((entry) => entry.busId === busId && entry.present);
     patch({
       busId: item?.busId ?? null,
       nodeId: item ? source!.nodeId : null,

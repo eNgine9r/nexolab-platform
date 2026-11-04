@@ -271,7 +271,7 @@ export class HttpCommissioningRepository implements CommissioningRepository {
 
   async listConnections(signal?: AbortSignal): Promise<CommissioningConnectionInventory> {
     return parseConnectionInventory(
-      await this.request("/api/v1/equipment/commissioning/connections", { signal }),
+      await this.request("/api/v1/equipment/commissioning/connections", { signal, cache: "no-store" }),
     );
   }
 

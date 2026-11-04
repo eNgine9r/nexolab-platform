@@ -39,6 +39,7 @@ import {
   type SupportedDeviceProfile,
 } from "@/features/equipment/commissioning-repository";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
+import { reconcileLiveConnection, useLiveConnections } from "@/features/equipment/use-live-connections";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 
 const steps = [
@@ -107,24 +108,29 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     activeRepository.current = repository;
   }, [repository]);
 
+  const receiveConnections = (inventory: CommissioningConnectionInventory) => {
+    setConnections((previous) =>
+      JSON.stringify(previous) === JSON.stringify(inventory) ? previous : inventory,
+    );
+    setConnectionError(null);
+    setConnectionRepository(repository);
+    setDraft((current) => reconcileLiveConnection(current, inventory));
+  };
+  useLiveConnections(
+    repository,
+    security.state === "ready" && Boolean(organizationId && runtime.equipmentRepository),
+    receiveConnections,
+    (cause) => {
+      setConnections(null);
+      setConnectionError(message(cause));
+      setConnectionRepository(repository);
+    },
+  );
+
   useEffect(() => {
     if (security.state !== "ready" || !organizationId || !repository || !runtime.equipmentRepository) return;
     const controller = new AbortController();
     const target = normalize(searchParams.get("target"));
-    void repository
-      .listConnections(controller.signal)
-      .then((loadedConnections) => {
-        if (controller.signal.aborted || activeRepository.current !== repository) return;
-        setConnections(loadedConnections);
-        setConnectionError(null);
-        setConnectionRepository(repository);
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted || activeRepository.current !== repository) return;
-        setConnections(null);
-        setConnectionError(message(cause));
-        setConnectionRepository(repository);
-      });
     void Promise.all([
       repository.listProfiles(controller.signal),
       runtime.equipmentRepository.list(),
@@ -542,7 +548,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 equipment={equipment}
                 draft={draft}
                 onDraft={setDraft}
-                onInventory={setConnections}
+                onInventory={receiveConnections}
                 onSaved={(saved) => {
                   setSession(saved);
                   setDraft(sessionToWrite(saved));
@@ -610,10 +616,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     connectionRepository={connectionRepository === repository ? repository : null}
                     searchRunning={addressSearchBusy}
                     onSearchRunningChange={setAddressSearchBusy}
-                    onConnectionsChanged={(inventory) => {
-                      setConnections(inventory);
-                      setConnectionError(null);
-                    }}
+                    onConnectionsChanged={receiveConnections}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
@@ -930,7 +933,7 @@ function ConnectionStep({
     setDraft((current) => ({ ...current, [key]: value }));
   const selected = inventory?.connections.find((item) => item.busId === draft.busId) ?? null;
   const chooseConnection = (busId: string) => {
-    const connection = inventory?.connections.find((item) => item.busId === busId) ?? null;
+    const connection = inventory?.connections.find((item) => item.busId === busId && item.present) ?? null;
     setDraft((current) => ({
       ...current,
       nodeId: connection ? (inventory?.nodeId ?? null) : null,
@@ -963,15 +966,19 @@ function ConnectionStep({
             className={inputClass}
           >
             <option value="">Оберіть підключення</option>
-            {inventory?.connections.map((connection) => (
-              <option
-                key={connection.busId}
-                value={connection.busId}
-                disabled={!connection.availableForPreflight && connection.availableForIsolatedSearch !== true}
-              >
-                {connectionLabel(connection)}
-              </option>
-            ))}
+            {inventory?.connections
+              .filter((connection) => connection.present)
+              .map((connection) => (
+                <option
+                  key={connection.busId}
+                  value={connection.busId}
+                  disabled={
+                    !connection.availableForPreflight && connection.availableForIsolatedSearch !== true
+                  }
+                >
+                  {connectionLabel(connection)}
+                </option>
+              ))}
           </select>
         </label>
         {selected ? (
