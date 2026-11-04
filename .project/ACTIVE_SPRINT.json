@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1492,
-      "title": "Live USB adapter list on connect/disconnect",
-      "branch": "feature/1492-live-usb-list"
+      "issue": 1494,
+      "title": "Search all responding devices on connected RS485 adapters",
+      "branch": "feature/1494-scan-all-adapters"
     },
     "next_work_package": null
   },
@@ -9869,6 +9869,58 @@
         "data_deletion": false,
         "rollback": "external_remove_1492_dropin_to_1490; LAN /app/.next-pre-1492 and runtime identity retained",
         "ci": "No workflow runs or commit statuses attached to the stacked test PR at source head; not reported as CI GREEN."
+      }
+    },
+    {
+      "issue": 1494,
+      "title": "Search all responding devices on connected RS485 adapters",
+      "branch": "feature/1494-scan-all-adapters",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1492
+      ],
+      "scope": "Read-only multi-responder search on connected configured and free adapters with fixed supported profiles and honest diagnostics.",
+      "evidence": {
+        "pr": 1495,
+        "source_commit": "f9fab1ae62daedc3278934e78195cc9eb5b1a5f1",
+        "targeted_frontend_tests": 29,
+        "device_agent_commissioning_tests": 36,
+        "central_address_search_tests": 6,
+        "touched_lint": "PASS",
+        "typecheck": "PASS",
+        "formatting": "PASS",
+        "native_external_build": "2QHKYW2mHAKd07Ju2aNpx",
+        "native_lan_build": "0xytvNFPodnJnjDTIiAyF",
+        "test_ui_installation": "PASS_external3100_LAN3000_pages_and_12_assets_each_exact_source_identity",
+        "backend_modules_verified": 6,
+        "read_search_available_adapters": 3,
+        "central_ready_http": 200,
+        "central_real_profile_transport": "PASS_strict_response_contract_actual_malformed_response_exposed",
+        "real_dixell_scan": {
+          "bus_id": "rs485-sdm120",
+          "adapter": "A10Q34QC",
+          "profile_id": "dixell-xjp60d",
+          "checked_addresses": 247,
+          "total_addresses": 247,
+          "candidates": [],
+          "unrecognized_addresses": [],
+          "error_addresses": {
+            "1": "malformed_response"
+          },
+          "duration_seconds": 166.67,
+          "modbus_writes": "none",
+          "hardware_writes": "none",
+          "complete_valid_scan": false
+        },
+        "hardware_acceptance": "unverified_no_valid_replies_on_A10Q34QC; address1 corrupt reply; no exact model or physical count claim",
+        "offline_review": "existing local API/readers only; no new runtime dependencies",
+        "ci": "Offline Auth Acceptance run41839029224 in progress at source head; no CI GREEN claim; test installation authorized independently",
+        "runtime_install_kind": "reversible_test_source_overlay; broader production image packaging and release gates separate",
+        "rollback": "backend six previous modules: scan-1494/previous; external remove1494z dropin restores prior test UI; LAN .next-pre-1494-final plus identity retained",
+        "hardware_writes": false,
+        "data_deletion": false,
+        "full_repository_test_matrix": false
       }
     }
   ],
