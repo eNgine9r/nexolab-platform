@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
+import { Rs485AdapterFinder } from "@/components/equipment/rs485-adapter-finder";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
@@ -584,6 +585,11 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     profiles={profiles}
                     connections={visibleConnections}
                     connectionError={visibleConnectionError}
+                    connectionRepository={connectionRepository === repository ? repository : null}
+                    onConnectionsChanged={(inventory) => {
+                      setConnections(inventory);
+                      setConnectionError(null);
+                    }}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
@@ -738,6 +744,8 @@ function WizardStep({
   profiles,
   connections,
   connectionError,
+  connectionRepository,
+  onConnectionsChanged,
   equipment,
   selectedProfile,
   selectedEquipment,
@@ -751,6 +759,8 @@ function WizardStep({
   profiles: SupportedDeviceProfile[];
   connections: CommissioningConnectionInventory | null;
   connectionError: string | null;
+  connectionRepository: CommissioningRepository | null;
+  onConnectionsChanged: (inventory: CommissioningConnectionInventory) => void;
   equipment: RefrigerationEquipment[];
   selectedProfile: SupportedDeviceProfile | null;
   selectedEquipment: RefrigerationEquipment | null;
@@ -775,6 +785,8 @@ function WizardStep({
         setDraft={setDraft}
         inventory={connections}
         inventoryError={connectionError}
+        repository={connectionRepository}
+        onInventoryChanged={onConnectionsChanged}
         disabled={disabled}
       />
     );
@@ -868,12 +880,16 @@ function ConnectionStep({
   setDraft,
   inventory,
   inventoryError,
+  repository,
+  onInventoryChanged,
   disabled,
 }: {
   draft: CommissioningSessionWrite;
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
   inventory: CommissioningConnectionInventory | null;
   inventoryError: string | null;
+  repository: CommissioningRepository | null;
+  onInventoryChanged: (inventory: CommissioningConnectionInventory) => void;
   disabled: boolean;
 }) {
   const field = (key: keyof CommissioningSessionWrite, value: string | number | null) =>
@@ -895,6 +911,14 @@ function ConnectionStep({
       description="Оберіть фізичний RS-485 адаптер із фактичного локального інвентарю. Система сама підставить Node, логічний Bus ID і стабільний transport identity."
     >
       <div className="grid gap-3">
+        {repository ? (
+          <Rs485AdapterFinder
+            repository={repository}
+            disabled={disabled}
+            onInventoryChanged={onInventoryChanged}
+            onSelect={chooseConnection}
+          />
+        ) : null}
         <label className={labelClass}>
           RS-485 підключення
           <select
