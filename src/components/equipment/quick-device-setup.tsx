@@ -36,6 +36,7 @@ const fieldClass =
 export function QuickDeviceSetup(props: Props) {
   const { repository, equipmentRepository, profiles, inventory, equipment, draft } = props;
   const [name, setName] = useState("");
+  const [searchProfileId, setSearchProfileId] = useState(draft.profileId);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [status, setStatus] = useState("");
@@ -175,8 +176,9 @@ export function QuickDeviceSetup(props: Props) {
             <select
               aria-label="Модель приладу"
               className={fieldClass}
-              value={draft.profileId ?? ""}
+              value={searchProfileId ?? ""}
               onChange={(event) => {
+                setSearchProfileId(event.target.value || null);
                 const item = profiles.find((entry) => entry.id === event.target.value);
                 if (item)
                   patch({
@@ -186,9 +188,10 @@ export function QuickDeviceSetup(props: Props) {
                     model: item.models[0] ?? item.displayName,
                     unitId: item.id === "danfoss-ak-cc25-pro" ? 35 : null,
                   });
+                else patch({ profileId: null, manufacturer: "", model: "", unitId: null });
               }}
             >
-              <option value="">Оберіть модель</option>
+              <option value="">Автовизначення підтримуваних приладів</option>
               {profiles.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.displayName}
@@ -237,11 +240,9 @@ export function QuickDeviceSetup(props: Props) {
         </details>
       ) : null}
       <Card title="3. Знайти прилад">
-        {!profile || !connection ? (
-          <p className="text-sm text-slate-400">Спочатку оберіть модель та адаптер.</p>
-        ) : profile.id === "dixell-xjp60d" &&
-          connection.ownership === "available_commissioning" &&
-          connection.availableForIsolatedSearch === true &&
+        {!connection ? (
+          <p className="text-sm text-slate-400">Спочатку оберіть адаптер.</p>
+        ) : (connection.availableForReadSearch === true || connection.availableForIsolatedSearch === true) &&
           !saved ? (
           <Rs485AddressSearch
             repository={repository}
@@ -251,13 +252,27 @@ export function QuickDeviceSetup(props: Props) {
               stableTransportIdentifier: connection.stableTransportIdentifier,
             }}
             disabled={busy || !props.canManage}
-            onSelect={(unitId) => patch({ unitId })}
+            profiles={searchProfileId ? profiles.filter((item) => item.id === searchProfileId) : profiles}
+            serial={connection.serial}
+            onSelect={(unitId, profileId) => {
+              const found = profiles.find((item) => item.id === profileId);
+              patch(
+                found
+                  ? {
+                      unitId,
+                      profileId: found.id,
+                      manufacturer: found.manufacturer,
+                      model: found.models[0] ?? found.displayName,
+                      deviceClass: found.deviceClass,
+                    }
+                  : { unitId },
+              );
+            }}
             onRunningChange={setSearching}
-            selectFirstMatch
           />
         ) : (
           <p className="text-sm text-slate-300">
-            Вкажіть адресу приладу нижче. Автоматичний пошук для цього підключення недоступний.
+            Для пошуку потрібне доступне підключення. Перевірте адаптер або вкажіть адресу вручну.
           </p>
         )}
         {draft.unitId ? <p className="mt-3 text-sm text-emerald-200">Обрано адресу {draft.unitId}</p> : null}

@@ -19,32 +19,42 @@ const empty: AddressSearchResult = {
 };
 
 describe("RS-485 address search", () => {
-  it("stops at the first response and fills the address in quick mode", async () => {
+  it("counts unique responding addresses across profiles and includes unrecognized exception replies", async () => {
     const searchAddress = vi
       .fn()
-      .mockResolvedValue({ state: "completed", candidates: [1], exceptionAddresses: [], errorCode: null });
-    const onSelect = vi.fn();
+      .mockImplementation(async ({ unitId }) => ({
+        ...empty,
+        candidates: unitId === 3 ? [3] : [],
+        exceptionAddresses: unitId === 5 ? [5] : [],
+      }));
     render(
       <Rs485AddressSearch
         repository={{ searchAddress } as unknown as CommissioningRepository}
         connection={connection}
         disabled={false}
-        onSelect={onSelect}
+        onSelect={vi.fn()}
         onRunningChange={vi.fn()}
-        selectFirstMatch
+        profiles={[
+          { id: "dixell-xjp60d", version: "dixell-xjp60d-fc03-v1", displayName: "Dixell XJP60D" },
+          { id: "f-and-f-le01mp", version: "f-and-f-le01mp-fc03-v2", displayName: "F&F LE-01MP" },
+        ]}
       />,
     );
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Знайти адресу" }));
-    expect(await screen.findByText(/Адресу підставлено автоматично/)).toBeInTheDocument();
-    expect(searchAddress).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(1);
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
+    await screen.findByText(/Пошук завершено/);
+    expect(searchAddress).toHaveBeenCalledTimes(494);
+    expect(screen.getByRole("status")).toHaveTextContent("Знайдено адрес із приладами: 2");
+    expect(screen.getByText(/модель не визначена/)).toBeInTheDocument();
+    expect(screen.getByText(/Точну модель ще не підтверджено/)).toHaveTextContent(
+      "Dixell XJP60D, F&F LE-01MP",
+    );
   });
 
-  it("requires explicit isolation confirmation, searches sequentially and selects only on click", async () => {
-    const searchAddress = vi
-      .fn()
-      .mockImplementation(async ({ unitId }) => ({ ...empty, candidates: unitId === 3 ? [3] : [] }));
+  it("searches every address and counts all responders without selecting automatically", async () => {
+    const searchAddress = vi.fn().mockImplementation(async ({ unitId }) => ({
+      ...empty,
+      candidates: [3, 7].includes(unitId) ? [unitId] : [],
+    }));
     const onSelect = vi.fn();
     render(
       <Rs485AddressSearch
@@ -56,17 +66,16 @@ describe("RS-485 address search", () => {
       />,
     );
     expect(searchAddress).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Знайти адресу" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Знайти адресу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
     await screen.findByText(/Пошук завершено/);
     expect(searchAddress).toHaveBeenCalledTimes(247);
     expect(searchAddress.mock.calls.map(([input]) => input.unitId)).toEqual(
       Array.from({ length: 247 }, (_, i) => i + 1),
     );
     expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Знайдено адрес із приладами: 2");
     fireEvent.click(screen.getByRole("button", { name: "Вибрати адресу 3" }));
-    expect(onSelect).toHaveBeenCalledWith(3);
+    expect(onSelect).toHaveBeenCalledWith(3, "dixell-xjp60d");
   });
 
   it("stops future reads and ignores an in-flight late response after cancellation", async () => {
@@ -89,8 +98,7 @@ describe("RS-485 address search", () => {
         onRunningChange={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Знайти адресу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
     await waitFor(() => expect(searchAddress).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByRole("button", { name: "Зупинити пошук" }));
     await act(async () => resolve({ ...empty, candidates: [2] }));
@@ -111,8 +119,7 @@ describe("RS-485 address search", () => {
     const repository = { searchAddress } as unknown as CommissioningRepository;
     const props = { repository, disabled: false, onSelect: vi.fn(), onRunningChange: vi.fn() };
     const { rerender } = render(<Rs485AddressSearch {...props} connection={connection} />);
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Знайти адресу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
     const signal = searchAddress.mock.calls[0][1] as AbortSignal;
     rerender(
       <Rs485AddressSearch
@@ -123,6 +130,6 @@ describe("RS-485 address search", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => resolve({ ...empty, candidates: [1] }));
     expect(screen.queryByRole("button", { name: "Вибрати адресу 1" })).not.toBeInTheDocument();
-    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(screen.getByRole("status")).toHaveTextContent("Знайдено адрес із приладами: 0");
   });
 });

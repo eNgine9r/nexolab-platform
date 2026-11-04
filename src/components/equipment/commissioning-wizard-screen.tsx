@@ -820,6 +820,7 @@ function WizardStep({
         searchRunning={searchRunning}
         onSearchRunningChange={onSearchRunningChange}
         onInventoryChanged={onConnectionsChanged}
+        profile={selectedProfile}
         disabled={disabled}
       />
     );
@@ -917,6 +918,7 @@ function ConnectionStep({
   searchRunning,
   onSearchRunningChange,
   onInventoryChanged,
+  profile,
   disabled,
 }: {
   draft: CommissioningSessionWrite;
@@ -927,6 +929,7 @@ function ConnectionStep({
   searchRunning: boolean;
   onSearchRunningChange: (running: boolean) => void;
   onInventoryChanged: (inventory: CommissioningConnectionInventory) => void;
+  profile: SupportedDeviceProfile | null;
   disabled: boolean;
 }) {
   const field = (key: keyof CommissioningSessionWrite, value: string | number | null) =>
@@ -1034,10 +1037,10 @@ function ConnectionStep({
           />
         </label>
         {repository &&
-        selected?.ownership === "available_commissioning" &&
-        selected.availableForIsolatedSearch === true &&
+        selected &&
+        (selected.availableForReadSearch === true || selected.availableForIsolatedSearch === true) &&
         inventory &&
-        draft.profileId === "dixell-xjp60d" ? (
+        profile ? (
           <Rs485AddressSearch
             repository={repository}
             connection={{
@@ -1046,6 +1049,8 @@ function ConnectionStep({
               stableTransportIdentifier: selected.stableTransportIdentifier,
             }}
             disabled={disabled}
+            profiles={[profile]}
+            serial={selected.serial}
             onSelect={(unitId) => field("unitId", unitId)}
             onRunningChange={onSearchRunningChange}
           />

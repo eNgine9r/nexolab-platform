@@ -112,6 +112,7 @@ const connectionInventory: CommissioningConnectionInventory = {
       ownership: "production_bus",
       present: true,
       availableForPreflight: true,
+      availableForReadSearch: true,
       serial: { baudrate: 9600, parity: "N", stopbits: 1, timeoutSeconds: 0.3, retries: 1 },
     },
     {
@@ -503,7 +504,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.getByText("Вільний адаптер · commissioning only")).toBeInTheDocument();
   });
 
-  it("offers address search only for an available commissioning adapter and XJP60D", async () => {
+  it("offers explicit read search on both configured and free adapters", async () => {
     const profile: SupportedDeviceProfile = {
       ...embracoProfile,
       id: "dixell-xjp60d",
@@ -526,9 +527,9 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     fireEvent.click(screen.getByRole("button", { name: "Далі" }));
     const select = screen.getByRole("combobox", { name: "RS-485 підключення" });
     fireEvent.change(select, { target: { value: "rs485-main" } });
-    expect(screen.queryByRole("button", { name: "Знайти адресу" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Знайти прилади" })).toBeEnabled();
     fireEvent.change(select, { target: { value: "commissioning-1234567890abcdef" } });
-    expect(screen.getByRole("button", { name: "Знайти адресу" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Знайти прилади" })).toBeEnabled();
     expect(repository.searchAddress).not.toHaveBeenCalled();
   });
 

@@ -42,6 +42,7 @@ export type CommissioningConnection = {
   present: boolean;
   availableForPreflight: boolean;
   availableForIsolatedSearch?: boolean;
+  availableForReadSearch?: boolean;
   serial: CommissioningConnectionSerial | null;
 };
 
@@ -201,6 +202,8 @@ export function createCommissioningIdempotencyKey(source?: {
 }
 
 export type AddressSearchInput = {
+  profileId?: string;
+  profileVersion?: string;
   nodeId: string;
   busId: string;
   stableTransportIdentifier: string;
@@ -281,9 +284,9 @@ export class HttpCommissioningRepository implements CommissioningRepository {
       bus_id: input.busId,
       stable_transport_identifier: input.stableTransportIdentifier,
       unit_id: input.unitId,
-      profile_id: "dixell-xjp60d",
-      profile_version: "dixell-xjp60d-fc03-v1",
-      isolated_bus_confirmed: true,
+      profile_id: input.profileId ?? "dixell-xjp60d",
+      profile_version: input.profileVersion ?? "dixell-xjp60d-fc03-v1",
+      read_only_confirmed: true,
     };
     const transport = new AbortController();
     const abort = () => transport.abort();
@@ -306,9 +309,7 @@ export class HttpCommissioningRepository implements CommissioningRepository {
     }
     if (
       !item ||
-      Object.entries(payload).some(
-        ([key, value]) => key !== "isolated_bus_confirmed" && item[key] !== value,
-      ) ||
+      Object.entries(payload).some(([key, value]) => key !== "read_only_confirmed" && item[key] !== value) ||
       item.schema_version !== 1 ||
       item.total !== 1 ||
       ![0, 1].includes(Number(item.attempted)) ||
@@ -596,6 +597,9 @@ function parseConnection(value: unknown): CommissioningConnection {
     !["production_bus", "available_commissioning"].includes(String(item.ownership)) ||
     typeof item.present !== "boolean" ||
     typeof item.available_for_preflight !== "boolean" ||
+    (item.available_for_read_search !== undefined &&
+      (typeof item.available_for_read_search !== "boolean" ||
+        (item.available_for_read_search && !item.present))) ||
     (item.available_for_isolated_search !== undefined &&
       typeof item.available_for_isolated_search !== "boolean") ||
     (item.available_for_isolated_search === true &&
@@ -628,6 +632,7 @@ function parseConnection(value: unknown): CommissioningConnection {
     ownership: item.ownership as CommissioningConnectionOwnership,
     present: item.present,
     availableForPreflight: item.available_for_preflight,
+    availableForReadSearch: item.available_for_read_search === true,
     ...(typeof item.available_for_isolated_search === "boolean"
       ? { availableForIsolatedSearch: item.available_for_isolated_search }
       : {}),

@@ -48,6 +48,7 @@ class CommissioningConnectionResponse(BaseModel):
     present: bool
     available_for_preflight: bool
     available_for_isolated_search: bool = False
+    available_for_read_search: bool = False
     serial: CommissioningConnectionSerialResponse | None
 
 

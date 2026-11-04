@@ -34,7 +34,7 @@ describe("address search transport", () => {
     expect((await repository.searchAddress(input, new AbortController().signal)).candidates).toEqual([7]);
     expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body))).toMatchObject({
       unit_id: 7,
-      isolated_bus_confirmed: true,
+      read_only_confirmed: true,
       profile_id: "dixell-xjp60d",
     });
     for (const change of [

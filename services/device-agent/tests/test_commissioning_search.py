@@ -245,7 +245,7 @@ class SearchContractTests(unittest.TestCase):
         agent.settings = Mock(
             node_id="edge-01", xjp60d_scale=0.1, embraco_temperature_scale=1, embraco_control_scale=1
         )
-        topology = Mock(explicit=True)
+        topology = Mock(explicit=True, bindings=())
         topology.binding.side_effect = ValueError("unowned")
         agent.rs485_topology = topology
         agent._commissioning_adapter_locks = {}
@@ -271,9 +271,49 @@ class SearchContractTests(unittest.TestCase):
         client.close.assert_called_once_with()
         client.write_single_register.assert_not_called()
 
+    def test_general_search_reuses_configured_client_lock_and_checks_serial_identity(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        agent.settings = Mock(node_id="edge-01", xjp60d_scale=0.1)
+        agent.rs485_topology = Mock(explicit=True)
+        agent.rs485_topology.binding.return_value = Mock(bus_id="rs485-sdm120")
+        agent.search_bus = Mock(return_value=PreflightBus("rs485-sdm120", PATH, True))
+        entry = dict(FakeRuntime().connections[0], bus_id="rs485-sdm120", stable_transport_identifier=PATH,
+                     available_for_read_search=True, serial={"baudrate":9600,"parity":"N","stopbits":1})
+        agent.commissioning_connections = Mock(return_value={"schema_version":1,"node_id":"edge-01","connections":[entry]})
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        client.read_holding_register.side_effect = [215, 0, 220, 0]
+        shared_lock = Mock()
+        shared_lock.acquire.return_value = True
+        agent._bus_clients = {"rs485-sdm120":client}
+        agent._bus_operation_locks = {"rs485-sdm120":shared_lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+        data = payload(bus_id="rs485-sdm120", first_unit_id=1, last_unit_id=2)
+        del data["isolated_bus_confirmed"]
+        data["read_only_confirmed"] = True
+        with patch("dual_bus_main.ModbusRTUClient") as factory:
+            result = run_search(parse_search_request(data),agent,cancelled=threading.Event())
+        self.assertEqual((result.state,result.candidates),("completed",(1,2)))
+        self.assertEqual(shared_lock.acquire.call_count,2)
+        self.assertEqual(shared_lock.release.call_count,2)
+        factory.assert_not_called()
+        client.close.assert_not_called()
+        client.write_single_register.assert_not_called()
+        entry["serial"]["parity"] = "E"
+        result = run_search(parse_search_request(data),agent,cancelled=threading.Event())
+        self.assertEqual((result.state,result.error_code),("failed","serial_profile_mismatch"))
+        self.assertEqual(shared_lock.acquire.call_count,2)
+        entry["serial"]["parity"] = "N"
+        shared_lock.acquire.return_value = False
+        result = run_search(parse_search_request(data),agent,cancelled=threading.Event())
+        self.assertEqual((result.state,result.error_code),("failed","bus_busy"))
+        self.assertEqual(shared_lock.release.call_count,2)
+
     def test_real_agent_rejects_production_binding_even_if_name_looks_like_commissioning(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        agent.rs485_topology = Mock(explicit=True)
+        agent.rs485_topology = Mock(explicit=True, bindings=())
         agent.rs485_topology.binding.return_value = Mock(bus_id=BUS)
         with self.assertRaises(PreflightExecutionError) as error:
             agent.preflight_read_profile(

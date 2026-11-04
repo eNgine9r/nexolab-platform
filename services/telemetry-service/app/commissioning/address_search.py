@@ -9,27 +9,34 @@ from typing import Literal
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from app.commissioning.catalog import supported_profile
 from app.commissioning.preflight_client import DeviceAgentPreflightError, validated_device_agent_base_url
 
 
 class AddressSearchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     node_id: str = Field(min_length=1, max_length=64)
-    bus_id: str = Field(pattern=r"^commissioning-[0-9a-f]{16}$")
+    bus_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
     stable_transport_identifier: str = Field(pattern=r"^/dev/serial/by-id/[^/\s]+$", max_length=255)
     unit_id: int = Field(ge=1, le=247)
-    profile_id: Literal["dixell-xjp60d"]
-    profile_version: Literal["dixell-xjp60d-fc03-v1"]
-    isolated_bus_confirmed: bool
+    profile_id: str = Field(max_length=128)
+    profile_version: str = Field(max_length=128)
+    isolated_bus_confirmed: bool | None = None
+    read_only_confirmed: bool | None = None
 
-    @field_validator("isolated_bus_confirmed")
-    @classmethod
-    def require_isolation(cls, value: bool) -> bool:
-        if value is not True:
-            raise ValueError("Confirm a separate test connection before searching")
-        return value
+    @model_validator(mode="after")
+    def validate_search(self):
+        profile = supported_profile(self.profile_id)
+        if profile is None or profile.version != self.profile_version:
+            raise ValueError("Unsupported search profile")
+        if self.read_only_confirmed is not None:
+            if self.read_only_confirmed is not True or self.isolated_bus_confirmed is not None:
+                raise ValueError("Confirm the read-only search")
+        elif self.isolated_bus_confirmed is not True or not self.bus_id.startswith("commissioning-"):
+            raise ValueError("Confirm a separate test connection before legacy searching")
+        return self
 
 
 class AddressSearchResponse(BaseModel):
@@ -39,8 +46,8 @@ class AddressSearchResponse(BaseModel):
     bus_id: str
     stable_transport_identifier: str
     unit_id: int
-    profile_id: Literal["dixell-xjp60d"]
-    profile_version: Literal["dixell-xjp60d-fc03-v1"]
+    profile_id: str = Field(max_length=128)
+    profile_version: str = Field(max_length=128)
     state: Literal["completed", "failed", "cancelled", "timed_out"]
     attempted: int = Field(ge=0, le=1)
     total: Literal[1]
@@ -74,7 +81,7 @@ def search_address(base_url: str, command: AddressSearchRequest) -> AddressSearc
 
 def _search_address(base_url: str, command: AddressSearchRequest) -> AddressSearchResponse:
     base = validated_device_agent_base_url(base_url)
-    wire = command.model_dump(exclude={"unit_id"})
+    wire = command.model_dump(exclude={"unit_id"}, exclude_none=True)
     wire.update(first_unit_id=command.unit_id, last_unit_id=command.unit_id, deadline_seconds=2.0)
     request = Request(
         f"{base}/api/v1/commissioning/address-search",

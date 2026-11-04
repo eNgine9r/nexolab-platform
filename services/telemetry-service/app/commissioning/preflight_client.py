@@ -120,6 +120,7 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
         present = item.get("present")
         available = item.get("available_for_preflight")
         search_available = item.get("available_for_isolated_search", False)
+        read_search = item.get("available_for_read_search", False)
         serial = item.get("serial")
         if (
             not isinstance(bus_id, str) or not bus_id or bus_id in seen_bus_ids
@@ -127,6 +128,8 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
             or ownership not in {"production_bus", "available_commissioning"}
             or not isinstance(present, bool) or not isinstance(available, bool)
             or not isinstance(search_available, bool)
+            or not isinstance(read_search, bool)
+            or (read_search and present is not True)
             or (search_available and (ownership != "available_commissioning" or present is not True))
         ):
             raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent connection identity is invalid")
@@ -158,6 +161,7 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
             "present": present,
             "available_for_preflight": available,
             "available_for_isolated_search": search_available,
+            "available_for_read_search": read_search,
             "serial": serial,
         })
     return {"schema_version": 1, "node_id": payload["node_id"], "connections": sanitized}
