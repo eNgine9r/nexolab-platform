@@ -5,6 +5,12 @@ Effective date: 2026-08-22
 
 This document is the shared operating model for product planning, implementation, verification and continuity across ChatGPT, Codex, PowerShell and GitHub.
 
+## Current owner-directed test iteration policy (2026-11-04)
+
+For the current test installation the owner requests fast development and declares existing monitoring data, temperature logs and backups disposable. Use a focused feature branch, the changed operator scenario, touched-code lint/typecheck and a page smoke; build when packaging a target UI. Do not repeat the whole repository matrix or request unrelated vulnerability/backup signoff as a prerequisite to test-interface work. Existing security findings stay tracked separately; no global waiver is granted.
+
+Ordinary feature edits and reversible installation of the requested UI in this test environment are authorized. A feature-branch test candidate need not wait for unrelated main production release gates. Preserve source/checkpoint and a concise result. Do not delete data without an implementation need; onboarding needs no reset. Authentication, honest live/offline states, stable adapter identity and prohibition of Modbus/hardware writes remain. Production/data-bearing releases retain their gates. Ask only for actually missing access or a physical hardware action.
+
 ## 1. Core principle
 
 The conversation is a working interface, not permanent project memory.

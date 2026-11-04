@@ -20,6 +20,11 @@ development:
   github_required: true
   codex_optional: true
   local_development_supported: true
+  iteration_policy: disposable_lab_fast
+  test_data_preservation_required: false
+  test_iteration_checks: targeted_scenario_and_touched_code_and_page_smoke
+  unrelated_security_findings_block_test_ui: false
+  test_ui_requires_backup_approval: false
 
 runtime:
   internet_required: false

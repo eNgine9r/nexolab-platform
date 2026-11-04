@@ -12,6 +12,7 @@ type Props = {
   disabled: boolean;
   onSelect: (unitId: number) => void;
   onRunningChange: (running: boolean) => void;
+  selectFirstMatch?: boolean;
 };
 
 export function Rs485AddressSearch(props: Props) {
@@ -24,7 +25,14 @@ export function Rs485AddressSearch(props: Props) {
   return <SearchPanel key={context.generation} {...props} />;
 }
 
-function SearchPanel({ repository, connection, disabled, onSelect, onRunningChange }: Props) {
+function SearchPanel({
+  repository,
+  connection,
+  disabled,
+  onSelect,
+  onRunningChange,
+  selectFirstMatch,
+}: Props) {
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [checked, setChecked] = useState(0);
@@ -62,6 +70,11 @@ function SearchPanel({ repository, connection, disabled, onSelect, onRunningChan
         if (result.state !== "completed") throw new Error("search_failed");
         if (result.candidates.length) setCandidates((current) => [...current, unitId]);
         setChecked(unitId);
+        if (result.candidates.length && selectFirstMatch) {
+          onSelect(unitId);
+          setStatus("Прилад знайдено. Адресу підставлено автоматично.");
+          return;
+        }
       }
       setStatus(
         "Пошук завершено. Виберіть адресу зі списку відповідей або перевірте підключення, якщо список порожній.",
