@@ -102,7 +102,7 @@ class SearchRuntime(Protocol):
     node_id: str
 
     def commissioning_connections(self) -> dict[str, Any]: ...
-    def preflight_bus(self, bus_id: str) -> PreflightBus: ...
+    def search_bus(self, bus_id: str) -> PreflightBus: ...
     def preflight_read_profile(
         self,
         profile: PreflightProfile,
@@ -171,9 +171,6 @@ def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> None
         for entry in entries
     ):
         raise PreflightExecutionError("inventory_unavailable", "Connection inventory is invalid")
-    production = [entry for entry in entries if entry.get("ownership") == "production_bus"]
-    if not production or any(entry.get("present") is not True for entry in production):
-        raise PreflightExecutionError("adapter_unavailable", "Protected production adapter is missing")
     selected = [entry for entry in entries if entry.get("bus_id") == request.bus_id]
     if len(selected) != 1:
         raise PreflightExecutionError("adapter_unavailable", "Adapter is not present in inventory")
@@ -182,11 +179,11 @@ def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> None
         entry.get("stable_transport_identifier") != request.stable_transport_identifier
         or entry.get("ownership") != "available_commissioning"
         or entry.get("present") is not True
-        or entry.get("available_for_preflight") is not True
+        or entry.get("available_for_isolated_search") is not True
     ):
         raise PreflightExecutionError("adapter_unavailable", "Adapter is unavailable or protected")
     try:
-        bus = runtime.preflight_bus(request.bus_id)
+        bus = runtime.search_bus(request.bus_id)
         if (
             bus.bus_id != request.bus_id
             or not bus.path_present

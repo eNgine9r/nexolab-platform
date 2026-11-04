@@ -61,8 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1474,
-      "branch": "feature/1474-sealed-offline-lan-monitor-assets"
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "branch": "feature/1486-search-ui"
     },
     "next_work_package": null
   },
@@ -9674,7 +9675,7 @@
       "title": "Digest-bound opt-in LAN monitor assets in offline bundle",
       "branch": "feature/1474-sealed-offline-lan-monitor-assets",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1472
       ],
@@ -9721,7 +9722,90 @@
         "change_impact_test_cases": 81,
         "ci_expected_skips": 1,
         "source_ast_bash_prettier": "PASS",
-        "git_diff_check": "PASS"
+        "git_diff_check": "PASS",
+        "verified_head_sha": "508b1e60357c34871b66d27c0ede90cbbc9299c6",
+        "pull_request": 1475,
+        "checks": {
+          "github_workflows": "6_of_6_success"
+        }
+      }
+    },
+    {
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "feature/1486-search-ui",
+      "evidence": {
+        "hardware": "unverified",
+        "site_activation": false,
+        "production_mutation": false,
+        "owner_context": "instruments_not_yet_connected",
+        "integration_checks": "local_PASS_exact_head_CI_pending",
+        "local_device_agent_tests": 342,
+        "local_central_commissioning_tests": 24,
+        "local_frontend_tests": 1233,
+        "local_frontend_test_files": 200,
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "production_build": "PASS",
+        "api_transport_redirect_test": "PASS",
+        "ci": "pending",
+        "isolated_search_capability": "explicit_only_no_production_enrollment"
+      },
+      "scope": "One address per bounded authenticated request; explicit isolated XJP60D scan, progress/cancel/selection; source-only, no automatic enrollment or site activation.",
+      "depends_on": [
+        1482
+      ]
+    },
+    {
+      "issue": 1479,
+      "title": "Identify newly connected RS-485 adapter",
+      "branch": "feature/1479-rs485-adapter-identification",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "f3afd92e25e023ce489ed9471848fe89b1b17370",
+        "pull_request": 1480,
+        "checks": {
+          "CI": "success_41792736839",
+          "authenticated_dashboard": "success_41792736667"
+        },
+        "scope": "source_only_UI",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1482,
+      "title": "Bounded XJP60D address search core",
+      "branch": "feature/1482-xjp-search-core",
+      "priority": "high",
+      "lifecycle": "review",
+      "evidence": {
+        "pull_request": 1483,
+        "local_agent_tests": 338,
+        "source_candidate_sha": "1678d1979412a99135f169164607753013500a39",
+        "github_security_gate": "Trivy_installer_exit6_persists_after_failed_jobs_retry_and_refreshed_head_run41798806416",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1484,
+      "title": "Avoid self-matching security test marker",
+      "branch": "fix/1484-ci-secret-marker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "ef91a896d4a526fe0802a086dd24565ce5009210",
+        "pull_request": 1485,
+        "checks": {
+          "CI": "success_41794354174",
+          "offline_bundle": "success_41794354166"
+        },
+        "local_tests": 17,
+        "runtime_mutation": false
       }
     }
   ],
@@ -11495,6 +11579,20 @@
         "unknown_files": 0,
         "required_external": 3,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-04T08:11:34.227467+00:00",
+      "kind": "rs485_source_progress",
+      "data": {
+        "merged_prs": [
+          1480,
+          1485
+        ],
+        "pending_core_pr": 1483,
+        "separate_monitor_pr": 1477,
+        "deployment_unchanged": true
       }
     }
   ],

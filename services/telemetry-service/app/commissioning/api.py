@@ -35,6 +35,7 @@ from app.commissioning.schemas import (
     SupportedDeviceProfileResponse,
 )
 from app.commissioning.preflight_client import DeviceAgentPreflightError
+from app.commissioning.address_search import AddressSearchRequest, AddressSearchResponse
 from app.commissioning.preflight_repository import CommissioningPreflightRepository
 from app.commissioning.preflight_service import CommissioningPreflightService
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
@@ -123,6 +124,18 @@ def create_commissioning_router(
         except DeviceAgentPreflightError as error:
             raise _http_error(503, error.code, error.message) from error
         return CommissioningConnectionListResponse.model_validate(payload)
+
+    @router.post("/address-search", response_model=AddressSearchResponse)
+    def address_search(
+        command: AddressSearchRequest,
+        _: AuthorizedRequest = Depends(manage_access),
+    ) -> AddressSearchResponse:
+        if preflight_service is None:
+            raise _http_error(503, "search_unavailable", "Local Device Agent is not configured")
+        try:
+            return preflight_service.client.search_address(command)
+        except DeviceAgentPreflightError as error:
+            raise _http_error(503, error.code, error.message) from error
 
     @router.get("/sessions", response_model=CommissioningSessionListResponse)
     def list_sessions(

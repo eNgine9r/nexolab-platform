@@ -120,6 +120,7 @@ const connectionInventory: CommissioningConnectionInventory = {
       ownership: "available_commissioning",
       present: true,
       availableForPreflight: true,
+      availableForIsolatedSearch: true,
       serial: null,
     },
   ],
@@ -453,6 +454,35 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.getByText("commissioning-1234567890abcdef")).toBeInTheDocument();
     expect(screen.getByText(/A10Q2SI7-if00-port0/)).toBeInTheDocument();
     expect(screen.getByText("Вільний адаптер · commissioning only")).toBeInTheDocument();
+  });
+
+  it("offers address search only for an available commissioning adapter and XJP60D", async () => {
+    const profile: SupportedDeviceProfile = {
+      ...embracoProfile,
+      id: "dixell-xjp60d",
+      version: "dixell-xjp60d-fc03-v1",
+      manufacturer: "Dixell",
+      models: ["XJP60D"],
+      displayName: "Dixell XJP60D",
+      deviceFamily: "xjp60d",
+    };
+    const repository = commissioningRepository(async () => persistedSession, {
+      listProfiles: async () => [profile],
+      searchAddress: vi.fn(),
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: profile.id },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Далі" }));
+    const select = screen.getByRole("combobox", { name: "RS-485 підключення" });
+    fireEvent.change(select, { target: { value: "rs485-main" } });
+    expect(screen.queryByRole("button", { name: "Знайти адресу" })).not.toBeInTheDocument();
+    fireEvent.change(select, { target: { value: "commissioning-1234567890abcdef" } });
+    expect(screen.getByRole("button", { name: "Знайти адресу" })).toBeDisabled();
+    expect(repository.searchAddress).not.toHaveBeenCalled();
   });
 
   it("does not expose activation controls for a discovery-only Danfoss session", async () => {

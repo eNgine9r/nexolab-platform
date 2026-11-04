@@ -39,7 +39,10 @@ export function compareAdapterInventories(
   if (added.length === 0) return { kind: "none" };
   if (added.length !== 1) return { kind: "ambiguous" };
   const connection = added[0];
-  if (connection.ownership !== "available_commissioning" || !connection.availableForPreflight) {
+  if (
+    connection.ownership !== "available_commissioning" ||
+    (!connection.availableForPreflight && connection.availableForIsolatedSearch !== true)
+  ) {
     return { kind: "unavailable", connection };
   }
   return { kind: "found", connection };
@@ -147,7 +150,7 @@ function AdapterFinder({ repository, disabled, onInventoryChanged, onSelect }: F
       {result?.kind === "found" ? (
         <div role="status" className="mt-3 text-xs text-emerald-100">
           <p>
-            Знайдено новий адаптер, доступний для перевірки:{" "}
+            Знайдено новий адаптер для налаштування:{" "}
             {result.connection.stableTransportIdentifier.split("/").at(-1)}
           </p>
           <p className="mt-1 text-slate-300">Це підтверджує USB-підключення, але не зв’язок із приладом.</p>

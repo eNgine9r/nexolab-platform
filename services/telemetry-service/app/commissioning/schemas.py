@@ -47,6 +47,7 @@ class CommissioningConnectionResponse(BaseModel):
     ownership: Literal["production_bus", "available_commissioning"]
     present: bool
     available_for_preflight: bool
+    available_for_isolated_search: bool = False
     serial: CommissioningConnectionSerialResponse | None
 
 

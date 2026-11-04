@@ -42,6 +42,7 @@ class FakeRuntime:
                 "ownership": "production_bus",
                 "present": True,
                 "available_for_preflight": True,
+                "available_for_isolated_search": False,
             },
             {
                 "bus_id": BUS,
@@ -49,13 +50,14 @@ class FakeRuntime:
                 "ownership": "available_commissioning",
                 "present": True,
                 "available_for_preflight": True,
+                "available_for_isolated_search": True,
             },
         ]
 
     def commissioning_connections(self) -> dict[str, object]:
         return {"schema_version": 1, "node_id": self.node_id, "connections": self.connections}
 
-    def preflight_bus(self, bus_id: str) -> PreflightBus:
+    def search_bus(self, bus_id: str) -> PreflightBus:
         return PreflightBus(bus_id, "/host/dev/serial/by-id/usb-test", True)
 
     def preflight_read_profile(
@@ -115,8 +117,10 @@ class SearchContractTests(unittest.TestCase):
             runtime = FakeRuntime()
             if variant == "missing":
                 runtime.connections[0]["present"] = False
+                runtime.connections[1]["available_for_isolated_search"] = False
             elif variant == "no_production":
                 runtime.connections.pop(0)
+                runtime.connections[0]["available_for_isolated_search"] = False
             elif variant == "duplicate":
                 runtime.connections.append(dict(runtime.connections[1]))
             elif variant == "alias":
@@ -126,6 +130,7 @@ class SearchContractTests(unittest.TestCase):
                 runtime.connections.append(alias)
             elif variant == "unavailable":
                 runtime.connections[1]["available_for_preflight"] = False
+                runtime.connections[1]["available_for_isolated_search"] = False
             else:
                 runtime.connections[1]["ownership"] = "production_bus"
             result = run_search(parse_search_request(payload()), runtime, cancelled=threading.Event())
@@ -138,7 +143,7 @@ class SearchContractTests(unittest.TestCase):
 
         def read(*args: object, **kwargs: object) -> tuple[PreflightObservation, ...]:
             result = original(*args, **kwargs)  # type: ignore[arg-type]
-            runtime.connections[0]["present"] = False
+            runtime.connections[1]["stable_transport_identifier"] = "/dev/serial/by-id/usb-other"
             return result
 
         runtime.preflight_read_profile = read  # type: ignore[method-assign]
@@ -146,6 +151,13 @@ class SearchContractTests(unittest.TestCase):
         self.assertEqual(result.state, "failed")
         self.assertEqual(result.candidates, ())
         self.assertEqual(runtime.calls, [1])
+
+    def test_explicit_isolated_search_capability_allows_absent_historical_adapter(self) -> None:
+        runtime = FakeRuntime()
+        runtime.connections[0]["present"] = False
+        runtime.connections[1]["available_for_preflight"] = False
+        result = run_search(parse_search_request(payload(first_unit_id=1, last_unit_id=1)), runtime, cancelled=threading.Event())
+        self.assertEqual(result.state, "completed")
 
     def test_adapter_loss_during_last_timeout_does_not_look_like_a_complete_scan(self) -> None:
         runtime = FakeRuntime()
