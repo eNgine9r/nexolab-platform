@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T08:11:44Z",
+  "timestamp": "2026-11-04T11:41:48.436Z",
   "actor": "ChatGPT",
-  "event": "1486_rs485_search_integration_source_only",
+  "event": "1490_fast_test_UI_installed_LAN_and_external",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1486,
-    "title": "Authenticated bounded address search in commissioning wizard",
-    "branch": "feature/1486-search-ui"
+    "issue": 1490,
+    "title": "One-page quick device setup for disposable lab",
+    "branch": "feature/1490-quick-device-setup"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2965,6 +2965,22 @@
       "adapter_finder_merged_pr": 1480,
       "ci_marker_fix_merged_pr": 1485,
       "integration_checks": "342_agent_24_central_1233_frontend_lint_typecheck_build_PASS_CI_pending"
+    },
+    "quick_ui_1490": {
+      "targeted_ui_tests": 24,
+      "touched_lint": "PASS",
+      "typecheck": "PASS",
+      "native_external_build": "SDf7VZ-mBtsRLERML5z4h",
+      "native_lan_build": "KYgxPoFTSJJ4MpdkmQl99",
+      "test_ui_installation": "PASS_external_and_LAN_pages_assets_runtime_identity",
+      "test_search_agent": "PASS_real_FTDI_one_FC03_address_no_replies",
+      "central_search_route": "registered_bearer_auth_401",
+      "central_agent_inventory": "HTTP200_5_connections_2_search_adapters",
+      "test_data_deleted": false,
+      "full_repository_tests_run": false,
+      "hardware": "unverified_instrument_not_connected",
+      "owner_policy": "disposable_test_fast_iteration_no_unrelated_security_backup_approval",
+      "code_origin": "dffb2a2dfca46bdb6141815a38fb7f30a4bc9df7"
     }
   },
   "observations": [
@@ -4377,7 +4393,7 @@
       }
     }
   ],
-  "next_action": "Verify API/UI cancellation and strict transport; complete required CI; keep hardware and protected site activation pending.",
+  "next_action": "Physically connect one Dixell and verify actual scan/Add. Continue fast disposable-lab iteration; no unrelated security/backup signoffs. No Modbus writes or data reset.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

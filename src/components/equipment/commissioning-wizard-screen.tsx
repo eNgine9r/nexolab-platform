@@ -21,6 +21,7 @@ import {
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Rs485AdapterFinder } from "@/components/equipment/rs485-adapter-finder";
 import { Rs485AddressSearch } from "@/components/equipment/rs485-address-search";
+import { QuickDeviceSetup } from "@/components/equipment/quick-device-setup";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
@@ -67,6 +68,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [advanced, setAdvanced] = useState(Boolean(commissioningId) || searchParams.get("advanced") === "1");
   const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [connections, setConnections] = useState<CommissioningConnectionInventory | null>(null);
@@ -482,7 +484,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
-          title="Чернетка підключення"
+          title={advanced ? "Налаштування підключення" : "Додати прилад"}
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={false}
           securitySession={security.session}
@@ -501,11 +503,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 <ArrowLeft className="h-4 w-4" />
               </Link>
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Commissioning intent</p>
+                <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Прилади та підключення</p>
                 <h1 className="truncate text-base font-semibold text-white sm:text-lg">
-                  {visibleSession
-                    ? `${visibleSession.manufacturer} ${visibleSession.model}`
-                    : "Нова чернетка підключення"}
+                  {visibleSession ? `${visibleSession.manufacturer} ${visibleSession.model}` : "Новий прилад"}
                 </h1>
               </div>
               <span className="rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-1 text-[10px] text-amber-100">
@@ -531,7 +531,27 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
               </div>
             ) : null}
             {visibleLoadState === "error" ? <Unavailable message={error ?? "Чернетка недоступна."} /> : null}
-            {visibleLoadState === "ready" ? (
+            {visibleLoadState === "ready" && !advanced ? (
+              <QuickDeviceSetup
+                key={organizationId}
+                repository={repository}
+                equipmentRepository={runtime.equipmentRepository}
+                profiles={profiles}
+                inventory={visibleConnections}
+                inventoryError={visibleConnectionError}
+                equipment={equipment}
+                draft={draft}
+                onDraft={setDraft}
+                onInventory={setConnections}
+                onSaved={(saved) => {
+                  setSession(saved);
+                  setDraft(sessionToWrite(saved));
+                }}
+                onAdvanced={() => setAdvanced(true)}
+                canManage={canManage}
+              />
+            ) : null}
+            {visibleLoadState === "ready" && advanced ? (
               <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
                 <aside className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-3 xl:sticky xl:top-24 xl:self-start">
                   <p className="px-2 pb-2 text-[9px] tracking-[0.16em] text-slate-500 uppercase">

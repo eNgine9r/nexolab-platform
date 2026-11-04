@@ -19,6 +19,28 @@ const empty: AddressSearchResult = {
 };
 
 describe("RS-485 address search", () => {
+  it("stops at the first response and fills the address in quick mode", async () => {
+    const searchAddress = vi
+      .fn()
+      .mockResolvedValue({ state: "completed", candidates: [1], exceptionAddresses: [], errorCode: null });
+    const onSelect = vi.fn();
+    render(
+      <Rs485AddressSearch
+        repository={{ searchAddress } as unknown as CommissioningRepository}
+        connection={connection}
+        disabled={false}
+        onSelect={onSelect}
+        onRunningChange={vi.fn()}
+        selectFirstMatch
+      />,
+    );
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Знайти адресу" }));
+    expect(await screen.findByText(/Адресу підставлено автоматично/)).toBeInTheDocument();
+    expect(searchAddress).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(1);
+  });
+
   it("requires explicit isolation confirmation, searches sequentially and selects only on click", async () => {
     const searchAddress = vi
       .fn()
