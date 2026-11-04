@@ -13,9 +13,9 @@ def test_versitygw_source_and_fixed_sdk_are_exact_for_both_architectures() -> No
     assert "VERSITYGW_VERSION=1.8.0" in DOCKERFILE
     assert "fd04bc1df2656298577b82667a4195c77f8c7563" in DOCKERFILE
     assert 'test "$(git rev-parse HEAD)" = "$VERSITYGW_COMMIT"' in DOCKERFILE
-    assert "GO_VERSION=1.27.2" in DOCKERFILE
-    assert "ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5" in DOCKERFILE
-    assert "94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8" in DOCKERFILE
+    assert "GO_VERSION=1.27.3" in DOCKERFILE
+    assert "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40" in DOCKERFILE
+    assert "a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49" in DOCKERFILE
     assert "sha256sum -c -" in DOCKERFILE
     assert "GOTOOLCHAIN=local" in DOCKERFILE
     assert "CGO_ENABLED=0" in DOCKERFILE

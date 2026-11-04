@@ -31,3 +31,39 @@ The 49 bounded records expire on **2026-11-06**. They are **not** blanket versio
 - No hardware acceptance; no Modbus/hardware writes, broker ACL modifications or storage cutover.
 
 A policy regression in this Work Package also rejects any exceptional HIGH with a non-empty Trivy `FixedVersion`; a newly available patch must be investigated rather than silently overridden by the previous exception. This is enforced by an isolated unit test and exact-head CI.
+
+## 2026-11-04 technical review for the Product Owner
+
+This section supersedes the historical count of 49 remaining findings. The owner authorized technical review/preparation; no specific risk waiver or production/site cutover was given. Repository CODEOWNERS identifies `@eNgine9r`; `platform-security` in the exception registry is a logical role string, not proof of a separate human reviewer.
+
+### Evidence and limits
+
+Downloaded all five image artifact ZIPs from exact-head run `41076486729`, source `0b50d7df348ea4234607a84ce4c692ee0c66ff59`, verified the source and all 15 CycloneDX/SPDX/raw-report digests against their manifests, then rescanned the immutable CycloneDX package inventories with checksum-pinned Trivy **0.70.0** and vulnerability DB updated **2026-11-04 07:16:25 UTC**. This is a current vulnerability lookup against previously built **linux/amd64** images, not a new image build, binary reachability proof, ARM64 acceptance or installed-site scan. Exact source/image/SBOM/rescan/DB hashes and all 50 exact HIGH tuples are in [the machine-readable review](security-container-review-20261104.json).
+
+| Existing candidate image | HIGH | CRITICAL |
+| ------------------------ | ---: | -------: |
+| telemetry-service        |   50 |        0 |
+| device-agent             |    0 |        0 |
+| mqtt-dynamic-security    |    0 |        0 |
+| telegram-gateway         |    0 |        0 |
+| object-storage           |    0 |        0 |
+
+Candidate SBOMs confirm Pillow **13.0.0**, msgpack **1.2.3**, and Go stdlib **1.27.3**. These remediate the known five Pillow CRITICAL and fixed-version msgpack/Go findings. Native Debian residual findings remain; they have not disappeared because of a policy exception.
+
+The 50 package/CVE tuples represent **14 unique CVEs**. All 14 match the current official [Debian tracker JSON](https://security-tracker.debian.org/tracker/data/json), whose Trixie entries remain `open`; no current rescan HIGH reports a fixed version. The prior 49 exact tuples still match the existing short-lived registry; only `telemetry-service / libsqlite3-0 / CVE-2026-119373` is new. Running the existing candidate's unchanged evaluator against the current report **fails**, blocking this SQLite tuple. No new exception or expiry extension has been written.
+
+### Reachability and residual risk
+
+The new [SQLite advisory](https://security-tracker.debian.org/tracker/CVE-2026-119373) describes heap corruption requiring FTS5 `detail=none` data, attacker-controlled negative rowids and a prefix MATCH query. Debian Trixie `3.46.1-7+deb13u2` remains vulnerable; the reported fixed Debian package is in unstable, not Trixie. Telemetry actively uses SQLite for its MQTT spool and export staging; source paths use ordinary tables and bound values/BLOBs (`app/durable_spool.py:98,297-325`; `app/energy_export/source.py:136-156,225-230`). Scoped source search found no FTS5, virtual-table creation, arbitrary SQL scripts, extension loading or foreign database attachment. This narrows the observed trigger path but does not prove safety against a replaced database, transitive native use or an unverified site configuration.
+
+The existing [libwebsockets advisory](https://security-tracker.debian.org/tracker/CVE-2026-95114) remains a native JSON-parser denial-of-service risk. The telemetry image installs Mosquitto for `mosquitto_ctrl`, while its default process is Uvicorn; broker admin launches a native command. No claim that all native parser entry points are unreachable is justified without actual image linkage/process/listener evidence. Other existing per-CVE reachability rationales remain conditional; current scanner/tracker agreement establishes package status, not exploit impossibility.
+
+Two omitted packaging tests were actually run and failed because they still required msgpack **1.2.1** and Go **1.27.2**. Their assertions now require the already-remediated exact versions/checksums, and the Telemetry workflow explicitly executes both files and triggers on edits to them. Focused policy, packaging and PNG/msgpack codec checks: **67 PASS**. Full final-head CI remains required.
+
+### Concrete decision and recommendation
+
+Recommend allowing continued source development and isolated compatibility/hardware preparation. A source-only risk decision could provisionally retain exactly these **50 named HIGH package/CVE tuples through 2026-11-06**, after a fresh final-source build/scan confirms no further changes. This requires a specific Product Owner risk decision; the current authorization to prepare this review does not grant it. The current 49-entry registry is unchanged and intentionally fails on the 50th finding.
+
+The proposed bounds are: zero CRITICAL; no accepted finding with a reported fixed version; exact image/package/CVE identities only; no wildcard or automatic renewal; remove/review an entry immediately on compatible fix or exposure change; fresh final ARM64 and runtime evidence still required. Final policy/CI must pass before any source merge. Production/site installation also retains the separate backup/restore, rollback, LAN/IPAM and real-device gates, and requires its own explicit cutover authorization.
+
+Until that concrete risk decision and fresh verification exist, **do not merge or deploy** this candidate. This assessment grants no security exception, production approval, hardware write or update signal.

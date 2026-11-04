@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "services/telemetry-service/**"
+      - "tests/test_telemetry_runtime_packaging.py"
+      - "tests/test_object_storage_supply_contract.py"
       - "scripts/nexolab-update-orchestrator.py"
       - "scripts/nexolab-version-manager.py"
       - "scripts/nexolab-protected-*.py"
@@ -50,6 +52,8 @@ on:
     branches: [main]
     paths:
       - "services/telemetry-service/**"
+      - "tests/test_telemetry_runtime_packaging.py"
+      - "tests/test_object_storage_supply_contract.py"
       - "scripts/nexolab-update-orchestrator.py"
       - "scripts/nexolab-version-manager.py"
       - "scripts/nexolab-protected-*.py"
@@ -158,6 +162,12 @@ jobs:
             scripts/tests/test_protected_frontend_release.py \
             scripts/tests/test_protected_package.py \
             scripts/tests/test_raspberry_pi_frontend_release.py
+      - name: Test fixed runtime dependency packaging contracts
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pytest -q \
+            tests/test_telemetry_runtime_packaging.py \
+            tests/test_object_storage_supply_contract.py
       - name: Validate central deployment, cutover and M4 recovery contracts
         working-directory: ${{ github.workspace }}
         run: |

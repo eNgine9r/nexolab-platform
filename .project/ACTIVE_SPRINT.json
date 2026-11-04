@@ -60,10 +60,7 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1410,
-      "branch": "feature/1410-durable-receipt-contract"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -9338,6 +9335,540 @@
         },
         "pr": 1411
       }
+    },
+    {
+      "issue": 1453,
+      "title": "Reject invalid IDNA A-labels in LOCAL_LAN offline package URL gate",
+      "branch": "fix/1453-offline-idna-host-guard",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Fail-closed offline WHATWG URL canonical Punycode A-label validation without DNS/network lookup, preserved valid IDNA, isolated CI contract regression; no site runtime mutation.",
+      "permitted_paths": [
+        ".github/workflows/offline-bundle.yml",
+        "tests/test_ci_offline_bundle_workflow_contract.py",
+        "docs/operations/offline-bundle-idna-1453.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "arm64_local_contract_tests": 30,
+        "arm64_ci_contract_tests": 383,
+        "ci_contract_skipped": 1,
+        "node_exact": "v22.23.1_shasum_verified",
+        "offline_runtime_required": true,
+        "github_ci": "success",
+        "production_mutation": false,
+        "hardware": "unverified",
+        "independent_security_gate": "blocked",
+        "first_github_ci_job": "124968515497_failed_idna_icu_portability",
+        "cross_version_decoded_hostname_guard": "added_source_only",
+        "pr": 1454,
+        "offline_bundle": "success",
+        "telemetry_service": "success"
+      }
+    },
+    {
+      "issue": 1458,
+      "title": "Reconcile merged #1453 Sprint and checkpoint in main",
+      "branch": "docs/1458-reconcile-1453-merged",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1453
+      ],
+      "scope": "State-only closure of merged #1453; keep unmerged dependency WPs as GitHub/Draft sources; no runtime activation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "main_merged_1453_reconciled": true,
+        "site_mutation": false,
+        "hardware": "unverified",
+        "local_validator": "success",
+        "ci_policy_contract_tests": 383,
+        "state_tests": 13,
+        "state_tests_skipped": 1
+      }
+    },
+    {
+      "issue": 1462,
+      "title": "Guarded offline central Docker network recovery after sandbox detachment",
+      "branch": "feature/1462-guarded-central-network-recovery",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1399,
+        1409
+      ],
+      "scope": "Source-only fixed identity, persistent volume and bridge network recovery guard; no installed boot supervisor, site cutover or production writes.",
+      "permitted_paths": [
+        "infrastructure/offline/guarded-central-network-recovery.py",
+        "infrastructure/offline/tests/test_guarded_central_network_recovery.py",
+        "docs/operations/guarded-central-network-recovery-1462.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/tests/standalone-offline-runtime-contract.sh"
+      ],
+      "evidence": {
+        "source_only": true,
+        "installed_package_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "live_dashboard": "LAN_http_200_recovery_verified",
+        "live_api": "LAN_http_200_recovery_verified",
+        "site_readonly_preflight": "blocked_physical_docker_cidr_not_safe",
+        "source_unit_tests": 16,
+        "site_execute": false,
+        "systemd_supervisor": "not_installed",
+        "production_mutation": false,
+        "hardware_acceptance": "unverified",
+        "existing_boot_observer_tests": 23,
+        "existing_cidr_guard_tests": 16,
+        "offline_bundle_ci_registration": "included_in_standalone_offline_runtime_contract",
+        "unit_tests_all": 55,
+        "auth_key_bind_mount_checks": "read_only_required_and_negative_tested",
+        "update_locks": "exclusive_across_all_operations",
+        "standalone_offline_contract": "passed",
+        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock",
+        "installed_auto_supervisor": "not_enabled",
+        "source_only_work_package": "completed_not_activated"
+      }
+    },
+    {
+      "issue": 1464,
+      "title": "Opt-in explicit Edge bridge IPAM without site-unsafe default",
+      "branch": "feature/1464-edge-ipam-approval-overlay",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1409
+      ],
+      "scope": "Source-only opt-in exact subnet Compose overlay and hermetic config/route tests; no live production network migration.",
+      "permitted_paths": [
+        "infrastructure/compose/compose.edge-safe-ipam.yaml",
+        "infrastructure/offline/tests/test_edge_safe_ipam_overlay.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-safe-ipam-overlay-1464.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "unit_tests": 14,
+        "required_subnet_without_default": true,
+        "docker_compose_synthetic_config": "PASS",
+        "real_pi_subnet_proposal": "candidate_unapproved_not_site_authorized",
+        "live_site_migration": false,
+        "live_docker_recreate": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "source_unit_tests": 14,
+        "edge_ipam_guard_unit_tests": 18,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_policy_skipped": 1,
+        "real_pi_readonly_candidate": "candidate_unapproved_exit1",
+        "site_mutation": false,
+        "source_only_merged": "observed_GREEN",
+        "live_subnet_migration": "not_implemented"
+      }
+    },
+    {
+      "issue": 1466,
+      "title": "Offline read-only Dashboard and Session API access probe",
+      "branch": "feature/1466-readonly-lan-auth-probe",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1399
+      ],
+      "scope": "Source-only local-only fixed-path unauthenticated login/access smoke probe. No scheduled host automation or live modifications.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-site-lan-access.py",
+        "infrastructure/offline/tests/test_site_lan_access.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-auth-path-smoke-1466.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "standalone_unit_tests": 18,
+        "pi_live_readonly_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "pi_live_no_credentials": true,
+        "pi_live_site_mutation": false,
+        "browser_owner_authentication": "unverified",
+        "hardware": "unverified",
+        "site_automatic_monitor": "not_installed",
+        "github_exact_head": "3_of_3_GREEN",
+        "standalone_offline_contract": "PASS",
+        "ci_contract_tests": 383,
+        "ci_contract_skips": 1,
+        "state_model_v2": "PASS",
+        "docs_prettier": "PASS",
+        "actual_lan_smoke": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "site_mutation": false,
+        "source_only_merge": "observed_merged"
+      }
+    },
+    {
+      "issue": 1469,
+      "title": "Verify exact Edge network cutover identities and rollback gates read-only",
+      "branch": "feature/1469-guarded-edge-site-migration-readiness",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1409,
+        1464
+      ],
+      "scope": "Source-only fail-closed exact immutable image, named-volume, route candidate and site release evidence gate; no production cutover.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-edge-site-migration-gates.py",
+        "infrastructure/offline/tests/test_edge_site_migration_gates.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-site-migration-gates-1469.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "source_unit_tests": 17,
+        "pi_readonly_preflight": "BLOCKED_site_reservation_rollback_and_hardware_acceptance_required",
+        "site_candidate_subnet": "locally_disjoint_not_site_approved",
+        "protected_release_identity": "verified",
+        "edge_images_volumes_networks_ports": "verified",
+        "production_network_cutover": false,
+        "site_reboot_acceptance": "unverified",
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "existing_ipam_unit_tests": 18,
+        "existing_edge_overlay_unit_tests": 14,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_contract_expected_skips": 1,
+        "state_model_v2": "PASS",
+        "markdown_prettier": "PASS",
+        "pi_site_readonly_exit": 78,
+        "site_protected_image_and_volume_identity": "verified",
+        "source_only_green_merged": "observed"
+      }
+    },
+    {
+      "issue": 1468,
+      "title": "Local offline Dashboard/Session outage alerts and hardened periodic probe",
+      "branch": "feature/1468-local-lan-access-alerts",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1466
+      ],
+      "scope": "Source-only metrics collector, optional local Prometheus alerts, secure exporter directory-mode, hardened off-by-default systemd unit templates. No runtime activation or network repair.",
+      "permitted_paths": [
+        "infrastructure/offline/emit-lan-access-prometheus.py",
+        "infrastructure/offline/tests/test_lan_access_prometheus.py",
+        "scripts/serve-prometheus-textfile.py",
+        "infrastructure/compose/compose.observability.yaml",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.yml",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "infrastructure/systemd/nexolab-lan-access-probe.timer",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/lan-access-alerts-1468.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.test.yml"
+      ],
+      "evidence": {
+        "source_only": true,
+        "local_monitor_active": false,
+        "new_unit_tests": 18,
+        "ci_impact_tests": 80,
+        "actual_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "actual_pi_metrics": "temporary_test_file_only",
+        "native_promtool_rule_syntax": "5_of_5_PASS",
+        "native_promtool_firing_and_resolved": "PASS_in_isolated_fixture",
+        "offline_rule_activation": "OPT_IN_NOT_LOADED",
+        "mutated_production": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "promtool_rules": "5_of_5_PASS",
+        "promtool_alert_firing_and_resolved": "tracked_fixture_PASS",
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "expected_policy_skips": 1,
+        "native_systemd_verify": "PASS",
+        "site_activation": false,
+        "source_only_merged": "7_of_7_GREEN"
+      }
+    },
+    {
+      "issue": 1472,
+      "title": "Protected install-readiness for offline Dashboard/Session alerting",
+      "branch": "feature/1472-protected-lan-monitor-install-gate",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1468
+      ],
+      "scope": "Source-only fail-closed installed site/source/host metrics directory preflight and corrected systemd template, no site activation.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-lan-monitor-install-readiness.py",
+        "infrastructure/offline/tests/test_lan_monitor_install_readiness.py",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-site-install-gate-1472.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "new_hermetic_tests": 18,
+        "installed_package_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "requested_previous_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "actual_metrics_host_bind": "/home/nexolab/nexolab-platform/runtime/observability",
+        "actual_directory_mode": "0700_owned_nexolab",
+        "legacy_dr_file_mode": "0600_owned_nexolab",
+        "corrected_systemd_template": "exact_host_path_not_installed",
+        "pi_live_readonly_preflight": "BLOCKED_source_not_installed_exit78",
+        "site_activation": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "prior_collector_regression_tests": 18,
+        "prior_lan_access_regression_tests": 18,
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "ci_expected_skips": 1,
+        "systemd_analyze_verify": "PASS",
+        "source_python_ast": "PASS",
+        "markdown_prettier": "PASS",
+        "state_model_v2": "PASS",
+        "live_site_preflight": "BLOCKED_78_unaccepted_source",
+        "source_only_merge": "3_of_3_GREEN"
+      }
+    },
+    {
+      "issue": 1474,
+      "title": "Digest-bound opt-in LAN monitor assets in offline bundle",
+      "branch": "feature/1474-sealed-offline-lan-monitor-assets",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1472
+      ],
+      "scope": "Explicit optional source-only monitor assets in SHA256-bound offline bundle and all-or-none provenance verifier; no site activation.",
+      "permitted_paths": [
+        "scripts/build-offline-bundle.sh",
+        "scripts/verify-offline-bundle.py",
+        "scripts/tests/test_lan_monitor_offline_payload.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-offline-payload-1474.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml"
+      ],
+      "evidence": {
+        "source_only": true,
+        "optional_flag_off_by_default": true,
+        "assets_in_offline_bundle": 5,
+        "offline_bundle_provenance": "lan-access-monitor-source-only",
+        "sealed_bundle_asset_unit_tests": 16,
+        "real_pi_site_timer": "not_installed",
+        "real_pi_site_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "unprivileged_opt_source_path": "not_installed_or_accepted",
+        "site_activation": false,
+        "hardware": "unverified",
+        "github_exact_head": "pending_revised_commit",
+        "source_unit_tests": "16_PASS",
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 385,
+        "ci_expected_skip": 1,
+        "original_package_policy_regression": "17_PASS",
+        "installed_site_version_manager_fixture": "64_PASS_14_BLOCKED_by_existing_external_frontend_in_test_host",
+        "live_site_activation": false,
+        "change_impact_route_tests": 81,
+        "exact_offline_bundle_test_path_registered": true,
+        "ci_impact_fail_closed": false,
+        "ci_impact_unknown_files": 0,
+        "required_external_workflows": "Authenticated_Dashboard_Acceptance_Offline_Bundle_Refrigeration_Browser_Acceptance",
+        "source_test_cases": 16,
+        "change_impact_test_cases": 81,
+        "ci_expected_skips": 1,
+        "source_ast_bash_prettier": "PASS",
+        "git_diff_check": "PASS",
+        "verified_head_sha": "508b1e60357c34871b66d27c0ede90cbbc9299c6",
+        "pull_request": 1475,
+        "checks": {
+          "github_workflows": "6_of_6_success"
+        }
+      }
+    },
+    {
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "priority": "unspecified",
+      "lifecycle": "blocked",
+      "branch": "feature/1486-search-ui",
+      "evidence": {
+        "hardware": "unverified",
+        "site_activation": false,
+        "production_mutation": false,
+        "owner_context": "instruments_not_yet_connected",
+        "integration_checks": "local_PASS_hosted_domain_gates_PASS_security_merge_gate_RED",
+        "local_device_agent_tests": 342,
+        "local_central_commissioning_tests": 24,
+        "local_frontend_tests": 1233,
+        "local_frontend_test_files": 200,
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "production_build": "PASS",
+        "api_transport_redirect_test": "PASS",
+        "ci": "blocked_security",
+        "isolated_search_capability": "explicit_only_no_production_enrollment",
+        "blocker_issue": 1447,
+        "pull_request": 1488,
+        "source_candidate_sha": "0577ec6e5efb6bd9f324d30428e6a0883e8f791b",
+        "github_ci": "11_of_13_workflows_PASS_security_and_merge_gate_FAIL"
+      },
+      "scope": "One address per bounded authenticated request; explicit isolated XJP60D scan, progress/cancel/selection; source-only, no automatic enrollment or site activation.",
+      "depends_on": [
+        1482
+      ]
+    },
+    {
+      "issue": 1479,
+      "title": "Identify newly connected RS-485 adapter",
+      "branch": "feature/1479-rs485-adapter-identification",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "f3afd92e25e023ce489ed9471848fe89b1b17370",
+        "pull_request": 1480,
+        "checks": {
+          "CI": "success_41792736839",
+          "authenticated_dashboard": "success_41792736667"
+        },
+        "scope": "source_only_UI",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1482,
+      "title": "Bounded XJP60D address search core",
+      "branch": "feature/1482-xjp-search-core",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "evidence": {
+        "pull_request": 1483,
+        "local_agent_tests": 338,
+        "source_candidate_sha": "1678d1979412a99135f169164607753013500a39",
+        "github_security_gate": "Trivy_installer_exit6_persists_after_failed_jobs_retry_and_refreshed_head_run41798806416",
+        "hardware": "unverified",
+        "site_activation": false,
+        "blocker_issue": 1447
+      }
+    },
+    {
+      "issue": 1484,
+      "title": "Avoid self-matching security test marker",
+      "branch": "fix/1484-ci-secret-marker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "ef91a896d4a526fe0802a086dd24565ce5009210",
+        "pull_request": 1485,
+        "checks": {
+          "CI": "success_41794354174",
+          "offline_bundle": "success_41794354166"
+        },
+        "local_tests": 17,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "issue": 1487,
+      "title": "Restore pinned CI scanner installation from official release",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "fix/1487-trivy-download",
+      "depends_on": [],
+      "scope": "CI-only fixed Trivy version and SHA256 official release installer, preserve action scans and vulnerability policy; no runtime or site changes.",
+      "evidence": {
+        "installer_negative_tests": 4,
+        "container_policy_tests": 53,
+        "actual_official_binary_sha256_verified": true,
+        "actual_version": "0.70.0",
+        "site_mutation": false,
+        "github_ci": "pending",
+        "blocker_issue": 1447,
+        "pull_request": 1489,
+        "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+        "hosted_run": 41800839925,
+        "image_build_and_scan_jobs": "5_of_5_PASS",
+        "unchanged_policy": "FAIL_expired_2026_10_20",
+        "telemetry_high": 74,
+        "telemetry_critical": 5,
+        "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+        "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+        "ci_routing_tests": 82,
+        "final_source_ci": "4_of_6_workflows_PASS_security_and_merge_gate_FAIL",
+        "final_source_sha": "af21be8a86a8f04d87608c2ff33c1e70be1a6953"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Current source-bound container residual-risk technical review",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "depends_on": [],
+      "scope": "Review five immutable image SBOMs with fresh vulnerability DB, fix stale packaging tests and execute them in Telemetry CI, preserve exception registry and runtime versions.",
+      "evidence": {
+        "pull_request": 1448,
+        "reviewed_immutable_source": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+        "source_image_run": 41076486729,
+        "verified_manifests": 5,
+        "verified_evidence_hashes": 15,
+        "current_db_updated_at": "2026-11-04T07:16:25.226375897Z",
+        "current_telemetry_high": 50,
+        "current_all_images_critical": 0,
+        "current_other_images_high": 0,
+        "unique_high_cves": 14,
+        "debian_trixie_open_cves": 14,
+        "current_tuple_policy": "BLOCKED_new_SQLite_119373",
+        "focused_local_tests": 67,
+        "exception_registry_changed": false,
+        "approval_scope": "technical_review_only",
+        "specific_owner_risk_decision": "pending",
+        "site_activation": false,
+        "hardware": "unverified",
+        "review_evidence": "docs/architecture/security-container-review-20261104.json",
+        "full_updated_head_ci": "pending"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10893,6 +11424,237 @@
         "pg_backup_executed": false,
         "private_restored": false,
         "protected_site_unmodified": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-02T03:15:04Z",
+      "kind": "1453_offline_idna_main_merged_green",
+      "data": {
+        "issue": 1453,
+        "pr": 1454,
+        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
+        "workflows_green": 3,
+        "closed": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_network_recovery_source_only",
+      "data": {
+        "issue": 1462,
+        "parent": 1399,
+        "unit_tests": 14,
+        "live_check": "blocked_cidr_overlap",
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression_lock_recheck",
+      "data": {
+        "issue": 1462,
+        "tested_real_flock": true,
+        "tests": 16,
+        "offline_integration": "PASS",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_source_edge_ipam_overlay",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "source_only": true,
+        "real_site_cidr": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "merge_sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
+        "exact_head_checks": "3/3_GREEN",
+        "site_supervisor_enabled": false,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_green_merged",
+      "data": {
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_real_lan_access_smoke_no_credentials",
+      "data": {
+        "issue": 1466,
+        "unit_tests": 18,
+        "site_read_only": true,
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "api_session_unauthenticated": "401",
+        "dashboard_http": "200",
+        "no_site_changes": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_live_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "ci_contracts": 383,
+        "skip": 1,
+        "offline_contract": "PASS",
+        "runtime_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_source_only_green_merged",
+      "data": {
+        "issue": 1466,
+        "pr": 1467,
+        "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
+        "exact_head_ci": "3/3_GREEN",
+        "site_schedule_installed": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_edge_site_readonly_cutover_gate_initial",
+      "data": {
+        "issue": 1469,
+        "tests": 17,
+        "site": "blocked_unapproved_candidate",
+        "production_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_optin_alerting_work",
+      "data": {
+        "issue": 1468,
+        "unit_tests": 18,
+        "ci_impact_tests": 80,
+        "prometheus_rule_test": "PASS",
+        "site_activation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_merged_green",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_checks": "7/7_GREEN",
+        "live_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_readonly_install_guard_source",
+      "data": {
+        "issue": 1472,
+        "tests": 18,
+        "source_only": true,
+        "site_activation": false,
+        "site_preflight": "blocked_older_installed_source",
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_green_merged",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "exact_head_ci": "3_of_3_GREEN",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_optional_monitor_bundle_source",
+      "data": {
+        "issue": 1474,
+        "assets": 5,
+        "new_tests": 14,
+        "default_include": false,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_exact_ci_classifier_and_offline_trigger_registered",
+      "data": {
+        "issue": 1474,
+        "tests": 81,
+        "fail_closed": false,
+        "unknown_files": 0,
+        "required_external": 3,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-04T08:11:34.227467+00:00",
+      "kind": "rs485_source_progress",
+      "data": {
+        "merged_prs": [
+          1480,
+          1485
+        ],
+        "pending_core_pr": 1483,
+        "separate_monitor_pr": 1477,
+        "deployment_unchanged": true
       }
     }
   ],
