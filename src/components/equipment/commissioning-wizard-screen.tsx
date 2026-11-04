@@ -586,7 +586,10 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     connections={visibleConnections}
                     connectionError={visibleConnectionError}
                     connectionRepository={connectionRepository === repository ? repository : null}
-                    onConnectionsChanged={setConnections}
+                    onConnectionsChanged={(inventory) => {
+                      setConnections(inventory);
+                      setConnectionError(null);
+                    }}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}

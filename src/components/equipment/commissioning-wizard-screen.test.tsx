@@ -287,6 +287,23 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     );
   });
 
+  it("clears a stale inventory error after the adapter finder reloads successfully", async () => {
+    const listConnections = vi
+      .fn<CommissioningRepository["listConnections"]>()
+      .mockRejectedValueOnce(new Error("Device Agent inventory unavailable"))
+      .mockResolvedValueOnce(connectionInventory);
+    const repository = commissioningRepository(async () => persistedSession, { listConnections });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Device Agent inventory unavailable");
+    fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
+    expect(await screen.findByRole("button", { name: "Я підключив адаптер" })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "RS-485 підключення" })).toBeEnabled();
+  });
+
   it("hides the previous organization draft while the next repository loads", async () => {
     const firstRepository = commissioningRepository(async () => persistedSession);
     const secondRepository = commissioningRepository(
