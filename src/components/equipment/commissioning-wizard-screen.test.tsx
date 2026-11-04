@@ -387,6 +387,29 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     });
   });
 
+  it("identifies and explicitly selects a newly connected adapter in the wizard", async () => {
+    const oldInventory = { ...connectionInventory, connections: connectionInventory.connections.slice(0, 1) };
+    const listConnections = vi
+      .fn<CommissioningRepository["listConnections"]>()
+      .mockResolvedValueOnce(oldInventory)
+      .mockResolvedValueOnce(oldInventory)
+      .mockResolvedValueOnce(connectionInventory);
+    const repository = commissioningRepository(async () => persistedSession, { listConnections });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Я підключив адаптер" }));
+    const select = screen.getByRole("combobox", { name: "RS-485 підключення" });
+    expect(select).toHaveValue("");
+    fireEvent.click(await screen.findByRole("button", { name: "Вибрати цей адаптер" }));
+    expect(select).toHaveValue("commissioning-1234567890abcdef");
+    expect(
+      screen.getByText("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0"),
+    ).toBeInTheDocument();
+  });
+
   it("selects a live RS-485 adapter and auto-fills Danfoss connection identity", async () => {
     const repository = commissioningRepository(async () => persistedSession, {
       listProfiles: async () => [danfossProfile],
