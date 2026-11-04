@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-03T12:14:07Z",
+  "timestamp": "2026-11-04T08:34:26Z",
   "actor": "ChatGPT",
-  "event": "1474_optin_lan_monitor_bundle_ci_exact_route",
+  "event": "1487_ci_trivy_gateway_repair",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1474,
-    "branch": "feature/1474-sealed-offline-lan-monitor-assets",
-    "status": "source_only_14_hermetic_tests_pass_no_site_activation",
-    "production_mutation": false
+    "issue": 1487,
+    "title": "Restore pinned CI scanner installation from official release",
+    "branch": "fix/1487-trivy-download"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2957,6 +2956,23 @@
       "ci_expected_skips": 1,
       "change_impact_tests": 81,
       "sealed_assets_tests": 16
+    },
+    "rs485_integration_1486": {
+      "source_only": true,
+      "hardware": "unverified",
+      "site_activation": false,
+      "core_pr": 1483,
+      "adapter_finder_merged_pr": 1480,
+      "ci_marker_fix_merged_pr": 1485,
+      "integration_checks": "342_agent_24_central_1233_frontend_lint_typecheck_build_PASS_CI_pending"
+    },
+    "ci_trivy_1487": {
+      "installer_negative_tests": 4,
+      "container_policy_tests": 53,
+      "actual_official_binary_sha256_verified": true,
+      "actual_version": "0.70.0",
+      "site_mutation": false,
+      "github_ci": "pending"
     }
   },
   "observations": [
@@ -4369,7 +4385,7 @@
       }
     }
   ],
-  "next_action": "Run exact offline runtime, CI contracts, YAML/Markdown/shell/source checks and Pi read-only health; create Draft PR #1474 and verify exact-head GitHub workflows. A future owner-approved protected site installation must map sources into an accessible pinned release and verify metrics scrape and rollback. No production IPAM, systemd timer activation or Modbus write.",
+  "next_action": "Publish pinned scanner repair; pass unchanged exact-head CI before merge, then refresh dependent search PRs #1483/#1488. No site deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

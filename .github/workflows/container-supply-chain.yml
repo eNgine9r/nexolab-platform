@@ -14,6 +14,8 @@ on:
       - "tests/test_container_vulnerability_policy.py"
       - "tests/test_container_release_manifest.py"
       - "tests/test_container_release_aggregate.py"
+      - "scripts/install-ci-trivy.sh"
+      - "tests/test_ci_trivy_install.py"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
       - "services/telegram-gateway/**"
@@ -34,6 +36,8 @@ on:
       - "tests/test_container_vulnerability_policy.py"
       - "tests/test_container_release_manifest.py"
       - "tests/test_container_release_aggregate.py"
+      - "scripts/install-ci-trivy.sh"
+      - "tests/test_ci_trivy_install.py"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
       - "services/telegram-gateway/**"
@@ -81,6 +85,9 @@ jobs:
           module.validate_inventory(root / "security/container-images.json", root)
           print("Container image inventory validation passed.")
           PY_INVENTORY
+
+      - name: Validate pinned CI scanner installer
+        run: python3 -m unittest discover -s tests -p test_ci_trivy_install.py -v
 
       - name: Build image matrix from inventory
         id: matrix
@@ -220,9 +227,16 @@ jobs:
       - name: Prepare evidence directory
         run: mkdir -p "$EVIDENCE_DIR"
 
+      - name: Install checksum-pinned CI scanner from official release
+        run: |
+          bash scripts/install-ci-trivy.sh "$RUNNER_TEMP/nexolab-trivy-bin"
+          echo "$RUNNER_TEMP/nexolab-trivy-bin" >> "$GITHUB_PATH"
+
       - name: Generate CycloneDX SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          skip-setup-trivy: "true"
+          version: v0.70.0
           scan-type: image
           image-ref: ${{ env.LOCAL_IMAGE }}
           format: cyclonedx
@@ -232,6 +246,8 @@ jobs:
       - name: Generate SPDX JSON SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          skip-setup-trivy: "true"
+          version: v0.70.0
           scan-type: image
           image-ref: ${{ env.LOCAL_IMAGE }}
           format: spdx-json
@@ -241,6 +257,8 @@ jobs:
       - name: Generate vulnerability report
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          skip-setup-trivy: "true"
+          version: v0.70.0
           scan-type: image
           image-ref: ${{ env.LOCAL_IMAGE }}
           format: json
