@@ -264,6 +264,41 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.getByRole("navigation", { name: "Етапи комісіонування" })).toBeInTheDocument();
   });
 
+  it("removes an unplugged USB adapter and clears its selected address without reloading", async () => {
+    navigation.searchParams = new URLSearchParams();
+    const listConnections = vi.fn().mockResolvedValue(connectionInventory);
+    runtimeFactory.create.mockReturnValue(
+      runtime(commissioningRepository(async () => persistedSession, { listConnections })),
+    );
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Додати прилад" });
+    const adapter = screen.getByLabelText("USB–RS485");
+    fireEvent.change(adapter, { target: { value: "rs485-main" } });
+    fireEvent.change(screen.getByLabelText("Адреса приладу"), { target: { value: "7" } });
+    expect(adapter).toHaveValue("rs485-main");
+    expect(screen.getByLabelText("Адреса приладу")).toHaveValue(7);
+    listConnections.mockResolvedValue({
+      ...connectionInventory,
+      connections: connectionInventory.connections.map((item) => ({ ...item, present: false })),
+    });
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    await waitFor(() => expect(adapter).toHaveValue(""));
+    expect(screen.getByLabelText("Адреса приладу")).toHaveValue(null);
+    expect(
+      screen.getAllByRole("option").filter((option) => (option as HTMLOptionElement).value === "rs485-main"),
+    ).toHaveLength(0);
+    listConnections.mockResolvedValue(connectionInventory);
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole("option")
+          .filter((option) => (option as HTMLOptionElement).value === "rs485-main"),
+      ).toHaveLength(1),
+    );
+    expect(adapter).toHaveValue("");
+  });
+
   it("renders an unavailable state when the local commissioning runtime is missing", () => {
     runtimeFactory.create.mockReturnValue(runtime(null, "Local API URL is invalid"));
 
