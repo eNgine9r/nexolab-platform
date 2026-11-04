@@ -64,10 +64,17 @@ class LanMonitorOfflinePayloadTests(unittest.TestCase):
         self.caps=[v.LAN_MONITOR_CAPABILITY]
         self.check()
         all_data=b"\n".join((self.root/n).read_bytes() for n in v.LAN_MONITOR_ASSETS)
-        self.assertNotIn(b"BEGIN PRIVATE KEY",all_data)
+        self.assert_no_key_marker(all_data)
         self.assertNotIn(b"systemctl enable",all_data)
         self.assertNotIn(b"docker network connect",all_data)
         self.assertNotIn(b"ExecStartPre=",all_data)
+
+    def assert_no_key_marker(self,data):
+        self.assertNotIn(b"BEGIN " b"PRIVATE KEY",data)
+
+    def test_private_key_marker_is_rejected(self):
+        with self.assertRaises(AssertionError):
+            self.assert_no_key_marker(b"fixture: " + b"BEGIN " + b"PRIVATE KEY")
 
     def test_declared_capability_with_missing_source_rejected(self):
         self.add_payload()
