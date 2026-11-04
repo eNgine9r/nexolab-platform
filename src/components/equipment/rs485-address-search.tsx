@@ -49,6 +49,7 @@ function SearchPanel({
   const [running, setRunning] = useState(false);
   const [checked, setChecked] = useState(0);
   const [responders, setResponders] = useState<Record<number, string[]>>({});
+  const [failedAddresses, setFailedAddresses] = useState<number[]>([]);
   const [status, setStatus] = useState("Натисніть пошук, щоб перевірити підключені прилади.");
   const request = useRef<AbortController | null>(null);
   const compatible = profiles.filter((profile) => {
@@ -80,16 +81,29 @@ function SearchPanel({
     setRunning(true);
     setChecked(0);
     setResponders({});
+    setFailedAddresses([]);
+    const failures = new Set<number>();
     setStatus("Шукаємо всі прилади на лінії…");
     try {
       for (let unitId = 1; unitId <= 247; unitId++) {
         for (const profile of compatible) {
           if (controller.signal.aborted) return;
-          const result = await repository.searchAddress(
-            { ...connection, unitId, profileId: profile.id, profileVersion: profile.version },
-            controller.signal,
-          );
+          const read = () =>
+            repository.searchAddress!(
+              { ...connection, unitId, profileId: profile.id, profileVersion: profile.version },
+              controller.signal,
+            );
+          const recoverable = (code: string | null) =>
+            code === "malformed_response" || code === "read_failed";
+          let result = await read();
           if (controller.signal.aborted) return;
+          if (result.state === "failed" && recoverable(result.errorCode)) result = await read();
+          if (controller.signal.aborted) return;
+          if (result.state === "failed" && recoverable(result.errorCode)) {
+            failures.add(unitId);
+            setFailedAddresses([...failures]);
+            continue;
+          }
           if (result.state !== "completed") throw new Error(result.errorCode ?? "search_failed");
           if (result.candidates.length || result.exceptionAddresses.length) {
             setResponders((current) => {
@@ -106,7 +120,11 @@ function SearchPanel({
         }
         setChecked(unitId);
       }
-      setStatus("Пошук завершено. Оберіть прилад зі списку.");
+      setStatus(
+        failures.size
+          ? "Пошук завершено з помилками зв’язку. Список може бути неповним."
+          : "Пошук завершено. Оберіть прилад зі списку.",
+      );
     } catch (cause) {
       if (!controller.signal.aborted)
         setStatus(
@@ -160,6 +178,12 @@ function SearchPanel({
         {Object.keys(responders).length}.
       </p>
       <div className="mt-3 space-y-2">
+        {failedAddresses.length ? (
+          <p role="alert" className="text-amber-200">
+            Адреси з помилками зв’язку після повторної перевірки: {failedAddresses.join(", ")}. Перевірте
+            підключення та повторіть пошук.
+          </p>
+        ) : null}
         {Object.entries(responders).map(([address, matches]) => (
           <div key={address} className="rounded-xl border border-emerald-300/20 p-3">
             <p className="font-semibold text-white">Адреса {address}</p>

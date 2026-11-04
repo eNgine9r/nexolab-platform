@@ -19,14 +19,36 @@ const empty: AddressSearchResult = {
 };
 
 describe("RS-485 address search", () => {
-  it("counts unique responding addresses across profiles and includes unrecognized exception replies", async () => {
+  it("retries a corrupt reply, continues scanning and reports incomplete evidence separately", async () => {
     const searchAddress = vi
       .fn()
-      .mockImplementation(async ({ unitId }) => ({
-        ...empty,
-        candidates: unitId === 3 ? [3] : [],
-        exceptionAddresses: unitId === 5 ? [5] : [],
-      }));
+      .mockImplementation(async ({ unitId }) =>
+        unitId === 1
+          ? { ...empty, state: "failed", errorCode: "malformed_response" }
+          : { ...empty, candidates: unitId === 2 ? [2] : [] },
+      );
+    render(
+      <Rs485AddressSearch
+        repository={{ searchAddress } as unknown as CommissioningRepository}
+        connection={connection}
+        disabled={false}
+        onSelect={vi.fn()}
+        onRunningChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
+    await screen.findByText(/Пошук завершено з помилками/);
+    expect(searchAddress).toHaveBeenCalledTimes(248);
+    expect(screen.getByRole("alert")).toHaveTextContent("повторної перевірки: 1");
+    expect(screen.getByRole("button", { name: "Вибрати адресу 2" })).toBeEnabled();
+  });
+
+  it("counts unique responding addresses across profiles and includes unrecognized exception replies", async () => {
+    const searchAddress = vi.fn().mockImplementation(async ({ unitId }) => ({
+      ...empty,
+      candidates: unitId === 3 ? [3] : [],
+      exceptionAddresses: unitId === 5 ? [5] : [],
+    }));
     render(
       <Rs485AddressSearch
         repository={{ searchAddress } as unknown as CommissioningRepository}
