@@ -287,6 +287,23 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     );
   });
 
+  it("clears a stale inventory error after the adapter finder reloads successfully", async () => {
+    const listConnections = vi
+      .fn<CommissioningRepository["listConnections"]>()
+      .mockRejectedValueOnce(new Error("Device Agent inventory unavailable"))
+      .mockResolvedValueOnce(connectionInventory);
+    const repository = commissioningRepository(async () => persistedSession, { listConnections });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Device Agent inventory unavailable");
+    fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
+    expect(await screen.findByRole("button", { name: "Я підключив адаптер" })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "RS-485 підключення" })).toBeEnabled();
+  });
+
   it("hides the previous organization draft while the next repository loads", async () => {
     const firstRepository = commissioningRepository(async () => persistedSession);
     const secondRepository = commissioningRepository(
@@ -385,6 +402,29 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
       profileId: "danfoss-ak-cc25-pro",
       unitId: 35,
     });
+  });
+
+  it("identifies and explicitly selects a newly connected adapter in the wizard", async () => {
+    const oldInventory = { ...connectionInventory, connections: connectionInventory.connections.slice(0, 1) };
+    const listConnections = vi
+      .fn<CommissioningRepository["listConnections"]>()
+      .mockResolvedValueOnce(oldInventory)
+      .mockResolvedValueOnce(oldInventory)
+      .mockResolvedValueOnce(connectionInventory);
+    const repository = commissioningRepository(async () => persistedSession, { listConnections });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Я підключив адаптер" }));
+    const select = screen.getByRole("combobox", { name: "RS-485 підключення" });
+    expect(select).toHaveValue("");
+    fireEvent.click(await screen.findByRole("button", { name: "Вибрати цей адаптер" }));
+    expect(select).toHaveValue("commissioning-1234567890abcdef");
+    expect(
+      screen.getByText("/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0"),
+    ).toBeInTheDocument();
   });
 
   it("selects a live RS-485 adapter and auto-fills Danfoss connection identity", async () => {
