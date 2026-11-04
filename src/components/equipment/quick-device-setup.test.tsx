@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   CommissioningRepository,
   CommissioningSession,
+  CommissioningSessionWrite,
   SupportedDeviceProfile,
 } from "@/features/equipment/commissioning-repository";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
@@ -77,11 +79,54 @@ function setup(passed = true) {
     onAdvanced: vi.fn(),
     canManage: true,
   };
-  render(<QuickDeviceSetup {...props} />);
-  return { create, repository, runPreflight, runActivation, props };
+  const view = render(<QuickDeviceSetup {...props} />);
+  return { create, repository, runPreflight, runActivation, props, ...view };
 }
 
 describe("quick device setup", () => {
+  it("scans a configured adapter in auto mode and keeps the full result list when selecting a device", async () => {
+    const { props, rerender } = setup();
+    const searchAddress = vi.fn().mockImplementation(async ({ unitId }) => ({
+      state: "completed",
+      candidates: [3, 7].includes(unitId) ? [unitId] : [],
+      exceptionAddresses: [],
+      errorCode: null,
+    }));
+    const scanRepository = { ...props.repository, searchAddress };
+    function Harness() {
+      const [current, setCurrent] = useState<CommissioningSessionWrite>({
+        ...draft,
+        profileId: null as string | null,
+        unitId: null as number | null,
+      });
+      return (
+        <QuickDeviceSetup
+          {...props}
+          repository={scanRepository}
+          profiles={[{ ...profile, version: "dixell-xjp60d-fc03-v1" }]}
+          inventory={{
+            ...props.inventory,
+            connections: [{ ...props.inventory.connections[0], availableForReadSearch: true }],
+          }}
+          draft={current}
+          onDraft={setCurrent}
+        />
+      );
+    }
+    rerender(<Harness />);
+    expect(screen.getByLabelText("Модель приладу")).toHaveValue("");
+    expect(
+      screen.queryByText(/Автоматичний пошук для цього підключення недоступний/),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Знайти прилади" }));
+    await screen.findByText(/Пошук завершено/);
+    expect(searchAddress).toHaveBeenCalledTimes(247);
+    expect(screen.getByRole("status")).toHaveTextContent("Знайдено адрес із приладами: 2");
+    fireEvent.click(screen.getByRole("button", { name: "Вибрати адресу 7" }));
+    expect(screen.getByLabelText("Адреса приладу")).toHaveValue(7);
+    expect(screen.getByRole("status")).toHaveTextContent("Знайдено адрес із приладами: 2");
+  });
+
   it("saves the entered name and checks/activates with a single Add action", async () => {
     const { create, runPreflight, runActivation } = setup();
     expect(screen.getByRole("button", { name: "Додати прилад" })).toBeDisabled();

@@ -280,6 +280,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         )
 
     def search_bus(self, bus_id: str) -> PreflightBus:
+        if any(binding.bus_id == bus_id for binding in self.rs485_topology.bindings):
+            return self.preflight_bus(bus_id)
         adapter = resolve_commissioning_adapter(bus_id, topology=self.rs485_topology, isolated_search=True)
         return PreflightBus(bus_id=bus_id, serial_device=adapter.runtime_path, path_present=True)
 
@@ -415,7 +417,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             ):
                 if profile.profile_id == "dixell-xjp60d":
                     if xjp60d is None:
-                        raise PreflightExecutionError("profile_unavailable", "XJP60D reader is unavailable")
+                        xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
                     reading = xjp60d.read_channel(unit_id, 1)
                     observations.append(
                         PreflightObservation(
@@ -426,12 +428,12 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     )
                 elif profile.profile_id == "f-and-f-le01mp":
                     if le01mp is None:
-                        raise PreflightExecutionError("profile_unavailable", "LE-01MP reader is unavailable")
+                        le01mp = LE01MPReader(client)
                     reading = le01mp.read_metric(unit_id, "voltage")
                     observations.append(PreflightObservation(key="voltage", quality=reading.quality))
                 elif profile.profile_id == "embraco-sync":
                     if embraco is None:
-                        raise PreflightExecutionError("profile_unavailable", "Embraco Sync reader is unavailable")
+                        embraco = EmbracoSyncReader(client, temperature_scale=self.settings.embraco_temperature_scale, control_scale=self.settings.embraco_control_scale)
                     for key in ("control_state", "relay_state_bits", "compressor_speed", "alarm_state_bits"):
                         reading = embraco.read_metric(unit_id, key)
                         observations.append(
@@ -1079,8 +1081,8 @@ class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
                 self._send_json(200, {
                     "schema_version": 1, "node_id": request.node_id, "bus_id": request.bus_id,
                     "stable_transport_identifier": request.stable_transport_identifier,
-                    "unit_id": request.first_unit_id, "profile_id": "dixell-xjp60d",
-                    "profile_version": "dixell-xjp60d-fc03-v1", **asdict(result),
+                    "unit_id": request.first_unit_id, "profile_id": request.profile_id,
+                    "profile_version": request.profile_version, **asdict(result),
                     "modbus_writes": "none", "hardware_writes": "none",
                 })
             except (ValueError, TypeError) as error:

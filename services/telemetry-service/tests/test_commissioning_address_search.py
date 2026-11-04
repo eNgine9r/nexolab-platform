@@ -60,6 +60,19 @@ def test_strict_input_rejects_write_scope_and_missing_isolation():
             AddressSearchRequest.model_validate(command(**change))
 
 
+def test_general_search_supports_configured_bus_and_pins_all_catalog_profiles():
+    from app.commissioning.catalog import SUPPORTED_DEVICE_PROFILES
+    for profile in SUPPORTED_DEVICE_PROFILES:
+        data=command(bus_id="rs485-sdm120",profile_id=profile.id,profile_version=profile.version)
+        data.pop("isolated_bus_confirmed")
+        data["read_only_confirmed"]=True
+        parsed=AddressSearchRequest.model_validate(data)
+        assert parsed.read_only_confirmed is True
+    for change in ({"read_only_confirmed":False},{"profile_version":"unknown"}):
+        data.update(change)
+        with pytest.raises(ValidationError): AddressSearchRequest.model_validate(data)
+
+
 def test_transport_is_bounded_and_pins_identity():
     response = Mock()
     response.__enter__ = Mock(return_value=response)

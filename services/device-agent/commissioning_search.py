@@ -1,7 +1,7 @@
-"""Bounded XJP60D address search; no HTTP endpoint or registry mutations.
+"""Bounded fixed-profile read search; configured buses reuse their polling lock.
 
-The calling layer must authenticate the operator and supply a real isolation
-attestation. A serial adapter's USB identity cannot prove physical isolation.
+Legacy isolated requests remain supported. General read-only requests require
+explicit inventory capability and never change topology, serial settings or registry.
 """
 
 from __future__ import annotations
@@ -35,7 +35,8 @@ _FIELDS = frozenset(
         "isolated_bus_confirmed",
     }
 )
-_BUS_ID = re.compile(r"^commissioning-[0-9a-f]{16}$")
+_BUS_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+_ISOLATED_BUS_ID = re.compile(r"^commissioning-[0-9a-f]{16}$")
 _SCAN_GUARD = threading.Lock()
 _PROFILE_ID = "dixell-xjp60d"
 _PROFILE_VERSION = "dixell-xjp60d-fc03-v1"
@@ -52,6 +53,9 @@ class SearchRequest:
     last_unit_id: int
     deadline_seconds: float
     isolated_bus_confirmed: bool
+    profile_id: str = _PROFILE_ID
+    profile_version: str = _PROFILE_VERSION
+    read_only_confirmed: bool = False
 
     def __post_init__(self) -> None:
         if (
@@ -72,8 +76,13 @@ class SearchRequest:
             or not is_stable_serial_identifier(self.stable_transport_identifier)
         ):
             raise ValueError("A stable adapter identity is required")
-        if self.isolated_bus_confirmed is not True:
-            raise ValueError("Physical isolation must be confirmed by the operator")
+        if self.read_only_confirmed is not True and (
+            self.isolated_bus_confirmed is not True or not _ISOLATED_BUS_ID.fullmatch(self.bus_id)
+        ):
+            raise ValueError("A read-only search or isolated connection must be confirmed")
+        profile = PROFILES.get(self.profile_id)
+        if profile is None or profile.profile_version != self.profile_version:
+            raise ValueError("Unsupported search profile")
         first, last = self.first_unit_id, self.last_unit_id
         if (
             not isinstance(first, int)
@@ -115,7 +124,8 @@ class SearchRuntime(Protocol):
 
 
 def parse_search_request(payload: object) -> SearchRequest:
-    if not isinstance(payload, dict) or set(payload) != _FIELDS:
+    general_fields = (_FIELDS - {"isolated_bus_confirmed"}) | {"read_only_confirmed"}
+    if not isinstance(payload, dict) or set(payload) not in (_FIELDS, general_fields):
         raise ValueError("Search request must contain exactly the supported fields")
     node, bus, stable = (payload[k] for k in ("node_id", "bus_id", "stable_transport_identifier"))
     if not isinstance(node, str) or not node or node != node.strip() or len(node) > 64:
@@ -124,10 +134,14 @@ def parse_search_request(payload: object) -> SearchRequest:
         raise ValueError("A commissioning-only bus identity is required")
     if not isinstance(stable, str) or not is_stable_serial_identifier(stable):
         raise ValueError("A stable adapter identity is required")
-    if payload["profile_id"] != _PROFILE_ID or payload["profile_version"] != _PROFILE_VERSION:
+    profile = PROFILES.get(payload["profile_id"])
+    if profile is None or profile.profile_version != payload["profile_version"]:
         raise ValueError("Unsupported search profile")
-    if payload["isolated_bus_confirmed"] is not True:
-        raise ValueError("Physical isolation must be confirmed by the operator")
+    general = "read_only_confirmed" in payload
+    if payload.get("read_only_confirmed" if general else "isolated_bus_confirmed") is not True:
+        raise ValueError("Read-only search must be confirmed")
+    if not general and not _ISOLATED_BUS_ID.fullmatch(bus):
+        raise ValueError("Legacy isolated search requires a commissioning adapter")
     first, last = payload["first_unit_id"], payload["last_unit_id"]
     if (
         not isinstance(first, int)
@@ -140,10 +154,11 @@ def parse_search_request(payload: object) -> SearchRequest:
     deadline = payload["deadline_seconds"]
     if isinstance(deadline, bool) or not isinstance(deadline, (int, float)) or not 1 <= deadline <= 600:
         raise ValueError("Search deadline must be within 1..600 seconds")
-    return SearchRequest(node, bus, stable, first, last, float(deadline), True)
+    return SearchRequest(node, bus, stable, first, last, float(deadline), not general,
+                         profile.profile_id, profile.profile_version, general)
 
 
-def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> None:
+def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> bool:
     if runtime.node_id != request.node_id:
         raise PreflightExecutionError("node_identity_mismatch", "Device Agent node changed")
     inventory = runtime.commissioning_connections()
@@ -177,11 +192,20 @@ def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> None
     entry = selected[0]
     if (
         entry.get("stable_transport_identifier") != request.stable_transport_identifier
-        or entry.get("ownership") != "available_commissioning"
         or entry.get("present") is not True
-        or entry.get("available_for_isolated_search") is not True
     ):
         raise PreflightExecutionError("adapter_unavailable", "Adapter is unavailable or protected")
+    commissioning_only = entry.get("ownership") == "available_commissioning"
+    if request.read_only_confirmed:
+        if entry.get("available_for_read_search") is not True:
+            raise PreflightExecutionError("adapter_unavailable", "Read search is unavailable")
+    elif not commissioning_only or entry.get("available_for_isolated_search") is not True:
+        raise PreflightExecutionError("adapter_unavailable", "Adapter is unavailable or protected")
+    if not commissioning_only:
+        serial = entry.get("serial")
+        profile = PROFILES[request.profile_id]
+        if not isinstance(serial, dict) or any(serial.get(key) != getattr(profile, key) for key in ("baudrate", "parity", "stopbits")):
+            raise PreflightExecutionError("serial_profile_mismatch", "Profile does not match configured line settings")
     try:
         bus = runtime.search_bus(request.bus_id)
         if (
@@ -195,6 +219,8 @@ def _validate_connection(request: SearchRequest, runtime: SearchRuntime) -> None
         raise PreflightExecutionError(
             "adapter_unavailable", "Adapter identity could not be verified"
         ) from error
+
+    return commissioning_only
 
 
 def run_search(
@@ -218,8 +244,8 @@ def run_search(
         return result("failed", "search_busy")
     try:
         deadline = monotonic() + request.deadline_seconds
-        profile = PROFILES.get(_PROFILE_ID)
-        if profile is None or profile.profile_version != _PROFILE_VERSION:
+        profile = PROFILES.get(request.profile_id)
+        if profile is None or profile.profile_version != request.profile_version:
             return result("failed", "profile_unavailable")
         for unit_id in range(request.first_unit_id, request.last_unit_id + 1):
             if cancelled.is_set():
@@ -227,7 +253,7 @@ def run_search(
             if monotonic() >= deadline:
                 return result("timed_out")
             try:
-                _validate_connection(request, runtime)
+                commissioning_only = _validate_connection(request, runtime)
                 read_deadline = min(deadline, monotonic() + _READ_DEADLINE_SECONDS)
                 attempted += 1
                 observations = runtime.preflight_read_profile(
@@ -235,7 +261,7 @@ def run_search(
                     bus_id=request.bus_id,
                     unit_id=unit_id,
                     deadline_monotonic=read_deadline,
-                    commissioning_only=True,
+                    commissioning_only=commissioning_only,
                 )
                 completed_at = monotonic()
                 if completed_at >= deadline:

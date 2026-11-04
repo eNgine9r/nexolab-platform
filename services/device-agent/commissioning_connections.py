@@ -98,6 +98,7 @@ def connection_inventory(
                 "present": adapter is not None,
                 "available_for_preflight": adapter is not None and adapter.read_write_accessible,
                 "available_for_isolated_search": False,
+                "available_for_read_search": adapter is not None and adapter.read_write_accessible,
                 "serial": {
                     "baudrate": binding.baudrate,
                     "parity": binding.parity,
@@ -118,6 +119,7 @@ def connection_inventory(
                 "present": True,
                 "available_for_preflight": not missing_production_paths and adapter.read_write_accessible,
                 "available_for_isolated_search": adapter.read_write_accessible,
+                "available_for_read_search": adapter.read_write_accessible,
                 "serial": None,
             }
         )
