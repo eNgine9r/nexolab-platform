@@ -44,13 +44,13 @@ describe("RS-485 adapter identification", () => {
         inventory(existing),
         inventory(existing, connection("new", { availableForPreflight: false })),
       ),
-    ).toEqual({ kind: "unavailable" });
+    ).toEqual({ kind: "unavailable", connection: connection("new", { availableForPreflight: false }) });
     expect(
       compareAdapterInventories(
         inventory(existing),
         inventory(existing, connection("new", { ownership: "production_bus" })),
       ),
-    ).toEqual({ kind: "unavailable" });
+    ).toEqual({ kind: "unavailable", connection: connection("new", { ownership: "production_bus" }) });
   });
 
   it("rejects duplicate identities, changed nodes and previously disconnected adapters", () => {
@@ -96,6 +96,28 @@ describe("RS-485 adapter identification", () => {
     expect(onSelect).toHaveBeenCalledWith(newAdapter.busId);
     expect(onInventoryChanged).toHaveBeenCalledTimes(2);
     expect(listConnections).toHaveBeenCalledTimes(2);
+  });
+
+  it("identifies an unavailable adapter without permitting selection", async () => {
+    const candidate = connection("blocked", { availableForPreflight: false });
+    const listConnections = vi
+      .fn()
+      .mockResolvedValueOnce(inventory())
+      .mockResolvedValueOnce(inventory(candidate));
+    const onSelect = vi.fn();
+    render(
+      <Rs485AdapterFinder
+        repository={{ listConnections } as unknown as CommissioningRepository}
+        disabled={false}
+        onInventoryChanged={vi.fn()}
+        onSelect={onSelect}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Знайти новий адаптер" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Я підключив адаптер" }));
+    expect(await screen.findByText(/Виявлено USB-адаптер: usb-blocked/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Вибрати цей адаптер" })).not.toBeInTheDocument();
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("fails closed on inventory errors and requires a new baseline", async () => {

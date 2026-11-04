@@ -9,8 +9,8 @@ import type {
 } from "@/features/equipment/commissioning-repository";
 
 type Comparison =
-  | { kind: "found"; connection: CommissioningConnection }
-  | { kind: "none" | "ambiguous" | "changed" | "unavailable" };
+  | { kind: "found" | "unavailable"; connection: CommissioningConnection }
+  | { kind: "none" | "ambiguous" | "changed" };
 
 /** Compare inventories, not USB port numbers or inferred physical wiring. */
 export function compareAdapterInventories(
@@ -40,7 +40,7 @@ export function compareAdapterInventories(
   if (added.length !== 1) return { kind: "ambiguous" };
   const connection = added[0];
   if (connection.ownership !== "available_commissioning" || !connection.availableForPreflight) {
-    return { kind: "unavailable" };
+    return { kind: "unavailable", connection };
   }
   return { kind: "found", connection };
 }
@@ -106,12 +106,10 @@ function AdapterFinder({ repository, disabled, onInventoryChanged, onSelect }: F
     }
   };
 
-  const messages: Record<Exclude<Comparison["kind"], "found">, string> = {
+  const messages: Record<"none" | "ambiguous" | "changed", string> = {
     none: "Новий адаптер не знайдено. Перевірте USB-підключення та повторіть пошук.",
     ambiguous: "Знайдено кілька нових адаптерів. Почніть знову та підключіть лише один вільний адаптер.",
     changed: "Список адаптерів змінився неоднозначно. Перевірте підключення та почніть знову.",
-    unavailable:
-      "Адаптер недоступний для перевірки. Можлива причина — відсутній робочий адаптер або немає доступу до порту. Перевірте стан RS-485 і повторіть пошук.",
   };
   return (
     <section
@@ -132,10 +130,19 @@ function AdapterFinder({ repository, disabled, onInventoryChanged, onSelect }: F
           {error}
         </p>
       ) : null}
-      {result && result.kind !== "found" ? (
+      {result && (result.kind === "none" || result.kind === "ambiguous" || result.kind === "changed") ? (
         <p role="status" className="mt-3 text-xs text-amber-100">
           {messages[result.kind]}
         </p>
+      ) : null}
+      {result?.kind === "unavailable" ? (
+        <div role="status" className="mt-3 text-xs text-amber-100">
+          <p>Виявлено USB-адаптер: {result.connection.stableTransportIdentifier.split("/").at(-1)}</p>
+          <p className="mt-1">
+            Він недоступний для перевірки або належить робочій шині. Можлива причина — відсутній робочий
+            адаптер чи немає доступу до порту. Підключення приладу не перевірено.
+          </p>
+        </div>
       ) : null}
       {result?.kind === "found" ? (
         <div role="status" className="mt-3 text-xs text-emerald-100">
