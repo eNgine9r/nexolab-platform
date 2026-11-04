@@ -342,6 +342,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         bus_id: str,
         unit_id: int,
         deadline_monotonic: float,
+        commissioning_only: bool = False,
     ) -> tuple[PreflightObservation, ...]:
         topology = self.rs485_topology
         temporary_client: ModbusRTUClient | None = None
@@ -373,12 +374,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     control_scale=self.settings.embraco_control_scale,
                 )
             else:
+                if commissioning_only:
+                    raise PreflightExecutionError("bus_unavailable", "Search cannot use a production-owned bus")
                 client = self._bus_clients.get(bus_id)
                 lock = self._bus_operation_locks.get(bus_id)
                 xjp60d = self._bus_xjp60d_readers.get(bus_id)
                 le01mp = self._bus_le01mp_readers.get(bus_id)
                 embraco = self._bus_embraco_readers.get(bus_id)
         else:
+            if commissioning_only:
+                raise PreflightExecutionError("bus_unavailable", "Search requires an unowned commissioning adapter")
             if bus_id != topology.bindings[0].bus_id:
                 raise PreflightExecutionError("bus_unavailable", f"Unknown RS-485 bus {bus_id}")
             client = self.modbus_client
