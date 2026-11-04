@@ -15,6 +15,19 @@ classify = MODULE.classify
 
 
 class ChangeImpactClassifierTests(unittest.TestCase):
+    def test_pinned_ci_scanner_always_requires_real_supply_chain(self) -> None:
+        for path in ("scripts/install-ci-trivy.sh", "tests/test_ci_trivy_install.py"):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertFalse(result["fail_closed"])
+                self.assertTrue(result["needs_full_quality"])
+                self.assertEqual(result["classes"], ["ci_governance"])
+                self.assertEqual(result["verification"]["required_external_workflows"], ["Container Supply Chain"])
+                workflow = (ROOT / ".github/workflows/container-supply-chain.yml").read_text()
+                self.assertIn(f'      - "{path}"', workflow)
+        result = classify(["scripts/install-ci-unregistered-scanner.sh"])
+        self.assertTrue(result["fail_closed"])
+
     def test_durable_receipt_contract_registers_ci_policy_and_backend(self) -> None:
         # Contract-only schema/validator requires no live publisher or DB migration.
         paths = [
