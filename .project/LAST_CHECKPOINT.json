@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T16:02:36.003737+00:00",
+  "timestamp": "2026-11-04T16:23:28.018278+00:00",
   "actor": "ChatGPT",
-  "event": "1498_direct_instrument_readings_TEST_UI_installed_and_verified",
+  "event": "dixell_6_plus_2_quality_verification_failed_counts_corrected",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3107,6 +3107,29 @@
       "agent_database_hardware_changes": "none",
       "modbus_writes": "none",
       "production_release": "not_performed"
+    },
+    "dixell_sensor_count_verification": {
+      "expected_connected_probes": {
+        "K1": 6,
+        "K2": 2
+      },
+      "actual_latest_valid_probes": {
+        "K1": 1,
+        "K2": 1
+      },
+      "actual_latest_communication_error_probes": {
+        "K1": 5,
+        "K2": 5
+      },
+      "valid_channel": "01_on_both_units;21.8_degC_at_initial_inspection",
+      "physical_protocol": "channels02_06_return_FC03_exception03;not_probe_error",
+      "address_search": "bounded12_addresses;only1_and2_replied",
+      "previous_acceptance_correction": "Six fresh telemetry rows included communication_error/null records. Previous freshness/count checks did not verify six working sensors. Hardware sensor-count acceptance is NOT passed.",
+      "cause": "unconfirmed;device_section_configuration_or_profile_compatibility_requires_verification",
+      "required_owner_read": "Read Snc on each actual instrument using KB1_PRG; no configuration changes requested",
+      "hardware_parameter_changes": "none",
+      "modbus_writes": "none",
+      "observed_at": "2026-11-04T16:23:28.018278+00:00"
     }
   },
   "observations": [
@@ -4519,7 +4542,7 @@
       }
     }
   ],
-  "next_action": "Owner may refresh TEST UI, open Connections and select Readings for either standalone Dixell. Source PR1499 remains draft/stacked; hosted checks and visual browser acceptance remain separate from this authorized TEST delivery.",
+  "next_action": "Owner reads Snc on both KB1_PRG-connected instruments without changing parameters; then correlate exact configuration/profile and validate all six first-unit and two second-unit temperatures. No hardware sensor-count acceptance or update GREEN is claimed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4528,7 +4551,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-authorized reversible TEST frontend-only overlay on external3100 and LAN3000. No Agent, database, topology, controller, Modbus or data changes in1498.",
+  "runtime_mutation": "none;read_only_PG_health_logs_and_locked_FC03_address_checks_only",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

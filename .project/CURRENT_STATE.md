@@ -1,3 +1,9 @@
+## 2026-11-04 — correction: actual Dixell sensor counts NOT verified
+
+Owner confirms six physical probes on first Dixell and two on second. Read-only inspection found only channel01 valid on each (21.8°C initially); channels02–06 on both are communication_error/null. Actual Agent logs show FC03 exception03, not probe_error. Bounded locked read search of addresses1–12 found only1 and2. Current profile successfully reads256/257 but later probe reads are rejected. Cause is not yet established; section configuration/profile compatibility needs verification. No evidence supports declaring the other sensors absent or defective.
+
+Correction to1496/1498 reports: six fresh persisted rows per unit included failure records and did NOT prove six working physical sensors. Frontend installation/tests remain verified; 6+2 hardware acceptance is NOT passed. Next physical step is to read Snc on each KB1 PRG without changing it. No code/runtime/controller/Modbus writes or data deletion in this inspection.
+
 ## 2026-11-04 — direct instrument readings #1498 / PR #1499
 
 Quick Add now returns to Connections. Active supported instruments offer a scoped Live readings link and a separate settings action. Dixell addresses1/2 open edge-01 K1/K2; supported LE-01MP and Embraco use their existing canonical activation identities. Unknown, incomplete and inactive identities expose setup only. Plain Ukrainian copy replaces technical commissioning language; activation status does not claim current online/fresh data.

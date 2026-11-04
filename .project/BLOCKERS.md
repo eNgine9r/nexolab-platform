@@ -1,3 +1,7 @@
+## 2026-11-04 — actual 6+2 Dixell probe verification blocked
+
+Expected physical counts: K1 six, K2 two (owner). Actual latest: one valid temperature and five communication_error records each. FC03 exception03 affects channels02–06; no sensor-fault/absence conclusion is justified. Previous six-fresh-row acceptance did not check quality and must not be cited as six working probes. Only addresses1/2 replied in bounded1–12 search. Exact section/profile compatibility remains unresolved. Required physical read: Snc from each KB1 PRG, no parameter change. UI software checks remain valid; hardware sensor counts are unverified.
+
 ## 2026-11-04 — #1498 TEST delivery verified; source/browser limitations retained
 
 Both TEST frontends are installed and HTTP/assets/runtime identities pass; both actual standalone Dixell retain six fresh channels. No blocker to refreshing and using this TEST UI. Local Chrome connector remains unavailable, so final visual browser acceptance is unverified. Draft stacked PR1499 has no PR-triggered workflows/statuses reported at source-head check; no merge or whole-production GREEN is claimed. No new dependencies; disconnected runtime and rollback execution were not retested. Historical missing-adapter/global Agent degradation remains separate from the two verified selected instruments.

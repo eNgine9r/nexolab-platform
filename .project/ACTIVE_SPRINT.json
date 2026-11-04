@@ -9970,7 +9970,30 @@
         "modbus_writes": "none",
         "hardware_parameter_changes": "none",
         "telemetry_deletion": "none",
-        "production_release": "not_performed"
+        "production_release": "not_performed",
+        "sensor_count_correction_20261104": {
+          "expected_connected_probes": {
+            "K1": 6,
+            "K2": 2
+          },
+          "actual_latest_valid_probes": {
+            "K1": 1,
+            "K2": 1
+          },
+          "actual_latest_communication_error_probes": {
+            "K1": 5,
+            "K2": 5
+          },
+          "valid_channel": "01_on_both_units;21.8_degC_at_initial_inspection",
+          "physical_protocol": "channels02_06_return_FC03_exception03;not_probe_error",
+          "address_search": "bounded12_addresses;only1_and2_replied",
+          "previous_acceptance_correction": "Six fresh telemetry rows included communication_error/null records. Previous freshness/count checks did not verify six working sensors. Hardware sensor-count acceptance is NOT passed.",
+          "cause": "unconfirmed;device_section_configuration_or_profile_compatibility_requires_verification",
+          "required_owner_read": "Read Snc on each actual instrument using KB1_PRG; no configuration changes requested",
+          "hardware_parameter_changes": "none",
+          "modbus_writes": "none",
+          "observed_at": "2026-11-04T16:23:28.018278+00:00"
+        }
       }
     },
     {
@@ -10001,7 +10024,30 @@
         "rollback": "previous_external_service_dropin_and_LAN_.next_pre_1498_retained;automatic_error_rollback_in_installer;rollback_not_exercised",
         "agent_database_hardware_changes": "none",
         "modbus_writes": "none",
-        "production_release": "not_performed"
+        "production_release": "not_performed",
+        "sensor_count_correction_20261104": {
+          "expected_connected_probes": {
+            "K1": 6,
+            "K2": 2
+          },
+          "actual_latest_valid_probes": {
+            "K1": 1,
+            "K2": 1
+          },
+          "actual_latest_communication_error_probes": {
+            "K1": 5,
+            "K2": 5
+          },
+          "valid_channel": "01_on_both_units;21.8_degC_at_initial_inspection",
+          "physical_protocol": "channels02_06_return_FC03_exception03;not_probe_error",
+          "address_search": "bounded12_addresses;only1_and2_replied",
+          "previous_acceptance_correction": "Six fresh telemetry rows included communication_error/null records. Previous freshness/count checks did not verify six working sensors. Hardware sensor-count acceptance is NOT passed.",
+          "cause": "unconfirmed;device_section_configuration_or_profile_compatibility_requires_verification",
+          "required_owner_read": "Read Snc on each actual instrument using KB1_PRG; no configuration changes requested",
+          "hardware_parameter_changes": "none",
+          "modbus_writes": "none",
+          "observed_at": "2026-11-04T16:23:28.018278+00:00"
+        }
       }
     }
   ],
