@@ -84,6 +84,20 @@ function setup(passed = true) {
 }
 
 describe("quick device setup", () => {
+  it("adds a named standalone instrument without creating a refrigeration passport", async () => {
+    const { create, repository } = setup();
+    create.mockRejectedValue(new Error("Refrigeration service must not be needed"));
+    fireEvent.change(screen.getByLabelText("Назва приладу"), { target: { value: "Dixell 2 — стенд" } });
+    fireEvent.click(screen.getByRole("button", { name: "Додати прилад" }));
+    expect(await screen.findByText("Прилад додано. Моніторинг увімкнено.")).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+    expect(repository.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ displayName: "Dixell 2 — стенд", targetEquipmentKey: null }),
+      expect.any(String),
+    );
+    expect(screen.queryByText("Прив’язати до наявного обладнання")).not.toBeInTheDocument();
+  });
+
   it("scans a configured adapter in auto mode and keeps the full result list when selecting a device", async () => {
     const { props, rerender } = setup();
     const searchAddress = vi.fn().mockImplementation(async ({ unitId }) => ({
@@ -129,13 +143,11 @@ describe("quick device setup", () => {
 
   it("saves the entered name and checks/activates with a single Add action", async () => {
     const { create, runPreflight, runActivation } = setup();
-    expect(screen.getByRole("button", { name: "Додати прилад" })).toBeDisabled();
+    expect(screen.getByLabelText("Назва приладу")).toHaveValue("Dixell XJP60D · 7");
     fireEvent.change(screen.getByLabelText("Назва приладу"), { target: { value: "Dixell — стенд" } });
     fireEvent.click(screen.getByRole("button", { name: "Додати прилад" }));
     expect(await screen.findByText("Прилад додано. Моніторинг увімкнено.")).toBeInTheDocument();
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Dixell — стенд", manufacturer: "Dixell", totalSensors: 14 }),
-    );
+    expect(create).not.toHaveBeenCalled();
     expect(runPreflight).toHaveBeenCalledTimes(1);
     expect(runActivation).toHaveBeenCalledTimes(1);
   });
@@ -149,7 +161,18 @@ describe("quick device setup", () => {
     expect(screen.queryByText("Прилад додано. Моніторинг увімкнено.")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Повторити перевірку" }));
     await waitFor(() => expect(repository.runPreflight).toHaveBeenCalledTimes(2));
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
+    expect(repository.createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers another device without recreating the completed session", async () => {
+    const { props, repository } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Додати прилад" }));
+    await screen.findByText("Прилад додано. Моніторинг увімкнено.");
+    fireEvent.click(screen.getByRole("button", { name: "Додати ще один" }));
+    expect(props.onDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ unitId: null, targetEquipmentKey: null }),
+    );
     expect(repository.createSession).toHaveBeenCalledTimes(1);
   });
 

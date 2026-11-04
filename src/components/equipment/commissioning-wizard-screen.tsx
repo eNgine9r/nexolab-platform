@@ -69,7 +69,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [advanced, setAdvanced] = useState(Boolean(commissioningId) || searchParams.get("advanced") === "1");
+  const [advanced, setAdvanced] = useState(
+    Boolean(commissioningId) || Boolean(searchParams.get("target")) || searchParams.get("advanced") === "1",
+  );
   const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [connections, setConnections] = useState<CommissioningConnectionInventory | null>(null);
@@ -133,7 +135,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     const target = normalize(searchParams.get("target"));
     void Promise.all([
       repository.listProfiles(controller.signal),
-      runtime.equipmentRepository.list(),
+      runtime.equipmentRepository.list().catch(() => []),
       commissioningId ? repository.getSession(commissioningId, controller.signal) : Promise.resolve(null),
     ])
       .then(([loadedProfiles, loadedEquipment, loadedSession]) => {
@@ -541,11 +543,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
               <QuickDeviceSetup
                 key={organizationId}
                 repository={repository}
-                equipmentRepository={runtime.equipmentRepository}
                 profiles={profiles}
                 inventory={visibleConnections}
                 inventoryError={visibleConnectionError}
-                equipment={equipment}
                 draft={draft}
                 onDraft={setDraft}
                 onInventory={receiveConnections}
@@ -554,6 +554,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   setDraft(sessionToWrite(saved));
                 }}
                 onAdvanced={() => setAdvanced(true)}
+                onNew={() => setSession(null)}
                 canManage={canManage}
               />
             ) : null}
@@ -1145,8 +1146,19 @@ function BindingStep({
     <StepFrame
       eyebrow="Крок 4"
       title="Прив'язка до обладнання"
-      description="Оберіть актив, для якого створюється намір підключення контролера."
+      description="Прилад може працювати самостійно; прив’язка до обладнання необов’язкова."
     >
+      <label className={labelClass}>
+        Назва приладу
+        <input
+          aria-label="Назва приладу"
+          disabled={disabled}
+          value={draft.displayName ?? ""}
+          maxLength={255}
+          onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
+          className={inputClass}
+        />
+      </label>
       <label className={labelClass}>
         Цільове обладнання
         <select
@@ -1157,7 +1169,7 @@ function BindingStep({
           }
           className={inputClass}
         >
-          <option value="">Не вибрано</option>
+          <option value="">Самостійний прилад</option>
           {equipment.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name} · {item.code}
@@ -1582,6 +1594,7 @@ function Unavailable({ message: value }: { message: string }) {
 
 function sessionToWrite(session: CommissioningSession): CommissioningSessionWrite {
   return {
+    displayName: session.displayName ?? null,
     deviceClass: session.deviceClass,
     manufacturer: session.manufacturer,
     model: session.model,

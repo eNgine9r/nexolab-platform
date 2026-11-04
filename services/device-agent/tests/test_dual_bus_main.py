@@ -706,6 +706,10 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
         )
 
         self.assertEqual(agent.preflight_unit_owner(1, "rs485-kk1"), "rs485-kk1")
+        topology.buses_for_unit.return_value = ("rs485-embraco",)
+        self.assertIsNone(agent.preflight_unit_owner(2, "rs485-kk1"))
+        topology.buses_for_unit.return_value = ("rs485-embraco", "rs485-sdm120")
+        self.assertIsNone(agent.preflight_unit_owner(2, "rs485-kk1"))
 
     def test_commissioning_inventory_allows_same_unit_on_other_bus_family(self) -> None:
         request = CommissioningActivationRequest(

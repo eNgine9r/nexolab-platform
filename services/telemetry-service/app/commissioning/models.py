@@ -70,6 +70,7 @@ class EquipmentCommissioningSession(Base):
     device_class: Mapped[str] = mapped_column(String(64), nullable=False)
     manufacturer: Mapped[str] = mapped_column(String(128), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     profile_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     profile_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
     transport_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)

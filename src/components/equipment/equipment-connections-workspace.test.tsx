@@ -92,6 +92,24 @@ function repository(session: CommissioningSession = persistedSession): Commissio
 }
 
 describe("EquipmentConnectionsWorkspace", () => {
+  it("shows a persisted standalone instrument name and address without a showcase", async () => {
+    render(
+      <EquipmentConnectionsWorkspace
+        repository={repository({
+          ...persistedSession,
+          displayName: "Dixell стенд 2",
+          unitId: 2,
+          lifecycle: "active",
+        })}
+        discoveryRepository={null}
+        canManage
+        assets={[]}
+      />,
+    );
+    expect(await screen.findByText("Dixell стенд 2")).toBeInTheDocument();
+    expect(screen.getByText(/Адреса 2 · Самостійний прилад/)).toBeInTheDocument();
+  });
+
   it("surfaces persistent and unsupported drafts with discovery under Connections", async () => {
     render(
       <EquipmentConnectionsWorkspace

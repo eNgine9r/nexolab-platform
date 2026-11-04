@@ -422,3 +422,53 @@ def test_activation_client_validation_rejects_write_or_health_drift() -> None:
     validate_activation_health(health, node_id="edge-01", target_ids=["embraco:2-control-state"])
     with pytest.raises(DeviceAgentActivationError):
         validate_activation_health({**health, "mqtt_connected": False}, node_id="edge-01", target_ids=["embraco:2-control-state"])
+
+
+def test_standalone_activation_does_not_create_refrigeration_binding(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    with Session(database.engine) as db, db.begin():
+        row = db.get(EquipmentCommissioningSession, "session-1")
+        row.target_equipment_key = None
+        row.display_name = "Standalone Embraco"
+    fake = FakeActivationClient(database)
+    result = _service(database, fake).run(
+        "session-1", organization_id=ORG, expected_version=2,
+        idempotency_key="activate-standalone", actor_subject="engineer",
+        started_audit_event=_audit("equipment.commissioning.activation.started"),
+        completed_audit_event=_audit("equipment.commissioning.activation.completed"),
+        binding_audit_event=_audit("equipment.controller_binding.updated"),
+    )
+    assert result.state == "active"
+    assert result.plan["target_equipment_key"] is None
+    assert result.plan["binding_kind"] == "standalone_instrument"
+    assert result.evidence["binding"]["kind"] == "standalone_instrument"
+    with Session(database.engine) as db:
+        assert db.query(RefrigerationControllerBinding).count() == 0
+
+
+def test_activation_health_is_scoped_to_selected_bus_without_hiding_degradation() -> None:
+    health = {"node_id": "edge-01", "status": "error", "mqtt_connected": True,
+        "acquisition": {"scheduler": {"workers_healthy": True,
+            "targets": [{"target_id": "xjp60d:002-01", "bus_id": "test", "cooldown": False}],
+            "buses": {"test": {"worker_state": "running"}}},
+            "rs485_buses": [{"bus_id": "test", "device_path_present": True},
+                            {"bus_id": "old", "device_path_present": False}]}}
+    result = validate_activation_health(health, node_id="edge-01", target_ids=["xjp60d:002-01"])
+    assert result["status"] == "selected_targets_verified_global_degraded"
+    health["acquisition"]["rs485_buses"][0]["device_path_present"] = False
+    with pytest.raises(DeviceAgentActivationError):
+        validate_activation_health(health, node_id="edge-01", target_ids=["xjp60d:002-01"])
+
+
+def test_only_health_can_read_bounded_503_body(monkeypatch) -> None:
+    import io
+    import json
+    from urllib.error import HTTPError
+    from app.commissioning.activation_client import DeviceAgentActivationClient
+    def unavailable(request, **kwargs):
+        raise HTTPError(request.full_url, 503, "degraded", {}, io.BytesIO(json.dumps({"status": "error"}).encode()))
+    monkeypatch.setattr("app.commissioning.activation_client.urlopen", unavailable)
+    client = DeviceAgentActivationClient("http://edge-device-agent:8081")
+    assert client._request_json("/health", method="GET", allow_degraded_health=True) == {"status": "error"}
+    with pytest.raises(DeviceAgentActivationError):
+        client._request_json("/api/v1/commissioning/activation", method="POST", body={})
