@@ -6,7 +6,7 @@ import signal
 import threading
 import time
 import uuid
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -17,6 +17,7 @@ from acquisition_capacity import BusCapacityProfile
 from akcc25 import AKCC25ProReader
 from acquisition_registry import AcquisitionRegistry, DeviceLifecycleMutation, LifecycleMutation
 from commissioning_connections import connection_inventory, resolve_commissioning_adapter
+from commissioning_search import parse_search_request, run_search
 from commissioning_activation import (
     CommissioningActivationJournal,
     CommissioningActivationRequest,
@@ -278,6 +279,10 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             path_present=Path(binding.serial_device).exists(),
         )
 
+    def search_bus(self, bus_id: str) -> PreflightBus:
+        adapter = resolve_commissioning_adapter(bus_id, topology=self.rs485_topology, isolated_search=True)
+        return PreflightBus(bus_id=bus_id, serial_device=adapter.runtime_path, path_present=True)
+
     def _commissioning_adapter_lock(self, bus_id: str) -> threading.Lock:
         with self._commissioning_adapter_locks_guard:
             return self._commissioning_adapter_locks.setdefault(bus_id, threading.Lock())
@@ -342,6 +347,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         bus_id: str,
         unit_id: int,
         deadline_monotonic: float,
+        commissioning_only: bool = False,
     ) -> tuple[PreflightObservation, ...]:
         topology = self.rs485_topology
         temporary_client: ModbusRTUClient | None = None
@@ -350,7 +356,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 topology.binding(bus_id)
             except ValueError:
                 try:
-                    adapter = resolve_commissioning_adapter(bus_id, topology=topology)
+                    adapter = resolve_commissioning_adapter(bus_id, topology=topology, isolated_search=commissioning_only)
                 except ValueError as error:
                     raise PreflightExecutionError("bus_unavailable", str(error)) from error
                 temporary_client = ModbusRTUClient(
@@ -373,12 +379,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     control_scale=self.settings.embraco_control_scale,
                 )
             else:
+                if commissioning_only:
+                    raise PreflightExecutionError("bus_unavailable", "Search cannot use a production-owned bus")
                 client = self._bus_clients.get(bus_id)
                 lock = self._bus_operation_locks.get(bus_id)
                 xjp60d = self._bus_xjp60d_readers.get(bus_id)
                 le01mp = self._bus_le01mp_readers.get(bus_id)
                 embraco = self._bus_embraco_readers.get(bus_id)
         else:
+            if commissioning_only:
+                raise PreflightExecutionError("bus_unavailable", "Search requires an unowned commissioning adapter")
             if bus_id != topology.bindings[0].bus_id:
                 raise PreflightExecutionError("bus_unavailable", f"Unknown RS-485 bus {bus_id}")
             client = self.modbus_client
@@ -1059,6 +1069,23 @@ class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", maxsplit=1)[0]
+        if path == "/api/v1/commissioning/address-search":
+            try:
+                payload = self._read_json_body()
+                request = parse_search_request(payload)
+                if request.first_unit_id != request.last_unit_id or request.deadline_seconds != 2.0:
+                    raise ValueError("Address search accepts one address with a two-second deadline")
+                result = run_search(request, self.agent, cancelled=threading.Event())
+                self._send_json(200, {
+                    "schema_version": 1, "node_id": request.node_id, "bus_id": request.bus_id,
+                    "stable_transport_identifier": request.stable_transport_identifier,
+                    "unit_id": request.first_unit_id, "profile_id": "dixell-xjp60d",
+                    "profile_version": "dixell-xjp60d-fc03-v1", **asdict(result),
+                    "modbus_writes": "none", "hardware_writes": "none",
+                })
+            except (ValueError, TypeError) as error:
+                self._send_json(422, {"detail": {"code": "search_request_invalid", "message": str(error)}})
+            return
         if path == "/api/v1/commissioning/preflight":
             try:
                 request = parse_preflight_request(self._read_json_body())

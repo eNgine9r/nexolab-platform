@@ -20,6 +20,7 @@ import {
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Rs485AdapterFinder } from "@/components/equipment/rs485-adapter-finder";
+import { Rs485AddressSearch } from "@/components/equipment/rs485-address-search";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
@@ -77,6 +78,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [draft, setDraft] = useState<CommissioningSessionWrite>(emptyDraft);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
+  const [addressSearchBusy, setAddressSearchBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preflight, setPreflight] = useState<CommissioningPreflightAttempt | null>(null);
   const [preflightLoadKey, setPreflightLoadKey] = useState<string | null>(null);
@@ -586,6 +588,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     connections={visibleConnections}
                     connectionError={visibleConnectionError}
                     connectionRepository={connectionRepository === repository ? repository : null}
+                    searchRunning={addressSearchBusy}
+                    onSearchRunningChange={setAddressSearchBusy}
                     onConnectionsChanged={(inventory) => {
                       setConnections(inventory);
                       setConnectionError(null);
@@ -604,7 +608,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         <PreflightPanel
                           session={visibleSession}
                           attempt={visiblePreflight}
-                          busy={preflightBusy}
+                          busy={preflightBusy || addressSearchBusy}
                           error={visiblePreflightError}
                           canManage={canManage}
                           onRun={() => void runPreflight()}
@@ -615,7 +619,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         profile={selectedProfile}
                         plan={visibleActivationPlan}
                         attempt={visibleActivation}
-                        busy={activationBusy}
+                        busy={activationBusy || addressSearchBusy}
                         error={visibleActivationError}
                         canManage={canManage}
                         onRun={() => void runActivation()}
@@ -665,7 +669,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       canManage ? (
                         <button
                           type="button"
-                          disabled={busy || preflightBusy}
+                          disabled={busy || preflightBusy || addressSearchBusy}
                           onClick={() => void cancel()}
                           className="rounded-xl border border-rose-400/20 px-4 py-2 text-xs text-rose-200 hover:bg-rose-400/[0.07] disabled:opacity-50"
                         >
@@ -679,7 +683,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       visibleSession?.lifecycle !== "verified" ? (
                         <button
                           type="button"
-                          disabled={busy || preflightBusy}
+                          disabled={busy || preflightBusy || addressSearchBusy}
                           onClick={() => void save()}
                           className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/[0.05] disabled:opacity-50"
                         >
@@ -703,7 +707,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         ) : (
                           <button
                             type="button"
-                            disabled={busy || preflightBusy}
+                            disabled={busy || preflightBusy || addressSearchBusy}
                             onClick={() => void completeDiscoveryOnlyOnboarding()}
                             className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 disabled:opacity-50"
                           >
@@ -745,6 +749,8 @@ function WizardStep({
   connections,
   connectionError,
   connectionRepository,
+  searchRunning,
+  onSearchRunningChange,
   onConnectionsChanged,
   equipment,
   selectedProfile,
@@ -760,6 +766,8 @@ function WizardStep({
   connections: CommissioningConnectionInventory | null;
   connectionError: string | null;
   connectionRepository: CommissioningRepository | null;
+  searchRunning: boolean;
+  onSearchRunningChange: (running: boolean) => void;
   onConnectionsChanged: (inventory: CommissioningConnectionInventory) => void;
   equipment: RefrigerationEquipment[];
   selectedProfile: SupportedDeviceProfile | null;
@@ -786,6 +794,8 @@ function WizardStep({
         inventory={connections}
         inventoryError={connectionError}
         repository={connectionRepository}
+        searchRunning={searchRunning}
+        onSearchRunningChange={onSearchRunningChange}
         onInventoryChanged={onConnectionsChanged}
         disabled={disabled}
       />
@@ -881,6 +891,8 @@ function ConnectionStep({
   inventory,
   inventoryError,
   repository,
+  searchRunning,
+  onSearchRunningChange,
   onInventoryChanged,
   disabled,
 }: {
@@ -889,6 +901,8 @@ function ConnectionStep({
   inventory: CommissioningConnectionInventory | null;
   inventoryError: string | null;
   repository: CommissioningRepository | null;
+  searchRunning: boolean;
+  onSearchRunningChange: (running: boolean) => void;
   onInventoryChanged: (inventory: CommissioningConnectionInventory) => void;
   disabled: boolean;
 }) {
@@ -914,7 +928,7 @@ function ConnectionStep({
         {repository ? (
           <Rs485AdapterFinder
             repository={repository}
-            disabled={disabled}
+            disabled={disabled || searchRunning}
             onInventoryChanged={onInventoryChanged}
             onSelect={chooseConnection}
           />
@@ -923,7 +937,7 @@ function ConnectionStep({
           RS-485 підключення
           <select
             aria-label="RS-485 підключення"
-            disabled={disabled || !inventory}
+            disabled={disabled || searchRunning || !inventory}
             value={draft.busId ?? ""}
             onChange={(event) => chooseConnection(event.target.value)}
             className={inputClass}
@@ -933,7 +947,7 @@ function ConnectionStep({
               <option
                 key={connection.busId}
                 value={connection.busId}
-                disabled={!connection.availableForPreflight}
+                disabled={!connection.availableForPreflight && connection.availableForIsolatedSearch !== true}
               >
                 {connectionLabel(connection)}
               </option>
@@ -983,7 +997,7 @@ function ConnectionStep({
           Modbus Unit ID
           <input
             aria-label="Modbus Unit ID"
-            disabled={disabled}
+            disabled={disabled || searchRunning}
             type="number"
             min={1}
             max={247}
@@ -992,6 +1006,23 @@ function ConnectionStep({
             className={inputClass}
           />
         </label>
+        {repository &&
+        selected?.ownership === "available_commissioning" &&
+        selected.availableForIsolatedSearch === true &&
+        inventory &&
+        draft.profileId === "dixell-xjp60d" ? (
+          <Rs485AddressSearch
+            repository={repository}
+            connection={{
+              nodeId: inventory.nodeId,
+              busId: selected.busId,
+              stableTransportIdentifier: selected.stableTransportIdentifier,
+            }}
+            disabled={disabled}
+            onSelect={(unitId) => field("unitId", unitId)}
+            onRunningChange={onSearchRunningChange}
+          />
+        ) : null}
       </div>
       <p className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3 text-xs leading-5 text-slate-400">
         Перелік підключень читається локально без Modbus-сканування. Вибір адаптера не змінює Device Agent,

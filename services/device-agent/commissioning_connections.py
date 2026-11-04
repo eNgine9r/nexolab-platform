@@ -97,6 +97,7 @@ def connection_inventory(
                 "ownership": "production_bus",
                 "present": adapter is not None,
                 "available_for_preflight": adapter is not None and adapter.read_write_accessible,
+                "available_for_isolated_search": False,
                 "serial": {
                     "baudrate": binding.baudrate,
                     "parity": binding.parity,
@@ -116,6 +117,7 @@ def connection_inventory(
                 "ownership": "available_commissioning",
                 "present": True,
                 "available_for_preflight": not missing_production_paths and adapter.read_write_accessible,
+                "available_for_isolated_search": adapter.read_write_accessible,
                 "serial": None,
             }
         )
@@ -128,6 +130,7 @@ def resolve_commissioning_adapter(
     topology: Any,
     serial_root: Path = RUNTIME_SERIAL_ROOT,
     access_check: AccessCheck = _has_read_write_access,
+    isolated_search: bool = False,
 ) -> StableSerialAdapter:
     if not bus_id.startswith(_COMMISSIONING_PREFIX):
         raise ValueError(f"Unknown commissioning RS-485 bus_id: {bus_id}")
@@ -140,7 +143,7 @@ def resolve_commissioning_adapter(
     missing_production_paths = tuple(
         sorted(stable_path for stable_path in production_paths if stable_path not in present_by_path)
     )
-    if missing_production_paths:
+    if missing_production_paths and not isolated_search:
         raise ValueError(
             "Commissioning adapter ownership is ambiguous because a production RS-485 adapter is missing: "
             + ", ".join(missing_production_paths)

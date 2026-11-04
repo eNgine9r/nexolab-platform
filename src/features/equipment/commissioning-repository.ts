@@ -41,6 +41,7 @@ export type CommissioningConnection = {
   ownership: CommissioningConnectionOwnership;
   present: boolean;
   availableForPreflight: boolean;
+  availableForIsolatedSearch?: boolean;
   serial: CommissioningConnectionSerial | null;
 };
 
@@ -199,7 +200,22 @@ export function createCommissioningIdempotencyKey(source?: {
   return `commissioning-${random}`;
 }
 
+export type AddressSearchInput = {
+  nodeId: string;
+  busId: string;
+  stableTransportIdentifier: string;
+  unitId: number;
+};
+
+export type AddressSearchResult = {
+  state: "completed" | "failed" | "cancelled" | "timed_out";
+  candidates: number[];
+  exceptionAddresses: number[];
+  errorCode: string | null;
+};
+
 export interface CommissioningRepository {
+  searchAddress?(input: AddressSearchInput, signal: AbortSignal): Promise<AddressSearchResult>;
   listProfiles(signal?: AbortSignal): Promise<SupportedDeviceProfile[]>;
   listConnections(signal?: AbortSignal): Promise<CommissioningConnectionInventory>;
   getProfile(profileId: string, signal?: AbortSignal): Promise<SupportedDeviceProfile>;
@@ -257,6 +273,67 @@ export class HttpCommissioningRepository implements CommissioningRepository {
     return parseConnectionInventory(
       await this.request("/api/v1/equipment/commissioning/connections", { signal }),
     );
+  }
+
+  async searchAddress(input: AddressSearchInput, signal: AbortSignal): Promise<AddressSearchResult> {
+    const payload = {
+      node_id: input.nodeId,
+      bus_id: input.busId,
+      stable_transport_identifier: input.stableTransportIdentifier,
+      unit_id: input.unitId,
+      profile_id: "dixell-xjp60d",
+      profile_version: "dixell-xjp60d-fc03-v1",
+      isolated_bus_confirmed: true,
+    };
+    const transport = new AbortController();
+    const abort = () => transport.abort();
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) transport.abort();
+    const timer = setTimeout(abort, 6000);
+    let item: Record<string, unknown> | null;
+    try {
+      item = record(
+        await this.request("/api/v1/equipment/commissioning/address-search", {
+          method: "POST",
+          signal: transport.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+      );
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", abort);
+    }
+    if (
+      !item ||
+      Object.entries(payload).some(
+        ([key, value]) => key !== "isolated_bus_confirmed" && item[key] !== value,
+      ) ||
+      item.schema_version !== 1 ||
+      item.total !== 1 ||
+      ![0, 1].includes(Number(item.attempted)) ||
+      typeof item.attempted !== "number" ||
+      !["completed", "failed", "cancelled", "timed_out"].includes(String(item.state)) ||
+      item.modbus_writes !== "none" ||
+      item.hardware_writes !== "none" ||
+      !Array.isArray(item.candidates) ||
+      item.candidates.length > 1 ||
+      !Array.isArray(item.exception_addresses) ||
+      item.exception_addresses.length > 1 ||
+      [...item.candidates, ...item.exception_addresses].some((id) => id !== input.unitId) ||
+      ((item.candidates.length > 0 || item.exception_addresses.length > 0) &&
+        (item.state !== "completed" || item.attempted !== 1)) ||
+      (item.candidates.length > 0 && item.exception_addresses.length > 0) ||
+      (item.state === "completed" && (item.attempted !== 1 || item.error_code !== null)) ||
+      !(item.error_code === null || typeof item.error_code === "string")
+    )
+      throw invalidResponse();
+    return {
+      state: item.state as AddressSearchResult["state"],
+      candidates: item.candidates as number[],
+      exceptionAddresses: item.exception_addresses as number[],
+      errorCode: item.error_code as string | null,
+    };
   }
 
   async getProfile(profileId: string, signal?: AbortSignal): Promise<SupportedDeviceProfile> {
@@ -519,6 +596,10 @@ function parseConnection(value: unknown): CommissioningConnection {
     !["production_bus", "available_commissioning"].includes(String(item.ownership)) ||
     typeof item.present !== "boolean" ||
     typeof item.available_for_preflight !== "boolean" ||
+    (item.available_for_isolated_search !== undefined &&
+      typeof item.available_for_isolated_search !== "boolean") ||
+    (item.available_for_isolated_search === true &&
+      (item.ownership !== "available_commissioning" || item.present !== true)) ||
     (item.serial !== null &&
       (!serial ||
         typeof serial.baudrate !== "number" ||
@@ -547,6 +628,9 @@ function parseConnection(value: unknown): CommissioningConnection {
     ownership: item.ownership as CommissioningConnectionOwnership,
     present: item.present,
     availableForPreflight: item.available_for_preflight,
+    ...(typeof item.available_for_isolated_search === "boolean"
+      ? { availableForIsolatedSearch: item.available_for_isolated_search }
+      : {}),
     serial:
       serial === null
         ? null

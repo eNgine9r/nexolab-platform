@@ -1,0 +1,15 @@
+# RS-485 address search: bounded requests (#1486)
+
+Status: source candidate; site and real-device acceptance pending.
+
+The initial operator search supports the existing XJP60D FC03 profile at 9600 8N1. It searches unicast addresses 1–247 after the operator selects an available commissioning-only adapter and confirms a separate test line with one controller. USB enumeration cannot establish physical line isolation. Ordinary preflight retains the existing all-production-adapters-present policy. A separate `available_for_isolated_search` inventory capability permits address-only search when historical adapters are absent, after the explicit isolation attestation. It still requires readable/writable access, rejects production identities and physical-path aliases, and uses exclusive serial access and the per-adapter lock. Missing capability on an older installation never implies permission. This capability cannot activate polling or alter normal preflight.
+
+The browser sends one address at a time to an `equipment.manage`-protected central endpoint. Central sends only the fixed profile, exact adapter identity and a two-second operation deadline to its configured private Device Agent. Transport timeout is four seconds centrally and six seconds in the browser. Each response is size-bounded and identity-validated. No request supplies a URL, register address or function code. Concurrent transport/search calls are rejected; existing bus serialization protects preflight interaction.
+
+The UI shows progress and response candidates, and requires an explicit selection. Changing organization, repository, profile, adapter or leaving the step aborts the browser sequence and discards old evidence. Stopping prevents further addresses; an already submitted Device Agent read can finish within its operation bound. There is no persisted or orphaned background scan job. Failed or ambiguous transport stops the sequence, preserving clearly marked earlier candidates. Modbus exception addresses are not presented as verified XJP60D models.
+
+A response candidate is not proof of exact model, engineering scaling, calibration or fresh production telemetry. Existing commissioning preflight, binding, registry and activation checks remain separate. In particular, cross-bus Unit ID ownership and enrollment of an unconfigured production bus are not bypassed. A new adapter discovered by this flow is not automatically enrolled into polling.
+
+The core, API and UI run on the local installation without internet or paid services. Synthetic tests establish software behavior only. Protected package/recovery checks, explicit site cutover authorization and real isolated hardware evidence are required before site acceptance. Friendly-name persistence and broader serial-setting/model discovery remain follow-on work under #1478.
+
+Source review: integration PR #1488 depends on foundation PR #1483. Both target main during verification because the required workflows filter PR base branches. Scanner installation failure is tracked separately in #1487; no feature merge or site readiness is implied by local test success.
