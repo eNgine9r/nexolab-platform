@@ -55,7 +55,7 @@ class DeviceAgentActivationClient:
         )
         return validate_activation_evidence(payload, command)
     def health(self, *, node_id: str, target_ids: list[str]) -> dict[str, Any]:
-        payload = self._request_json("/health", method="GET")
+        payload = self._request_json("/health", method="GET", allow_degraded_health=True)
         return validate_activation_health(
             payload,
             node_id=node_id,
@@ -68,6 +68,7 @@ class DeviceAgentActivationClient:
         *,
         method: str,
         body: dict[str, object] | None = None,
+        allow_degraded_health: bool = False,
     ) -> object:
         encoded = (
             json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -90,6 +91,14 @@ class DeviceAgentActivationClient:
                     )
                 return json.loads(raw.decode("utf-8"))
         except HTTPError as error:
+            if allow_degraded_health and error.code == 503:
+                raw = error.read(256 * 1024 + 1)
+                if len(raw) > 256 * 1024:
+                    raise DeviceAgentActivationError("device_agent_response_too_large", "Health response is too large") from error
+                try:
+                    return json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, ValueError) as invalid:
+                    raise DeviceAgentActivationError("device_agent_health_invalid", "Invalid health response") from invalid
             raise DeviceAgentActivationError(
                 "device_agent_rejected",
                 f"Device Agent rejected the activation request with HTTP {error.code}",
@@ -192,7 +201,7 @@ def validate_activation_health(
         raise DeviceAgentActivationError(
             "device_agent_health_invalid", "Device Agent health must be an object"
         )
-    if payload.get("node_id") != node_id or payload.get("status") != "ok":
+    if payload.get("node_id") != node_id or payload.get("status") not in {"ok", "error"}:
         raise DeviceAgentActivationError(
             "device_agent_not_healthy", "Device Agent is not healthy for activation"
         )
@@ -222,8 +231,25 @@ def validate_activation_health(
             "device_agent_targets_missing",
             "Device Agent scheduler is missing activated targets: " + ", ".join(missing),
         )
+    if payload.get("status") != "ok":
+        # A disconnected unrelated bus does not invalidate this instrument.
+        # Keep global degradation visible; require its own worker, adapter and
+        # targets plus the separate fresh persisted telemetry verification.
+        selected = [item for item in raw_targets if isinstance(item, dict) and item.get("target_id") in target_ids]
+        if any(not isinstance(item.get("bus_id"), str) or not item["bus_id"] for item in selected):
+            raise DeviceAgentActivationError("device_agent_health_invalid", "Invalid selected bus identity")
+        bus_ids = {item["bus_id"] for item in selected}
+        buses = scheduler.get("buses")
+        physical = acquisition.get("rs485_buses")
+        if (not bus_ids or None in bus_ids or not isinstance(buses, dict)
+            or not isinstance(physical, list)
+            or any(item.get("cooldown") is not False for item in selected)
+            or any(not isinstance(buses.get(bus), dict) or buses[bus].get("worker_state") != "running" for bus in bus_ids)
+            or any(not any(isinstance(item, dict) and item.get("bus_id") == bus
+                           and item.get("device_path_present") is True for item in physical) for bus in bus_ids)):
+            raise DeviceAgentActivationError("device_agent_not_healthy", "Selected instrument bus is not healthy")
     return {
-        "status": "ok",
+        "status": "ok" if payload.get("status") == "ok" else "selected_targets_verified_global_degraded",
         "node_id": node_id,
         "mqtt_connected": True,
         "workers_healthy": True,

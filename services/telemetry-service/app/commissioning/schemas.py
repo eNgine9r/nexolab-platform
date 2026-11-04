@@ -59,6 +59,7 @@ class CommissioningConnectionListResponse(BaseModel):
 
 
 class CommissioningSessionWrite(BaseModel):
+    display_name: str | None = Field(default=None, max_length=255)
     device_class: str = Field(min_length=1, max_length=64)
     manufacturer: str = Field(min_length=1, max_length=128)
     model: str = Field(min_length=1, max_length=128)
@@ -79,6 +80,7 @@ class CommissioningSessionWrite(BaseModel):
         return normalized
 
     @field_validator(
+        "display_name",
         "profile_id",
         "node_id",
         "bus_id",
@@ -95,6 +97,7 @@ class CommissioningSessionWrite(BaseModel):
 
 
 class CommissioningSessionPatch(BaseModel):
+    display_name: str | None = Field(default=None, max_length=255)
     device_class: str | None = Field(default=None, min_length=1, max_length=64)
     manufacturer: str | None = Field(default=None, min_length=1, max_length=128)
     model: str | None = Field(default=None, min_length=1, max_length=128)
@@ -110,6 +113,7 @@ class CommissioningSessionPatch(BaseModel):
         "device_class",
         "manufacturer",
         "model",
+        "display_name",
         "profile_id",
         "node_id",
         "bus_id",
@@ -126,6 +130,7 @@ class CommissioningSessionPatch(BaseModel):
 
 
 class CommissioningSessionResponse(BaseModel):
+    display_name: str | None = None
     id: str
     lifecycle: CommissioningLifecycle
     device_class: str
@@ -203,11 +208,11 @@ class CommissioningActivationPlanResponse(BaseModel):
     bus_id: str
     stable_transport_identifier: str
     unit_id: int
-    target_equipment_key: str
+    target_equipment_key: str | None
     telemetry_source: str
     telemetry_equipment_id: str
     polling_mode: Literal["read_only_fc03"]
-    binding_kind: Literal["refrigeration_controller", "commissioning_target"]
+    binding_kind: Literal["refrigeration_controller", "commissioning_target", "standalone_instrument"]
     warnings: list[str]
     will_not_perform: list[str]
 

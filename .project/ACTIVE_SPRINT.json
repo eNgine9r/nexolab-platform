@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1494,
-      "title": "Search all responding devices on connected RS485 adapters",
-      "branch": "feature/1494-scan-all-adapters"
+      "issue": 1496,
+      "title": "Standalone named instruments without refrigeration passports",
+      "branch": "feature/1496-standalone-instruments"
     },
     "next_work_package": null
   },
@@ -9921,6 +9921,56 @@
         "hardware_writes": false,
         "data_deletion": false,
         "full_repository_test_matrix": false
+      }
+    },
+    {
+      "issue": 1496,
+      "title": "Standalone named instruments without refrigeration passports",
+      "branch": "feature/1496-standalone-instruments",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1494
+      ],
+      "scope": "Independent named instrument add, preflight and read-only activation without refrigeration target; selected adapter ownership survives restart.",
+      "evidence": {
+        "pr": 1497,
+        "application_source": "f50baee2b9bc7ed68f504a68dae8b045a9d59440",
+        "restart_fix_source": "916ddedf09a123d40ec639fbc866fa5d66548416",
+        "frontend_tests": 38,
+        "central_tests": 32,
+        "agent_topology_tests": 32,
+        "lint_typecheck_format_compile": "PASS",
+        "migration": "20261104_0038_nullable_name_applied_and_retained_existing_rows",
+        "native_builds": {
+          "external": "myy9EpA2d2Eus40x2azuQ",
+          "lan": "_G3w2m_wCa2kvcUgtH7Xc"
+        },
+        "installed_pages_assets": "PASS_both_origins_12_assets_each",
+        "actual_standalone_devices": [
+          {
+            "address": 1,
+            "lifecycle": "active",
+            "target_equipment_key": null
+          },
+          {
+            "address": 2,
+            "lifecycle": "active",
+            "target_equipment_key": null
+          }
+        ],
+        "fresh_persisted_channels_per_device": 6,
+        "refrigeration_passports_created": 0,
+        "restart": "PASS_both_bus_scoped_assignments_and_FC03_preflight",
+        "legacy_test_profile": "obsolete_sdm120_1_archived_and_startup_optin_disabled_only_on_repurposed_adapter; prior_container_and_registry_retained",
+        "runtime_evidence": "standalone-1496/runtime-evidence.json and restart-evidence.json on Pi",
+        "browser": "actual_Chrome_search_found_two; unit2_Add_succeeded; Add_another_retained_results; extension_disconnected_before_final_visual_capture; final_two_active_and_fresh_rows_verified_on_actual_local_services",
+        "offline": "no_new_runtime_dependencies; existing local_API_SQLite_PostgreSQL_MQTT_only; no_new_disconnected_site_test",
+        "ci": "Offline_Auth_41852230672_PASS_on_application_source; restart_fix_41855488325_in_progress_at_checkpoint",
+        "modbus_writes": "none",
+        "hardware_parameter_changes": "none",
+        "telemetry_deletion": "none",
+        "production_release": "not_performed"
       }
     }
   ],

@@ -304,15 +304,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         if bus_id is not None:
             if bus_id in owners:
                 return bus_id
-            if not owners:
-                return None
-            if len(owners) > 1:
-                rendered = ", ".join(sorted(owners))
-                raise PreflightExecutionError(
-                    "unit_id_conflict",
-                    f"Unit ID {unit_id} is assigned to other physical buses ({rendered})",
-                )
-            return next(iter(owners))
+            # Unit addresses are local to the requested physical bus. The bus
+            # and stable adapter are validated separately before this lookup.
+            return None
         if len(owners) > 1:
             rendered = ", ".join(sorted(owners))
             raise PreflightExecutionError(

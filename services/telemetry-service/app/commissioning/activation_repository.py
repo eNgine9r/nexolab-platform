@@ -423,24 +423,25 @@ class CommissioningActivationRepository:
             row.bus_id,
             row.stable_transport_identifier,
             row.unit_id,
-            row.target_equipment_key,
+            row.target_equipment_key or row.display_name,
         )
         if any(value is None or value == "" for value in required):
             raise CommissioningLifecycleConflictError(
                 "Commissioning activation intent is incomplete"
             )
-        equipment = db.scalar(
-            select(RefrigerationEquipmentRecord).where(
-                RefrigerationEquipmentRecord.id == row.target_equipment_key,
-                RefrigerationEquipmentRecord.organization_id == organization_id,
-                RefrigerationEquipmentRecord.deleted_at.is_(None),
-                RefrigerationEquipmentRecord.lifecycle_status != "retired",
+        if row.target_equipment_key:
+            equipment = db.scalar(
+                select(RefrigerationEquipmentRecord).where(
+                    RefrigerationEquipmentRecord.id == row.target_equipment_key,
+                    RefrigerationEquipmentRecord.organization_id == organization_id,
+                    RefrigerationEquipmentRecord.deleted_at.is_(None),
+                    RefrigerationEquipmentRecord.lifecycle_status != "retired",
+                )
             )
-        )
-        if equipment is None:
-            raise CommissioningEquipmentReferenceError(
-                "Target equipment is unavailable in the active organization"
-            )
+            if equipment is None:
+                raise CommissioningEquipmentReferenceError(
+                    "Target equipment is unavailable in the active organization"
+                )
         conflict = db.scalar(
             select(EquipmentCommissioningSession.id)
             .where(
@@ -448,8 +449,8 @@ class CommissioningActivationRepository:
                 EquipmentCommissioningSession.id != row.id,
                 EquipmentCommissioningSession.lifecycle == "active",
                 or_(
-                    EquipmentCommissioningSession.target_equipment_key
-                    == row.target_equipment_key,
+                    (EquipmentCommissioningSession.target_equipment_key == row.target_equipment_key)
+                    if row.target_equipment_key else False,
                     (
                         (EquipmentCommissioningSession.node_id == row.node_id)
                         & (EquipmentCommissioningSession.bus_id == row.bus_id)
@@ -463,7 +464,7 @@ class CommissioningActivationRepository:
             raise CommissioningActivationConflictError(
                 "Another active commissioning session already owns this equipment or Modbus identity"
             )
-        if profile.device_class == "temperature-controller":
+        if row.target_equipment_key and profile.device_class == "temperature-controller":
             active_binding = db.scalar(
                 select(RefrigerationControllerBinding).where(
                     RefrigerationControllerBinding.organization_id == organization_id,
@@ -517,12 +518,13 @@ class CommissioningActivationRepository:
             "bus_id": str(row.bus_id),
             "stable_transport_identifier": str(row.stable_transport_identifier),
             "unit_id": int(row.unit_id),
-            "target_equipment_key": str(row.target_equipment_key),
+            "target_equipment_key": row.target_equipment_key,
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
             "polling_mode": "read_only_fc03",
             "binding_kind": (
-                "refrigeration_controller" if family == "embraco" else "commissioning_target"
+                "standalone_instrument" if not row.target_equipment_key
+                else "refrigeration_controller" if family == "embraco" else "commissioning_target"
             ),
             "warnings": warnings,
             "will_not_perform": [

@@ -301,6 +301,20 @@ class RS485BusTopologyTests(unittest.TestCase):
         self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk1"), "rs485-kk1")
         self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk2"), "rs485-kk2")
 
+    def test_dynamic_same_address_on_other_bus_survives_topology_rebinding(self) -> None:
+        payload = explicit_payload()
+        payload[1]["unit_ids"].append(2)
+        topology = RS485BusTopology.from_environment(
+            self.settings, None, environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        current = topology.bind_registry(self.registry)
+        document, _ = current.with_embraco_enrollment((2,), bus_for_unit=lambda _: "rs485-kk2")
+        document, _ = AcquisitionRegistry(document).with_xjp60d_enrollment((2,), bus_for_unit=lambda _: "rs485-kk1")
+        rebound = topology.bind_registry(AcquisitionRegistry(document))
+        devices = {item.device_id: item for item in rebound.document.devices}
+        self.assertEqual(devices["xjp60d-2"].bus_id, "rs485-kk1")
+        self.assertEqual(devices["embraco-2"].bus_id, "rs485-kk2")
+
     def test_unstable_ttyusb_path_is_rejected(self) -> None:
         payload = explicit_payload()
         payload[0]["serial_device"] = "/dev/ttyUSB0"

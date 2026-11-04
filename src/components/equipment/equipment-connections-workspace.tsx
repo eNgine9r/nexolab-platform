@@ -182,7 +182,7 @@ export function EquipmentConnectionsWorkspace({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white">
-                      {session.manufacturer} {session.model}
+                      {session.displayName || `${session.manufacturer} ${session.model}`}
                     </p>
                     <p className="mt-1 truncate text-[10px] text-slate-500">
                       {session.profileId ?? "Профіль не визначено"} · v{session.version}
@@ -195,10 +195,10 @@ export function EquipmentConnectionsWorkspace({
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-slate-400">
-                  Прив’язка:{" "}
+                  Адреса {session.unitId ?? "—"} ·{" "}
                   {session.targetEquipmentKey
-                    ? (assetNames.get(session.targetEquipmentKey) ?? session.targetEquipmentKey)
-                    : "не вибрана"}
+                    ? `Прив’язка: ${assetNames.get(session.targetEquipmentKey) ?? session.targetEquipmentKey}`
+                    : "Самостійний прилад"}
                 </p>
                 {session.unsupportedReason || session.blockedReason ? (
                   <p className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-200">

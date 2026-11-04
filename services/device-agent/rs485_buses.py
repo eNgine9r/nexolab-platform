@@ -294,6 +294,16 @@ class RS485BusTopology:
                     )
             elif device.bus_id in configured_bus_ids and device.bus_id in candidate_buses:
                 bus_id = device.bus_id
+            elif device.bus_id in configured_bus_ids and any(
+                other.device_id != device.device_id
+                and other.unit_id == device.unit_id
+                and other.bus_id in candidate_buses
+                for other in registry.document.devices
+            ):
+                # A commissioned endpoint may reuse an address on a distinct
+                # adapter. Static legacy ownership must not move it onto an
+                # already occupied bus during restart.
+                bus_id = device.bus_id
             elif len(candidate_buses) == 1:
                 bus_id = candidate_buses[0]
             else:

@@ -455,3 +455,52 @@ def test_equipment_manage_permission_is_required_for_drafts(tmp_path: Path) -> N
         headers={"Idempotency-Key": "denied"},
     )
     assert denied.status_code == 403
+
+
+def test_named_standalone_instrument_is_ready_and_persists_without_passport(tmp_path: Path) -> None:
+    api, database = _client(tmp_path)
+    payload = _draft(
+        manufacturer="Dixell", model="XJP60D", profile_id="dixell-xjp60d",
+        display_name="  Dixell   стенд 2  ", node_id="edge-01", bus_id="rs485-sdm120",
+        stable_transport_identifier="/dev/serial/by-id/usb-test", unit_id=2,
+    )
+    created = api.post("/api/v1/equipment/commissioning/sessions", json=payload,
+                       headers={"Idempotency-Key": "standalone-name"})
+    assert created.status_code == 201
+    row = created.json()
+    assert row["lifecycle"] == "ready_for_preflight"
+    assert row["display_name"] == "Dixell стенд 2"
+    assert row["target_equipment_key"] is None
+    assert api.get(f"/api/v1/equipment/commissioning/sessions/{row['id']}").json()["lifecycle"] == "ready_for_preflight"
+    replay = api.post("/api/v1/equipment/commissioning/sessions", json=payload,
+                      headers={"Idempotency-Key": "standalone-name"})
+    assert replay.json()["id"] == row["id"]
+    with Session(database.engine) as db:
+        assert db.query(RefrigerationEquipmentRecord).count() == 0
+
+
+def test_standalone_name_does_not_bypass_invalid_explicit_target(tmp_path: Path) -> None:
+    api, _ = _client(tmp_path)
+    created = api.post("/api/v1/equipment/commissioning/sessions",
+        json=_draft(display_name="Dixell", target_equipment_key="another-org-passport"),
+        headers={"Idempotency-Key": "standalone-invalid-target"})
+    assert created.status_code == 422
+
+
+def test_standalone_name_migration_preserves_existing_rows(tmp_path: Path) -> None:
+    import importlib.util
+    import sqlalchemy as sa
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    path = Path(__file__).resolve().parents[1] / "migrations/versions/20261104_0038_add_standalone_instrument_name.py"
+    spec = importlib.util.spec_from_file_location("standalone_name_migration", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    with engine.begin() as connection:
+        connection.execute(sa.text("CREATE TABLE equipment_commissioning_sessions (id TEXT PRIMARY KEY)"))
+        connection.execute(sa.text("INSERT INTO equipment_commissioning_sessions (id) VALUES ('retained')"))
+        migration.op = Operations(MigrationContext.configure(connection))
+        migration.upgrade()
+        row = connection.execute(sa.text("SELECT id, display_name FROM equipment_commissioning_sessions")).one()
+        assert tuple(row) == ("retained", None)

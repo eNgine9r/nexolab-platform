@@ -262,33 +262,34 @@ class CommissioningPreflightRepository:
             model=row.model,
         ):
             raise CommissioningLifecycleConflictError("Commissioning profile no longer matches device identity")
-        required = (row.node_id, row.bus_id, row.stable_transport_identifier, row.unit_id, row.target_equipment_key)
+        required = (row.node_id, row.bus_id, row.stable_transport_identifier, row.unit_id, row.target_equipment_key or row.display_name)
         if any(value is None or value == "" for value in required):
             raise CommissioningLifecycleConflictError("Commissioning transport and equipment intent is incomplete")
-        target = db.scalar(
-            select(RefrigerationEquipmentRecord.id).where(
-                RefrigerationEquipmentRecord.id == row.target_equipment_key,
-                RefrigerationEquipmentRecord.organization_id == organization_id,
-                RefrigerationEquipmentRecord.deleted_at.is_(None),
-                RefrigerationEquipmentRecord.lifecycle_status != "retired",
-            )
-        )
-        if target is None:
-            raise CommissioningEquipmentReferenceError(
-                "Target equipment is unavailable in the active organization"
-            )
-        if profile.device_class == "temperature-controller":
-            active_binding = db.scalar(
-                select(RefrigerationControllerBinding.id).where(
-                    RefrigerationControllerBinding.organization_id == organization_id,
-                    RefrigerationControllerBinding.equipment_id == row.target_equipment_key,
-                    RefrigerationControllerBinding.unbound_at.is_(None),
+        if row.target_equipment_key:
+            target = db.scalar(
+                select(RefrigerationEquipmentRecord.id).where(
+                    RefrigerationEquipmentRecord.id == row.target_equipment_key,
+                    RefrigerationEquipmentRecord.organization_id == organization_id,
+                    RefrigerationEquipmentRecord.deleted_at.is_(None),
+                    RefrigerationEquipmentRecord.lifecycle_status != "retired",
                 )
             )
-            if active_binding is not None:
+            if target is None:
                 raise CommissioningEquipmentReferenceError(
-                    "Target equipment already has an active controller binding"
+                    "Target equipment is unavailable in the active organization"
                 )
+            if profile.device_class == "temperature-controller":
+                active_binding = db.scalar(
+                    select(RefrigerationControllerBinding.id).where(
+                        RefrigerationControllerBinding.organization_id == organization_id,
+                        RefrigerationControllerBinding.equipment_id == row.target_equipment_key,
+                        RefrigerationControllerBinding.unbound_at.is_(None),
+                    )
+                )
+                if active_binding is not None:
+                    raise CommissioningEquipmentReferenceError(
+                        "Target equipment already has an active controller binding"
+                    )
         return {
             "node_id": str(row.node_id),
             "bus_id": str(row.bus_id),

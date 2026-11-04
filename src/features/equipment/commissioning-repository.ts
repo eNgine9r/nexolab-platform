@@ -53,6 +53,7 @@ export type CommissioningConnectionInventory = {
 };
 
 export type CommissioningSession = {
+  displayName?: string | null;
   id: string;
   lifecycle: CommissioningLifecycle;
   deviceClass: string;
@@ -78,6 +79,7 @@ export type CommissioningSession = {
 };
 
 export type CommissioningSessionWrite = {
+  displayName?: string | null;
   deviceClass: string;
   manufacturer: string;
   model: string;
@@ -159,11 +161,11 @@ export type CommissioningActivationPlan = {
   busId: string;
   stableTransportIdentifier: string;
   unitId: number;
-  targetEquipmentKey: string;
+  targetEquipmentKey: string | null;
   telemetrySource: string;
   telemetryEquipmentId: string;
   pollingMode: "read_only_fc03";
-  bindingKind: "refrigeration_controller" | "commissioning_target";
+  bindingKind: "refrigeration_controller" | "commissioning_target" | "standalone_instrument";
   warnings: string[];
   willNotPerform: string[];
 };
@@ -513,6 +515,7 @@ function hexadecimalByte(value: number): string {
 
 function writePayload(input: CommissioningSessionPatch): Record<string, unknown> {
   const mapping: Record<keyof CommissioningSessionWrite, string> = {
+    displayName: "display_name",
     deviceClass: "device_class",
     manufacturer: "manufacturer",
     model: "model",
@@ -681,6 +684,7 @@ function parseSession(value: unknown): CommissioningSession {
   return {
     id: item.id,
     lifecycle: lifecycle as CommissioningLifecycle,
+    displayName: item.display_name === undefined ? null : nullableString(item.display_name),
     deviceClass: item.device_class,
     manufacturer: item.manufacturer,
     model: item.model,
@@ -838,11 +842,13 @@ function parseActivationPlan(value: unknown): CommissioningActivationPlan {
     item.bus_id.length === 0 ||
     typeof item.stable_transport_identifier !== "string" ||
     typeof item.unit_id !== "number" ||
-    typeof item.target_equipment_key !== "string" ||
+    (item.target_equipment_key !== null && typeof item.target_equipment_key !== "string") ||
     typeof item.telemetry_source !== "string" ||
     typeof item.telemetry_equipment_id !== "string" ||
     item.polling_mode !== "read_only_fc03" ||
-    !["refrigeration_controller", "commissioning_target"].includes(String(item.binding_kind)) ||
+    !["refrigeration_controller", "commissioning_target", "standalone_instrument"].includes(
+      String(item.binding_kind),
+    ) ||
     !stringArray(item.warnings) ||
     !stringArray(item.will_not_perform)
   )
@@ -864,7 +870,7 @@ function parseActivationPlan(value: unknown): CommissioningActivationPlan {
     busId: item.bus_id,
     stableTransportIdentifier: item.stable_transport_identifier,
     unitId: item.unit_id,
-    targetEquipmentKey: item.target_equipment_key,
+    targetEquipmentKey: nullableString(item.target_equipment_key),
     telemetrySource: item.telemetry_source,
     telemetryEquipmentId: item.telemetry_equipment_id,
     pollingMode: "read_only_fc03",

@@ -173,6 +173,12 @@ class CommissioningActivationService:
         audit_event: AuditEventInput,
     ) -> dict[str, object]:
         plan = attempt.plan
+        if plan.get("binding_kind") == "standalone_instrument":
+            return {
+                "kind": "standalone_instrument",
+                "session_id": attempt.session_id,
+                "telemetry_equipment_id": activation["telemetry_equipment_id"],
+            }
         if plan.get("binding_kind") != "refrigeration_controller":
             return {
                 "kind": "commissioning_target",

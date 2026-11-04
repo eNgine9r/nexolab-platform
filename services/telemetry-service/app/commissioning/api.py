@@ -457,6 +457,7 @@ def _response(item: EquipmentCommissioningSession) -> CommissioningSessionRespon
     return CommissioningSessionResponse(
         id=item.id,
         lifecycle=item.lifecycle,  # type: ignore[arg-type]
+        display_name=item.display_name,
         device_class=item.device_class,
         manufacturer=item.manufacturer,
         model=item.model,

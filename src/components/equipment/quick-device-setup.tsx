@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { RefrigerationEquipment } from "@/data/refrigeration";
-import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import {
   createCommissioningIdempotencyKey,
   type CommissioningConnectionInventory,
@@ -17,16 +15,15 @@ import { Rs485AddressSearch } from "./rs485-address-search";
 
 type Props = {
   repository: CommissioningRepository;
-  equipmentRepository: RefrigerationEquipmentRepository;
   profiles: SupportedDeviceProfile[];
   inventory: CommissioningConnectionInventory | null;
   inventoryError: string | null;
-  equipment: RefrigerationEquipment[];
   draft: CommissioningSessionWrite;
   onDraft: (draft: CommissioningSessionWrite) => void;
   onInventory: (inventory: CommissioningConnectionInventory) => void;
   onSaved: (session: CommissioningSession) => void;
   onAdvanced: () => void;
+  onNew?: () => void;
   canManage: boolean;
 };
 
@@ -34,8 +31,8 @@ const fieldClass =
   "mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-[#0b203b] px-3 text-sm text-white";
 
 export function QuickDeviceSetup(props: Props) {
-  const { repository, equipmentRepository, profiles, inventory, equipment, draft } = props;
-  const [name, setName] = useState("");
+  const { repository, profiles, inventory, draft } = props;
+  const [name, setName] = useState<string | null>(null);
   const [searchProfileId, setSearchProfileId] = useState(draft.profileId);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -45,7 +42,6 @@ export function QuickDeviceSetup(props: Props) {
   const [done, setDone] = useState(false);
   const pending = useRef(false);
   const alive = useRef(true);
-  const createdEquipment = useRef<string | null>(null);
   const keys = useRef({
     create: createCommissioningIdempotencyKey(),
     preflight: createCommissioningIdempotencyKey(),
@@ -60,6 +56,8 @@ export function QuickDeviceSetup(props: Props) {
 
   const profile = profiles.find((item) => item.id === draft.profileId);
   const connection = inventory?.connections.find((item) => item.busId === draft.busId);
+  const instrumentName =
+    name ?? draft.displayName ?? (profile && draft.unitId ? `${profile.displayName} · ${draft.unitId}` : "");
   const locked = busy || searching || !props.canManage;
   const patch = (values: Partial<CommissioningSessionWrite>) => props.onDraft({ ...draft, ...values });
   const chooseConnection = (busId: string, source = inventory) => {
@@ -80,7 +78,7 @@ export function QuickDeviceSetup(props: Props) {
       !connection?.present ||
       !draft.unitId ||
       !Number.isInteger(draft.unitId) ||
-      (!draft.targetEquipmentKey && !name.trim())
+      !instrumentName.trim()
     )
       return;
     pending.current = true;
@@ -88,37 +86,17 @@ export function QuickDeviceSetup(props: Props) {
     setError(null);
     setStatus("Зберігаємо прилад…");
     try {
-      let target = draft.targetEquipmentKey ?? createdEquipment.current;
-      if (!target) {
-        const item = await equipmentRepository.create({
-          code: `DEVICE-${keys.current.create.slice(-12)}`,
-          name: name.trim(),
-          location: "Не вказано",
-          laboratory: "",
-          zone: "",
-          nodeId: "",
-          type: "Контролер",
-          manufacturer: profile.manufacturer,
-          model: profile.models[0] ?? profile.displayName,
-          serialNumber: "Не вказано",
-          temperatureClass: "Не вказано",
-          installedAt: "",
-          servicedAt: "",
-          lifecycleStatus: "active",
-          totalSensors: profile.id === "dixell-xjp60d" ? 14 : 1,
-        });
-        if (!alive.current) return;
-        target = item.id;
-        createdEquipment.current = target;
-      }
       let session =
         saved ??
-        (await repository.createSession({ ...draft, targetEquipmentKey: target }, keys.current.create));
+        (await repository.createSession(
+          { ...draft, displayName: instrumentName.trim(), targetEquipmentKey: null },
+          keys.current.create,
+        ));
       if (!alive.current) return;
       setSaved(session);
       props.onSaved(session);
       if (session.lifecycle !== "verified" && session.lifecycle !== "active") {
-        if (session.lifecycle !== "ready_for_preflight")
+        if (!["ready_for_preflight", "activation_failed", "rolled_back"].includes(session.lifecycle))
           throw new Error("Прилад збережено. Перевірте підключення або відкрийте розширені налаштування.");
         setStatus("Перевіряємо зв’язок із приладом…");
         const result = await repository.runPreflight(session.id, session.version, keys.current.preflight);
@@ -128,21 +106,24 @@ export function QuickDeviceSetup(props: Props) {
         props.onSaved(session);
         if (result.result !== "passed") {
           keys.current.preflight = createCommissioningIdempotencyKey();
-          throw new Error(
-            "Прилад збережено, але він не відповідає. Перевірте живлення та підключення й повторіть перевірку.",
-          );
+          throw new Error(preflightMessage(result.code));
         }
       }
       if (profile.activationSupported && session.lifecycle !== "active") {
         setStatus("Вмикаємо зчитування показників…");
         const activation = await repository.runActivation(session.id, session.version, keys.current.activate);
         if (!alive.current) return;
-        if (activation.state !== "active")
-          throw new Error("Зв’язок перевірено. Увімкнути моніторинг не вдалося — подробиці в налаштуваннях.");
         session = await repository.getSession(session.id);
         if (!alive.current) return;
         setSaved(session);
         props.onSaved(session);
+        if (activation.state !== "active") {
+          keys.current.activate = createCommissioningIdempotencyKey();
+          keys.current.preflight = createCommissioningIdempotencyKey();
+          throw new Error(
+            "Прилад збережено й зв’язок перевірено. Зчитування ще не запущене; повторіть перевірку.",
+          );
+        }
       }
       setDone(true);
       setStatus(
@@ -242,8 +223,7 @@ export function QuickDeviceSetup(props: Props) {
       <Card title="3. Знайти прилад">
         {!connection ? (
           <p className="text-sm text-slate-400">Спочатку оберіть адаптер.</p>
-        ) : (connection.availableForReadSearch === true || connection.availableForIsolatedSearch === true) &&
-          !saved ? (
+        ) : connection.availableForReadSearch === true || connection.availableForIsolatedSearch === true ? (
           <Rs485AddressSearch
             repository={repository}
             connection={{
@@ -251,7 +231,7 @@ export function QuickDeviceSetup(props: Props) {
               busId: connection.busId,
               stableTransportIdentifier: connection.stableTransportIdentifier,
             }}
-            disabled={busy || !props.canManage}
+            disabled={busy || saved !== null || !props.canManage}
             profiles={searchProfileId ? profiles.filter((item) => item.id === searchProfileId) : profiles}
             serial={connection.serial}
             onSelect={(unitId, profileId) => {
@@ -295,39 +275,20 @@ export function QuickDeviceSetup(props: Props) {
       </Card>
       <Card title="4. Назва в моніторингу">
         <fieldset disabled={locked || saved !== null}>
-          {!draft.targetEquipmentKey ? (
-            <label className="text-sm text-slate-200">
-              Назва приладу
-              <input
-                aria-label="Назва приладу"
-                className={fieldClass}
-                placeholder="Наприклад, Dixell — тестовий стенд"
-                value={name}
-                maxLength={255}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          ) : (
-            <p className="text-sm text-slate-200">
-              {equipment.find((item) => item.id === draft.targetEquipmentKey)?.name ?? "Обране обладнання"}
-            </p>
-          )}
-          <details className="mt-3 text-sm text-slate-300">
-            <summary className="cursor-pointer">Прив’язати до наявного обладнання</summary>
-            <select
-              aria-label="Наявне обладнання"
+          <label className="text-sm text-slate-200">
+            Назва приладу
+            <input
+              aria-label="Назва приладу"
               className={fieldClass}
-              value={draft.targetEquipmentKey ?? ""}
-              onChange={(event) => patch({ targetEquipmentKey: event.target.value || null })}
-            >
-              <option value="">Створити новий прилад</option>
-              {equipment.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </details>
+              placeholder="Наприклад, Dixell — тестовий стенд"
+              value={instrumentName}
+              maxLength={255}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+          <p className="mt-2 text-xs text-slate-400">
+            Прилад працюватиме самостійно. Вітрину обирати не потрібно.
+          </p>
         </fieldset>
       </Card>
       {error ? (
@@ -352,7 +313,7 @@ export function QuickDeviceSetup(props: Props) {
               !Number.isInteger(draft.unitId) ||
               draft.unitId < 1 ||
               draft.unitId > 247 ||
-              (!draft.targetEquipmentKey && !name.trim())
+              !instrumentName.trim()
             }
             onClick={() => void add()}
             className="min-h-11 rounded-xl bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950 disabled:opacity-40"
@@ -367,6 +328,28 @@ export function QuickDeviceSetup(props: Props) {
             Відкрити прилади
           </Link>
         )}
+        {done ? (
+          <button
+            type="button"
+            className="min-h-11 rounded-xl border border-cyan-300/30 px-4 text-sm text-cyan-200"
+            onClick={() => {
+              setSaved(null);
+              setDone(false);
+              setName(null);
+              setError(null);
+              setStatus("");
+              keys.current = {
+                create: createCommissioningIdempotencyKey(),
+                preflight: createCommissioningIdempotencyKey(),
+                activate: createCommissioningIdempotencyKey(),
+              };
+              props.onNew?.();
+              patch({ unitId: null, displayName: null, targetEquipmentKey: null });
+            }}
+          >
+            Додати ще один
+          </button>
+        ) : null}
         <button
           type="button"
           disabled={busy || searching}
@@ -398,4 +381,12 @@ function adapterSerial(path: string) {
       .replace(/-if\d+-port\d+$/, "")
       .replaceAll("_", " ") ?? path
   );
+}
+
+function preflightMessage(code: string | null): string {
+  if (code === "unit_id_conflict")
+    return "Прилад збережено. Ця адреса вже зайнята іншим профілем у налаштуваннях зчитування; потрібно оновити старе підключення.";
+  if (code === "adapter_unavailable" || code === "bus_unavailable")
+    return "Прилад збережено. Адаптер недоступний — підключіть його та повторіть перевірку.";
+  return "Прилад збережено, але він не відповідає. Перевірте живлення та підключення й повторіть перевірку.";
 }
