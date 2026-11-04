@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T08:34:26Z",
+  "timestamp": "2026-11-04T08:43:14Z",
   "actor": "ChatGPT",
-  "event": "1487_ci_trivy_gateway_repair",
+  "event": "1487_scanner_restored_security_owner_gate_1447",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,11 +30,7 @@
     "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
-  "active_work": {
-    "issue": 1487,
-    "title": "Restore pinned CI scanner installation from official release",
-    "branch": "fix/1487-trivy-download"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2972,7 +2968,19 @@
       "actual_official_binary_sha256_verified": true,
       "actual_version": "0.70.0",
       "site_mutation": false,
-      "github_ci": "pending"
+      "github_ci": "pending",
+      "blocker_issue": 1447,
+      "pull_request": 1489,
+      "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+      "hosted_run": 41800839925,
+      "image_build_and_scan_jobs": "5_of_5_PASS",
+      "unchanged_policy": "FAIL_expired_2026_10_20",
+      "telemetry_high": 74,
+      "telemetry_critical": 5,
+      "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+      "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+      "ci_routing_tests": 82,
+      "final_source_ci": "pending"
     }
   },
   "observations": [
@@ -4385,7 +4393,7 @@
       }
     }
   ],
-  "next_action": "Publish pinned scanner repair; pass unchanged exact-head CI before merge, then refresh dependent search PRs #1483/#1488. No site deployment.",
+  "next_action": "Independent platform-security review required by #1447/#1448; refresh remediation against new libsqlite3 HIGH, fix consumable CRITICAL/HIGH and preserve unchanged policy. Final CI scanner-routing candidate and integration browser/offline checks pending. No feature merge/site deployment/update signal; hardware unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

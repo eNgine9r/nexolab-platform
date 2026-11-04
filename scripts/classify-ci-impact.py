@@ -338,6 +338,7 @@ CI_GOVERNANCE_PATHS = {
     "scripts/verify-pr-workflow-matrix.py",
     "scripts/prepare-clean-verification-worktree.sh",
     "scripts/verify-local-candidate.py",
+    "scripts/install-ci-trivy.sh",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
     "tests/test_ci_workflow_matrix.py",
@@ -433,6 +434,8 @@ def _verification_for_paths(
                 "security/container-images.json",
                 "infrastructure/object-storage/**",
                 ".github/workflows/container-supply-chain.yml",
+                "scripts/install-ci-trivy.sh",
+                "tests/test_ci_trivy_install.py",
             ),
         )
         for path in normalized
