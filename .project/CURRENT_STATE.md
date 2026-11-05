@@ -1,3 +1,15 @@
+## 2026-11-05 — real RS-485 read-only device mapping and input range evidence
+
+Actual isolated exclusive by-id Unit 1 9600 8N1 CRC-checked reads: A10Q2SI7 responds as SDM120-family FC04 with 229.605 V and 50.012 Hz; A10Q2QYX responds as Waveshare (B) FC03 modes/FC04 inputs: channels 1–2 mode 4–20 mA, both 0 µA; channels 3–8 mode 0–10 V, all 0 mV. This is the reverse of the Product Owner initial adapter report. No write functions or hardware changes. Protocol evidence is not proof of exact model or sensor wiring; 0 mA is outside the selected 4–20 mA range and cannot identify the physical cause.
+
+A generic Waveshare probe on the SDM adapter returned mode 0 plus IEEE-754 voltage words 17253/36147 masquerading as analog values. #1502 now rejects preflight readings exceeding the mode's upper electrical range and marks values outside the configured nominal range as unknown, retaining raw values without diagnosing the wiring. This guard is evidence-based but not unique model identification. The new source has not been installed or verified against real hardware; only the older runtime was used for bounded physical reads.
+
+## 2026-11-05 — #1502 Waveshare 8AI scoped source candidate
+
+Waveshare (B) V3 added to commissioning with bounded FC03 mode and FC04 input preflight, scoped activation and eight acquisition targets on the approved persistent commissioning bus. Distinct new source/equipment/channel identities avoid reassigning historical data. The UI states that an electrical value does not prove a sensor is connected. No guessed humidity/pressure conversion, channel attachment, device settings or controller writes. Live source code displays the last reported channel mode and converts electrical mV/uA to V/mA for readability; 11 component tests passed. Real-channel mode display remains unverified. Existing local drivers and API contracts only; no runtime deployment or real hardware verification.
+
+Simulated verification: 108 Device Agent unittests with MQTT mocked, 4 API contract unittests, 44 frontend tests, touched ESLint/TypeScript/format/compile, state checks and production frontend build passed. Exact CI, full backend suites, connected module, actual modes/units, persisted fresh samples and offline runtime remain unverified. Depends on #1505 / PR #1506 and #1503 / PR #1504. SDM bus-scoped Energy workspace integration remains open.
+
 ## 2026-11-05 — #1503 SDM120M scoped activation source candidate
 
 SDM120M now has read-only FC04 preflight and activation contracts; new commissioning-bus devices receive bus-scoped registry, target, channel and telemetry equipment identities so old SDM120M-1 history is not relabeled or merged. One agent simulation verified old and new Unit 1 can coexist on distinct buses and restart. Quick Add and Live links use the explicit scoped identity. No site deployment or live hardware read. The existing Energy workspace still has a fixed meter catalog keyed by numeric unit and DOES NOT yet support the new bus-scoped SDM; do not claim full energy integration or task completion. Depends on #1505 / PR #1506.

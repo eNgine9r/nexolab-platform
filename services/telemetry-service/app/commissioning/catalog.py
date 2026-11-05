@@ -23,6 +23,13 @@ class SupportedDeviceProfile:
 # identities. Commissioning never imports or invokes Device Agent runtime code.
 SUPPORTED_DEVICE_PROFILES: tuple[SupportedDeviceProfile, ...] = (
     SupportedDeviceProfile(
+        id="waveshare-8ai-b-v3", version="waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        device_family="waveshare_8ai", device_class="analog-input", manufacturer="Waveshare",
+        models=("Modbus RTU Analog Input 8CH (B) V3",), display_name="Waveshare Analog Input 8CH (B) V3",
+        transport_kind="modbus_rtu", capability_status="repository_supported",
+        evidence_note="Read-only FC03 mode and FC04 channel data; connected sensor and calibration are not inferred.",
+    ),
+    SupportedDeviceProfile(
         id="eastron-sdm120m",
         version="eastron-sdm120m-fc04-v1",
         device_family="sdm120",

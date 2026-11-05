@@ -574,6 +574,17 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         except RuntimeError as error:
                             raise PreflightExecutionError("malformed_response", "Meter returned an invalid value") from error
                         observations.append(PreflightObservation(key=key, quality=reading.quality))
+                elif profile.profile_id == "waveshare-8ai-b-v3":
+                    reader = Waveshare8AIReader(client)
+                    try:
+                        reading = reader.read_channel(unit_id, 1)
+                    except ModbusError:
+                        raise
+                    except RuntimeError as error:
+                        raise PreflightExecutionError("malformed_response", "Analog module returned an invalid mode or value") from error
+                    if (reading.mode in {0, 1} and reading.raw_value > 10000) or (reading.mode in {2, 3} and reading.raw_value > 20000):
+                        raise PreflightExecutionError("profile_mismatch", "Analog value exceeds the selected electrical input range")
+                    observations.append(PreflightObservation(key="channel-01", quality=reading.quality, semantic=reading.mode_label))
                 elif profile.profile_id == "embraco-sync":
                     if embraco is None:
                         embraco = EmbracoSyncReader(client, temperature_scale=self.settings.embraco_temperature_scale, control_scale=self.settings.embraco_control_scale)
@@ -748,6 +759,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             return self._registry_store.enroll_le01mp(current, **kwargs)
         if family == "sdm120":
             return self._registry_store.enroll_sdm120(current, scoped=request.bus_id.startswith("commissioning-"), **kwargs)
+        if family == "waveshare_8ai":
+            return self._registry_store.enroll_waveshare_8ai(current, scoped=request.bus_id.startswith("commissioning-"), **kwargs)
         if family == "embraco":
             return self._registry_store.enroll_embraco(current, **kwargs)
         raise ValueError("unsupported commissioning activation family")
@@ -827,8 +840,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
     @staticmethod
     def _activation_response(request: CommissioningActivationRequest, journal: dict[str, Any]) -> dict[str, Any]:
         profile = PROFILES[request.profile_id]
-        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync", "sdm120": "eastron-sdm120m"}[profile.device_family]
-        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}", "sdm120": f"SDM120M:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"SDM120M-{request.unit_id}"}[profile.device_family]
+        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync", "sdm120": "eastron-sdm120m", "waveshare_8ai": "waveshare-analog-input-8ch-b-v3"}[profile.device_family]
+        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}", "sdm120": f"SDM120M:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"SDM120M-{request.unit_id}", "waveshare_8ai": f"WAVESHARE-8AI:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"WAVESHARE-8AI-{request.unit_id}"}[profile.device_family]
         if connected_count(request.profile_version) is not None:
             source = SECTION_SOURCE
             equipment_id = section_equipment_id(request.bus_id, request.unit_id)
@@ -847,7 +860,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             "registry_revision": journal.get("registry_revision_after") or journal.get("registry_revision_rollback") or journal.get("registry_revision_before"),
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
-            "polling_mode": "read_only_fc04" if profile.device_family == "sdm120" else "read_only_fc03",
+            "polling_mode": "read_only_fc03_fc04" if profile.device_family == "waveshare_8ai" else "read_only_fc04" if profile.device_family == "sdm120" else "read_only_fc03",
             "modbus_writes": "none",
             "hardware_writes": "none",
             "reason": journal.get("reason"),

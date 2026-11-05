@@ -266,6 +266,68 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         self.addCleanup(restarted._commissioned_bus_store.close)
         self.assertTrue(any(d.bus_id == bus_id and d.lifecycle == "active" for d in restarted._registry.document.devices))
 
+    def test_waveshare_activation_reserves_separate_identity_and_eight_channels(self) -> None:
+        path = "/dev/serial/by-id/usb-waveshare"
+        bus_id = commissioning_bus_id(path)
+        previous = self.agent._registry_store.enroll_waveshare_8ai(
+            self.agent._registry, expected_revision=self.agent._registry.revision, unit_ids=(1,),
+            actor="test", reason="existing historical identity", bus_for_unit=lambda _: "rs485-kk1",
+        )
+        self.agent._registry = previous
+        request = CommissioningActivationRequest(
+            "act-analog", "activate", "edge-01", bus_id, path, 1,
+            "waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ), patch.object(self.agent, "preflight_bus", return_value=PreflightBus(bus_id, "/host" + path, True)):
+            result = self.agent.commissioning_activation(request)
+        self.assertEqual(result["state"], "active")
+        self.assertEqual(result["polling_mode"], "read_only_fc03_fc04")
+        self.assertEqual(result["telemetry_equipment_id"], f"WAVESHARE-8AI:{bus_id}:1")
+        self.assertEqual(len(result["target_ids"]), 8)
+        ids = {d.device_id for d in self.agent._registry.document.devices if d.device_family == "waveshare_8ai"}
+        self.assertEqual(ids, {"waveshare-8ai-1", f"waveshare-8ai-{bus_id}-1"})
+        target = next(j.target for j in self.agent.scheduler._jobs.values() if j.target.bus_id == bus_id)
+        self.assertEqual(self.agent._equipment_for(target), f"WAVESHARE-8AI:{bus_id}:1")
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertTrue(any(d.bus_id == bus_id and d.lifecycle == "active" for d in restarted._registry.document.devices))
+
+    def test_waveshare_preflight_reads_mode_and_input_without_write(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock(explicit=True, commissioned_bus_ids=frozenset())
+        topology.binding.return_value = Mock(baudrate=9600, parity="N", stopbits=1)
+        agent.rs485_topology = topology
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        client.read_holding_registers.return_value = (3,)
+        client.read_input_registers.return_value = (12000,)
+        lock = Mock()
+        lock.acquire.return_value = True
+        agent._bus_clients = {"rs485-main": client}
+        agent._bus_operation_locks = {"rs485-main": lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+        observations = agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual([(x.key, x.semantic) for x in observations], [("channel-01", "4-20mA")])
+        client.read_holding_registers.assert_called_once_with(1, 0x1000, 1)
+        client.read_input_registers.assert_called_once_with(1, 0, 1)
+        client.write_single_register.assert_not_called()
+        # A real SDM120 meter replied to both generic functions on the wrong
+        # adapter. Its IEEE-754 voltage high word is not a valid 0-10 V input.
+        client.read_holding_registers.return_value = (0,)
+        client.read_input_registers.return_value = (17253,)
+        with self.assertRaises(PreflightExecutionError) as wrong_model:
+            agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(wrong_model.exception.code, "profile_mismatch")
+        client.read_holding_registers.return_value = (3,)
+        client.read_input_registers.return_value = (0,)
+        observations = agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(observations[0].quality, "unknown")
+
     def test_present_alias_of_two_buses_is_rejected(self) -> None:
         root = Path(self.temporary.name)
         device = root / "physical"

@@ -61,15 +61,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1503,
-      "title": "SDM120M standalone onboarding",
-      "branch": "feature/1503-sdm120-onboarding"
-    },
-    "next_work_package": {
       "issue": 1502,
       "title": "Waveshare 8CH (B) standalone onboarding",
       "branch": "feature/1502-waveshare-onboarding"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -10132,7 +10128,7 @@
       "title": "SDM120M standalone onboarding",
       "branch": "feature/1503-sdm120-onboarding",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         1500,
         1505
@@ -10154,7 +10150,9 @@
         "frontend": "34 passed",
         "energy_workspace": "not compatible with scoped meter yet",
         "site": "not deployed",
-        "dependency_pr": 1506
+        "dependency_pr": 1506,
+        "pr": 1504,
+        "hardware_read_only": "A10Q2SI7 unit1 9600N1 FC04 229.605V 50.012Hz; new implementation not deployed"
       }
     },
     {
@@ -10162,7 +10160,7 @@
       "title": "Waveshare 8CH (B) standalone onboarding",
       "branch": "feature/1502-waveshare-onboarding",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         1500,
         1505,
@@ -10170,7 +10168,18 @@
       ],
       "scope": "Read-only Waveshare 8CH setup and truthful channels; no hardware writes.",
       "evidence": {
-        "status": "not_started"
+        "agent_targeted": "109 passed with MQTT mocked",
+        "central_contract": "4 passed",
+        "frontend": "44 passed",
+        "hardware": "unverified",
+        "site": "not deployed",
+        "dependencies": [
+          1504,
+          1506
+        ],
+        "hardware_read_only": "A10Q2QYX unit1 9600N1 FC03 modes 3,3,0,0,0,0,0,0; FC04 all zero; no wiring proof",
+        "false_identity_guard": "SI7 meter produces out-of-range 17253mV analogue pattern; profile check rejects",
+        "full_integration": "unverified_not_deployed"
       }
     },
     {

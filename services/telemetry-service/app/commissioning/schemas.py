@@ -211,7 +211,7 @@ class CommissioningActivationPlanResponse(BaseModel):
     target_equipment_key: str | None
     telemetry_source: str
     telemetry_equipment_id: str
-    polling_mode: Literal["read_only_fc03", "read_only_fc04"]
+    polling_mode: Literal["read_only_fc03", "read_only_fc04", "read_only_fc03_fc04"]
     binding_kind: Literal["refrigeration_controller", "commissioning_target", "standalone_instrument"]
     warnings: list[str]
     will_not_perform: list[str]

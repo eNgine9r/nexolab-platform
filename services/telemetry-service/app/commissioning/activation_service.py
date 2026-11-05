@@ -278,8 +278,9 @@ def _unknown_mutation_evidence(
 
 
 def _safety_evidence(command: DeviceAgentActivationCommand) -> dict[str, object]:
+    from app.commissioning.activation_client import polling_mode
     return {
-        "polling_mode": "read_only_fc04" if (command.profile_id, command.profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1") else "read_only_fc03",
+        "polling_mode": polling_mode(command.profile_id, command.profile_version),
         "modbus_writes": "none",
         "hardware_writes": "none",
         "controller_parameter_changes": "none",
