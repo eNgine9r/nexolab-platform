@@ -31,6 +31,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
         bind_registry: Callable[[AcquisitionRegistry], AcquisitionRegistry],
         sdm120_bus_for_unit: Callable[[int], str] | None = None,
         waveshare_8ai_bus_for_unit: Callable[[int], str] | None = None,
+        commissioned_bus_ids: Callable[[], set[str]] | None = None,
     ) -> None:
         super().__init__(
             database_path,
@@ -38,6 +39,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
             configured_bus_for_unit=bus_for_unit,
             configured_sdm120_bus_for_unit=sdm120_bus_for_unit,
             configured_waveshare_8ai_bus_for_unit=waveshare_8ai_bus_for_unit,
+            commissioned_bus_ids=commissioned_bus_ids,
         )
         self._bus_for_unit = bus_for_unit
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T07:51:21.088013+00:00",
-  "actor": "ChatGPT",
-  "event": "1500_two_physical_instruments_TEST_installed_actual8_after_restart",
+  "timestamp": "2026-11-05T09:21:07.000573+00:00",
+  "actor": "Codex",
+  "event": "1505_persistent_rs485_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,12 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1500,
-    "title": "Section-addressed XJP60D as two physical instruments",
-    "branch": "feature/1500-section-addressed-xjp60d"
+    "issue": 1505,
+    "title": "Persistent commissioned RS-485 buses",
+    "branch": "feature/1505-persistent-rs485",
+    "status": "in_progress_source_candidate",
+    "production_mutation": false,
+    "next": "verify edge cases, CI, then complete SDM #1503 and Waveshare #1502"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {

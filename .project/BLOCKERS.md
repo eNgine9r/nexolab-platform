@@ -1,3 +1,11 @@
+## 2026-11-05 — #1505 source candidate not runtime accepted
+
+Dynamic adapter topology is approved and under implementation; simulated tests do not establish device acceptance or production readiness. No deployed code, real adapter preflight, off-network live runtime test or rollback execution in this work package. SDM #1503 still needs activation and actual energy samples; Waveshare #1502 still needs channel integration. Full local Python dependencies are absent; CI and independent review remain required.
+
+## 2026-11-05 — #1503 SDM120M integration incomplete
+
+Meter commissioning is preflight-only: activation and persistent polling on selected adapter are not implemented. Both supplied adapters are currently shown by the UI as free commissioning-only adapters; persistent safe bus onboarding into the running scheduler remains required. Real current device mapping, address/serial settings and meter samples remain unverified. Runtime and hardware acceptance, CI and release must be proven. Local full Python test suites cannot start without paho-mqtt, pytest and SQLAlchemy. Waveshare #1502 remains next; never treat source-only preflight as production readiness.
+
 ## 2026-11-05 —1500 TEST monitoring integration blocker resolved
 
 Section mode is installed on Agent, central commissioning and both frontends. Actual continuous PostgreSQL evidence is exactly6+2 valid probes under two physical group identities;4 reserves do not poll. Actual Agent restart and all8 post-restart values pass. The prior section/profile mismatch and obsolete unit2-to-second-module attribution are superseded by retained/audited test profile replacement. No owner physical action is currently needed.

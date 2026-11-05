@@ -8,12 +8,15 @@ from pathlib import Path
 
 from acquisition_registry import (
     AcquisitionRegistry,
+    AcquisitionRegistryStore,
     DeviceLifecycleMutation,
     LifecycleMutation,
     build_initial_document,
 )
 from main import Settings
 from rs485_buses import BUS_CONFIG_ENV, LEGACY_BUS_ID, RS485BusTopology
+from commissioning_buses import CommissionedBus
+from commissioning_connections import commissioning_bus_id
 
 
 def settings(database_path: Path) -> Settings:
@@ -89,6 +92,44 @@ class RS485BusTopologyTests(unittest.TestCase):
             self.registry,
             environ={BUS_CONFIG_ENV: json.dumps(payload)},
         )
+
+    def test_commissioned_bus_preserves_scoped_identity_even_with_shared_unit_id(self) -> None:
+        path = "/dev/serial/by-id/usb-new"
+        dynamic = CommissionedBus(commissioning_bus_id(path), path, 9600, "N", 1, 0.3, 1)
+        configured = self.topology(explicit_payload())
+        topology = configured.with_commissioned_buses((dynamic,))
+        bound = topology.bind_registry(self.registry)
+        document, _ = bound.with_sdm120_enrollment((106,), bus_for_unit=lambda _: dynamic.bus_id)
+        restored = configured.with_commissioned_buses((dynamic,)).bind_registry(AcquisitionRegistry(document))
+        devices = {item.device_id: item for item in restored.document.devices}
+        self.assertEqual(devices["sdm120-106"].bus_id, dynamic.bus_id)
+        self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
+        self.assertEqual(topology.binding(dynamic.bus_id).serial_device, "/host" + path)
+        self.assertEqual(configured.bindings, topology.bindings[:len(configured.bindings)])
+
+    def test_commissioned_bus_cannot_duplicate_configured_identity(self) -> None:
+        path = "/dev/serial/by-id/usb-kk1"
+        dynamic = CommissionedBus(commissioning_bus_id(path), path, 9600, "N", 1, 0.3, 1)
+        with self.assertRaises(ValueError):
+            self.topology(explicit_payload()).with_commissioned_buses((dynamic,))
+
+    def test_dynamic_meter_and_analog_lifecycles_survive_runtime_reconciliation(self) -> None:
+        def descriptor(name: str) -> CommissionedBus:
+            path = "/dev/serial/by-id/" + name
+            return CommissionedBus(commissioning_bus_id(path), path, 9600, "N", 1, 0.3, 1)
+
+        meter, analog = descriptor("usb-meter"), descriptor("usb-analog")
+        topology = self.topology(explicit_payload()).with_commissioned_buses((meter, analog))
+        initial = topology.bind_registry(self.registry)
+        doc, _ = initial.with_sdm120_enrollment((1,), lifecycle="active", bus_for_unit=lambda _: meter.bus_id)
+        doc, _ = AcquisitionRegistry(doc).with_waveshare_8ai_enrollment((1,), lifecycle="active", bus_for_unit=lambda _: analog.bus_id)
+        store = AcquisitionRegistryStore(self.database_path, commissioned_bus_ids=lambda: {meter.bus_id, analog.bus_id})
+        restored, _ = store._reconcile_sdm120_runtime_opt_in(AcquisitionRegistry(doc), ())
+        restored, _ = store._reconcile_waveshare_8ai_runtime_opt_in(restored, ())
+        device_states = {d.device_family: d.lifecycle for d in restored.document.devices}
+        self.assertEqual(device_states["sdm120"], "active")
+        self.assertEqual(device_states["waveshare_8ai"], "active")
+        self.assertTrue(all(t.lifecycle == "active" for t in restored.document.targets if t.device_id in {"sdm120-1", "waveshare-8ai-1"}))
 
     def test_explicit_topology_rebinds_registry_devices_without_target_duplication(self) -> None:
         topology = self.topology(explicit_payload())

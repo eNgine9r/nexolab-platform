@@ -1198,6 +1198,7 @@ class AcquisitionRegistryStore:
         configured_bus_for_unit: Callable[[int], str] | None = None,
         configured_sdm120_bus_for_unit: Callable[[int], str] | None = None,
         configured_waveshare_8ai_bus_for_unit: Callable[[int], str] | None = None,
+        commissioned_bus_ids: Callable[[], set[str]] | None = None,
     ) -> None:
         if (registry_binding is None) != (configured_bus_for_unit is None):
             raise ValueError(
@@ -1211,6 +1212,7 @@ class AcquisitionRegistryStore:
         self._configured_bus_for_unit = configured_bus_for_unit
         self._configured_sdm120_bus_for_unit = configured_sdm120_bus_for_unit
         self._configured_waveshare_8ai_bus_for_unit = configured_waveshare_8ai_bus_for_unit
+        self._commissioned_bus_ids = commissioned_bus_ids or (lambda: set())
         with self._connection:
             self._connection.execute(
                 """
@@ -1290,6 +1292,28 @@ class AcquisitionRegistryStore:
                 updated_at=_now(),
             )
         return AcquisitionRegistry(document), changes
+
+    def enroll_commissioned_bus(
+        self, registry: AcquisitionRegistry, *, bus_id: str,
+        expected_revision: int, actor: str,
+    ) -> AcquisitionRegistry:
+        """Add an empty audited bus; it cannot by itself create polling targets."""
+        if not bus_id.startswith("commissioning-") or len(bus_id) != 30:
+            raise ValueError("Invalid commissioned bus identity")
+        if any(bus.bus_id == bus_id for bus in registry.document.buses):
+            return registry
+        document = replace(
+            registry.document, revision=registry.revision + 1,
+            buses=(*registry.document.buses, RegistryBus(bus_id, "modbus_rtu", True)),
+            updated_at=_now(),
+        )
+        _validate_document(document)
+        return self._commit_candidate(
+            registry, document,
+            [{"entity": "registry_bus", "id": bus_id, "from": "absent", "to": "read_only"}],
+            expected_revision=expected_revision, actor=actor,
+            reason="Enroll verified commissioning bus without polling targets",
+        )
 
     def _write_state_locked(self, document: RegistryDocument, expected_revision: int | None = None) -> None:
         if expected_revision is None:
@@ -1399,12 +1423,13 @@ class AcquisitionRegistryStore:
         configured_unit_ids: Iterable[int],
     ) -> tuple[AcquisitionRegistry, list[dict[str, str]]]:
         configured = set(configured_unit_ids)
+        commissioned = self._commissioned_bus_ids()
         device_mutations: list[DeviceLifecycleMutation] = []
         target_mutations: list[LifecycleMutation] = []
         sdm120_device_ids: set[str] = set()
 
         for device in registry.document.devices:
-            if device.device_family != "sdm120":
+            if device.device_family != "sdm120" or device.bus_id in commissioned:
                 continue
             sdm120_device_ids.add(device.device_id)
             desired = "active" if device.unit_id in configured else "reserve"
@@ -1434,11 +1459,12 @@ class AcquisitionRegistryStore:
         self, registry: AcquisitionRegistry, configured_unit_ids: Iterable[int]
     ) -> tuple[AcquisitionRegistry, list[dict[str, str]]]:
         configured = set(configured_unit_ids)
+        commissioned = self._commissioned_bus_ids()
         device_mutations: list[DeviceLifecycleMutation] = []
         target_mutations: list[LifecycleMutation] = []
         device_ids: set[str] = set()
         for device in registry.document.devices:
-            if device.device_family != "waveshare_8ai":
+            if device.device_family != "waveshare_8ai" or device.bus_id in commissioned:
                 continue
             device_ids.add(device.device_id)
             desired = "active" if device.unit_id in configured else "reserve"
