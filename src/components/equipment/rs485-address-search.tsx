@@ -23,6 +23,7 @@ const defaultProfiles: SearchProfile[] = [
 const serialByProfile: Record<string, [number, string, number]> = {
   "dixell-xjp60d": [9600, "N", 1],
   "f-and-f-le01mp": [9600, "N", 1],
+  "eastron-sdm120m": [9600, "N", 1],
   "embraco-sync": [9600, "N", 2],
   "danfoss-ak-cc25-pro": [9600, "E", 1],
 };

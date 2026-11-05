@@ -62,7 +62,20 @@ PROFILES: dict[str, PreflightProfile] = {
         ),
         activation_supported=False,
     ),
+    "eastron-sdm120m": PreflightProfile(
+        profile_id="eastron-sdm120m",
+        profile_version="eastron-sdm120m-fc04-v1",
+        device_family="sdm120",
+        evidence_level="partially_verified",
+        warnings=("FC04 response is a candidate, not proof of the exact meter model.",),
+    ),
 }
+
+
+def read_contract(profile_id: str, profile_version: str) -> tuple[str, list[int]]:
+    if (profile_id, profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
+        return "modbus_rtu_fc04", [4]
+    return "modbus_rtu_fc03", [3]
 
 
 # Fixed profiles persist the explicit attached-input count without device writes.
@@ -205,7 +218,8 @@ def execute_preflight(
         return failed("unsupported_profile", "profile", "Commissioning profile is not supported", evidence_level="unsupported")
     if request.profile_version != profile.profile_version:
         return failed("profile_mismatch", "profile", "Commissioning profile version does not match the repository-owned read contract")
-    passed("profile", f"{profile.profile_id}@{profile.profile_version} is a fixed FC03-only profile")
+    method, codes = read_contract(profile.profile_id, profile.profile_version)
+    passed("profile", f"{profile.profile_id}@{profile.profile_version} uses fixed {method} reads")
 
     try:
         bus = runtime.preflight_bus(request.bus_id)
@@ -247,7 +261,7 @@ def execute_preflight(
         return failed(error.code, "profile_read", error.detail)
     if monotonic() > deadline_monotonic:
         return failed("deadline_exceeded", "deadline", "Preflight exceeded its bounded execution deadline")
-    passed("profile_read", "Fixed repository-owned FC03 verification reads completed")
+    passed("profile_read", f"Fixed repository-owned {method} verification reads completed")
     passed("write_safety", "Modbus writes = none; hardware writes = none")
     return _result(
         request,
@@ -300,8 +314,8 @@ def _result(
         "unit_id": request.unit_id,
         "profile_id": request.profile_id,
         "profile_version": request.profile_version,
-        "read_method": "modbus_rtu_fc03",
-        "function_codes": [3],
+        "read_method": read_contract(request.profile_id, request.profile_version)[0],
+        "function_codes": read_contract(request.profile_id, request.profile_version)[1],
         "checks": checks,
         "observations": [
             {"key": item.key, "quality": item.quality, "semantic": item.semantic}

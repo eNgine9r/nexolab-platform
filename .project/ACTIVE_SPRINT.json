@@ -61,14 +61,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1505,
-      "title": "Persistent commissioned RS-485 buses",
-      "branch": "feature/1505-persistent-rs485"
-    },
-    "next_work_package": {
       "issue": 1503,
       "title": "SDM120M standalone onboarding",
       "branch": "feature/1503-sdm120-onboarding"
+    },
+    "next_work_package": {
+      "issue": 1502,
+      "title": "Waveshare 8CH (B) standalone onboarding",
+      "branch": "feature/1502-waveshare-onboarding"
     }
   },
   "work_packages": [
@@ -10132,7 +10132,7 @@
       "title": "SDM120M standalone onboarding",
       "branch": "feature/1503-sdm120-onboarding",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         1500,
         1505
@@ -10148,7 +10148,13 @@
         "runtime": "not deployed",
         "modbus_writes": "none",
         "frontend_build": "pass_next_16.3.6",
-        "ui_inventory": "both owner-named adapters present as free commissioning-only; physical devices unverified"
+        "ui_inventory": "both owner-named adapters present as free commissioning-only; physical devices unverified",
+        "agent_targeted": "83 passed with MQTT mocked",
+        "central_contract": "2 passed",
+        "frontend": "34 passed",
+        "energy_workspace": "not compatible with scoped meter yet",
+        "site": "not deployed",
+        "dependency_pr": 1506
       }
     },
     {
@@ -10172,7 +10178,7 @@
       "title": "Persistent commissioned RS-485 buses",
       "branch": "feature/1505-persistent-rs485",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         1500
       ],
@@ -10182,7 +10188,8 @@
         "software": "targeted unittests with MQTT mocked; exact count in PR",
         "hardware": "unverified",
         "runtime": "not deployed",
-        "modbus_writes": "none"
+        "modbus_writes": "none",
+        "pr": 1506
       }
     }
   ],

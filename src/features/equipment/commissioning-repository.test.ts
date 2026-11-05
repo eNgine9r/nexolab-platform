@@ -303,6 +303,49 @@ describe("HttpCommissioningRepository", () => {
     });
   });
 
+  it("accepts FC04 only for the exact SDM120 profile", async () => {
+    const meterEvidence = {
+      ...preflightPayload.evidence,
+      profile_id: "eastron-sdm120m",
+      profile_version: "eastron-sdm120m-fc04-v1",
+      read_method: "modbus_rtu_fc04",
+      function_codes: [4],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...preflightPayload, evidence: meterEvidence }))
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...meterEvidence, function_codes: [6] } }),
+      )
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...meterEvidence, profile_id: "embraco-sync" } }),
+      );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getLatestPreflight("commissioning-1")).resolves.toMatchObject({
+      evidence: { readMethod: "modbus_rtu_fc04", functionCodes: [4] },
+    });
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+  });
+
+  it("requires an FC04 activation plan for the SDM120M profile", async () => {
+    const plan = {
+      ...activationPlanPayload,
+      profile_id: "eastron-sdm120m",
+      profile_version: "eastron-sdm120m-fc04-v1",
+      polling_mode: "read_only_fc04",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(plan))
+      .mockResolvedValueOnce(json({ ...plan, polling_mode: "read_only_fc03" }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getActivationPlan("commissioning-1")).resolves.toMatchObject({
+      pollingMode: "read_only_fc04",
+    });
+    await expect(repository.getActivationPlan("commissioning-1")).rejects.toThrow();
+  });
+
   it("parses activation plan/evidence and sends exact optimistic activation headers", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

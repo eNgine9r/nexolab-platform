@@ -120,8 +120,8 @@ export type CommissioningPreflightEvidence = {
   unitId: number;
   profileId: string;
   profileVersion: string;
-  readMethod: "modbus_rtu_fc03";
-  functionCodes: [3];
+  readMethod: "modbus_rtu_fc03" | "modbus_rtu_fc04";
+  functionCodes: [3] | [4];
   checks: CommissioningPreflightCheck[];
   observations: CommissioningPreflightObservation[];
   warnings: string[];
@@ -164,7 +164,7 @@ export type CommissioningActivationPlan = {
   targetEquipmentKey: string | null;
   telemetrySource: string;
   telemetryEquipmentId: string;
-  pollingMode: "read_only_fc03";
+  pollingMode: "read_only_fc03" | "read_only_fc04";
   bindingKind: "refrigeration_controller" | "commissioning_target" | "standalone_instrument";
   warnings: string[];
   willNotPerform: string[];
@@ -756,10 +756,13 @@ function parsePreflightEvidence(value: unknown): CommissioningPreflightEvidence 
     typeof item.unit_id !== "number" ||
     typeof item.profile_id !== "string" ||
     typeof item.profile_version !== "string" ||
-    item.read_method !== "modbus_rtu_fc03" ||
+    item.read_method !==
+      (item.profile_id === "eastron-sdm120m" && item.profile_version === "eastron-sdm120m-fc04-v1"
+        ? "modbus_rtu_fc04"
+        : "modbus_rtu_fc03") ||
     !Array.isArray(item.function_codes) ||
     item.function_codes.length !== 1 ||
-    item.function_codes[0] !== 3 ||
+    item.function_codes[0] !== (item.read_method === "modbus_rtu_fc04" ? 4 : 3) ||
     !Array.isArray(checks) ||
     !Array.isArray(observations) ||
     !Array.isArray(item.warnings) ||
@@ -781,8 +784,8 @@ function parsePreflightEvidence(value: unknown): CommissioningPreflightEvidence 
     unitId: item.unit_id,
     profileId: item.profile_id,
     profileVersion: item.profile_version,
-    readMethod: "modbus_rtu_fc03",
-    functionCodes: [3],
+    readMethod: item.read_method as "modbus_rtu_fc03" | "modbus_rtu_fc04",
+    functionCodes: item.read_method === "modbus_rtu_fc04" ? [4] : [3],
     checks: checks.map(parsePreflightCheck),
     observations: observations.map(parsePreflightObservation),
     warnings: item.warnings as string[],
@@ -845,7 +848,10 @@ function parseActivationPlan(value: unknown): CommissioningActivationPlan {
     (item.target_equipment_key !== null && typeof item.target_equipment_key !== "string") ||
     typeof item.telemetry_source !== "string" ||
     typeof item.telemetry_equipment_id !== "string" ||
-    item.polling_mode !== "read_only_fc03" ||
+    item.polling_mode !==
+      (item.profile_id === "eastron-sdm120m" && item.profile_version === "eastron-sdm120m-fc04-v1"
+        ? "read_only_fc04"
+        : "read_only_fc03") ||
     !["refrigeration_controller", "commissioning_target", "standalone_instrument"].includes(
       String(item.binding_kind),
     ) ||
@@ -873,7 +879,7 @@ function parseActivationPlan(value: unknown): CommissioningActivationPlan {
     targetEquipmentKey: nullableString(item.target_equipment_key),
     telemetrySource: item.telemetry_source,
     telemetryEquipmentId: item.telemetry_equipment_id,
-    pollingMode: "read_only_fc03",
+    pollingMode: item.polling_mode as "read_only_fc03" | "read_only_fc04",
     bindingKind: item.binding_kind as "refrigeration_controller" | "commissioning_target",
     warnings: item.warnings as string[],
     willNotPerform: item.will_not_perform as string[],

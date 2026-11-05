@@ -498,6 +498,10 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     binding.baudrate, binding.parity, binding.stopbits
                 ) != (profile.baudrate, profile.parity, profile.stopbits):
                     raise PreflightExecutionError("serial_profile_mismatch", "Serial settings differ from the commissioned bus profile")
+                if profile.profile_id == "eastron-sdm120m" and (
+                    binding.baudrate, binding.parity, binding.stopbits
+                ) != (profile.baudrate, profile.parity, profile.stopbits):
+                    raise PreflightExecutionError("serial_profile_mismatch", "Configured serial settings do not match the meter profile")
                 client = self._bus_clients.get(bus_id)
                 lock = self._bus_operation_locks.get(bus_id)
                 xjp60d = self._bus_xjp60d_readers.get(bus_id)
@@ -560,6 +564,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         le01mp = LE01MPReader(client)
                     reading = le01mp.read_metric(unit_id, "voltage")
                     observations.append(PreflightObservation(key="voltage", quality=reading.quality))
+                elif profile.profile_id == "eastron-sdm120m":
+                    reader = SDM120Reader(client)
+                    for key in ("voltage", "frequency"):
+                        try:
+                            reading = reader.read_metric(unit_id, key)
+                        except ModbusError:
+                            raise
+                        except RuntimeError as error:
+                            raise PreflightExecutionError("malformed_response", "Meter returned an invalid value") from error
+                        observations.append(PreflightObservation(key=key, quality=reading.quality))
                 elif profile.profile_id == "embraco-sync":
                     if embraco is None:
                         embraco = EmbracoSyncReader(client, temperature_scale=self.settings.embraco_temperature_scale, control_scale=self.settings.embraco_control_scale)
@@ -597,18 +611,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 else:
                     raise PreflightExecutionError("unsupported_profile", "Preflight profile is unsupported")
         except ModbusTimeoutError as error:
-            raise PreflightExecutionError("timeout", "Bounded FC03 preflight timed out") from error
+            raise PreflightExecutionError("timeout", "Bounded profile preflight timed out") from error
         except ModbusExceptionResponse as error:
             raise PreflightExecutionError(
                 "profile_mismatch",
-                "Target rejected the fixed profile-approved FC03 verification read",
+                "Target rejected the fixed profile-approved verification read",
             ) from error
         except ModbusProtocolError as error:
-            raise PreflightExecutionError("malformed_response", "Target returned a malformed FC03 response") from error
+            raise PreflightExecutionError("malformed_response", "Target returned a malformed read response") from error
         except OSError as error:
             raise PreflightExecutionError("adapter_unavailable", "RS-485 adapter became unavailable") from error
         except ModbusError as error:
-            raise PreflightExecutionError("read_failed", "Profile-approved FC03 verification failed") from error
+            raise PreflightExecutionError("read_failed", "Profile-approved verification read failed") from error
         finally:
             lock.release()
             if temporary_client is not None:
@@ -732,6 +746,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             return self._registry_store.enroll_xjp60d(current, profile_version=request.profile_version, **kwargs)
         if family == "le01mp":
             return self._registry_store.enroll_le01mp(current, **kwargs)
+        if family == "sdm120":
+            return self._registry_store.enroll_sdm120(current, scoped=request.bus_id.startswith("commissioning-"), **kwargs)
         if family == "embraco":
             return self._registry_store.enroll_embraco(current, **kwargs)
         raise ValueError("unsupported commissioning activation family")
@@ -811,8 +827,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
     @staticmethod
     def _activation_response(request: CommissioningActivationRequest, journal: dict[str, Any]) -> dict[str, Any]:
         profile = PROFILES[request.profile_id]
-        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync"}[profile.device_family]
-        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}"}[profile.device_family]
+        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync", "sdm120": "eastron-sdm120m"}[profile.device_family]
+        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}", "sdm120": f"SDM120M:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"SDM120M-{request.unit_id}"}[profile.device_family]
         if connected_count(request.profile_version) is not None:
             source = SECTION_SOURCE
             equipment_id = section_equipment_id(request.bus_id, request.unit_id)
@@ -831,7 +847,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             "registry_revision": journal.get("registry_revision_after") or journal.get("registry_revision_rollback") or journal.get("registry_revision_before"),
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
-            "polling_mode": "read_only_fc03",
+            "polling_mode": "read_only_fc04" if profile.device_family == "sdm120" else "read_only_fc03",
             "modbus_writes": "none",
             "hardware_writes": "none",
             "reason": journal.get("reason"),

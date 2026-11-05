@@ -167,9 +167,16 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
     return {"schema_version": 1, "node_id": payload["node_id"], "connections": sanitized}
 
 
+def read_contract(profile_id: str, profile_version: str) -> tuple[str, list[int]]:
+    if (profile_id, profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
+        return "modbus_rtu_fc04", [4]
+    return "modbus_rtu_fc03", [3]
+
+
 def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCommand) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight evidence must be an object")
+    method, codes = read_contract(command.profile_id, command.profile_version)
     required_exact = {
         "schema_version": 1,
         "node_id": command.node_id,
@@ -178,7 +185,7 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         "unit_id": command.unit_id,
         "profile_id": command.profile_id,
         "profile_version": command.profile_version,
-        "read_method": "modbus_rtu_fc03",
+        "read_method": method,
         "modbus_writes": "none",
         "hardware_writes": "none",
     }
@@ -192,8 +199,8 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight result is invalid")
     if payload.get("evidence_level") not in {"hardware_verified", "partially_verified", "unsupported", "unverified"}:
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent evidence level is invalid")
-    if payload.get("function_codes") != [3]:
-        raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight must prove FC03-only execution")
+    if payload.get("function_codes") != codes:
+        raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight has incorrect function codes for profile")
     if not isinstance(payload.get("code"), str) or not isinstance(payload.get("checks"), list):
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight evidence is incomplete")
     if not isinstance(payload.get("observations"), list) or not isinstance(payload.get("warnings"), list):
@@ -212,8 +219,8 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         "unit_id": payload["unit_id"],
         "profile_id": payload["profile_id"],
         "profile_version": payload["profile_version"],
-        "read_method": "modbus_rtu_fc03",
-        "function_codes": [3],
+        "read_method": method,
+        "function_codes": codes,
         "checks": payload["checks"],
         "observations": payload["observations"],
         "warnings": payload["warnings"],
