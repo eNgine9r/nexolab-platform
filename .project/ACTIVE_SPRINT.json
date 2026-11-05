@@ -1,6 +1,14 @@
 {
   "schema_version": 2,
   "project": "NEXOLAB",
+  "current_interrupt_1520": {
+    "issue": 1520,
+    "status": "source_validation",
+    "scope": "frontend parses active commissioned bus without treating it as unowned",
+    "sdm120": "active and fresh on A10Q2SI7; test overlay",
+    "site_acceptance": "pending",
+    "modbus_writes": "none"
+  },
   "profile": "LOCAL_LAN",
   "sprint": {
     "id": "PRODUCTION-READINESS-1",

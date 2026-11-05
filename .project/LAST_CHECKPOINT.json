@@ -1,6 +1,15 @@
 {
   "schema_version": 2,
   "project": "NEXOLAB",
+  "current_interrupt_1520": {
+    "issue": 1520,
+    "base_branch": "integration/1518-sdm-waveshare-energy",
+    "sdm120_hardware": "active and fresh on A10Q2SI7, unit 1",
+    "live_site": "temporary test overlays; official package authority unchanged",
+    "current_blocker": "frontend rejects production-owned commissioning-prefixed bus",
+    "next_action": "validate parser fix, publish focused PR, then verify test-site candidate",
+    "modbus_writes": "none"
+  },
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
   "timestamp": "2026-11-05T12:24:38.147916+00:00",
