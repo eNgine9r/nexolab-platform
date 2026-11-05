@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T16:23:28.018278+00:00",
+  "timestamp": "2026-11-05T07:21:48.371541+00:00",
   "actor": "ChatGPT",
-  "event": "dixell_6_plus_2_quality_verification_failed_counts_corrected",
+  "event": "both_Dixell_section_diagnostics_verified_1500_ready",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3130,6 +3130,50 @@
       "hardware_parameter_changes": "none",
       "modbus_writes": "none",
       "observed_at": "2026-11-04T16:23:28.018278+00:00"
+    },
+    "both_Dixell_section_hardware_20261105": {
+      "observed_at": "2026-11-05T07:20:07.747666+00:00",
+      "diagnostic_preflight_attempts": 24,
+      "passes": 2,
+      "physical_modules": 2,
+      "first_module": {
+        "section_addresses": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "valid_attached_probes": 6
+      },
+      "second_module": {
+        "section_addresses": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "valid_attached_probe_addresses": [
+          7,
+          8
+        ],
+        "owner_declared_reserve_addresses": [
+          9,
+          10,
+          11,
+          12
+        ],
+        "reserve_observation": "sensor_error"
+      },
+      "diagnostic_result": "all24_preflights_passed_expected_quality;no_malformed_response_in_two_passes",
+      "threshold_semantics": "all8_valid_probes_report_high;thresholds_not_changed",
+      "evidence_path": "direct-data-1498/both-modules-section-acceptance.json on Pi",
+      "limitations": "preflight_API_does_not_expose_numeric_values;no_grouped_continuous_monitoring_acceptance;old_unit2_session_cannot_be_attributed_to_second_physical_module",
+      "assistant_modbus_writes": "none",
+      "assistant_runtime_changes": "none"
     }
   },
   "observations": [
@@ -4542,7 +4586,7 @@
       }
     }
   ],
-  "next_action": "Owner reads Snc on both KB1_PRG-connected instruments without changing parameters; then correlate exact configuration/profile and validate all six first-unit and two second-unit temperatures. No hardware sensor-count acceptance or update GREEN is claimed.",
+  "next_action": "Implement Ready Work Package1500: explicit section-addressed acquisition and two physical-instrument cards with reserve handling; no further owner physical action currently required. Current legacy profile/UI grouping not accepted; no new deployment GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4551,7 +4595,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none;read_only_PG_health_logs_and_locked_FC03_address_checks_only",
+  "runtime_mutation": "none;existing_locked_FC03_diagnostic_reads_only;owner_manually_reconfigured_sections_and_wiring",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

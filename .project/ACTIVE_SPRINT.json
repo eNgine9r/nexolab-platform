@@ -65,7 +65,11 @@
       "title": "Direct readings from simplified instrument connections",
       "branch": "feature/1498-direct-instrument-readings"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1500,
+      "title": "Read section-addressed XJP60D as two physical instruments",
+      "branch": "feature/1500-section-addressed-xjp60d"
+    }
   },
   "work_packages": [
     {
@@ -10048,6 +10052,65 @@
           "modbus_writes": "none",
           "observed_at": "2026-11-04T16:23:28.018278+00:00"
         }
+      }
+    },
+    {
+      "issue": 1500,
+      "title": "Read section-addressed XJP60D as two physical instruments",
+      "branch": "feature/1500-section-addressed-xjp60d",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        1496,
+        1498
+      ],
+      "scope": "Versioned section-addressed profile, physical instrument grouping and correct attribution; preserve legacy profile and historical provenance. No hardware writes.",
+      "evidence": {
+        "hardware_diagnostics": {
+          "observed_at": "2026-11-05T07:20:07.747666+00:00",
+          "diagnostic_preflight_attempts": 24,
+          "passes": 2,
+          "physical_modules": 2,
+          "first_module": {
+            "section_addresses": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "valid_attached_probes": 6
+          },
+          "second_module": {
+            "section_addresses": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "valid_attached_probe_addresses": [
+              7,
+              8
+            ],
+            "owner_declared_reserve_addresses": [
+              9,
+              10,
+              11,
+              12
+            ],
+            "reserve_observation": "sensor_error"
+          },
+          "diagnostic_result": "all24_preflights_passed_expected_quality;no_malformed_response_in_two_passes",
+          "threshold_semantics": "all8_valid_probes_report_high;thresholds_not_changed",
+          "evidence_path": "direct-data-1498/both-modules-section-acceptance.json on Pi",
+          "limitations": "preflight_API_does_not_expose_numeric_values;no_grouped_continuous_monitoring_acceptance;old_unit2_session_cannot_be_attributed_to_second_physical_module",
+          "assistant_modbus_writes": "none",
+          "assistant_runtime_changes": "none"
+        },
+        "implementation": "not_started"
       }
     }
   ],

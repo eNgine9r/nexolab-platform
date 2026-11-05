@@ -1,3 +1,11 @@
+## 2026-11-05 — two physical Dixell verified together; software integration1500 pending
+
+Owner configured both modules Snc6. Isolated first responded1–6 with six valid probes. Isolated second initially overlapped2–7; owner manually corrected each section to7–12. It now has two attached probes at7/8 and four owner-declared reserve inputs9–12. After owner reconnected BOTH, two alternating full FC03 diagnostic passes (24 preflight attempts, not24 serial frames) all passed: addresses1–8 valid,9–12 sensor_error. No malformed response in these passes. This is actual combined-bus diagnostic evidence for eight working probes; not grouped continuous monitoring/dashboard acceptance. Diagnostic API exposes quality/threshold state, not exact numeric readings. All eight valid probes report high threshold semantics; no threshold changes performed.
+
+Evidence on Pi: direct-data-1498/both-modules-section-acceptance.json plus isolated-module artifacts. No assistant Modbus/hardware writes, service restart, registry mutation or data deletion. No further physical action needed for current validation.
+
+Next Ready Work Package1500: explicit versioned section-addressed reading/grouping, preserving legacy single-address multi-register profile. One physical card per module (first1–6, second7–12), only confirmed two attached probes on second with four explicit reserve inputs. Current unit2/K2 session must not be treated as second physical module: it now addresses first module section2. Do not rewrite old telemetry provenance. Source PR1497/1499 remain drafts/unmerged; no software fix/build/deployment for1500 or full offline acceptance yet.
+
 ## 2026-11-04 — correction: actual Dixell sensor counts NOT verified
 
 Owner confirms six physical probes on first Dixell and two on second. Read-only inspection found only channel01 valid on each (21.8°C initially); channels02–06 on both are communication_error/null. Actual Agent logs show FC03 exception03, not probe_error. Bounded locked read search of addresses1–12 found only1 and2. Current profile successfully reads256/257 but later probe reads are rejected. Cause is not yet established; section configuration/profile compatibility needs verification. No evidence supports declaring the other sensors absent or defective.

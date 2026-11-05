@@ -1,3 +1,9 @@
+## 2026-11-05 — physical section/address blocker resolved; software1500 remains
+
+Actual both-connected diagnostic acceptance passed24 preflights in two alternating passes: first1–6 six valid probes; second7/8 two valid probes;9–12 four owner-declared reserve inputs report sensor_error. No malformed replies observed in these passes. Owner manual address changes removed the overlap. Previous physical verification blocker is superseded by this evidence.
+
+Remaining software blocker1500: current profile assumes six probe register pairs on one Modbus unit and existing session unit2 is now a section of first module, not second physical hardware. Grouping, continuous polling and UI attribution need implementation/verification; no existing frontend installation is claimed to implement it. Historical telemetry provenance must not be silently reassigned. Threshold high semantics on eight valid probes were observed and not changed. No further physical action is needed at this point.
+
 ## 2026-11-04 — actual 6+2 Dixell probe verification blocked
 
 Expected physical counts: K1 six, K2 two (owner). Actual latest: one valid temperature and five communication_error records each. FC03 exception03 affects channels02–06; no sensor-fault/absence conclusion is justified. Previous six-fresh-row acceptance did not check quality and must not be cited as six working probes. Only addresses1/2 replied in bounded1–12 search. Exact section/profile compatibility remains unresolved. Required physical read: Snc from each KB1 PRG, no parameter change. UI software checks remain valid; hardware sensor counts are unverified.
