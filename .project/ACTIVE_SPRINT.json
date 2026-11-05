@@ -61,15 +61,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1508,
-      "title": "Energy bus-scoped commissioned SDM meters",
-      "branch": "feature/1508-energy-scoped-sdm"
+      "issue": 1518,
+      "branch": "integration/1518-sdm-waveshare-energy"
     },
-    "next_work_package": {
-      "issue": 1502,
-      "title": "Waveshare 8CH (B) standalone onboarding",
-      "branch": "feature/1502-waveshare-onboarding"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -10162,7 +10157,7 @@
       "title": "Waveshare 8CH (B) standalone onboarding",
       "branch": "feature/1502-waveshare-onboarding",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         1500,
         1505,
@@ -10170,7 +10165,18 @@
       ],
       "scope": "Read-only Waveshare 8CH setup and truthful channels; no hardware writes.",
       "evidence": {
-        "status": "not_started"
+        "agent_targeted": "109 passed with MQTT mocked",
+        "central_contract": "4 passed",
+        "frontend": "44 passed",
+        "hardware": "unverified",
+        "site": "not deployed",
+        "dependencies": [
+          1504,
+          1506
+        ],
+        "hardware_read_only": "A10Q2QYX unit1 9600N1 FC03 modes 3,3,0,0,0,0,0,0; FC04 all zero; no wiring proof",
+        "false_identity_guard": "SI7 meter produces out-of-range 17253mV analogue pattern; profile check rejects",
+        "full_integration": "unverified_not_deployed"
       }
     },
     {
@@ -10230,6 +10236,24 @@
         "production_cutover": false,
         "hardware_write": "none",
         "modbus_write": "none"
+      }
+    },
+    {
+      "issue": 1518,
+      "title": "Integrate SDM120M, Waveshare and Energy for Raspberry update",
+      "branch": "integration/1518-sdm-waveshare-energy",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1502,
+        1503,
+        1505,
+        1508
+      ],
+      "evidence": {
+        "runtime": "not_deployed",
+        "hardware": "unverified",
+        "owner_update_authorized": "2026-11-05",
+        "modbus_writes": "none"
       }
     }
   ],

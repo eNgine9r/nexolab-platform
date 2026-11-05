@@ -1,3 +1,7 @@
+## 2026-11-05 — #1518 update gates
+
+Integrated exact-head tests, required CI, candidate ARM64 package, capacity, rollback and live verification remain open. The owner confirmed old CP2104 adapters are not needed; 12 active instrument records on the absent buses require separate disposition (#1513). Do not disable or rebind them implicitly. Protect both live XJP60D devices on A10Q34QC; no Modbus writes. Source-only #1511 backup test fixture fix merged via #1512 and #1514 browser-test fix is included in the integration candidate.
+
 ## 2026-11-05 — CI fixture and full checks pending
 
 Telemetry run 42021973918 failed four incident-backup fixture tests; isolated test-only fix is PR #1512 on main, CI pending. Energy head 10dba6ca8c0ed0c2cdd708e6536cbdc66f246f43 passed Offline Auth 42021739767 but manual Core CI failed on inherited AGENTS.md whitespace; next head removes the blank line and needs new exact-head checks.

@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.commissioning.catalog import profile_matches_identity, supported_profile
+from app.commissioning.preflight_client import read_contract
 from app.commissioning.models import EquipmentCommissioningPreflightAttempt, EquipmentCommissioningSession
 from app.commissioning.repository import (
     CommissioningEquipmentReferenceError,
@@ -139,7 +140,7 @@ class CommissioningPreflightRepository:
                         "state": "running",
                         "profile_id": command["profile_id"],
                         "profile_version": command["profile_version"],
-                        "read_method": "modbus_rtu_fc04" if command["profile_id"] == "eastron-sdm120m" else "modbus_rtu_fc03",
+                        "read_method": read_contract(command["profile_id"], command["profile_version"])[0],
                         "modbus_writes": "none",
                         "hardware_writes": "none",
                     },

@@ -1058,6 +1058,7 @@ class AcquisitionRegistry:
         *,
         lifecycle: str = "active",
         bus_for_unit: Callable[[int], str] | None = None,
+        scoped: bool = False,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
         requested_values = tuple(unit_ids)
         if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
@@ -1079,7 +1080,8 @@ class AcquisitionRegistry:
                 if existing.device_family != "waveshare_8ai" or existing.profile_version != WAVESHARE_8AI_PROFILE_VERSION:
                     raise ValueError(f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}")
                 continue
-            conflicting = existing_by_device_id.get(f"waveshare-8ai-{unit_id}")
+            device_id = f"waveshare-8ai-{bus_id}-{unit_id}" if scoped else f"waveshare-8ai-{unit_id}"
+            conflicting = existing_by_device_id.get(device_id)
             if conflicting is not None:
                 raise ValueError(
                     "Conflicting Modbus Unit ownership for Waveshare 8AI enrollment: "
@@ -1093,11 +1095,13 @@ class AcquisitionRegistry:
         targets = list(self.document.targets)
         changes: list[dict[str, str]] = []
         for unit_id, bus_id in additions:
-            device_id = f"waveshare-8ai-{unit_id}"
+            device_id = f"waveshare-8ai-{bus_id}-{unit_id}" if scoped else f"waveshare-8ai-{unit_id}"
             devices.append(RegistryDevice(device_id, bus_id, "waveshare_8ai", unit_id, WAVESHARE_8AI_PROFILE_VERSION, desired_lifecycle))
             changes.append({"entity": "device", "id": device_id, "from": "absent", "to": desired_lifecycle})
             for channel in range(1, WAVESHARE_8AI_CHANNEL_COUNT + 1):
                 target = _waveshare_8ai_target(unit_id, channel, desired_lifecycle)
+                if scoped:
+                    target = replace(target, device_id=device_id, target_id=f"waveshare_8ai:{bus_id}:{unit_id}-ai-{channel}", telemetry_channel_id=f"{bus_id}:{unit_id}-ai-{channel}")
                 targets.append(target)
                 changes.append({"entity": "target", "id": target.target_id, "from": "absent", "to": desired_lifecycle})
         cadence = ensure_defaults_for_devices(self.document.cadence, devices)
@@ -1795,6 +1799,18 @@ class AcquisitionRegistryStore:
     ) -> AcquisitionRegistry:
         document, changes = registry.with_embraco_enrollment(
             unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._configured_bus_for_unit
+        )
+        if not changes:
+            return registry
+        return self._commit_candidate(registry, document, changes, expected_revision=expected_revision, actor=actor, reason=reason)
+
+    def enroll_waveshare_8ai(
+        self, registry: AcquisitionRegistry, *, expected_revision: int, unit_ids: Iterable[int],
+        actor: str, reason: str, bus_for_unit: Callable[[int], str] | None = None, scoped: bool = False,
+    ) -> AcquisitionRegistry:
+        document, changes = registry.with_waveshare_8ai_enrollment(
+            unit_ids, lifecycle="reserve", scoped=scoped,
+            bus_for_unit=bus_for_unit or self._configured_waveshare_8ai_bus_for_unit or self._configured_bus_for_unit,
         )
         if not changes:
             return registry

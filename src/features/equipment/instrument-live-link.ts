@@ -7,6 +7,7 @@ const equipmentPrefixes: Record<string, string> = {
   "f-and-f-le01mp": "LE01MP-",
   "embraco-sync": "EMBRACO-",
   "eastron-sdm120m": "SDM120M-",
+  "waveshare-8ai-b-v3": "WAVESHARE-8AI-",
 };
 
 export function instrumentLiveLink(session: CommissioningSession): string | null {
@@ -20,7 +21,10 @@ export function instrumentLiveLink(session: CommissioningSession): string | null
     !Number.isInteger(session.unitId) ||
     session.unitId < 1 ||
     session.unitId > (sectionCount === null ? 247 : 242) ||
-    ((sectionCount !== null || session.profileId === "eastron-sdm120m") && !session.busId)
+    ((sectionCount !== null ||
+      session.profileId === "eastron-sdm120m" ||
+      session.profileId === "waveshare-8ai-b-v3") &&
+      !session.busId)
   )
     return null;
 
@@ -28,11 +32,13 @@ export function instrumentLiveLink(session: CommissioningSession): string | null
     workspace: "explorer",
     node: session.nodeId,
     equipment:
-      session.profileId === "eastron-sdm120m" && session.busId?.startsWith("commissioning-")
-        ? `SDM120M:${session.busId}:${session.unitId}`
-        : sectionCount === null
-          ? `${equipmentPrefixes[session.profileId]}${session.unitId}`
-          : sectionEquipmentId(session.busId!, session.unitId),
+      session.profileId === "waveshare-8ai-b-v3" && session.busId?.startsWith("commissioning-")
+        ? `WAVESHARE-8AI:${session.busId}:${session.unitId}`
+        : session.profileId === "eastron-sdm120m" && session.busId?.startsWith("commissioning-")
+          ? `SDM120M:${session.busId}:${session.unitId}`
+          : sectionCount === null
+            ? `${equipmentPrefixes[session.profileId]}${session.unitId}`
+            : sectionEquipmentId(session.busId!, session.unitId),
   });
   return `/live?${params}`;
 }

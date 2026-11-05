@@ -69,10 +69,19 @@ PROFILES: dict[str, PreflightProfile] = {
         evidence_level="partially_verified",
         warnings=("FC04 response is a candidate, not proof of the exact meter model.",),
     ),
+    "waveshare-8ai-b-v3": PreflightProfile(
+        profile_id="waveshare-8ai-b-v3",
+        profile_version="waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        device_family="waveshare_8ai",
+        evidence_level="partially_verified",
+        warnings=("Read response is a candidate, not proof of exact model or connected sensor wiring.",),
+    ),
 }
 
 
 def read_contract(profile_id: str, profile_version: str) -> tuple[str, list[int]]:
+    if (profile_id, profile_version) == ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1"):
+        return "modbus_rtu_fc03_fc04", [3, 4]
     if (profile_id, profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
         return "modbus_rtu_fc04", [4]
     return "modbus_rtu_fc03", [3]

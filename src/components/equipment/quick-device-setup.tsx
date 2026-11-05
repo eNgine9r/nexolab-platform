@@ -189,6 +189,12 @@ export function QuickDeviceSetup(props: Props) {
               ))}
             </select>
           </label>
+          {profile?.id === "waveshare-8ai-b-v3" ? (
+            <p className="mt-3 text-xs text-slate-400">
+              Модуль має 8 входів. Показання входу самі по собі не підтверджують, що датчик підключений; тип і
+              масштаб датчика налаштовуються окремо.
+            </p>
+          ) : null}
           {sectionCount !== null ? (
             <label className="mt-4 block text-sm text-slate-200">
               Підключено датчиків

@@ -328,6 +328,45 @@ describe("HttpCommissioningRepository", () => {
     await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
   });
 
+  it("accepts both fixed read functions only for the Waveshare profile", async () => {
+    const preflight = {
+      ...preflightPayload.evidence,
+      profile_id: "waveshare-8ai-b-v3",
+      profile_version: "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      read_method: "modbus_rtu_fc03_fc04",
+      function_codes: [3, 4],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...preflightPayload, evidence: preflight }))
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...preflight, function_codes: [3, 4, 6] } }),
+      );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getLatestPreflight("commissioning-1")).resolves.toMatchObject({
+      evidence: { functionCodes: [3, 4] },
+    });
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+  });
+
+  it("requires the mixed read-only polling plan for Waveshare", async () => {
+    const plan = {
+      ...activationPlanPayload,
+      profile_id: "waveshare-8ai-b-v3",
+      profile_version: "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      polling_mode: "read_only_fc03_fc04",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(plan))
+      .mockResolvedValueOnce(json({ ...plan, polling_mode: "read_only_fc03" }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getActivationPlan("commissioning-1")).resolves.toMatchObject({
+      pollingMode: "read_only_fc03_fc04",
+    });
+    await expect(repository.getActivationPlan("commissioning-1")).rejects.toThrow();
+  });
+
   it("requires an FC04 activation plan for the SDM120M profile", async () => {
     const plan = {
       ...activationPlanPayload,
