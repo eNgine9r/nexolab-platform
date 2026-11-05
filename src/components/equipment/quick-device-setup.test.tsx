@@ -187,3 +187,39 @@ describe("quick device setup", () => {
     expect(repository.runPreflight).not.toHaveBeenCalled();
   });
 });
+
+it("offers one section model and persists the explicit attached count", async () => {
+  const { props, rerender } = setup();
+  const sectionProfiles = [1, 2, 3, 4, 5, 6].map((count) => ({
+    ...profile,
+    id: `dixell-xjp60d-sections-${count}`,
+    version: `dixell-xjp60d-sections-v1-${count}`,
+  }));
+  function Harness() {
+    const [current, setCurrent] = useState<CommissioningSessionWrite>({
+      ...draft,
+      profileId: "dixell-xjp60d-sections-6",
+    });
+    return (
+      <QuickDeviceSetup
+        {...props}
+        profiles={[profile, ...sectionProfiles]}
+        draft={current}
+        onDraft={setCurrent}
+      />
+    );
+  }
+  rerender(<Harness />);
+  const modelSelect = screen.getByLabelText("Модель приладу");
+  expect(modelSelect.querySelectorAll("option")).toHaveLength(3);
+  fireEvent.change(screen.getByLabelText("Підключено датчиків"), { target: { value: "2" } });
+  expect(screen.getByLabelText("Підключено датчиків")).toHaveValue("2");
+  expect(modelSelect).toHaveValue("dixell-xjp60d-sections-6");
+  expect(screen.getByLabelText("Адреса приладу")).toHaveAttribute("max", "242");
+  fireEvent.click(screen.getByRole("button", { name: "Додати прилад" }));
+  await screen.findByText("Прилад додано. Моніторинг увімкнено.");
+  expect(props.repository.createSession).toHaveBeenCalledWith(
+    expect.objectContaining({ profileId: "dixell-xjp60d-sections-2" }),
+    expect.any(String),
+  );
+});

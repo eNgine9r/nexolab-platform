@@ -151,7 +151,7 @@ def test_supported_profile_catalog_is_read_only_and_exact() -> None:
         ("f-and-f-le01mp", "f-and-f-le01mp-fc03-v2", True, True),
         ("embraco-sync", "embraco-sync-fc03-v1.00.04", True, True),
         ("danfoss-ak-cc25-pro", "danfoss-ak-cc25-pro-sw1.3x-fc03-v1", True, False),
-    ]
+    ] + [(f"dixell-xjp60d-sections-{count}", f"dixell-xjp60d-sections-v1-{count}", True, True) for count in range(1, 7)]
     profile = TestClient(app).get("/api/v1/equipment/commissioning/profiles/embraco-sync")
     missing = TestClient(app).get("/api/v1/equipment/commissioning/profiles/unknown")
     assert profile.status_code == 200
