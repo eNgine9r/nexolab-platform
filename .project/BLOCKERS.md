@@ -1,3 +1,9 @@
+## 2026-11-05 —1500 TEST monitoring integration blocker resolved
+
+Section mode is installed on Agent, central commissioning and both frontends. Actual continuous PostgreSQL evidence is exactly6+2 valid probes under two physical group identities;4 reserves do not poll. Actual Agent restart and all8 post-restart values pass. The prior section/profile mismatch and obsolete unit2-to-second-module attribution are superseded by retained/audited test profile replacement. No owner physical action is currently needed.
+
+Remaining separate limitations: local Chrome visual acceptance unavailable; full disconnected-network/rollback-execution and main-production release not accepted by this test task. Global historical missing-adapter Agent degradation remains visible. Source PR1501 stays draft/stacked; application-head Offline Auth41988978913 passed, broader required merge checks remain separate. Prior config/modules/frontend artifacts retained; no data deletion or hardware writes.
+
 ## 2026-11-05 — physical section/address blocker resolved; software1500 remains
 
 Actual both-connected diagnostic acceptance passed24 preflights in two alternating passes: first1–6 six valid probes; second7/8 two valid probes;9–12 four owner-declared reserve inputs report sensor_error. No malformed replies observed in these passes. Owner manual address changes removed the overlap. Previous physical verification blocker is superseded by this evidence.

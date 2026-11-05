@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from xjp60d_sections import section_equipment_id, read_section, SOURCE as SECTION_SOURCE
+
 import logging
 import os
 import signal
@@ -188,7 +190,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
     @staticmethod
     def _source_for(target: SchedulerTarget) -> str:
         if target.device_family == "xjp60d":
-            return "dixell-xjp60d"
+            return SECTION_SOURCE if target.key.startswith("section-") else "dixell-xjp60d"
         if target.device_family == "le01mp":
             return "f-and-f-le-01mp"
         if target.device_family == "sdm120":
@@ -204,7 +206,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
     @staticmethod
     def _equipment_for(target: SchedulerTarget) -> str:
         if target.device_family == "xjp60d":
-            return f"K{target.unit_id}"
+            return section_equipment_id(target.bus_id, target.unit_id) if target.key.startswith("section-") else f"K{target.unit_id}"
         if target.device_family == "le01mp":
             return f"LE01MP-{target.unit_id}"
         if target.device_family == "sdm120":
@@ -238,13 +240,10 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                         raise RuntimeError(
                             "XJP60D reader was not initialized"
                         )
-                    channel = int(
-                        target.key.removeprefix("channel-")
-                    )
-                    reading = self.xjp60d_reader.read_channel(
-                        target.unit_id,
-                        channel,
-                    )
+                    section = target.key.startswith("section-")
+                    channel = int(target.key.split("-")[-1])
+                    reading = (read_section(self.xjp60d_reader, target.unit_id, channel) if section
+                               else self.xjp60d_reader.read_channel(target.unit_id, channel))
                     record = TelemetryRecord(
                         event_id=str(uuid.uuid4()),
                         node_id=self.settings.node_id,

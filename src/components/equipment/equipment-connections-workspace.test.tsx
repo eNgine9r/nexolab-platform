@@ -254,3 +254,42 @@ describe("EquipmentConnectionsWorkspace", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Завантаження приладів");
   });
 });
+
+it("shows two physical section instruments with reserved input count and distinct data links", async () => {
+  const sessions = [
+    {
+      ...persistedSession,
+      id: "first",
+      lifecycle: "active" as const,
+      displayName: "First Dixell",
+      profileId: "dixell-xjp60d-sections-6",
+      unitId: 1,
+      nodeId: "edge-01",
+      busId: "bus-a",
+    },
+    {
+      ...persistedSession,
+      id: "second",
+      lifecycle: "active" as const,
+      displayName: "Second Dixell",
+      profileId: "dixell-xjp60d-sections-2",
+      unitId: 7,
+      nodeId: "edge-01",
+      busId: "bus-a",
+    },
+  ];
+  render(
+    <EquipmentConnectionsWorkspace
+      repository={{ ...repository(), listSessions: async () => sessions }}
+      discoveryRepository={null}
+      canManage
+      assets={[]}
+    />,
+  );
+  await screen.findByText("Second Dixell");
+  expect(screen.getByText(/Адреси 1–6/)).toBeInTheDocument();
+  expect(screen.getByText(/Адреси 7–12/)).toBeInTheDocument();
+  expect(screen.getByText("Підключено: 2 · Резерв: 4")).toBeInTheDocument();
+  const href = screen.getByRole("link", { name: "Показники: Second Dixell" }).getAttribute("href");
+  expect(new URL(href!, "http://localhost").searchParams.get("equipment")).toBe("XJP60D-S:bus-a:7");
+});

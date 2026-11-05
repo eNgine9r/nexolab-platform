@@ -32,6 +32,7 @@ from main import (
 from sdm120 import PROFILE_VERSION as SDM120_PROFILE_VERSION, REGISTERS as SDM120_REGISTERS
 from waveshare_8ai import CHANNEL_COUNT as WAVESHARE_8AI_CHANNEL_COUNT, PROFILE_VERSION as WAVESHARE_8AI_PROFILE_VERSION
 from xjp60d import PROBE_REGISTERS
+from xjp60d_sections import connected_count, section_units
 
 SCHEMA_VERSION = 2
 LEGACY_SCHEMA_VERSION = 1
@@ -153,11 +154,12 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
         if not 1 <= device.unit_id <= 247:
             raise ValueError(f"Invalid Modbus Unit ID for {device.device_id}")
         identity = (device.bus_id, device.unit_id)
-        if identity in bus_units:
+        occupied = section_units(device.unit_id) if connected_count(device.profile_version) is not None else (device.unit_id,)
+        if any((device.bus_id, unit) in bus_units for unit in occupied):
             raise ValueError(
                 f"Duplicate Modbus bus/Unit identity: {device.bus_id}/{device.unit_id}"
             )
-        bus_units.add(identity)
+        bus_units.update((device.bus_id, unit) for unit in occupied)
         if device.device_family not in {"xjp60d", "le01mp", "sdm120", "waveshare_8ai", "embraco"}:
             raise ValueError(f"Unsupported device family: {device.device_family}")
         if not device.profile_version.strip():
@@ -182,6 +184,12 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
             raise ValueError(f"Unknown target device: {target.device_id}")
         if target.profile_version != device.profile_version:
             raise ValueError(f"Profile mismatch for target {target.target_id}")
+        section_count = connected_count(device.profile_version)
+        if section_count is not None:
+            if target.key not in {f"section-{i:02d}" for i in range(1, 7)} or target.addresses != (256, 257) or target.function != 3:
+                raise ValueError("Section targets must use fixed FC03 probe registers")
+            if int(target.key.split("-")[-1]) > section_count and target.lifecycle == "active":
+                raise ValueError("Unattached section target must remain reserve")
         if target.kind not in {"channel", "metric"}:
             raise ValueError(f"Unsupported target kind: {target.kind}")
         if target.function not in READ_FUNCTIONS:
@@ -628,6 +636,8 @@ class AcquisitionRegistry:
     def eligible_xjp60d_points(self) -> tuple[tuple[int, int], ...]:
         points: list[tuple[int, int]] = []
         for target in self.eligible_targets("xjp60d"):
+            if target.key.startswith("section-"):
+                continue
             device = self._devices[target.device_id]
             channel = int(target.key.removeprefix("channel-"))
             points.append((device.unit_id, channel))
@@ -792,6 +802,9 @@ class AcquisitionRegistry:
         self, unit_ids: Iterable[int], *, profile_version: str = XJP60D_PROFILE_VERSION,
         bus_for_unit: Callable[[int], str] | None = None,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        count = connected_count(profile_version)
+        if count is not None:
+            return self.with_xjp60d_sections(unit_ids, profile_version=profile_version, bus_for_unit=bus_for_unit)
         if profile_version != XJP60D_PROFILE_VERSION:
             raise ValueError(f"Unsupported XJP60D profile: {profile_version!r}")
         requested_values = tuple(unit_ids)
@@ -840,6 +853,46 @@ class AcquisitionRegistry:
         cadence = ensure_defaults_for_devices(self.document.cadence, devices)
         document = replace(self.document, revision=self.document.revision + 1, devices=tuple(devices), targets=tuple(targets), cadence=cadence, updated_at=_now())
         return _validate_document(document), changes
+
+    def with_xjp60d_sections(self, unit_ids, *, profile_version, bus_for_unit=None):
+        count = connected_count(profile_version)
+        if count is None:
+            raise ValueError("A section profile is required")
+        devices = list(self.document.devices)
+        targets = list(self.document.targets)
+        buses = {bus.bus_id for bus in self.document.buses}
+        changes = []
+        for base in sorted(set(unit_ids)):
+            units = set(section_units(base))
+            bus = BUS_ID if bus_for_unit is None else bus_for_unit(base)
+            if bus not in buses:
+                raise ValueError("Unknown section bus")
+            device_id = f"xjp60d-sections:{bus}:{base}"
+            existing = next((d for d in devices if d.device_id == device_id), None)
+            if existing is not None and existing.profile_version == profile_version:
+                continue
+            for other in devices:
+                occupied = set(section_units(other.unit_id)) if connected_count(other.profile_version) is not None else {other.unit_id}
+                if other.bus_id == bus and units & occupied:
+                    raise ValueError(f"Overlapping Modbus section ownership on {bus}: {base}")
+            devices.append(RegistryDevice(device_id, bus, "xjp60d", base, profile_version, "discovery_only"))
+            changes.append({"entity": "device", "id": device_id, "from": "absent", "to": "discovery_only"})
+            for channel in range(1, 7):
+                identity = f"{bus}:{base}-S{channel:02d}"
+                target = RegistryTarget(
+                    target_id=f"xjp60d-sections:{identity}", device_id=device_id,
+                    kind="channel", key=f"section-{channel:02d}", telemetry_channel_id=identity,
+                    metric="temperature.probe", unit="degC", profile_version=profile_version,
+                    lifecycle="discovery_only" if channel <= count else "reserve",
+                    function=3, addresses=(256, 257),
+                )
+                targets.append(target)
+                changes.append({"entity": "target", "id": target.target_id, "from": "absent", "to": target.lifecycle})
+        if not changes:
+            return self.document, []
+        doc = replace(self.document, revision=self.document.revision+1, devices=tuple(devices), targets=tuple(targets),
+                      cadence=ensure_defaults_for_devices(self.document.cadence, devices), updated_at=_now())
+        return _validate_document(doc), changes
 
     def with_le01mp_enrollment(
         self,

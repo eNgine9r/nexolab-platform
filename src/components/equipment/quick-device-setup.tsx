@@ -10,6 +10,7 @@ import {
   type CommissioningSessionWrite,
   type SupportedDeviceProfile,
 } from "@/features/equipment/commissioning-repository";
+import { sectionProbeCount, sectionProfilePrefix } from "@/features/equipment/xjp60d-sections";
 import { Rs485AdapterFinder } from "./rs485-adapter-finder";
 import { Rs485AddressSearch } from "./rs485-address-search";
 
@@ -55,6 +56,12 @@ export function QuickDeviceSetup(props: Props) {
   }, []);
 
   const profile = profiles.find((item) => item.id === draft.profileId);
+  const sectionCount = sectionProbeCount(draft.profileId);
+  const modelProfiles = profiles.filter(
+    (item) => sectionProbeCount(item.id) === null || item.id === `${sectionProfilePrefix}6`,
+  );
+  const selectedModelId =
+    sectionProbeCount(searchProfileId) !== null ? `${sectionProfilePrefix}6` : searchProfileId;
   const connection = inventory?.connections.find((item) => item.busId === draft.busId);
   const instrumentName =
     name ?? draft.displayName ?? (profile && draft.unitId ? `${profile.displayName} · ${draft.unitId}` : "");
@@ -157,7 +164,7 @@ export function QuickDeviceSetup(props: Props) {
             <select
               aria-label="Модель приладу"
               className={fieldClass}
-              value={searchProfileId ?? ""}
+              value={selectedModelId ?? ""}
               onChange={(event) => {
                 setSearchProfileId(event.target.value || null);
                 const item = profiles.find((entry) => entry.id === event.target.value);
@@ -173,13 +180,40 @@ export function QuickDeviceSetup(props: Props) {
               }}
             >
               <option value="">Автовизначення підтримуваних приладів</option>
-              {profiles.map((item) => (
+              {modelProfiles.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.displayName}
+                  {sectionProbeCount(item.id) !== null
+                    ? "Dixell XJP60D · окрема адреса на кожен вхід"
+                    : item.displayName}
                 </option>
               ))}
             </select>
           </label>
+          {sectionCount !== null ? (
+            <label className="mt-4 block text-sm text-slate-200">
+              Підключено датчиків
+              <select
+                aria-label="Підключено датчиків"
+                className={fieldClass}
+                value={sectionCount}
+                onChange={(event) => {
+                  const profileId = `${sectionProfilePrefix}${event.target.value}`;
+                  setSearchProfileId(profileId);
+                  patch({ profileId });
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6].map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-slate-400">
+                Перші входи — підключені датчики, решта — резерв. Прилад займає шість послідовних адрес.
+                Початкову адресу підтвердіть на приладі.
+              </p>
+            </label>
+          ) : null}
         </Card>
         <Card title="2. Через який адаптер?">
           <label className="text-sm text-slate-200">
@@ -232,10 +266,16 @@ export function QuickDeviceSetup(props: Props) {
               stableTransportIdentifier: connection.stableTransportIdentifier,
             }}
             disabled={busy || saved !== null || !props.canManage}
-            profiles={searchProfileId ? profiles.filter((item) => item.id === searchProfileId) : profiles}
+            profiles={
+              sectionCount !== null
+                ? profiles.filter((item) => item.id === "dixell-xjp60d")
+                : searchProfileId
+                  ? profiles.filter((item) => item.id === searchProfileId)
+                  : profiles.filter((item) => sectionProbeCount(item.id) === null)
+            }
             serial={connection.serial}
             onSelect={(unitId, profileId) => {
-              const found = profiles.find((item) => item.id === profileId);
+              const found = sectionCount !== null ? profile : profiles.find((item) => item.id === profileId);
               patch(
                 found
                   ? {
@@ -264,7 +304,7 @@ export function QuickDeviceSetup(props: Props) {
               aria-label="Адреса приладу"
               type="number"
               min={1}
-              max={247}
+              max={sectionCount !== null ? 242 : 247}
               className={fieldClass}
               disabled={locked || saved !== null}
               value={draft.unitId ?? ""}
@@ -312,7 +352,7 @@ export function QuickDeviceSetup(props: Props) {
               !draft.unitId ||
               !Number.isInteger(draft.unitId) ||
               draft.unitId < 1 ||
-              draft.unitId > 247 ||
+              draft.unitId > (sectionCount !== null ? 242 : 247) ||
               !instrumentName.trim()
             }
             onClick={() => void add()}

@@ -12,6 +12,7 @@ import type {
 import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 import type { EquipmentDiscoveryRepository } from "@/features/equipment/discovery-repository";
 import { instrumentLiveLink } from "@/features/equipment/instrument-live-link";
+import { sectionProbeCount } from "@/features/equipment/xjp60d-sections";
 
 const lifecycleLabel: Record<CommissioningSession["lifecycle"], string> = {
   draft: "Чернетка",
@@ -77,7 +78,8 @@ export function EquipmentConnectionsWorkspace({
     return () => controller.abort();
   }, [epoch, repository]);
 
-  const visibleSessions = loadedRepository === repository ? sessions : [];
+  const visibleSessions =
+    loadedRepository === repository ? sessions.filter((session) => session.lifecycle !== "cancelled") : [];
   const assetNames = new Map(
     assets
       .filter((asset) => asset.category === "refrigeration-equipment")
@@ -196,11 +198,20 @@ export function EquipmentConnectionsWorkspace({
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-slate-400">
-                  Адреса {session.unitId ?? "—"} ·{" "}
+                  {sectionProbeCount(session.profileId) !== null && session.unitId
+                    ? `Адреси ${session.unitId}–${session.unitId + 5}`
+                    : `Адреса ${session.unitId ?? "—"}`}{" "}
+                  ·{" "}
                   {session.targetEquipmentKey
                     ? `Прив’язка: ${assetNames.get(session.targetEquipmentKey) ?? session.targetEquipmentKey}`
                     : "Самостійний прилад"}
                 </p>
+                {sectionProbeCount(session.profileId) !== null ? (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Підключено: {sectionProbeCount(session.profileId)} · Резерв:{" "}
+                    {6 - sectionProbeCount(session.profileId)!}
+                  </p>
+                ) : null}
                 {session.unsupportedReason || session.blockedReason ? (
                   <p className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-200">
                     <Ban className="h-3 w-3" /> {session.unsupportedReason ?? session.blockedReason}

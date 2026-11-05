@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T07:21:48.371541+00:00",
+  "timestamp": "2026-11-05T07:51:21.088013+00:00",
   "actor": "ChatGPT",
-  "event": "both_Dixell_section_diagnostics_verified_1500_ready",
+  "event": "1500_two_physical_instruments_TEST_installed_actual8_after_restart",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1498,
-    "title": "Direct readings from simplified instrument connections",
-    "branch": "feature/1498-direct-instrument-readings"
+    "issue": 1500,
+    "title": "Section-addressed XJP60D as two physical instruments",
+    "branch": "feature/1500-section-addressed-xjp60d"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3174,6 +3174,67 @@
       "limitations": "preflight_API_does_not_expose_numeric_values;no_grouped_continuous_monitoring_acceptance;old_unit2_session_cannot_be_attributed_to_second_physical_module",
       "assistant_modbus_writes": "none",
       "assistant_runtime_changes": "none"
+    },
+    "section_instruments1500": {
+      "pr": 1501,
+      "application_source": "cc9d12e3d5e92071514f1861f4478277499c3d6e",
+      "targeted_checks": {
+        "frontend": 35,
+        "central": 34,
+        "agent": 73,
+        "agent_subtests": 11
+      },
+      "regressions": "three_original_source_failures_now_pass;actual_activation_idempotency_and_restart_preserve_reserve_targets",
+      "lint_typecheck_format_compile_diff": "PASS",
+      "native_arm64_builds": {
+        "external": "fVKrLGIRsGzFoW2nB3hcO",
+        "lan": "CDL0HJqocJ4gPJwDIwwGz"
+      },
+      "test_frontends": "both_installed_4_pages_19_script_assets_each_exact_identity",
+      "actual_groups": [
+        {
+          "id": "458f2cd6-141a-4e35-be9e-2ce1e60e0530",
+          "display_name": "Dixell XJP60D · 1",
+          "unit_id": 1,
+          "profile_id": "dixell-xjp60d-sections-6",
+          "lifecycle": "active",
+          "target_equipment_key": null
+        },
+        {
+          "id": "cd600ddc-733b-4bd4-b062-19582c62f0d8",
+          "display_name": "Dixell XJP60D · 2",
+          "unit_id": 7,
+          "profile_id": "dixell-xjp60d-sections-2",
+          "lifecycle": "active",
+          "target_equipment_key": null
+        }
+      ],
+      "fresh_persisted_valid_probes": 8,
+      "reserve_targets_not_polled": 4,
+      "actual_agent_restart": "PASS_all8_new_values_after_restart_and_bus_identity_preserved",
+      "actual_temperatures_c": [
+        21.4,
+        21.7,
+        21.5,
+        21.8,
+        21.8,
+        22.0,
+        21.5,
+        21.5
+      ],
+      "hardware_evidence": "sections-1500/hardware-evidence.json on Pi",
+      "ui_evidence": "sections-1500/runtime-evidence.json on Pi",
+      "previous_state": "previous_modules_and_frontends_retained;SQLite_sections1500_before;old_intents_audited_cancelled_after_software_ownership_archived",
+      "historical_telemetry": "not_rewritten_or_deleted;new_section_source_and_bus_scoped_identity",
+      "global_agent_health": "error",
+      "global_agent_limitation": "historical_missing_adapters_remain_degraded;selected8_valid_and_persisting",
+      "browser": "visual_unverified_local_Chrome_connector_unavailable;component_tests_and_HTTP_assets_pass",
+      "offline": "no_new_dependencies;existing_local_services;no_new_network_disconnect_test",
+      "ci": "Offline_Auth_Acceptance41988978913_SUCCESS_on_application_source;full_main_production_CI_not_claimed",
+      "modbus_hardware_writes": "none",
+      "schema_changes": "none",
+      "rollback_execution": "not_exercised_previous_config_and_artifacts_retained",
+      "production_release": "not_performed;draft_stacked_PR_unmerged"
     }
   },
   "observations": [
@@ -4586,7 +4647,7 @@
       }
     }
   ],
-  "next_action": "Implement Ready Work Package1500: explicit section-addressed acquisition and two physical-instrument cards with reserve handling; no further owner physical action currently required. Current legacy profile/UI grouping not accepted; no new deployment GREEN.",
+  "next_action": "Owner may refresh TEST monitoring and open either named instrument readings. Source PR1501 review/stack integration and full production merge gates remain separate; no further physical user action for current tested scenario.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4595,7 +4656,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none;existing_locked_FC03_diagnostic_reads_only;owner_manually_reconfigured_sections_and_wiring",
+  "runtime_mutation": "Owner-authorized reversible TEST Agent/central/frontend overlay; obsolete software ownership and intents archived with before state/audit; two new explicit standalone section sessions activated. No controller/Modbus writes, schema change, historical telemetry relabeling/deletion or production release.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

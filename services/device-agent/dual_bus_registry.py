@@ -17,6 +17,7 @@ from acquisition_registry import (
     document_to_json,
 )
 from xjp60d import PROBE_REGISTERS
+from xjp60d_sections import connected_count
 
 
 class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
@@ -57,6 +58,12 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
             raise ValueError("Registry enrollment actor is required")
         if not normalized_reason:
             raise ValueError("Registry enrollment reason is required")
+        if connected_count(profile_version) is not None:
+            return super().enroll_xjp60d(
+                registry, expected_revision=expected_revision, unit_ids=unit_ids,
+                actor=normalized_actor, reason=normalized_reason,
+                profile_version=profile_version, bus_for_unit=bus_for_unit or self._bus_for_unit,
+            )
         if profile_version != XJP60D_PROFILE_VERSION:
             raise ValueError(f"Unsupported XJP60D profile: {profile_version!r}")
         if expected_revision != registry.revision:

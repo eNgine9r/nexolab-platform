@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from typing import Any, Protocol
+from xjp60d_sections import connected_count
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +63,16 @@ PROFILES: dict[str, PreflightProfile] = {
         activation_supported=False,
     ),
 }
+
+
+# Fixed profiles persist the explicit attached-input count without device writes.
+for _count in range(1, 7):
+    PROFILES[f"dixell-xjp60d-sections-{_count}"] = PreflightProfile(
+        profile_id=f"dixell-xjp60d-sections-{_count}",
+        profile_version=f"dixell-xjp60d-sections-v1-{_count}", device_family="xjp60d",
+        evidence_level="partially_verified",
+        warnings=("Six section addresses belong to one physical module only after operator confirmation.",),
+    )
 
 _ALLOWED_REQUEST_FIELDS = {
     "node_id",
@@ -211,6 +222,11 @@ def execute_preflight(
         return failed("adapter_unavailable", "adapter_identity", "Configured stable serial adapter is not present")
     passed("adapter_identity", "Exact stable /dev/serial/by-id identity is present")
 
+    if connected_count(profile.profile_version) is not None:
+        try:
+            runtime.validate_section_claim(request.bus_id, request.unit_id, profile.profile_version)
+        except ValueError as error:
+            return failed("unit_id_conflict", "unit_identity", str(error))
     owner = runtime.preflight_unit_owner(request.unit_id, request.bus_id)
     if owner is not None and owner != request.bus_id:
         return failed("unit_id_conflict", "unit_identity", f"Unit ID {request.unit_id} is assigned to another physical bus")

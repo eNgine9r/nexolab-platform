@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .catalog import profile_unit_ids, section_probe_count
+
 import hashlib
 import json
 from dataclasses import dataclass, replace
@@ -442,6 +444,16 @@ class CommissioningActivationRepository:
                 raise CommissioningEquipmentReferenceError(
                     "Target equipment is unavailable in the active organization"
                 )
+        requested_units = set(profile_unit_ids(row.profile_id, int(row.unit_id)))
+        peers = db.scalars(select(EquipmentCommissioningSession).where(
+            EquipmentCommissioningSession.organization_id == organization_id,
+            EquipmentCommissioningSession.id != row.id,
+            EquipmentCommissioningSession.node_id == row.node_id,
+            EquipmentCommissioningSession.bus_id == row.bus_id,
+            EquipmentCommissioningSession.lifecycle == "active",
+        )).all()
+        if any(peer.unit_id is not None and requested_units.intersection(profile_unit_ids(peer.profile_id, peer.unit_id)) for peer in peers):
+            raise CommissioningActivationConflictError("Another instrument owns part of this Modbus address range")
         conflict = db.scalar(
             select(EquipmentCommissioningSession.id)
             .where(
@@ -495,6 +507,9 @@ class CommissioningActivationRepository:
             "le01mp": f"LE01MP-{row.unit_id}",
             "embraco": f"EMBRACO-{row.unit_id}",
         }[family]
+        if section_probe_count(profile.id) is not None:
+            source = "dixell-xjp60d-sections"
+            equipment_id = f"XJP60D-S:{row.bus_id}:{row.unit_id}"
         evidence = preflight.evidence if isinstance(preflight.evidence, dict) else {}
         warnings = list(evidence.get("warnings", [])) if isinstance(evidence.get("warnings"), list) else []
         if preflight.evidence_level != "hardware_verified":

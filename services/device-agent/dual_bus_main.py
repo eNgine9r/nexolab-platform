@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from xjp60d_sections import connected_count, section_units, section_equipment_id, read_section, SOURCE as SECTION_SOURCE
+
 import logging
 import os
 import signal
@@ -316,6 +318,15 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             )
         return next(iter(owners)) if owners else None
 
+    def validate_section_claim(self, bus_id: str, base: int, version: str) -> None:
+        requested = set(section_units(base))
+        for device in self._registry_snapshot().document.devices:
+            if device.bus_id != bus_id:
+                continue
+            occupied = set(section_units(device.unit_id)) if connected_count(device.profile_version) is not None else {device.unit_id}
+            if requested & occupied and (device.unit_id != base or device.profile_version != version):
+                raise ValueError("Overlapping Modbus section ownership")
+
     def preflight_registry_identity(
         self,
         bus_id: str,
@@ -409,7 +420,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 operation="commissioning_preflight",
                 deadline_monotonic=deadline_monotonic,
             ):
-                if profile.profile_id == "dixell-xjp60d":
+                if connected_count(profile.profile_version) is not None:
+                    count = connected_count(profile.profile_version)
+                    if xjp60d is None:
+                        xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
+                    for channel, section_unit in enumerate(section_units(unit_id), 1):
+                        reading = xjp60d.read_channel(section_unit, 1)
+                        if channel <= count and reading.quality != "valid":
+                            raise PreflightExecutionError("section_sensor_unavailable", f"Attached probe {channel} is not valid")
+                        observations.append(PreflightObservation(key=f"section-{channel:02d}", quality=reading.quality, semantic=reading.alarm))
+                elif profile.profile_id == "dixell-xjp60d":
                     if xjp60d is None:
                         xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
                     reading = xjp60d.read_channel(unit_id, 1)
@@ -525,7 +545,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 self._registry = current
 
             device = self._commissioning_device(current, request, profile.device_family)
-            targets = tuple(target for target in current.document.targets if target.device_id == device.device_id)
+            count = connected_count(request.profile_version)
+            targets = tuple(target for target in current.document.targets if target.device_id == device.device_id
+                            and (count is None or int(target.key.split("-")[-1]) <= count))
             if not targets:
                 raise ValueError("activation profile has no repository-owned acquisition targets")
             rollback = {
@@ -590,7 +612,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             bus_for_unit=lambda _unit_id: request.bus_id,
         )
         if family == "xjp60d":
-            return self._registry_store.enroll_xjp60d(current, **kwargs)
+            return self._registry_store.enroll_xjp60d(current, profile_version=request.profile_version, **kwargs)
         if family == "le01mp":
             return self._registry_store.enroll_le01mp(current, **kwargs)
         if family == "embraco":
@@ -674,6 +696,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         profile = PROFILES[request.profile_id]
         source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync"}[profile.device_family]
         equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}"}[profile.device_family]
+        if connected_count(request.profile_version) is not None:
+            source = SECTION_SOURCE
+            equipment_id = section_equipment_id(request.bus_id, request.unit_id)
         return {
             "schema_version": 1,
             "activation_id": request.activation_id,
@@ -777,8 +802,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         raise RuntimeError(
                             f"XJP60D reader is unavailable for {target.bus_id}"
                         )
-                    channel = int(target.key.removeprefix("channel-"))
-                    reading = reader.read_channel(target.unit_id, channel)
+                    section = target.key.startswith("section-")
+                    channel = int(target.key.split("-")[-1])
+                    reading = read_section(reader, target.unit_id, channel) if section else reader.read_channel(target.unit_id, channel)
                     record = TelemetryRecord(
                         event_id=str(uuid.uuid4()),
                         node_id=self.settings.node_id,

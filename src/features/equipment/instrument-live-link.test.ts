@@ -53,3 +53,23 @@ describe("instrument live links", () => {
     expect(url.searchParams.getAll("equipment")).toEqual(["K2"]);
   });
 });
+
+describe("section instrument scope", () => {
+  it("opens a distinct physical group, never old K7 history", () => {
+    const href = instrumentLiveLink({
+      ...active,
+      profileId: "dixell-xjp60d-sections-2",
+      busId: "rs485-sdm120",
+      unitId: 7,
+    });
+    const url = new URL(href!, "http://localhost");
+    expect(url.searchParams.get("equipment")).toBe("XJP60D-S:rs485-sdm120:7");
+    expect(url.searchParams.get("node")).toBe("edge-01");
+  });
+  it("rejects a group that extends beyond unicast addresses or lacks a bus", () => {
+    expect(
+      instrumentLiveLink({ ...active, profileId: "dixell-xjp60d-sections-6", busId: "bus", unitId: 243 }),
+    ).toBeNull();
+    expect(instrumentLiveLink({ ...active, profileId: "dixell-xjp60d-sections-6", busId: null })).toBeNull();
+  });
+});

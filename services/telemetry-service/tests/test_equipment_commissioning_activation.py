@@ -472,3 +472,31 @@ def test_only_health_can_read_bounded_503_body(monkeypatch) -> None:
     assert client._request_json("/health", method="GET", allow_degraded_health=True) == {"status": "error"}
     with pytest.raises(DeviceAgentActivationError):
         client._request_json("/api/v1/commissioning/activation", method="POST", body={})
+
+
+@pytest.mark.parametrize("peer_base,conflicts", [(1,False),(6,True)])
+def test_section_activation_plan_has_new_identity_and_rejects_range_overlap(tmp_path: Path, peer_base: int, conflicts: bool) -> None:
+    from app.commissioning.activation_repository import CommissioningActivationConflictError
+    database = _database(tmp_path)
+    with Session(database.engine) as db, db.begin():
+        row = db.get(EquipmentCommissioningSession, "session-1")
+        row.profile_id = "dixell-xjp60d-sections-2"
+        row.profile_version = "dixell-xjp60d-sections-v1-2"
+        row.manufacturer = "Dixell"
+        row.model = "XJP60D"
+        row.unit_id = 7
+        row.display_name = "Second Dixell"
+        row.target_equipment_key = None
+        fields = {c.name:getattr(row,c.name) for c in row.__table__.columns}
+        fields.update(id="peer", create_idempotency_key="peer", lifecycle="active", unit_id=peer_base,
+                      profile_id="dixell-xjp60d-sections-6",profile_version="dixell-xjp60d-sections-v1-6")
+        db.add(EquipmentCommissioningSession(**fields));db.flush()
+        preflight = db.get(EquipmentCommissioningPreflightAttempt, "preflight-1")
+        if conflicts:
+            with pytest.raises(CommissioningActivationConflictError, match="address range"):
+                CommissioningActivationRepository._plan(db,row,preflight,ORG)
+        else:
+            plan = CommissioningActivationRepository._plan(db,row,preflight,ORG)
+            assert plan["telemetry_source"] == "dixell-xjp60d-sections"
+            assert plan["telemetry_equipment_id"] == "XJP60D-S:rs485-main:7"
+            assert plan["binding_kind"] == "standalone_instrument"

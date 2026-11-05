@@ -76,6 +76,32 @@ SUPPORTED_DEVICE_PROFILES: tuple[SupportedDeviceProfile, ...] = (
     ),
 )
 
+def section_probe_count(profile_id: str | None) -> int | None:
+    prefix = "dixell-xjp60d-sections-"
+    if not profile_id or not profile_id.startswith(prefix):
+        return None
+    value = profile_id.removeprefix(prefix)
+    return int(value) if value in {str(i) for i in range(1, 7)} else None
+
+
+def profile_unit_ids(profile_id: str | None, base: int) -> range:
+    if section_probe_count(profile_id) is not None:
+        if not 1 <= base <= 242:
+            raise ValueError("Six section addresses must fit within 1..247")
+        return range(base, base + 6)
+    return range(base, base + 1)
+
+
+SUPPORTED_DEVICE_PROFILES += tuple(
+    SupportedDeviceProfile(
+        id=f"dixell-xjp60d-sections-{count}", version=f"dixell-xjp60d-sections-v1-{count}",
+        device_family="xjp60d", device_class="temperature-controller", manufacturer="Dixell", models=("XJP60D",),
+        display_name=f"Dixell XJP60D · секції · {count} датчиків", transport_kind="modbus_rtu",
+        capability_status="repository_supported_hardware_evidenced",
+        evidence_note="Six consecutive section addresses, FC03 256/257 per section; attached count is operator supplied. Other inputs stay reserve.",
+    ) for count in range(1, 7)
+)
+
 _PROFILES_BY_ID = {profile.id: profile for profile in SUPPORTED_DEVICE_PROFILES}
 
 
@@ -98,7 +124,8 @@ def resolve_supported_profile(
     matches = [
         profile
         for profile in SUPPORTED_DEVICE_PROFILES
-        if _key(profile.manufacturer) == manufacturer_key
+        if section_probe_count(profile.id) is None
+        and _key(profile.manufacturer) == manufacturer_key
         and model_key in {_key(item) for item in profile.models}
     ]
     return matches[0] if len(matches) == 1 else None

@@ -23,6 +23,17 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 }
 
 describe("temperature channel classification", () => {
+  it("accepts verified section identities without mixing physical groups", () => {
+    const section = {
+      source: "dixell-xjp60d-sections",
+      equipment_id: "XJP60D-S:rs485-test:7",
+      channel_id: "rs485-test:7-S02",
+    };
+    expect(isTemperatureProbeSample(sample(section))).toBe(true);
+    expect(isTemperatureProbeSample(sample({ ...section, equipment_id: "K7" }))).toBe(false);
+    expect(isTemperatureProbeSample(sample({ ...section, source: "unknown" }))).toBe(false);
+    expect(isTemperatureProbeSample(sample({ ...section, metric: "electrical.voltage" }))).toBe(false);
+  });
   it("accepts canonical controller inputs regardless of transport source", () => {
     expect(isTemperatureProbeSample(sample())).toBe(true);
     expect(isTemperatureProbeSample(sample({ channel_id: "96-01" }))).toBe(true);
