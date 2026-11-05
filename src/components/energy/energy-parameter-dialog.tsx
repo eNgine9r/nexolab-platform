@@ -17,11 +17,13 @@ import {
 export function EnergyParameterDialog({
   selected,
   meters = [],
+  includeLegacy = true,
   onApply,
   onClose,
 }: {
   selected: readonly EnergySeriesSelection[];
   meters?: readonly CommissionedEnergyMeter[];
+  includeLegacy?: boolean;
   onApply: (selected: EnergySeriesSelection[]) => void;
   onClose: () => void;
 }) {
@@ -87,7 +89,7 @@ export function EnergyParameterDialog({
           </button>
         </header>
         <div className="min-h-0 space-y-4 overflow-y-auto p-5">
-          {[...ENERGY_METERS, ...meters].map((meter) => (
+          {[...(includeLegacy ? ENERGY_METERS : []), ...meters].map((meter) => (
             <fieldset
               key={
                 "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : meter.equipmentId

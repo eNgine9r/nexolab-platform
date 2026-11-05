@@ -59,22 +59,33 @@ export function EnergyScreen() {
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(ENERGY_NODE_ID);
   const securityReady = security.mode === "live" && security.state === "ready";
   const canReadTelemetry =
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
   const organizationId = security.membership?.organizationId ?? null;
   const securityScopeId = security.session?.identity.id ?? null;
   const inventory = useCommissionedEnergyMeters(canReadTelemetry, organizationId, securityScopeId);
-  const meters = useMemo(
-    () => inventory.meters.filter((meter) => meter.nodeId === ENERGY_NODE_ID),
+  const nodes = useMemo(
+    () => [
+      ENERGY_NODE_ID,
+      ...[
+        ...new Set(inventory.meters.map((meter) => meter.nodeId).filter((id) => id !== ENERGY_NODE_ID)),
+      ].sort(),
+    ],
     [inventory.meters],
   );
-  const otherNodeCount = inventory.meters.length - meters.length;
+  const activeNodeId = nodes.includes(selectedNodeId) ? selectedNodeId : ENERGY_NODE_ID;
+  const meters = useMemo(
+    () => inventory.meters.filter((meter) => meter.nodeId === activeNodeId),
+    [inventory.meters, activeNodeId],
+  );
   const telemetry = useEnergyTelemetry({
     enabled: canReadTelemetry,
     organizationId,
     securityScopeId,
     commissionedMeters: meters,
+    nodeId: activeNodeId,
   });
   const consumption = useEnergyConsumption({
     enabled: canReadTelemetry,
@@ -86,6 +97,7 @@ export function EnergyScreen() {
     enabled: canReadTelemetry,
     organizationId,
     securityScopeId: security.session?.identity.id ?? null,
+    viewScopeId: activeNodeId,
   });
 
   if (security.mode === "demo") {
@@ -180,20 +192,42 @@ export function EnergyScreen() {
                 з’єднання.
               </p>
             ) : null}
-            {otherNodeCount > 0 ? (
-              <p
-                role="status"
-                className="mb-4 rounded-xl border border-amber-400/30 p-3 text-sm text-amber-100"
-              >
-                Лічильники інших вузлів ({otherNodeCount}) тут поки не відображаються. Поточний вузол:{" "}
-                {ENERGY_NODE_ID}.
-              </p>
+            {nodes.length > 1 ? (
+              <div className="mb-4 rounded-xl border border-cyan-400/20 p-3 text-sm text-slate-200">
+                <label className="flex flex-wrap items-center gap-3">
+                  Вузол моніторингу
+                  <select
+                    aria-label="Вузол моніторингу"
+                    value={activeNodeId}
+                    onChange={(event) => setSelectedNodeId(event.target.value)}
+                    className="rounded-lg border border-white/15 bg-[#091d39] px-3 py-2 text-white"
+                  >
+                    {nodes.map((node) => (
+                      <option key={node} value={node}>
+                        {node}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="mt-2 text-xs text-slate-400">
+                  Одночасне порівняння приладів з різних вузлів поки недоступне.
+                </p>
+                {activeNodeId !== ENERGY_NODE_ID ? (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Для іншого вузла покази старше 30 секунд позначаються застарілими, доки його частоту
+                    опитування не підтверджено.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
             <EnergyWorkspace
+              key={JSON.stringify([organizationId, securityScopeId, activeNodeId])}
               telemetry={telemetry}
               consumption={consumption}
               exporter={exporter}
               meters={meters}
+              nodeId={activeNodeId}
+              includeLegacy={activeNodeId === ENERGY_NODE_ID}
             />
           </div>
         </main>

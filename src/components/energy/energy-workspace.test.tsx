@@ -47,6 +47,7 @@ afterEach(() => {
 function setup(
   overrides: Partial<EnergyTelemetryModel> = {},
   meters: readonly CommissionedEnergyMeter[] = [],
+  options: { includeLegacy?: boolean; nodeId?: string } = {},
 ) {
   const telemetry: EnergyTelemetryModel = {
     mode: "live",
@@ -72,7 +73,7 @@ function setup(
     ...overrides,
   };
   const consumption: EnergyConsumptionLoader = { enabled: false, load: vi.fn() };
-  render(<EnergyWorkspace telemetry={telemetry} consumption={consumption} meters={meters} />);
+  render(<EnergyWorkspace telemetry={telemetry} consumption={consumption} meters={meters} {...options} />);
   return { telemetry, consumption };
 }
 
@@ -83,6 +84,47 @@ function toggle(label: string, selected = true) {
 }
 
 describe("EnergyWorkspace comparison selection", () => {
+  it("on a different node shows only its commissioned meters, not primary-node legacy labels", async () => {
+    const meter: CommissionedEnergyMeter = {
+      nodeId: "edge-02",
+      busId: "commissioning-0123456789abcdef",
+      unitId: 1,
+      equipmentId: "SDM120M:commissioning-0123456789abcdef:1",
+      label: "Remote meter",
+      modelLabel: "SDM",
+      family: "sdm120",
+    };
+    const item = {
+      event_id: "remote",
+      node_id: meter.nodeId,
+      equipment_id: meter.equipmentId,
+      channel_id: "1-voltage",
+      captured_at: new Date().toISOString(),
+      metric: "electrical.voltage",
+      value: 227,
+      unit: "V",
+      quality: "valid" as const,
+      source: "eastron-sdm120m",
+      alarm: null,
+      raw_value: null,
+      raw_status: null,
+    };
+    setup({ samples: [item], freshSamples: [item], historySamples: [item] }, [meter], {
+      includeLegacy: false,
+      nodeId: "edge-02",
+    });
+    expect(screen.queryByRole("button", { name: /лічильник W1/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: `Виключити лічильник Remote meter · ${meter.busId} з порівняння` }),
+    ).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByTestId("visible-energy-series")).toHaveTextContent(meter.equipmentId),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+    expect(screen.queryByRole("checkbox", { name: /W1/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: `Remote meter · ${meter.busId} · Напруга` })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Закрити вибір параметрів" }));
+  });
   it("shows and selects two commissioned Unit 1 meters separately", async () => {
     const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id, index) => ({
       nodeId: "edge-01",

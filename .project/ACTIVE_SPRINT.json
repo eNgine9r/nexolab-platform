@@ -10204,13 +10204,13 @@
       ],
       "scope": "Identity-safe local Energy inventory, latest, chart/history, cumulative consumption and export without history reassignment.",
       "evidence": {
-        "software": "136 Energy frontend tests; build, lint/typecheck; ARM64 isolated export pytest 26 pass and 1 PostgreSQL pass (metadata-created schema)",
+        "software": "139 Energy frontend tests in 23 files; frontend build, lint/typecheck; ARM64 export pytest 26 passed plus PostgreSQL migration-based test passed",
         "hardware": "new source unverified",
         "runtime": "not deployed",
         "modbus_writes": "none",
         "pr": 1509,
-        "multi_node_ui": "not implemented; explicit notice",
-        "ci": "prior partial head offline auth passed; new head pending"
+        "multi_node_ui": "single-node selection supported; simultaneous comparison unavailable; conservative remote freshness",
+        "ci": "prior state head aa236078664213a8095a46af3342818ae73ee307 offline auth passed, new exact head pending"
       }
     },
     {

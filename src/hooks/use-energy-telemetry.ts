@@ -169,6 +169,15 @@ export function useEnergyTelemetry({
       .sort((left, right) => left.equipmentId.localeCompare(right.equipmentId)),
   );
   const meters = useMemo(() => JSON.parse(inventoryJSON) as CommissionedEnergyMeter[], [inventoryJSON]);
+  const allowedEnergySample = useCallback(
+    (sample: TelemetrySample) => {
+      if (sample.node_id !== energyNodeId || !isEnergySample(sample, meters)) return false;
+      const meter = resolveEnergyMeter(sample, meters);
+      // Legacy Unit-only catalog belongs only to the configured primary node.
+      return meter !== null && (energyNodeId === ENERGY_NODE_ID || "nodeId" in meter);
+    },
+    [energyNodeId, meters],
+  );
   const selectedOrganizationId = organizationId?.trim() || null;
   const selectedSecurityScopeId = securityScopeId?.trim() || DEFAULT_SECURITY_SCOPE;
   const baseSecurityScopeKey = `${selectedSecurityScopeId}:${selectedOrganizationId ?? DEFAULT_SCOPE}`;
@@ -297,7 +306,15 @@ export function useEnergyTelemetry({
 
   useEffect(() => {
     const config = runtime.config;
-    if (!config || config.mode === "demo" || !enabled || scopeKey === null) {
+    // The acquisition-registry endpoint belongs to the local primary Agent only.
+    // Never apply its cadence to a different node with matching bus/Unit IDs.
+    if (
+      !config ||
+      config.mode === "demo" ||
+      !enabled ||
+      scopeKey === null ||
+      energyNodeId !== ENERGY_NODE_ID
+    ) {
       cadenceAuthorityRef.current = { scopeKey: null, authority: null };
       void Promise.resolve().then(() => {
         setCadenceAuthorityState({ scopeKey, ready: true, authority: null });
@@ -483,9 +500,7 @@ export function useEnergyTelemetry({
     });
 
     const commit = (samples: readonly TelemetrySample[]) => {
-      const accepted = samples.filter(
-        (sample) => sample.node_id === energyNodeId && isEnergySample(sample, meters),
-      );
+      const accepted = samples.filter(allowedEnergySample);
       if (disposed || accepted.length === 0) return;
       const now = Date.now();
       const nextStore = mergeDashboardTelemetry(storeRef.current, accepted, { now });
@@ -636,6 +651,7 @@ export function useEnergyTelemetry({
     selectedOrganizationId,
     energyNodeId,
     meters,
+    allowedEnergySample,
   ]);
 
   useEffect(() => {
@@ -669,7 +685,7 @@ export function useEnergyTelemetry({
         invalidateEnergyComparisonHistory(key, [metric]);
         return [];
       }
-      return entry?.samples ?? [];
+      return (entry?.samples ?? []).filter(allowedEnergySample);
     });
     const retained = readEnergyComparisonHistory(historyRetention, selectedMetrics);
     const seed = mergeEnergyComparisonHistory(
@@ -727,11 +743,12 @@ export function useEnergyTelemetry({
     )
       .then(({ samples, errors }) => {
         if (disposed) return;
+        const allowedSamples = samples.filter(allowedEnergySample);
         const currentWindow = historyWindowRef.current ?? requestedWindow;
         setHistorySamples((current) => {
           const next = mergeEnergyComparisonHistory(
-            retained ? current : samples,
-            retained ? samples : current,
+            retained ? current : allowedSamples,
+            retained ? allowedSamples : current,
             { nodeId: energyNodeId, from: new Date(currentWindow.from), to: new Date(currentWindow.to) },
             selectedMetrics,
             cadenceAuthority,
@@ -777,6 +794,7 @@ export function useEnergyTelemetry({
     selectedOrganizationId,
     energyNodeId,
     meters,
+    allowedEnergySample,
   ]);
 
   useEffect(() => {

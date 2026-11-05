@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T11:26:55.323408+00:00",
+  "timestamp": "2026-11-05T11:40:10.478676+00:00",
   "actor": "Codex",
-  "event": "1510_git_metadata_recovered_agent_health_diagnosed",
+  "event": "1508_node_selection_and_migration_validation",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -34,10 +34,10 @@
     "issue": 1508,
     "title": "Energy bus-scoped commissioned SDM meters",
     "branch": "feature/1508-energy-scoped-sdm",
-    "status": "in_progress_current_node_software_candidate_multi_node_pending",
+    "status": "in_progress_per_node_selector_cross_node_comparison_pending",
     "pr": 1509,
     "production_mutation": false,
-    "next": "Complete #1508 multi-node scope, broader CI/review and separately authorized runtime/hardware acceptance; absent historical buses tracked in #1126/#1429"
+    "next": "Complete simultaneous cross-node comparison only within approved issue scope; finish broader CI/review and separately authorized runtime/hardware acceptance"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3241,18 +3241,19 @@
       "production_release": "not_performed;draft_stacked_PR_unmerged"
     },
     "issue_1508_partial": {
-      "frontend_energy_tests": "136_passed_22_files_act_warnings",
-      "backend_scenarios": "ARM64 pytest: 26 passed 1 skipped on isolated SQLite; skipped case 1 passed on disposable PostgreSQL; full tree not identical, energy source and test SHA-256 matched",
+      "frontend_energy_tests": "139_passed_23_files_act_warnings",
+      "backend_scenarios": "ARM64 targeted pytest 26 passed SQLite plus one PostgreSQL migration-based test passed; Energy source/test hashes matched, remainder source #1502 candidate",
       "frontend_build": "passed_current_source",
       "prior_partial_offline_auth": "42011568068_success_head_7429d6da91ddc3ed0ae652be1304b7fefa4fc0dc",
       "exact_new_head_ci": "pending",
       "full_backend_pytest": "focused_energy_export_pytest_passed_broader_suite_not_run",
       "production_mutation": false,
       "hardware_acceptance": "unverified",
-      "multi_node_ui": "pending",
+      "multi_node_ui": "per-node selection, no simultaneous comparison, legacy limited to primary, remote 30s freshness",
       "current_node_ui": "implemented_software_tests_only",
-      "postgres": "isolated internal network, temporary tmpfs DB, metadata-created schema, cleanup verified; migrations not tested",
-      "prior_full_candidate_offline_auth": "42016026548_success_head_17d01abd51ab08c0c861d7da01a0e25749606a7c"
+      "postgres": "isolated internal network; migrations upgraded to 20261104_0038; PostgreSQL export test passed; cleanup verified",
+      "prior_full_candidate_offline_auth": "42016026548_success_head_17d01abd51ab08c0c861d7da01a0e25749606a7c",
+      "prior_offline_auth": "42019148184_success_head_aa236078664213a8095a46af3342818ae73ee307"
     },
     "issue_1510": {
       "git_objects": "13_zero_length_recovered_verified",
@@ -4678,7 +4679,7 @@
       }
     }
   ],
-  "next_action": "Continue #1508 multi-node and integration review; Pi Git integrity is repaired. Confirm purpose of absent CP2104 buses if their acquisition is required; assess 94% disk use and rollback before any separately approved site update.",
+  "next_action": "Continue #1508 cross-node comparison and dependent PR reviews. Pi Git integrity is repaired; assess absent CP2104 buses, 94% disk use, exact package and rollback before any separately approved site update.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

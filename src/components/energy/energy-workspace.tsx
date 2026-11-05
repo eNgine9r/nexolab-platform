@@ -46,7 +46,11 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
-import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
+import {
+  ENERGY_NODE_ID,
+  type EnergyHistoryRange,
+  type EnergyTelemetryModel,
+} from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
@@ -275,6 +279,7 @@ function HistoryPanel({
   selectedUnitIds,
   selectedMeterKeys,
   meters,
+  includeLegacy,
   selectedPairs,
   visibilityRevision,
   onApplyPairs,
@@ -284,6 +289,7 @@ function HistoryPanel({
   selectedUnitIds: readonly number[];
   selectedMeterKeys: readonly string[];
   meters: readonly CommissionedEnergyMeter[];
+  includeLegacy: boolean;
   selectedPairs: readonly EnergySeriesSelection[];
   visibilityRevision: number;
   onApplyPairs: (pairs: EnergySeriesSelection[]) => void;
@@ -444,6 +450,7 @@ function HistoryPanel({
         <EnergyParameterDialog
           selected={selectedPairs}
           meters={meters}
+          includeLegacy={includeLegacy}
           onApply={onApplyPairs}
           onClose={() => setSelectorOpen(false)}
         />
@@ -457,12 +464,17 @@ export function EnergyWorkspace({
   consumption,
   exporter,
   meters = EMPTY_COMMISSIONED_METERS,
+  includeLegacy = true,
+  nodeId = ENERGY_NODE_ID,
 }: {
   telemetry: EnergyTelemetryModel;
   consumption: EnergyConsumptionLoader;
   exporter?: EnergyExportController;
   meters?: readonly CommissionedEnergyMeter[];
+  includeLegacy?: boolean;
+  nodeId?: string;
 }) {
+  const legacyMeters = includeLegacy ? ENERGY_METERS : [];
   const [exportOpen, setExportOpen] = useState(false);
   const openExport = exporter
     ? () => {
@@ -471,21 +483,35 @@ export function EnergyWorkspace({
         if (exporter.job) void exporter.refreshJob();
       }
     : undefined;
-  const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(
-    ENERGY_METERS.map((meter) => meter.unitId),
+  const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(legacyMeters.map((meter) => meter.unitId));
+  const [selectedScopedKeys, setSelectedScopedKeys] = useState<string[]>(() =>
+    includeLegacy ? [] : meters.map((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId)),
   );
-  const [selectedScopedKeys, setSelectedScopedKeys] = useState<string[]>([]);
   const validMeterKeys = new Set(meters.map((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId)));
   const selectedMeterKeys = selectedScopedKeys.filter((key) => validMeterKeys.has(key));
   const visibleUnitIds =
-    selectedUnitIds.length === 0 && selectedMeterKeys.length === 0
-      ? [ENERGY_METERS[0].unitId]
+    selectedUnitIds.length === 0 && selectedMeterKeys.length === 0 && legacyMeters.length > 0
+      ? [legacyMeters[0].unitId]
       : selectedUnitIds;
 
   const [selectedPairs, setSelectedPairs] = useState<EnergySeriesSelection[]>(() =>
-    energySeriesForMeters(
-      ENERGY_METERS.map((meter) => meter.unitId),
-      telemetry.selectedMetrics,
+    normalizeEnergySeriesSelection(
+      [
+        ...energySeriesForMeters(
+          legacyMeters.map((meter) => meter.unitId),
+          telemetry.selectedMetrics,
+        ),
+        ...(includeLegacy
+          ? []
+          : meters.flatMap((meter) =>
+              telemetry.selectedMetrics.map((metric) => ({
+                unitId: meter.unitId,
+                meterKey: energyMeterIdentity(meter.nodeId, meter.equipmentId),
+                metric,
+              })),
+            )),
+      ],
+      meters,
     ),
   );
   const applyPairs = (pairs: EnergySeriesSelection[]) => {
@@ -496,16 +522,18 @@ export function EnergyWorkspace({
     telemetry.setSelectedMetrics([...new Set(next.map((pair) => pair.metric))]);
     if (next.length > 0)
       setSelectedUnitIds((current) =>
-        ENERGY_METERS.filter(
-          (meter) =>
-            current.includes(meter.unitId) ||
-            next.some(
-              (pair) =>
-                !pair.meterKey &&
-                pair.unitId === meter.unitId &&
-                !previousKeys.has(energySeriesSelectionKey(pair)),
-            ),
-        ).map((meter) => meter.unitId),
+        legacyMeters
+          .filter(
+            (meter) =>
+              current.includes(meter.unitId) ||
+              next.some(
+                (pair) =>
+                  !pair.meterKey &&
+                  pair.unitId === meter.unitId &&
+                  !previousKeys.has(energySeriesSelectionKey(pair)),
+              ),
+          )
+          .map((meter) => meter.unitId),
       );
     setSelectedScopedKeys((current) => [
       ...new Set([
@@ -554,7 +582,7 @@ export function EnergyWorkspace({
           : selectedCurrent.filter((item) => item !== unitId);
       }
       const selected = new Set([...selectedCurrent, unitId]);
-      return ENERGY_METERS.filter((meter) => selected.has(meter.unitId)).map((meter) => meter.unitId);
+      return legacyMeters.filter((meter) => selected.has(meter.unitId)).map((meter) => meter.unitId);
     });
   };
 
@@ -628,7 +656,7 @@ export function EnergyWorkspace({
         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
         aria-label="Лічильники електроенергії"
       >
-        {ENERGY_METERS.map((meter) => (
+        {legacyMeters.map((meter) => (
           <MeterCard
             key={meter.unitId}
             unitId={meter.unitId}
@@ -718,7 +746,7 @@ export function EnergyWorkspace({
             <div>
               <p className="text-[10px] text-slate-500">Вибрано для порівняння</p>
               <p className="mt-1 text-xl font-semibold text-white">
-                {visibleUnitIds.length + selectedMeterKeys.length} / {ENERGY_METERS.length + meters.length}
+                {visibleUnitIds.length + selectedMeterKeys.length} / {legacyMeters.length + meters.length}
               </p>
             </div>
           </div>
@@ -730,6 +758,7 @@ export function EnergyWorkspace({
         selectedUnitIds={visibleUnitIds}
         selectedMeterKeys={selectedMeterKeys}
         meters={meters}
+        includeLegacy={includeLegacy}
         visibilityRevision={visibilityRevision}
         selectedPairs={selectedPairs}
         onApplyPairs={applyPairs}
@@ -747,7 +776,7 @@ export function EnergyWorkspace({
               <thead className="border-b border-white/[0.055] text-slate-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Показник</th>
-                  {[...ENERGY_METERS, ...meters].map((meter) => (
+                  {[...legacyMeters, ...meters].map((meter) => (
                     <th
                       key={
                         "nodeId" in meter
@@ -768,7 +797,7 @@ export function EnergyWorkspace({
                       <span className="mr-2 text-cyan-300">{metric.shortLabel}</span>
                       {metric.label}
                     </th>
-                    {[...ENERGY_METERS, ...meters].map((meter) => {
+                    {[...legacyMeters, ...meters].map((meter) => {
                       const key =
                         "nodeId" in meter
                           ? energyMeterIdentity(meter.nodeId, meter.equipmentId)
@@ -853,6 +882,7 @@ export function EnergyWorkspace({
       {exportOpen && exporter ? (
         <EnergyExportDialog
           model={exporter}
+          nodeId={nodeId}
           defaults={selectedPairs.filter((pair) =>
             pair.meterKey ? selectedMeterKeys.includes(pair.meterKey) : visibleUnitIds.includes(pair.unitId),
           )}
