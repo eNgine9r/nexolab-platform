@@ -55,11 +55,13 @@ class RS485BusTopology:
         bindings: tuple[RS485BusBinding, ...],
         *,
         explicit: bool,
+        commissioned_bus_ids: frozenset[str] = frozenset(),
     ) -> None:
         if not bindings:
             raise ValueError("At least one RS-485 bus binding is required")
         self.bindings = bindings
         self.explicit = explicit
+        self.commissioned_bus_ids = commissioned_bus_ids
         self._by_bus = {item.bus_id: item for item in bindings}
         self._unit_to_buses: dict[int, tuple[str, ...]] = {}
         owners: dict[int, list[str]] = {}
@@ -70,6 +72,34 @@ class RS485BusTopology:
             unit_id: tuple(bus_ids)
             for unit_id, bus_ids in owners.items()
         }
+
+    def with_commissioned_buses(self, commissioned: Any) -> "RS485BusTopology":
+        """Extend configured topology without changing any configured binding."""
+        from commissioning_buses import validate_bus
+        from commissioning_preflight import canonical_serial_identifier
+
+        entries = tuple(commissioned)
+        if entries and not self.explicit:
+            raise ValueError("Commissioned buses require explicit RS-485 topology")
+        bindings = list(self.bindings)
+        ids = {binding.bus_id for binding in bindings}
+        paths = {canonical_serial_identifier(binding.serial_device) for binding in bindings}
+        dynamic_ids = set(self.commissioned_bus_ids)
+        mounted = any(binding.serial_device.startswith("/host/dev/serial/by-id/") for binding in bindings)
+        for entry in entries:
+            validate_bus(entry)
+            if entry.bus_id in ids or entry.stable_path in paths:
+                raise ValueError("Commissioned adapter conflicts with existing RS-485 topology")
+            ids.add(entry.bus_id)
+            paths.add(entry.stable_path)
+            dynamic_ids.add(entry.bus_id)
+            bindings.append(RS485BusBinding(
+                bus_id=entry.bus_id,
+                serial_device=("/host" + entry.stable_path) if mounted else entry.stable_path,
+                unit_ids=(), baudrate=entry.baudrate, parity=entry.parity,
+                stopbits=entry.stopbits, timeout_seconds=entry.timeout_seconds, retries=entry.retries,
+            ))
+        return RS485BusTopology(tuple(bindings), explicit=self.explicit, commissioned_bus_ids=frozenset(dynamic_ids))
 
     @classmethod
     def from_environment(
@@ -275,7 +305,11 @@ class RS485BusTopology:
         devices = []
         for device in registry.document.devices:
             candidate_buses = self.buses_for_unit(device.unit_id)
-            if not candidate_buses:
+            if device.bus_id in self.commissioned_bus_ids:
+                # Explicitly commissioned physical identity is authoritative;
+                # another bus may legitimately use the same Unit ID.
+                bus_id = device.bus_id
+            elif not candidate_buses:
                 if device.bus_id in configured_bus_ids:
                     # Explicit commissioning may persist a device on a known
                     # physical bus without rewriting static unit_ids. Preserve

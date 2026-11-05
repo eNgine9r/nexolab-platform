@@ -1,3 +1,15 @@
+## 2026-11-05 — #1505 approved persistent commissioning buses, source candidate
+
+Product Owner approved local onboarding-bus authority. Source candidate adds a SQLite prepared/active bus store with atomic audit, exact stable identity/profile validation and protected configured paths; active entries join static topology on restart. A fresh read-only preflight precedes enrollment, scheduler and commissioning share the same per-bus lock, and an empty registry bus precedes target activation. Active dynamic bus ownership is preserved during static topology rebinding and SDM/Waveshare lifecycle reconciliation. Serial aliases fail closed. No runtime deployment, real hardware read or Modbus/hardware write performed.
+
+Software evidence: targeted Device Agent unit suites passed with MQTT mocked; see PR for exact count and limitations. Crash, concurrent preparation, retry, alias, topology, scheduler and simulated restart cases exercised. Source must still pass exact-head CI, independent review, actual disconnected/offline runtime and real device acceptance. SDM #1503 activation remains disabled; Waveshare #1502 remains unimplemented. Production/site cutover is separate.
+
+## 2026-11-05 — #1503 SDM120M commissioning in progress (not deployed)
+
+Partial source-only FC04 read-only discovery/preflight: catalog exposes SDM120M as verification-only, fixed meter reader and exact FC04 evidence validation added. Activation remains disabled; continuous monitoring, arbitrary adapter enrollment, hardware acceptance and Waveshare #1502 are NOT implemented. Existing local UI inventory showed A10Q2QYX and A10Q2SI7 present, but their connected devices/addresses were not independently verified. No runtime, data or hardware mutation.
+
+Verification: 44 targeted Device Agent unittests passed with a mocked missing MQTT package; 1 telemetry contract unittest and 14 frontend tests passed; touched ESLint, typecheck, format, Python compile and production frontend build passed. Full Agent and telemetry suites are unverified; local environment lacks paho/pytest/SQLAlchemy. CI is not yet verified. Current UI shows A10Q2QYX and A10Q2SI7 as free commissioning-only adapters; the scheduler uses configured buses, so persistent safe bus onboarding is still required. The branch is stacked on #1500; no update/merge readiness.
+
 ## 2026-11-05 — section-addressed monitoring1500 / PR1501 installed in TEST
 
 Versioned section mode groups six consecutive Modbus addresses into one physical instrument, reads256/257 at each section, reserves the full bus-scoped range and continuously polls only operator-declared attached inputs. The legacy profile remains available. Quick Add shows one section-model choice plus attached count1–6; Connections shows one physical card, range/count/reserve and a direct readings link. Temperature classification recognizes explicit section identities. New source/equipment/channel identities separate current data from ambiguous historical K1/K2 records; no historical telemetry was rewritten.

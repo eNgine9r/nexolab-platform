@@ -245,7 +245,7 @@ class SearchContractTests(unittest.TestCase):
         agent.settings = Mock(
             node_id="edge-01", xjp60d_scale=0.1, embraco_temperature_scale=1, embraco_control_scale=1
         )
-        topology = Mock(explicit=True, bindings=())
+        topology = Mock(explicit=True, bindings=(), commissioned_bus_ids=frozenset())
         topology.binding.side_effect = ValueError("unowned")
         agent.rs485_topology = topology
         agent._commissioning_adapter_locks = {}
@@ -274,7 +274,7 @@ class SearchContractTests(unittest.TestCase):
     def test_general_search_reuses_configured_client_lock_and_checks_serial_identity(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
         agent.settings = Mock(node_id="edge-01", xjp60d_scale=0.1)
-        agent.rs485_topology = Mock(explicit=True)
+        agent.rs485_topology = Mock(explicit=True, commissioned_bus_ids=frozenset())
         agent.rs485_topology.binding.return_value = Mock(bus_id="rs485-sdm120")
         agent.search_bus = Mock(return_value=PreflightBus("rs485-sdm120", PATH, True))
         entry = dict(FakeRuntime().connections[0], bus_id="rs485-sdm120", stable_transport_identifier=PATH,
@@ -313,7 +313,7 @@ class SearchContractTests(unittest.TestCase):
 
     def test_real_agent_rejects_production_binding_even_if_name_looks_like_commissioning(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        agent.rs485_topology = Mock(explicit=True, bindings=())
+        agent.rs485_topology = Mock(explicit=True, bindings=(), commissioned_bus_ids=frozenset())
         agent.rs485_topology.binding.return_value = Mock(bus_id=BUS)
         with self.assertRaises(PreflightExecutionError) as error:
             agent.preflight_read_profile(

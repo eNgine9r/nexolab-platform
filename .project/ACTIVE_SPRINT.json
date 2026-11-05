@@ -61,11 +61,15 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1500,
-      "title": "Section-addressed XJP60D as two physical instruments",
-      "branch": "feature/1500-section-addressed-xjp60d"
+      "issue": 1505,
+      "title": "Persistent commissioned RS-485 buses",
+      "branch": "feature/1505-persistent-rs485"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1503,
+      "title": "SDM120M standalone onboarding",
+      "branch": "feature/1503-sdm120-onboarding"
+    }
   },
   "work_packages": [
     {
@@ -10121,6 +10125,64 @@
         "schema_changes": "none",
         "rollback_execution": "not_exercised_previous_config_and_artifacts_retained",
         "production_release": "not_performed;draft_stacked_PR_unmerged"
+      }
+    },
+    {
+      "issue": 1503,
+      "title": "SDM120M standalone onboarding",
+      "branch": "feature/1503-sdm120-onboarding",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1500,
+        1505
+      ],
+      "scope": "Read-only onboarding of SDM120M; partial source only; activation disabled until integration is verified.",
+      "evidence": {
+        "agent_unittest": "44 passed with MQTT module mocked",
+        "telemetry_contract_unittest": "1 passed",
+        "frontend_targeted": "14 passed",
+        "eslint_typecheck_format_compile": "pass",
+        "python_full_suites": "blocked missing paho-mqtt pytest sqlalchemy",
+        "hardware": "unverified",
+        "runtime": "not deployed",
+        "modbus_writes": "none",
+        "frontend_build": "pass_next_16.3.6",
+        "ui_inventory": "both owner-named adapters present as free commissioning-only; physical devices unverified"
+      }
+    },
+    {
+      "issue": 1502,
+      "title": "Waveshare 8CH (B) standalone onboarding",
+      "branch": "feature/1502-waveshare-onboarding",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1500,
+        1505,
+        1503
+      ],
+      "scope": "Read-only Waveshare 8CH setup and truthful channels; no hardware writes.",
+      "evidence": {
+        "status": "not_started"
+      }
+    },
+    {
+      "issue": 1505,
+      "title": "Persistent commissioned RS-485 buses",
+      "branch": "feature/1505-persistent-rs485",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1500
+      ],
+      "scope": "Owner-approved local persistent bus authority and read-only scheduling; protect configured buses and hardware.",
+      "evidence": {
+        "owner_architecture_approval": "2026-11-05",
+        "software": "targeted unittests with MQTT mocked; exact count in PR",
+        "hardware": "unverified",
+        "runtime": "not deployed",
+        "modbus_writes": "none"
       }
     }
   ],
