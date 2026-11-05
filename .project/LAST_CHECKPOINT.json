@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T10:57:03.698976+00:00",
+  "timestamp": "2026-11-05T11:04:04.401017+00:00",
   "actor": "Codex",
-  "event": "1508_current_node_scoped_energy_candidate",
+  "event": "1508_arm64_energy_export_pytest",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3242,15 +3242,16 @@
     },
     "issue_1508_partial": {
       "frontend_energy_tests": "136_passed_22_files_act_warnings",
-      "backend_scenarios": "6_passed_arm64_minimal_harness_not_pytest",
+      "backend_scenarios": "ARM64 pytest: 26 passed 1 skipped on isolated SQLite; skipped case 1 passed on disposable PostgreSQL; full tree not identical, energy source and test SHA-256 matched",
       "frontend_build": "passed_current_source",
       "prior_partial_offline_auth": "42011568068_success_head_7429d6da91ddc3ed0ae652be1304b7fefa4fc0dc",
       "exact_new_head_ci": "pending",
-      "full_backend_pytest": "not_run",
+      "full_backend_pytest": "focused_energy_export_pytest_passed_broader_suite_not_run",
       "production_mutation": false,
       "hardware_acceptance": "unverified",
       "multi_node_ui": "pending",
-      "current_node_ui": "implemented_software_tests_only"
+      "current_node_ui": "implemented_software_tests_only",
+      "postgres": "isolated internal network, temporary tmpfs DB, metadata-created schema, cleanup verified; migrations not tested"
     }
   },
   "observations": [

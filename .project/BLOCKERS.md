@@ -1,6 +1,6 @@
 ## 2026-11-05 — #1508 release and multi-node acceptance open
 
-Source covers one configured Energy node with authorized scoped SDM meters; other-node active instruments are explicitly disclosed but not presented on that screen. Cross-node concurrent UI comparison remains unimplemented. Full backend pytest, exact-head required CI, independent review, browser/runtime/offline verification and real hardware acceptance are pending. Raspberry source repository has corrupt Git objects, root storage was 94% used, and device-agent reported unhealthy; investigate before any release. SQLite store lifetime warnings in #1506 remain under review. No production/site cutover has been authorized; no update signal.
+Source covers one configured Energy node with authorized scoped SDM meters; other-node active instruments are explicitly disclosed but not presented on that screen. Cross-node concurrent UI comparison remains unimplemented. Full broader backend pytest and migration-based PostgreSQL acceptance, exact-head required CI, independent review, browser/runtime/offline verification and real hardware acceptance are pending. Focused Energy export pytest passed 26 SQLite and one disposable PostgreSQL test on ARM64. Raspberry source repository has corrupt Git objects, root storage was 94% used, and device-agent reported unhealthy; investigate before any release. SQLite store lifetime warnings in #1506 remain under review. No production/site cutover has been authorized; no update signal.
 
 ## 2026-11-05 — #1503 scoped meter not yet in Energy workspace
 
