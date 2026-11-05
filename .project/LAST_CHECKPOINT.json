@@ -3242,6 +3242,9 @@
     },
     "issue_1508_partial": {
       "frontend_energy_tests": "139_passed_23_files_act_warnings",
+      "frontend_full_tests": "1296_passed_207_files_react_warnings",
+      "incident_backup_ci_fixture": "1511_PR_1512_9_isolated_ARM64_tests_pass_CI_pending",
+      "prior_head_ci": "10dba6ca8c0ed0c2cdd708e6536cbdc66f246f43_Offline_Auth_success_42021739767_Core_CI_failed_inherited_AGENTS_whitespace_and_Telemetry_failed_fixture",
       "backend_scenarios": "ARM64 targeted pytest 26 passed SQLite plus one PostgreSQL migration-based test passed; Energy source/test hashes matched, remainder source #1502 candidate",
       "frontend_build": "passed_current_source",
       "prior_partial_offline_auth": "42011568068_success_head_7429d6da91ddc3ed0ae652be1304b7fefa4fc0dc",

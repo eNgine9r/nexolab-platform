@@ -10204,7 +10204,7 @@
       ],
       "scope": "Identity-safe local Energy inventory, latest, chart/history, cumulative consumption and export without history reassignment.",
       "evidence": {
-        "software": "139 Energy frontend tests in 23 files; frontend build, lint/typecheck; ARM64 export pytest 26 passed plus PostgreSQL migration-based test passed",
+        "software": "1296 frontend tests in 207 files, including 139 Energy tests in 23 files; frontend build, lint/typecheck; ARM64 export pytest 26 passed plus PostgreSQL migration-based test passed",
         "hardware": "new source unverified",
         "runtime": "not deployed",
         "modbus_writes": "none",

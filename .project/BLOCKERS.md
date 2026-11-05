@@ -1,3 +1,7 @@
+## 2026-11-05 — CI fixture and full checks pending
+
+Telemetry run 42021973918 failed four incident-backup fixture tests; isolated test-only fix is PR #1512 on main, CI pending. Energy head 10dba6ca8c0ed0c2cdd708e6536cbdc66f246f43 passed Offline Auth 42021739767 but manual Core CI failed on inherited AGENTS.md whitespace; next head removes the blank line and needs new exact-head checks.
+
 ## 2026-11-05 — #1508 release and simultaneous cross-node comparison open
 
 The source now allows choosing a single authorized node with per-node SDM data, but simultaneous comparison between nodes is not implemented; UI says so and remote-node freshness uses conservative 30-second fallback. Full broader backend suite, exact-head required CI, independent review, browser/runtime/offline verification and real hardware acceptance remain pending. Focused ARM64 export pytest passed 26 SQLite tests and one PostgreSQL test after migrations on a disposable database. Git corruption was repaired and full fsck passed (#1510). Root storage remains 94% used and the Agent reports missing CP2104 buses (#1126/#1429); assess intended topology, exact candidate capacity and retained rollback before release. SQLite store lifetime warnings in #1506 remain under review. No production/site cutover has been authorized; no update signal.

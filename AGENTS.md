@@ -132,7 +132,6 @@ Risks
 Next Ready Work Package
 ```
 
-
 ## Owner override — disposable laboratory iteration (2026-11-04)
 
 For the current test installation the owner requests fast development and declares existing monitoring data, temperature logs and backups disposable. Use a focused feature branch, the changed operator scenario, touched-code lint/typecheck and a page smoke; build when packaging a target UI. Do not repeat the whole repository matrix or request unrelated vulnerability/backup signoff as a prerequisite to test-interface work. Existing security findings stay tracked separately; no global waiver is granted.
