@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1503,
-      "title": "SDM120M standalone onboarding",
-      "branch": "feature/1503-sdm120-onboarding"
+      "issue": 1508,
+      "title": "Energy bus-scoped commissioned SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm"
     },
     "next_work_package": {
       "issue": 1502,
@@ -10190,6 +10190,46 @@
         "runtime": "not deployed",
         "modbus_writes": "none",
         "pr": 1506
+      }
+    },
+    {
+      "issue": 1508,
+      "title": "Energy bus-scoped commissioned SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1503,
+        1505
+      ],
+      "scope": "Identity-safe local Energy inventory, latest, chart/history, cumulative consumption and export without history reassignment.",
+      "evidence": {
+        "software": "1296 frontend tests in 207 files, including 139 Energy tests in 23 files; frontend build, lint/typecheck; ARM64 export pytest 26 passed plus PostgreSQL migration-based test passed",
+        "hardware": "new source unverified",
+        "runtime": "not deployed",
+        "modbus_writes": "none",
+        "pr": 1509,
+        "multi_node_ui": "single-node selection supported; simultaneous comparison unavailable; conservative remote freshness",
+        "ci": "prior state head aa236078664213a8095a46af3342818ae73ee307 offline auth passed, new exact head pending"
+      }
+    },
+    {
+      "issue": 1510,
+      "title": "Recover corrupt Raspberry Pi Git metadata",
+      "branch": "operational-evidence-only",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Recover verified missing Git objects and tracking ref without modifying worktree, services or hardware.",
+      "evidence": {
+        "full_fsck": "pass",
+        "empty_objects": "13 recovered, zero remain",
+        "main_status": "clean_head_unchanged",
+        "tracking_ref": "matches_origin",
+        "isolated_reversal": "pass",
+        "production_cutover": false,
+        "hardware_write": "none",
+        "modbus_write": "none"
       }
     }
   ],

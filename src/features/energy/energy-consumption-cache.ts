@@ -39,6 +39,7 @@ export function selectEnergyBoundarySample(
   meter: EnergyMeter,
   boundary: Date,
   toleranceMs = ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+  expectedNodeId?: string,
 ): TelemetrySample | null {
   let selected: TelemetrySample | null = null;
   let selectedAt = Number.NEGATIVE_INFINITY;
@@ -49,7 +50,9 @@ export function selectEnergyBoundarySample(
       sample.quality !== "valid" ||
       sample.value === null ||
       !Number.isFinite(sample.value) ||
-      resolveEnergyMeter(sample)?.equipmentId !== meter.equipmentId
+      (expectedNodeId !== undefined && sample.node_id !== expectedNodeId) ||
+      ("nodeId" in meter && sample.node_id !== meter.nodeId) ||
+      resolveEnergyMeter(sample, "nodeId" in meter ? [meter] : [])?.equipmentId !== meter.equipmentId
     ) {
       continue;
     }

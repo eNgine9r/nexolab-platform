@@ -28,11 +28,16 @@ import {
   energyMeterSupportsMetric,
   energySampleState,
   findEnergySample,
+  findEnergySampleForMeter,
   formatCapturedAt,
   formatEnergyValue,
   resolveEnergyMeter,
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import {
   energySeriesDisplayUnit,
   energySeriesForMeters,
@@ -41,7 +46,11 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
-import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
+import {
+  ENERGY_NODE_ID,
+  type EnergyHistoryRange,
+  type EnergyTelemetryModel,
+} from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
@@ -53,6 +62,7 @@ const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
 ];
 
 const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter((metric) => metric.id !== "electrical.energy.active");
+const EMPTY_COMMISSIONED_METERS: readonly CommissionedEnergyMeter[] = [];
 
 const STATE_COPY: Record<EnergySampleState, { label: string; className: string }> = {
   live: {
@@ -126,18 +136,22 @@ function cadenceAwareEnergySampleState(
   sample: TelemetrySample | null,
   unitId: number,
   cadenceAuthority: EnergyTelemetryModel["cadenceAuthority"],
+  busId?: string,
   now = Date.now(),
 ): EnergySampleState {
   const capturedAt = sample === null ? Number.NaN : Date.parse(sample.captured_at);
   const staleAfterMs =
     Number.isFinite(capturedAt) && cadenceAuthority !== null
-      ? cadenceAuthority.maximumSourceGapMs(unitId, capturedAt, now)
+      ? busId
+        ? cadenceAuthority.maximumSourceGapFor(busId, unitId, capturedAt, now)
+        : cadenceAuthority.maximumSourceGapMs(unitId, capturedAt, now)
       : null;
   return energySampleState(sample, now, staleAfterMs ?? undefined);
 }
 
 function MeterCard({
   unitId,
+  scopedMeter,
   selected,
   lastSelected,
   samples,
@@ -147,6 +161,7 @@ function MeterCard({
   onSelectOnly,
 }: {
   unitId: number;
+  scopedMeter?: CommissionedEnergyMeter;
   selected: boolean;
   lastSelected: boolean;
   samples: readonly TelemetrySample[];
@@ -156,16 +171,23 @@ function MeterCard({
   onSelectOnly: () => void;
 }) {
   const displayTimeZone = useDisplayTimeZone();
-  const meter = ENERGY_METERS.find((item) => item.unitId === unitId)!;
-  const power = findEnergySample(samples, unitId, "electrical.power.active");
-  const cumulativeEnergy = findEnergySample(samples, unitId, "electrical.energy.active");
-  const voltage = findEnergySample(samples, unitId, "electrical.voltage");
-  const current = findEnergySample(samples, unitId, "electrical.current");
-  const powerFactor = findEnergySample(samples, unitId, "electrical.power_factor");
+  const meter = scopedMeter ?? ENERGY_METERS.find((item) => item.unitId === unitId)!;
+  const accessibleLabel = scopedMeter ? `${meter.label} · ${scopedMeter.busId}` : meter.label;
+  const find = (metric: (typeof ENERGY_METRICS)[number]["id"]) =>
+    scopedMeter
+      ? findEnergySampleForMeter(samples, scopedMeter.nodeId, scopedMeter, metric, [scopedMeter])
+      : findEnergySample(samples, unitId, metric);
+  const power = find("electrical.power.active");
+  const cumulativeEnergy = find("electrical.energy.active");
+  const voltage = find("electrical.voltage");
+  const current = find("electrical.current");
+  const powerFactor = find("electrical.power_factor");
+  const descriptionId = `energy-meter-${encodeURIComponent(scopedMeter ? energyMeterIdentity(scopedMeter.nodeId, scopedMeter.equipmentId) : meter.equipmentId)}-selection-note`;
   const state = cadenceAwareEnergySampleState(
     power ?? voltage ?? current ?? powerFactor ?? cumulativeEnergy,
     unitId,
     cadenceAuthority,
+    scopedMeter?.busId,
   );
   const stateCopy = STATE_COPY[state];
 
@@ -181,9 +203,9 @@ function MeterCard({
         type="button"
         onClick={onToggle}
         disabled={lastSelected}
-        aria-describedby={lastSelected ? `energy-meter-${unitId}-selection-note` : undefined}
+        aria-describedby={lastSelected ? descriptionId : undefined}
         aria-pressed={selected}
-        aria-label={`${selected ? "Виключити" : "Додати"} лічильник ${meter.label} з порівняння`}
+        aria-label={`${selected ? "Виключити" : "Додати"} лічильник ${accessibleLabel} з порівняння`}
         className="block w-full rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed"
       >
         <div className="flex items-start justify-between gap-3">
@@ -191,6 +213,11 @@ function MeterCard({
             <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">{meter.modelLabel}</p>
             <h2 className="mt-1 text-lg font-semibold text-white">{meter.label}</h2>
             <p className="text-[10px] text-slate-500">Modbus Unit {meter.unitId}</p>
+            {scopedMeter ? (
+              <p className="text-[10px] text-slate-500">
+                {scopedMeter.nodeId} · {scopedMeter.busId}
+              </p>
+            ) : null}
           </div>
           <span className={`rounded-full border px-2.5 py-1 text-[9px] ${stateCopy.className}`}>
             {stateCopy.label}
@@ -204,20 +231,25 @@ function MeterCard({
       </button>
 
       {lastSelected ? (
-        <p id={`energy-meter-${unitId}-selection-note`} className="mt-3 text-[10px] leading-4 text-slate-300">
+        <p id={descriptionId} className="mt-3 text-[10px] leading-4 text-slate-300">
           Для порівняння потрібен хоча б один лічильник. Додайте інший, щоб виключити цей.
         </p>
       ) : null}
       <button
         type="button"
         onClick={onSelectOnly}
-        aria-label={`Показати лише лічильник ${meter.label}`}
+        aria-label={`Показати лише лічильник ${accessibleLabel}`}
         className="mt-3 min-h-11 rounded-xl border border-cyan-300/20 px-3 py-2 text-[11px] text-cyan-200 hover:border-cyan-300/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
       >
         Лише цей лічильник
       </button>
 
-      <EnergyConsumptionPanel unitId={unitId} currentCumulative={cumulativeEnergy} loader={consumption} />
+      <EnergyConsumptionPanel
+        unitId={unitId}
+        meter={scopedMeter}
+        currentCumulative={cumulativeEnergy}
+        loader={consumption}
+      />
 
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
         <div>
@@ -245,6 +277,9 @@ function MeterCard({
 function HistoryPanel({
   telemetry,
   selectedUnitIds,
+  selectedMeterKeys,
+  meters,
+  includeLegacy,
   selectedPairs,
   visibilityRevision,
   onApplyPairs,
@@ -252,27 +287,45 @@ function HistoryPanel({
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
+  selectedMeterKeys: readonly string[];
+  meters: readonly CommissionedEnergyMeter[];
+  includeLegacy: boolean;
   selectedPairs: readonly EnergySeriesSelection[];
   visibilityRevision: number;
   onApplyPairs: (pairs: EnergySeriesSelection[]) => void;
   onExport?: () => void;
 }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const visiblePairs = selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId));
+  const visiblePairs = selectedPairs.filter((pair) =>
+    pair.meterKey
+      ? selectedMeterKeys.includes(pair.meterKey) &&
+        meters.some((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId) === pair.meterKey)
+      : selectedUnitIds.includes(pair.unitId),
+  );
   const validPairKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const sample of telemetry.historySamples) {
-      const meter = resolveEnergyMeter(sample);
+      const meter = resolveEnergyMeter(sample, meters);
       if (meter && sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value)) {
-        keys.add(`${meter.unitId}:${sample.metric}`);
+        keys.add(
+          energySeriesSelectionKey({
+            unitId: meter.unitId,
+            metric: sample.metric as EnergySeriesSelection["metric"],
+            ...("nodeId" in meter ? { meterKey: energyMeterIdentity(meter.nodeId, meter.equipmentId) } : {}),
+          }),
+        );
       }
     }
     return keys;
-  }, [telemetry.historySamples]);
+  }, [telemetry.historySamples, meters]);
   const missingPairs = visiblePairs.filter((pair) => !validPairKeys.has(energySeriesSelectionKey(pair)));
   const hasSelectedHistory = missingPairs.length < visiblePairs.length;
+  const pairMeter = (pair: EnergySeriesSelection) =>
+    pair.meterKey
+      ? meters.find((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId) === pair.meterKey)
+      : ENERGY_METERS.find((meter) => meter.unitId === pair.unitId);
   const pairLabel = (pair: EnergySeriesSelection) =>
-    `${ENERGY_METERS.find((meter) => meter.unitId === pair.unitId)?.label} · ${ENERGY_METRICS.find((metric) => metric.id === pair.metric)?.label}`;
+    `${pairMeter(pair)?.label ?? "Лічильник недоступний"} · ${ENERGY_METRICS.find((metric) => metric.id === pair.metric)?.label}`;
 
   return (
     <section className="min-w-0 rounded-2xl border border-white/[0.065] bg-[#091d39]/80 p-4 sm:p-5">
@@ -281,8 +334,8 @@ function HistoryPanel({
           <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">Історія вимірювань</p>
           <h2 className="mt-1 text-lg font-semibold text-white">Порівняння лічильників</h2>
           <p className="mt-1 text-[11px] text-slate-500">
-            {selectedUnitIds.length} вибрано · {visiblePairs.length} серій · {telemetry.historySamples.length}{" "}
-            точок для відображення
+            {selectedUnitIds.length + selectedMeterKeys.length} вибрано · {visiblePairs.length} серій ·{" "}
+            {telemetry.historySamples.length} точок для відображення
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap gap-2">
@@ -321,7 +374,7 @@ function HistoryPanel({
       <div className="mt-4 flex flex-wrap gap-2" aria-label="Вибрані параметри графіка">
         {visiblePairs.map((pair) => {
           const metric = ENERGY_METRICS.find((item) => item.id === pair.metric)!;
-          const meter = ENERGY_METERS.find((item) => item.unitId === pair.unitId)!;
+          const meter = pairMeter(pair)!;
           return (
             <button
               key={energySeriesSelectionKey(pair)}
@@ -386,6 +439,8 @@ function HistoryPanel({
           <EnergyHistoryChart
             telemetry={telemetry}
             selectedUnitIds={selectedUnitIds}
+            selectedMeterKeys={selectedMeterKeys}
+            meters={meters}
             selectedPairs={selectedPairs}
             visibilityRevision={visibilityRevision}
           />
@@ -394,6 +449,8 @@ function HistoryPanel({
       {selectorOpen ? (
         <EnergyParameterDialog
           selected={selectedPairs}
+          meters={meters}
+          includeLegacy={includeLegacy}
           onApply={onApplyPairs}
           onClose={() => setSelectorOpen(false)}
         />
@@ -406,11 +463,18 @@ export function EnergyWorkspace({
   telemetry,
   consumption,
   exporter,
+  meters = EMPTY_COMMISSIONED_METERS,
+  includeLegacy = true,
+  nodeId = ENERGY_NODE_ID,
 }: {
   telemetry: EnergyTelemetryModel;
   consumption: EnergyConsumptionLoader;
   exporter?: EnergyExportController;
+  meters?: readonly CommissionedEnergyMeter[];
+  includeLegacy?: boolean;
+  nodeId?: string;
 }) {
+  const legacyMeters = includeLegacy ? ENERGY_METERS : [];
   const [exportOpen, setExportOpen] = useState(false);
   const openExport = exporter
     ? () => {
@@ -419,54 +483,119 @@ export function EnergyWorkspace({
         if (exporter.job) void exporter.refreshJob();
       }
     : undefined;
-  const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(
-    ENERGY_METERS.map((meter) => meter.unitId),
+  const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(legacyMeters.map((meter) => meter.unitId));
+  const [selectedScopedKeys, setSelectedScopedKeys] = useState<string[]>(() =>
+    includeLegacy ? [] : meters.map((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId)),
   );
+  const validMeterKeys = new Set(meters.map((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId)));
+  const selectedMeterKeys = selectedScopedKeys.filter((key) => validMeterKeys.has(key));
+  const visibleUnitIds =
+    selectedUnitIds.length === 0 && selectedMeterKeys.length === 0 && legacyMeters.length > 0
+      ? [legacyMeters[0].unitId]
+      : selectedUnitIds;
 
   const [selectedPairs, setSelectedPairs] = useState<EnergySeriesSelection[]>(() =>
-    energySeriesForMeters(
-      ENERGY_METERS.map((meter) => meter.unitId),
-      telemetry.selectedMetrics,
+    normalizeEnergySeriesSelection(
+      [
+        ...energySeriesForMeters(
+          legacyMeters.map((meter) => meter.unitId),
+          telemetry.selectedMetrics,
+        ),
+        ...(includeLegacy
+          ? []
+          : meters.flatMap((meter) =>
+              telemetry.selectedMetrics.map((metric) => ({
+                unitId: meter.unitId,
+                meterKey: energyMeterIdentity(meter.nodeId, meter.equipmentId),
+                metric,
+              })),
+            )),
+      ],
+      meters,
     ),
   );
   const applyPairs = (pairs: EnergySeriesSelection[]) => {
-    const next = normalizeEnergySeriesSelection(pairs);
+    const next = normalizeEnergySeriesSelection(pairs, meters);
     const previousKeys = new Set(selectedPairs.map(energySeriesSelectionKey));
     setSelectedPairs(next);
     setVisibilityRevision((current) => current + 1);
     telemetry.setSelectedMetrics([...new Set(next.map((pair) => pair.metric))]);
     if (next.length > 0)
       setSelectedUnitIds((current) =>
-        ENERGY_METERS.filter(
-          (meter) =>
-            current.includes(meter.unitId) ||
-            next.some(
-              (pair) => pair.unitId === meter.unitId && !previousKeys.has(energySeriesSelectionKey(pair)),
-            ),
-        ).map((meter) => meter.unitId),
+        legacyMeters
+          .filter(
+            (meter) =>
+              current.includes(meter.unitId) ||
+              next.some(
+                (pair) =>
+                  !pair.meterKey &&
+                  pair.unitId === meter.unitId &&
+                  !previousKeys.has(energySeriesSelectionKey(pair)),
+              ),
+          )
+          .map((meter) => meter.unitId),
       );
+    setSelectedScopedKeys((current) => [
+      ...new Set([
+        ...current.filter((key) => validMeterKeys.has(key)),
+        ...next
+          .filter((pair) => pair.meterKey && !previousKeys.has(energySeriesSelectionKey(pair)))
+          .map((pair) => pair.meterKey!),
+      ]),
+    ]);
   };
   const ensureMeterPairs = (unitId: number) =>
     setSelectedPairs((current) =>
-      current.some((pair) => pair.unitId === unitId)
+      current.some((pair) => !pair.meterKey && pair.unitId === unitId)
         ? current
-        : normalizeEnergySeriesSelection([
-            ...current,
-            ...energySeriesForMeters([unitId], telemetry.selectedMetrics),
-          ]),
+        : normalizeEnergySeriesSelection(
+            [...current, ...energySeriesForMeters([unitId], telemetry.selectedMetrics)],
+            meters,
+          ),
     );
+
+  const ensureScopedPairs = (meter: CommissionedEnergyMeter) => {
+    const meterKey = energyMeterIdentity(meter.nodeId, meter.equipmentId);
+    setSelectedPairs((current) =>
+      current.some((pair) => pair.meterKey === meterKey)
+        ? current
+        : normalizeEnergySeriesSelection(
+            [
+              ...current,
+              ...telemetry.selectedMetrics.map((metric) => ({ unitId: meter.unitId, meterKey, metric })),
+            ],
+            meters,
+          ),
+    );
+  };
 
   const [visibilityRevision, setVisibilityRevision] = useState(0);
 
   const toggleMeter = (unitId: number) => {
-    if (!selectedUnitIds.includes(unitId)) ensureMeterPairs(unitId);
+    if (!visibleUnitIds.includes(unitId)) ensureMeterPairs(unitId);
     setSelectedUnitIds((current) => {
-      if (current.includes(unitId)) {
-        return current.length === 1 ? current : current.filter((item) => item !== unitId);
+      const selectedCurrent =
+        current.length === 0 && selectedMeterKeys.length === 0 ? visibleUnitIds : current;
+      if (selectedCurrent.includes(unitId)) {
+        return selectedCurrent.length === 1 && selectedMeterKeys.length === 0
+          ? selectedCurrent
+          : selectedCurrent.filter((item) => item !== unitId);
       }
-      const selected = new Set([...current, unitId]);
-      return ENERGY_METERS.filter((meter) => selected.has(meter.unitId)).map((meter) => meter.unitId);
+      const selected = new Set([...selectedCurrent, unitId]);
+      return legacyMeters.filter((meter) => selected.has(meter.unitId)).map((meter) => meter.unitId);
     });
+  };
+
+  const toggleScopedMeter = (meter: CommissionedEnergyMeter) => {
+    const key = energyMeterIdentity(meter.nodeId, meter.equipmentId);
+    if (!selectedMeterKeys.includes(key)) ensureScopedPairs(meter);
+    setSelectedScopedKeys((current) =>
+      selectedMeterKeys.includes(key)
+        ? selectedMeterKeys.length === 1 && visibleUnitIds.length === 0
+          ? current
+          : current.filter((item) => item !== key)
+        : [...current.filter((item) => validMeterKeys.has(item)), key],
+    );
   };
 
   const validSamples = telemetry.freshSamples.filter(
@@ -527,12 +656,16 @@ export function EnergyWorkspace({
         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
         aria-label="Лічильники електроенергії"
       >
-        {ENERGY_METERS.map((meter) => (
+        {legacyMeters.map((meter) => (
           <MeterCard
             key={meter.unitId}
             unitId={meter.unitId}
-            selected={selectedUnitIds.includes(meter.unitId)}
-            lastSelected={selectedUnitIds.length === 1 && selectedUnitIds[0] === meter.unitId}
+            selected={visibleUnitIds.includes(meter.unitId)}
+            lastSelected={
+              visibleUnitIds.length === 1 &&
+              selectedMeterKeys.length === 0 &&
+              visibleUnitIds[0] === meter.unitId
+            }
             samples={telemetry.samples}
             cadenceAuthority={telemetry.cadenceAuthority}
             consumption={consumption}
@@ -540,10 +673,35 @@ export function EnergyWorkspace({
             onSelectOnly={() => {
               ensureMeterPairs(meter.unitId);
               setSelectedUnitIds([meter.unitId]);
+              setSelectedScopedKeys([]);
               setVisibilityRevision((current) => current + 1);
             }}
           />
         ))}
+        {meters.map((meter) => {
+          const key = energyMeterIdentity(meter.nodeId, meter.equipmentId);
+          return (
+            <MeterCard
+              key={key}
+              unitId={meter.unitId}
+              scopedMeter={meter}
+              selected={selectedMeterKeys.includes(key)}
+              lastSelected={
+                visibleUnitIds.length === 0 && selectedMeterKeys.length === 1 && selectedMeterKeys[0] === key
+              }
+              samples={telemetry.samples}
+              cadenceAuthority={telemetry.cadenceAuthority}
+              consumption={consumption}
+              onToggle={() => toggleScopedMeter(meter)}
+              onSelectOnly={() => {
+                ensureScopedPairs(meter);
+                setSelectedUnitIds([]);
+                setSelectedScopedKeys([key]);
+                setVisibilityRevision((current) => current + 1);
+              }}
+            />
+          );
+        })}
       </section>
 
       {telemetry.samples.length === 0 ? (
@@ -588,7 +746,7 @@ export function EnergyWorkspace({
             <div>
               <p className="text-[10px] text-slate-500">Вибрано для порівняння</p>
               <p className="mt-1 text-xl font-semibold text-white">
-                {selectedUnitIds.length} / {ENERGY_METERS.length}
+                {visibleUnitIds.length + selectedMeterKeys.length} / {legacyMeters.length + meters.length}
               </p>
             </div>
           </div>
@@ -597,7 +755,10 @@ export function EnergyWorkspace({
 
       <HistoryPanel
         telemetry={telemetry}
-        selectedUnitIds={selectedUnitIds}
+        selectedUnitIds={visibleUnitIds}
+        selectedMeterKeys={selectedMeterKeys}
+        meters={meters}
+        includeLegacy={includeLegacy}
         visibilityRevision={visibilityRevision}
         selectedPairs={selectedPairs}
         onApplyPairs={applyPairs}
@@ -615,8 +776,15 @@ export function EnergyWorkspace({
               <thead className="border-b border-white/[0.055] text-slate-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Показник</th>
-                  {ENERGY_METERS.map((meter) => (
-                    <th key={meter.unitId} className="px-4 py-3 font-medium">
+                  {[...legacyMeters, ...meters].map((meter) => (
+                    <th
+                      key={
+                        "nodeId" in meter
+                          ? energyMeterIdentity(meter.nodeId, meter.equipmentId)
+                          : meter.equipmentId
+                      }
+                      className="px-4 py-3 font-medium"
+                    >
                       {meter.label}
                     </th>
                   ))}
@@ -629,23 +797,37 @@ export function EnergyWorkspace({
                       <span className="mr-2 text-cyan-300">{metric.shortLabel}</span>
                       {metric.label}
                     </th>
-                    {ENERGY_METERS.map((meter) => {
+                    {[...legacyMeters, ...meters].map((meter) => {
+                      const key =
+                        "nodeId" in meter
+                          ? energyMeterIdentity(meter.nodeId, meter.equipmentId)
+                          : meter.equipmentId;
                       if (!energyMeterSupportsMetric(meter, metric.id)) {
                         return (
-                          <td key={meter.unitId} className="px-4 py-3">
+                          <td key={key} className="px-4 py-3">
                             <p className="font-medium text-slate-500">—</p>
                             <p className="mt-1 text-[8px] text-slate-600">Не підтримується</p>
                           </td>
                         );
                       }
-                      const sample = findEnergySample(telemetry.samples, meter.unitId, metric.id);
+                      const sample =
+                        "nodeId" in meter
+                          ? findEnergySampleForMeter(
+                              telemetry.samples,
+                              meter.nodeId,
+                              meter,
+                              metric.id,
+                              meters,
+                            )
+                          : findEnergySample(telemetry.samples, meter.unitId, metric.id);
                       const sampleState = cadenceAwareEnergySampleState(
                         sample,
                         meter.unitId,
                         telemetry.cadenceAuthority,
+                        "busId" in meter ? meter.busId : undefined,
                       );
                       return (
-                        <td key={meter.unitId} className="px-4 py-3">
+                        <td key={key} className="px-4 py-3">
                           <p className="font-medium text-slate-100">{formatEnergyValue(sample)}</p>
                           <p className="mt-1 text-[8px] text-slate-600">{STATE_COPY[sampleState].label}</p>
                         </td>
@@ -700,7 +882,10 @@ export function EnergyWorkspace({
       {exportOpen && exporter ? (
         <EnergyExportDialog
           model={exporter}
-          defaults={selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId))}
+          nodeId={nodeId}
+          defaults={selectedPairs.filter((pair) =>
+            pair.meterKey ? selectedMeterKeys.includes(pair.meterKey) : visibleUnitIds.includes(pair.unitId),
+          )}
           onClose={() => setExportOpen(false)}
         />
       ) : null}

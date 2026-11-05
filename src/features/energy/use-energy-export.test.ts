@@ -65,6 +65,38 @@ afterEach(() => {
 });
 
 describe("Energy export identity and request lifecycle", () => {
+  it("does not restore a different node's export when switching views", async () => {
+    const pending = deferred<EnergyExportJob>();
+    const original = job("d");
+    const api = {
+      preview: vi.fn().mockResolvedValue(original),
+      job: vi.fn().mockReturnValue(pending.promise),
+    };
+    mocks.construct.mockReturnValue(api);
+    const { result, rerender } = renderHook((props) => useEnergyExport(props), {
+      initialProps: {
+        enabled: true,
+        organizationId: "org-a",
+        securityScopeId: "identity-a",
+        viewScopeId: "edge-01",
+      },
+    });
+    await act(async () => {
+      await result.current.preview(options);
+    });
+    await waitFor(() => expect(api.job).toHaveBeenCalled());
+    const signal = api.job.mock.calls[0][1] as AbortSignal;
+    rerender({
+      enabled: true,
+      organizationId: "org-a",
+      securityScopeId: "identity-a",
+      viewScopeId: "edge-02",
+    });
+    expect(result.current.job).toBeNull();
+    expect(signal.aborted).toBe(true);
+    await act(async () => pending.resolve({ ...original, status: "preview_ready" }));
+    expect(result.current.job).toBeNull();
+  });
   it("aborts and rejects a previous owner's late status after organization/identity changes", async () => {
     const pending = deferred<EnergyExportJob>();
     const firstJob = job("a"),

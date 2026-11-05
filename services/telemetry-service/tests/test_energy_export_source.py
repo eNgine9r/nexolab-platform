@@ -6,9 +6,11 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.contracts import TelemetryEvent
+from app.commissioning.models import EquipmentCommissioningSession
 from app.energy_export.aggregation import iter_rows, materialize_cells
 from app.energy_export.schemas import CatalogSeries, ExportError, ExportOptions, SeriesSelection
 from app.energy_export.source import catalog, freeze_source, open_staging, validate_catalog_selection
+from app.model_registry import register_models
 from app.nodes.models import CentralNode
 from tests.live_dashboard_test_support import ORG_A, ORG_B, database_with_inventory
 
@@ -17,6 +19,7 @@ BASE = datetime(2026, 7, 23, 9, tzinfo=UTC)
 
 
 def source_fixture(tmp_path):
+    register_models()
     database, _ = database_with_inventory(tmp_path, filename="energy.db")
     series = SeriesSelection(node_id="edge-a", equipment_id="LE01MP-200", channel_id="200-voltage", metric="electrical.voltage", unit="V")
     for seconds, value in [(0, 220), (0, 221), (30, 230), (60, 240)]:
@@ -48,6 +51,49 @@ def test_ambiguous_cross_organization_node_identity_is_not_exported(tmp_path):
     with Session(database.engine) as session, session.begin():
         session.add(CentralNode(id=str(uuid4()), organization_id=ORG_B, node_id="edge-a", display_name="Foreign duplicate", state="active", created_by="test", clock_status="unknown", clock_warning_ms=30000, clock_critical_ms=120000))
     assert catalog(database, ORG_A) == []
+    database.dispose()
+
+
+def test_commissioned_sdm_catalog_is_scoped_and_keeps_legacy_history_separate(tmp_path):
+    register_models()
+    database, _ = database_with_inventory(tmp_path, filename="scoped-energy.db")
+    buses = ("commissioning-0123456789abcdef", "commissioning-fedcba9876543210")
+    identities = [f"SDM120M:{bus}:1" for bus in buses]
+    with Session(database.engine) as session, session.begin():
+        for index, bus in enumerate(buses):
+            session.add(EquipmentCommissioningSession(
+                id=str(uuid4()), organization_id=ORG_A, create_idempotency_key=f"scope-{index}",
+                create_fingerprint_sha256="a" * 64, lifecycle="active", device_class="energy-meter",
+                manufacturer="Eastron", model="SDM120M", display_name=f"Meter {index}",
+                profile_id="eastron-sdm120m", profile_version="eastron-sdm120m-fc04-v1",
+                node_id="edge-a", bus_id=bus, unit_id=1, created_by="test", updated_by="test",
+            ))
+    for index, equipment_id in enumerate([*identities, "SDM120M-1", "SDM120M:commissioning-aaaaaaaaaaaaaaaa:1"]):
+        sample = TelemetryEvent(event_id=uuid4(), node_id="edge-a", equipment_id=equipment_id,
+            channel_id="1-voltage", metric="electrical.voltage", unit="V", captured_at=BASE,
+            value=220 + index, quality="valid", source="eastron-sdm120m")
+        database.persist(sample, sample.normalized_payload())
+    series = catalog(database, ORG_A)
+    assert {item.equipment_id for item in series} == {*identities, "SDM120M-1"}
+    assert {item.meter_label for item in series if item.equipment_id in identities} == {f"SDM120M · {bus} · Unit 1" for bus in buses}
+    assert catalog(database, ORG_B) == []
+    for index, equipment_id in enumerate(identities):
+        selected = SeriesSelection(node_id="edge-a", equipment_id=equipment_id, channel_id="1-voltage", metric="electrical.voltage", unit="V")
+        options = ExportOptions(series=[selected], from_at=BASE, to_at=BASE + timedelta(seconds=1), format="csv")
+        assert validate_catalog_selection(database, ORG_A, options)[0].meter_label == f"SDM120M · {buses[index]} · Unit 1"
+        path = tmp_path / f"frozen-{index}.sqlite"
+        frozen = freeze_source(database, path, options, guard=lambda: None, progress=lambda _: None)
+        materialize_cells(path, options, frozen, guard=lambda: None, progress=lambda _: None)
+        assert [cell["value"] for _, cells in iter_rows(path) for cell in cells.values()] == [220 + index]
+    with Session(database.engine) as session, session.begin():
+        session.add(EquipmentCommissioningSession(
+            id=str(uuid4()), organization_id=ORG_A, create_idempotency_key="duplicate",
+            create_fingerprint_sha256="b" * 64, lifecycle="active", device_class="energy-meter",
+            manufacturer="Eastron", model="SDM120M", display_name="Duplicate",
+            profile_id="eastron-sdm120m", profile_version="eastron-sdm120m-fc04-v1",
+            node_id="edge-a", bus_id=buses[0], unit_id=1, created_by="test", updated_by="test",
+        ))
+    assert {item.equipment_id for item in catalog(database, ORG_A)} == {identities[1], "SDM120M-1"}
     database.dispose()
 
 

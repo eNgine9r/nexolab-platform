@@ -149,13 +149,15 @@ export function formatEnergyConsumptionSelector(
 }
 
 function sampleMatchesMeter(sample: TelemetrySample, meter: EnergyMeter): boolean {
+  const inventory = "nodeId" in meter ? [meter] : [];
   return (
     sample.metric === ENERGY_CONSUMPTION_METRIC &&
     sample.quality === "valid" &&
     sample.value !== null &&
     Number.isFinite(sample.value) &&
-    isEnergySample(sample) &&
-    resolveEnergyMeter(sample)?.equipmentId === meter.equipmentId
+    isEnergySample(sample, inventory) &&
+    resolveEnergyMeter(sample, inventory)?.equipmentId === meter.equipmentId &&
+    (!("nodeId" in meter) || sample.node_id === meter.nodeId)
   );
 }
 
@@ -194,7 +196,8 @@ async function loadBoundarySample(
     },
     signal,
   );
-  return boundarySample(response.items[0] ?? null, meter, boundary, toleranceMs);
+  const sample = response.items[0] ?? null;
+  return sample?.node_id === nodeId ? boundarySample(sample, meter, boundary, toleranceMs) : null;
 }
 
 export function deriveEnergyConsumption(
@@ -211,7 +214,12 @@ export function deriveEnergyConsumption(
       message: "Недостатньо підтверджених даних біля меж вибраного періоду.",
     };
   }
-  if (!sampleMatchesMeter(startSample, meter) || !sampleMatchesMeter(endSample, meter)) {
+  if (
+    !sampleMatchesMeter(startSample, meter) ||
+    !sampleMatchesMeter(endSample, meter) ||
+    startSample.node_id !== endSample.node_id ||
+    startSample.channel_id !== endSample.channel_id
+  ) {
     return {
       status: "unavailable",
       valueKwh: null,
@@ -265,18 +273,14 @@ export async function loadEnergyConsumption(
   }
 
   try {
+    const current = options.currentCumulative?.node_id === options.nodeId ? options.currentCumulative : null;
     const [startSample, persistedEndSample] = await Promise.all([
       loadBoundarySample(adapter, options.nodeId, options.meter, options.window.from, toleranceMs, signal),
-      boundarySample(options.currentCumulative, options.meter, options.window.to, toleranceMs)
+      boundarySample(current, options.meter, options.window.to, toleranceMs)
         ? Promise.resolve(null)
         : loadBoundarySample(adapter, options.nodeId, options.meter, options.window.to, toleranceMs, signal),
     ]);
-    const liveEndSample = boundarySample(
-      options.currentCumulative,
-      options.meter,
-      options.window.to,
-      toleranceMs,
-    );
+    const liveEndSample = boundarySample(current, options.meter, options.window.to, toleranceMs);
     return deriveEnergyConsumption(startSample, liveEndSample ?? persistedEndSample, options.meter);
   } catch (error) {
     if (signal?.aborted) throw error;

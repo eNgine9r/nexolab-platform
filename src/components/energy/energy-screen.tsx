@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, Gauge, LogIn, RotateCcw } from "lucide-react";
 
 import { LoginReturnLink } from "@/components/security/login-return-link";
@@ -12,8 +12,9 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { clearRetainedEnergyHistory } from "@/features/energy/energy-history-retention";
 import { useEnergyConsumption } from "@/features/energy/use-energy-consumption";
 import { useEnergyExport } from "@/features/energy/use-energy-export";
+import { useCommissionedEnergyMeters } from "@/features/energy/use-commissioned-energy-meters";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
-import { useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
+import { ENERGY_NODE_ID, useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
 
 import { EnergyWorkspace } from "./energy-workspace";
 
@@ -58,24 +59,45 @@ export function EnergyScreen() {
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(ENERGY_NODE_ID);
   const securityReady = security.mode === "live" && security.state === "ready";
   const canReadTelemetry =
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
   const organizationId = security.membership?.organizationId ?? null;
+  const securityScopeId = security.session?.identity.id ?? null;
+  const inventory = useCommissionedEnergyMeters(canReadTelemetry, organizationId, securityScopeId);
+  const nodes = useMemo(
+    () => [
+      ENERGY_NODE_ID,
+      ...[
+        ...new Set(inventory.meters.map((meter) => meter.nodeId).filter((id) => id !== ENERGY_NODE_ID)),
+      ].sort(),
+    ],
+    [inventory.meters],
+  );
+  const activeNodeId = nodes.includes(selectedNodeId) ? selectedNodeId : ENERGY_NODE_ID;
+  const meters = useMemo(
+    () => inventory.meters.filter((meter) => meter.nodeId === activeNodeId),
+    [inventory.meters, activeNodeId],
+  );
   const telemetry = useEnergyTelemetry({
     enabled: canReadTelemetry,
     organizationId,
-    securityScopeId: security.session?.identity.id ?? null,
+    securityScopeId,
+    commissionedMeters: meters,
+    nodeId: activeNodeId,
   });
   const consumption = useEnergyConsumption({
     enabled: canReadTelemetry,
     organizationId,
-    securityScopeId: security.session?.identity.id ?? null,
+    securityScopeId,
+    commissionedMeters: meters,
   });
   const exporter = useEnergyExport({
     enabled: canReadTelemetry,
     organizationId,
     securityScopeId: security.session?.identity.id ?? null,
+    viewScopeId: activeNodeId,
   });
 
   if (security.mode === "demo") {
@@ -161,7 +183,52 @@ export function EnergyScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">
-            <EnergyWorkspace telemetry={telemetry} consumption={consumption} exporter={exporter} />
+            {inventory.status === "error" ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-xl border border-amber-400/30 p-3 text-sm text-amber-100"
+              >
+                Не вдалося отримати список підключених лічильників. Перевірте доступ до обладнання та
+                з’єднання.
+              </p>
+            ) : null}
+            {nodes.length > 1 ? (
+              <div className="mb-4 rounded-xl border border-cyan-400/20 p-3 text-sm text-slate-200">
+                <label className="flex flex-wrap items-center gap-3">
+                  Вузол моніторингу
+                  <select
+                    aria-label="Вузол моніторингу"
+                    value={activeNodeId}
+                    onChange={(event) => setSelectedNodeId(event.target.value)}
+                    className="rounded-lg border border-white/15 bg-[#091d39] px-3 py-2 text-white"
+                  >
+                    {nodes.map((node) => (
+                      <option key={node} value={node}>
+                        {node}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="mt-2 text-xs text-slate-400">
+                  Одночасне порівняння приладів з різних вузлів поки недоступне.
+                </p>
+                {activeNodeId !== ENERGY_NODE_ID ? (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Для іншого вузла покази старше 30 секунд позначаються застарілими, доки його частоту
+                    опитування не підтверджено.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <EnergyWorkspace
+              key={JSON.stringify([organizationId, securityScopeId, activeNodeId])}
+              telemetry={telemetry}
+              consumption={consumption}
+              exporter={exporter}
+              meters={meters}
+              nodeId={activeNodeId}
+              includeLegacy={activeNodeId === ENERGY_NODE_ID}
+            />
           </div>
         </main>
       </div>

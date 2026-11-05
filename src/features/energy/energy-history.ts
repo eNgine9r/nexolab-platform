@@ -1,5 +1,9 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import { chartPointBudget } from "@/features/charts/point-budget";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
 import {
   clearEnergyHistoryBreakPending,
@@ -12,7 +16,12 @@ import {
   markEnergyHistoryInferredSegmentStart,
   markEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
-import { isEnergySample, resolveEnergyMeter, type EnergyMetricId } from "@/features/energy/energy-telemetry";
+import {
+  isEnergySample,
+  resolveEnergyMeter,
+  type EnergyMeter,
+  type EnergyMetricId,
+} from "@/features/energy/energy-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_PAGE_SIZE = 1_000;
@@ -57,15 +66,15 @@ function isRenderableEnergyHistorySample(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
 
-function isAcceptedEnergyHistorySample(sample: TelemetrySample): boolean {
-  return isEnergySample(sample) && Number.isFinite(Date.parse(sample.captured_at));
+function isAcceptedEnergyHistorySample(
+  sample: TelemetrySample,
+  meters: readonly CommissionedEnergyMeter[] = [],
+): boolean {
+  return isEnergySample(sample, meters) && Number.isFinite(Date.parse(sample.captured_at));
 }
 
 function uniqueOrderedTimestamps(samples: readonly TelemetrySample[]): number[] {
-  const timestamps = samples
-    .filter(isAcceptedEnergyHistorySample)
-    .map((sample) => Date.parse(sample.captured_at))
-    .filter(Number.isFinite);
+  const timestamps = samples.map((sample) => Date.parse(sample.captured_at)).filter(Number.isFinite);
   return [...new Set(timestamps)].sort((left, right) => left - right);
 }
 
@@ -323,13 +332,14 @@ export function selectEnergyHistoryTail(
   metric: EnergyMetricId,
   now: number = Date.now(),
   maximumFutureSkewMs = ENERGY_HISTORY_MAX_FUTURE_SKEW_MS,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): TelemetrySample[] {
   return samples.filter((sample) => {
     const capturedAt = Date.parse(sample.captured_at);
     return (
       sample.node_id === nodeId &&
       sample.metric === metric &&
-      isAcceptedEnergyHistorySample(sample) &&
+      isAcceptedEnergyHistorySample(sample, meters) &&
       capturedAt <= now + maximumFutureSkewMs
     );
   });
@@ -340,21 +350,23 @@ export function downsampleEnergyHistory(
   maximumPointsPerMeter = MAX_HISTORY_POINTS_PER_METER,
   window?: Pick<EnergyHistoryWindow, "from" | "to">,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): TelemetrySample[] {
-  const byMeter = new Map<number, TelemetrySample[]>();
+  const byMeter = new Map<string, { meter: EnergyMeter; samples: TelemetrySample[] }>();
 
   for (const sample of samples) {
-    if (!isAcceptedEnergyHistorySample(sample)) continue;
-    const meter = resolveEnergyMeter(sample);
+    if (!isAcceptedEnergyHistorySample(sample, meters)) continue;
+    const meter = resolveEnergyMeter(sample, meters);
     if (!meter) continue;
-    const current = byMeter.get(meter.unitId) ?? [];
-    current.push(sample);
-    byMeter.set(meter.unitId, current);
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const current = byMeter.get(key) ?? { meter, samples: [] };
+    current.samples.push(sample);
+    byMeter.set(key, current);
   }
 
   return [...byMeter.entries()]
-    .sort(([left], [right]) => left - right)
-    .flatMap(([unitId, meterSamples]) => {
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([, { meter, samples: meterSamples }]) => {
       const cadenceState = cadenceStateFromSamples(meterSamples);
       const annotation = annotateSourceSegments(
         meterSamples,
@@ -365,11 +377,15 @@ export function downsampleEnergyHistory(
         cadenceAuthority === null
           ? null
           : (previousAtMs, capturedAtMs) => {
-              const maximumSourceGapMs = cadenceAuthority.maximumSourceGapMs(
-                unitId,
-                previousAtMs,
-                capturedAtMs,
-              );
+              const maximumSourceGapMs =
+                "busId" in meter
+                  ? cadenceAuthority.maximumSourceGapFor(
+                      meter.busId,
+                      meter.unitId,
+                      previousAtMs,
+                      capturedAtMs,
+                    )
+                  : cadenceAuthority.maximumSourceGapMs(meter.unitId, previousAtMs, capturedAtMs);
               return maximumSourceGapMs === null ? null : { maximumSourceGapMs, marker: "durable" };
             },
       );
@@ -390,39 +406,41 @@ export function mergeEnergyHistoryTail(
   incoming: readonly TelemetrySample[],
   window: EnergyHistoryWindow,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
-  const currentByMeter = new Map<number, TelemetrySample[]>();
-  const incomingByMeter = new Map<number, TelemetrySample[]>();
+  const currentByMeter = new Map<string, TelemetrySample[]>();
+  const incomingByMeter = new Map<string, TelemetrySample[]>();
 
-  const collect = (target: Map<number, TelemetrySample[]>, sample: TelemetrySample) => {
+  const collect = (target: Map<string, TelemetrySample[]>, sample: TelemetrySample) => {
     const capturedAt = Date.parse(sample.captured_at);
     if (
       sample.node_id !== window.nodeId ||
       sample.metric !== window.metric ||
-      !isAcceptedEnergyHistorySample(sample) ||
+      !isAcceptedEnergyHistorySample(sample, meters) ||
       capturedAt < from ||
       capturedAt > to
     ) {
       return;
     }
 
-    const meter = resolveEnergyMeter(sample);
+    const meter = resolveEnergyMeter(sample, meters);
     if (!meter) return;
-    const values = target.get(meter.unitId) ?? [];
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const values = target.get(key) ?? [];
     values.push(sample);
-    target.set(meter.unitId, values);
+    target.set(key, values);
   };
 
   current.forEach((sample) => collect(currentByMeter, sample));
   incoming.forEach((sample) => collect(incomingByMeter, sample));
 
-  const unitIds = new Set([...currentByMeter.keys(), ...incomingByMeter.keys()]);
+  const meterKeys = new Set([...currentByMeter.keys(), ...incomingByMeter.keys()]);
   const merged: TelemetrySample[] = [];
 
-  for (const unitId of [...unitIds].sort((left, right) => left - right)) {
-    const existing = [...(currentByMeter.get(unitId) ?? [])].sort(
+  for (const meterKey of [...meterKeys].sort()) {
+    const existing = [...(currentByMeter.get(meterKey) ?? [])].sort(
       (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
     );
     const latestExisting = existing.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
@@ -435,7 +453,10 @@ export function mergeEnergyHistoryTail(
         .map((sample) => Date.parse(sample.captured_at))
         .filter(Number.isFinite)
         .at(-1) ?? null;
-    const incomingSamples = incomingByMeter.get(unitId) ?? [];
+    const incomingSamples = incomingByMeter.get(meterKey) ?? [];
+    const representative = existing[0] ?? incomingSamples[0];
+    if (!representative) continue;
+    const meter = resolveEnergyMeter(representative, meters);
     const inheritedCadenceState = sourceCadenceForTail(latestExisting);
     const incomingCadenceState = cadenceStateFromSamples(incomingSamples);
     const fallbackThresholds = [
@@ -453,14 +474,13 @@ export function mergeEnergyHistoryTail(
       existingBreakPending,
       maximumSourceGapMs,
       "inferred",
-      cadenceAuthority === null
+      cadenceAuthority === null || meter === null
         ? null
         : (previousAtMs, capturedAtMs) => {
-            const authoritativeGapMs = cadenceAuthority.maximumSourceGapMs(
-              unitId,
-              previousAtMs,
-              capturedAtMs,
-            );
+            const authoritativeGapMs =
+              "busId" in meter
+                ? cadenceAuthority.maximumSourceGapFor(meter.busId, meter.unitId, previousAtMs, capturedAtMs)
+                : cadenceAuthority.maximumSourceGapMs(meter.unitId, previousAtMs, capturedAtMs);
             return authoritativeGapMs === null
               ? null
               : { maximumSourceGapMs: authoritativeGapMs, marker: "durable" };
@@ -496,6 +516,7 @@ export async function loadCompleteEnergyHistory(
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
   initialSnapshotAt?: string,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
@@ -529,7 +550,7 @@ export async function loadCompleteEnergyHistory(
       if (
         sample.node_id === window.nodeId &&
         sample.metric === window.metric &&
-        isAcceptedEnergyHistorySample(sample)
+        isAcceptedEnergyHistorySample(sample, meters)
       ) {
         samples.set(sample.event_id, sample);
       }
@@ -541,6 +562,7 @@ export async function loadCompleteEnergyHistory(
         MAX_HISTORY_POINTS_PER_METER,
         window,
         cadenceAuthority,
+        meters,
       );
     }
 
@@ -558,6 +580,7 @@ export async function loadCompleteEnergyHistory(
         MAX_HISTORY_POINTS_PER_METER,
         window,
         cadenceAuthority,
+        meters,
       );
     }
 

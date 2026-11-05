@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T09:31:26.512205+00:00",
+  "timestamp": "2026-11-05T11:40:10.478676+00:00",
   "actor": "Codex",
-  "event": "1503_scoped_sdm_activation_source_candidate",
+  "event": "1508_node_selection_and_migration_validation",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,13 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1503,
-    "title": "SDM120M standalone onboarding",
-    "branch": "feature/1503-sdm120-onboarding",
-    "status": "in_progress_scoped_activation_energy_ui_missing",
+    "issue": 1508,
+    "title": "Energy bus-scoped commissioned SDM meters",
+    "branch": "feature/1508-energy-scoped-sdm",
+    "status": "in_progress_per_node_selector_cross_node_comparison_pending",
+    "pr": 1509,
     "production_mutation": false,
-    "next": "complete Energy support, full tests, hardware verification; then #1502"
+    "next": "Complete simultaneous cross-node comparison only within approved issue scope; finish broader CI/review and separately authorized runtime/hardware acceptance"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3238,6 +3239,37 @@
       "schema_changes": "none",
       "rollback_execution": "not_exercised_previous_config_and_artifacts_retained",
       "production_release": "not_performed;draft_stacked_PR_unmerged"
+    },
+    "issue_1508_partial": {
+      "frontend_energy_tests": "139_passed_23_files_act_warnings",
+      "frontend_full_tests": "1296_passed_207_files_react_warnings",
+      "incident_backup_ci_fixture": "1511_PR_1512_9_isolated_ARM64_tests_pass_CI_pending",
+      "prior_head_ci": "10dba6ca8c0ed0c2cdd708e6536cbdc66f246f43_Offline_Auth_success_42021739767_Core_CI_failed_inherited_AGENTS_whitespace_and_Telemetry_failed_fixture",
+      "backend_scenarios": "ARM64 targeted pytest 26 passed SQLite plus one PostgreSQL migration-based test passed; Energy source/test hashes matched, remainder source #1502 candidate",
+      "frontend_build": "passed_current_source",
+      "prior_partial_offline_auth": "42011568068_success_head_7429d6da91ddc3ed0ae652be1304b7fefa4fc0dc",
+      "exact_new_head_ci": "pending",
+      "full_backend_pytest": "focused_energy_export_pytest_passed_broader_suite_not_run",
+      "production_mutation": false,
+      "hardware_acceptance": "unverified",
+      "multi_node_ui": "per-node selection, no simultaneous comparison, legacy limited to primary, remote 30s freshness",
+      "current_node_ui": "implemented_software_tests_only",
+      "postgres": "isolated internal network; migrations upgraded to 20261104_0038; PostgreSQL export test passed; cleanup verified",
+      "prior_full_candidate_offline_auth": "42016026548_success_head_17d01abd51ab08c0c861d7da01a0e25749606a7c",
+      "prior_offline_auth": "42019148184_success_head_aa236078664213a8095a46af3342818ae73ee307"
+    },
+    "issue_1510": {
+      "git_objects": "13_zero_length_recovered_verified",
+      "full_fsck": "passed",
+      "worktree": "clean_and_head_unchanged",
+      "tracking_ref": "matches_origin",
+      "isolated_reversal": "passed",
+      "backup": "/home/nexolab/commander-workspaces/nexolab-1508-isolated-check/repair-full-prepared",
+      "site_cutover": false,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "agent_followup": "MQTT connected, queue 0, workers 3/3, missing CP2104 F090/F246; available bus 8 valid fresh values in latest snapshot",
+      "disk": "94_percent_used_approximately_15_GiB_available_no_cleanup"
     }
   },
   "observations": [
@@ -4650,7 +4682,7 @@
       }
     }
   ],
-  "next_action": "Owner may refresh TEST monitoring and open either named instrument readings. Source PR1501 review/stack integration and full production merge gates remain separate; no further physical user action for current tested scenario.",
+  "next_action": "Continue #1508 cross-node comparison and dependent PR reviews. Pi Git integrity is repaired; assess absent CP2104 buses, 94% disk use, exact package and rollback before any separately approved site update.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4659,7 +4691,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-authorized reversible TEST Agent/central/frontend overlay; obsolete software ownership and intents archived with before state/audit; two new explicit standalone section sessions activated. No controller/Modbus writes, schema change, historical telemetry relabeling/deletion or production release.",
+  "runtime_mutation": "Issue #1510 restored 13 hash-verified corrupt Git objects and one empty remote-tracking ref with originals retained; no runtime service, working-tree source, data, hardware, Modbus or site cutover change.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

@@ -13,6 +13,7 @@ import {
   type EnergyConsumptionWindow,
 } from "@/features/energy/energy-consumption";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const ENERGY_CONSUMPTION_SETTLE_DELAY_MS = 600;
@@ -82,10 +83,12 @@ function statusCopy(view: ConsumptionView): { value: string; helper: string; ton
 
 export function EnergyConsumptionPanel({
   unitId,
+  meter,
   currentCumulative,
   loader,
 }: {
   unitId: number;
+  meter?: CommissionedEnergyMeter;
   currentCumulative: TelemetrySample | null;
   loader: EnergyConsumptionLoader;
 }) {
@@ -113,15 +116,17 @@ export function EnergyConsumptionPanel({
   }, [customRange, initialNow, preset, refreshKey]);
 
   const requestKey = useMemo(() => {
-    if (!window) return `invalid:${unitId}:${preset}`;
+    if (!window) return `invalid:${meter?.nodeId ?? ""}:${meter?.equipmentId ?? unitId}:${preset}`;
     return [
       unitId,
+      meter?.nodeId ?? "",
+      meter?.equipmentId ?? "",
       preset,
       window.from.toISOString(),
       window.to.toISOString(),
       currentCumulative?.event_id ?? "history",
     ].join(":");
-  }, [currentCumulative?.event_id, preset, unitId, window]);
+  }, [currentCumulative?.event_id, preset, unitId, meter?.nodeId, meter?.equipmentId, window]);
 
   useEffect(() => {
     if (!window || !loader.enabled) return;
@@ -129,7 +134,7 @@ export function EnergyConsumptionPanel({
     const controller = new AbortController();
     const timer = globalThis.setTimeout(() => {
       void loader
-        .load(unitId, window, currentCumulative, controller.signal)
+        .load(meter ?? unitId, window, currentCumulative, controller.signal)
         .then((result) => {
           if (!controller.signal.aborted) setLoadState({ requestKey, result });
         })
@@ -152,7 +157,7 @@ export function EnergyConsumptionPanel({
       globalThis.clearTimeout(timer);
       controller.abort();
     };
-  }, [currentCumulative, loader, requestKey, unitId, window]);
+  }, [currentCumulative, loader, requestKey, unitId, meter, window]);
 
   const view = useMemo<ConsumptionView>(() => {
     if (!window || !loader.enabled) {
