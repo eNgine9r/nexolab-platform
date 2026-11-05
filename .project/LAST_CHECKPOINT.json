@@ -3301,7 +3301,8 @@
       "frontend_build": "passed_next_16_3_6",
       "lint_typecheck_compile": "passed",
       "browser_prior_test_candidate": "42024913691_success_1514_head",
-      "first_build_attempt": "failed_symlink_node_modules_outside_root_fixed_by_copy"
+      "first_build_attempt": "failed_symlink_node_modules_outside_root_fixed_by_copy",
+      "agent_test": "116_passed_1_fixture_failed_missing_commissioned_bus_ids; fixture corrected; isolated_focused_7_passed; full_exact_head_pending"
     }
   },
   "observations": [
