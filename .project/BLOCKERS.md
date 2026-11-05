@@ -1,3 +1,7 @@
+## 2026-11-05 — #1520 activated adapter inventory
+
+The SDM120M is active on A10Q2SI7 with fresh hardware readings, and the two old absent bus bindings were disabled only in a guarded temporary test overlay. After activation, the dashboard rejects the newly production-owned `commissioning-` bus and fails the whole adapter list. The #1520 source fix needs scoped verification and installation before Waveshare can be added. The overlay may be lost on container recreation; official packaged update and offline/rollback acceptance remain open. Eight existing XJP60D targets are protected. No Modbus or hardware writes.
+
 ## 2026-11-05 — #1518 update gates
 
 Integrated exact-head tests, required CI, candidate ARM64 package, capacity, rollback and live verification remain open. The owner confirmed old CP2104 adapters are not needed; 12 active instrument records on the absent buses require separate disposition (#1513). Do not disable or rebind them implicitly. Protect both live XJP60D devices on A10Q34QC; no Modbus writes. Source-only #1511 backup test fixture fix merged via #1512 and #1514 browser-test fix is included in the integration candidate.

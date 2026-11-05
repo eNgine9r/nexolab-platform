@@ -624,9 +624,8 @@ function parseConnection(value: unknown): CommissioningConnection {
   )
     throw invalidResponse();
   if (
-    (item.ownership === "available_commissioning" &&
-      (!item.bus_id.startsWith("commissioning-") || item.serial !== null)) ||
-    (item.ownership === "production_bus" && item.bus_id.startsWith("commissioning-"))
+    item.ownership === "available_commissioning" &&
+    (!item.bus_id.startsWith("commissioning-") || item.serial !== null)
   )
     throw invalidResponse();
   return {

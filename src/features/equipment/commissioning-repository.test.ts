@@ -210,6 +210,44 @@ describe("HttpCommissioningRepository", () => {
     });
   });
 
+  it("keeps a commissioned bus owned after activation and lists another free adapter", async () => {
+    const activated = {
+      ...connectionsPayload.connections[0],
+      bus_id: "commissioning-0ae914347f704234",
+      stable_transport_identifier: "/dev/serial/by-id/usb-sdm120",
+      available_for_read_search: true,
+      available_for_isolated_search: false,
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      json({
+        ...connectionsPayload,
+        connections: [connectionsPayload.connections[0], activated, connectionsPayload.connections[1]],
+      }),
+    );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+
+    await expect(repository.listConnections()).resolves.toMatchObject({
+      connections: [
+        { busId: "rs485-main", ownership: "production_bus" },
+        { busId: "commissioning-0ae914347f704234", ownership: "production_bus", serial: { baudrate: 9600 } },
+        { busId: "commissioning-1234567890abcdef", ownership: "available_commissioning", serial: null },
+      ],
+    });
+  });
+
+  it("still rejects an unowned adapter claiming a production serial configuration", async () => {
+    const unowned = {
+      ...connectionsPayload.connections[1],
+      serial: connectionsPayload.connections[0].serial,
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...connectionsPayload, connections: [unowned] }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+
+    await expect(repository.listConnections()).rejects.toThrow();
+  });
+
   it("preserves discovery-only activation capability from the supported profile API", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
       json({
