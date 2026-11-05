@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T11:04:04.401017+00:00",
+  "timestamp": "2026-11-05T11:26:55.323408+00:00",
   "actor": "Codex",
-  "event": "1508_arm64_energy_export_pytest",
+  "event": "1510_git_metadata_recovered_agent_health_diagnosed",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -37,7 +37,7 @@
     "status": "in_progress_current_node_software_candidate_multi_node_pending",
     "pr": 1509,
     "production_mutation": false,
-    "next": "complete multi-node scope and full backend/CI, perform review and authorized runtime/hardware acceptance"
+    "next": "Complete #1508 multi-node scope, broader CI/review and separately authorized runtime/hardware acceptance; absent historical buses tracked in #1126/#1429"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3251,7 +3251,21 @@
       "hardware_acceptance": "unverified",
       "multi_node_ui": "pending",
       "current_node_ui": "implemented_software_tests_only",
-      "postgres": "isolated internal network, temporary tmpfs DB, metadata-created schema, cleanup verified; migrations not tested"
+      "postgres": "isolated internal network, temporary tmpfs DB, metadata-created schema, cleanup verified; migrations not tested",
+      "prior_full_candidate_offline_auth": "42016026548_success_head_17d01abd51ab08c0c861d7da01a0e25749606a7c"
+    },
+    "issue_1510": {
+      "git_objects": "13_zero_length_recovered_verified",
+      "full_fsck": "passed",
+      "worktree": "clean_and_head_unchanged",
+      "tracking_ref": "matches_origin",
+      "isolated_reversal": "passed",
+      "backup": "/home/nexolab/commander-workspaces/nexolab-1508-isolated-check/repair-full-prepared",
+      "site_cutover": false,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "agent_followup": "MQTT connected, queue 0, workers 3/3, missing CP2104 F090/F246; available bus 8 valid fresh values in latest snapshot",
+      "disk": "94_percent_used_approximately_15_GiB_available_no_cleanup"
     }
   },
   "observations": [
@@ -4664,7 +4678,7 @@
       }
     }
   ],
-  "next_action": "Continue #1508 and dependent #1502/#1503/#1505 reviews; no install or green update signal. Verify Pi repository integrity, space, agent health and retained rollback before a future release.",
+  "next_action": "Continue #1508 multi-node and integration review; Pi Git integrity is repaired. Confirm purpose of absent CP2104 buses if their acquisition is required; assess 94% disk use and rollback before any separately approved site update.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4673,7 +4687,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None for issue 1508. ARM64 isolated container had no network or device access; no production state, hardware, Modbus or data writes.",
+  "runtime_mutation": "Issue #1510 restored 13 hash-verified corrupt Git objects and one empty remote-tracking ref with originals retained; no runtime service, working-tree source, data, hardware, Modbus or site cutover change.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

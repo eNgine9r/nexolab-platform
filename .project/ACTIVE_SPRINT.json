@@ -10212,6 +10212,25 @@
         "multi_node_ui": "not implemented; explicit notice",
         "ci": "prior partial head offline auth passed; new head pending"
       }
+    },
+    {
+      "issue": 1510,
+      "title": "Recover corrupt Raspberry Pi Git metadata",
+      "branch": "operational-evidence-only",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Recover verified missing Git objects and tracking ref without modifying worktree, services or hardware.",
+      "evidence": {
+        "full_fsck": "pass",
+        "empty_objects": "13 recovered, zero remain",
+        "main_status": "clean_head_unchanged",
+        "tracking_ref": "matches_origin",
+        "isolated_reversal": "pass",
+        "production_cutover": false,
+        "hardware_write": "none",
+        "modbus_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
