@@ -3302,8 +3302,9 @@
       "lint_typecheck_compile": "passed",
       "browser_prior_test_candidate": "42024913691_success_1514_head",
       "first_build_attempt": "failed_symlink_node_modules_outside_root_fixed_by_copy",
-      "agent_test": "117_passed_ARM64_isolated_head_5552082d19462329d1c4a9207aeb5f978429d18b",
-      "backend_test": "67_passed_1_catalog_fixture_failed_missing_new_profiles; fixture corrected; focused_1_passed; full_exact_head_pending"
+      "agent_test": "117_passed_ARM64_isolated_head_424f956a58d0d6dec861759c2253da3975200450",
+      "backend_test": "68_passed_ARM64_isolated_head_424f956a58d0d6dec861759c2253da3975200450",
+      "postgres_roundtrip": "GH_42028661518_850_pass_1_stale_head; fixed_assertion_passed_isolated_PG16_roundtrip"
     }
   },
   "observations": [
