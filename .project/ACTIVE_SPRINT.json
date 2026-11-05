@@ -61,15 +61,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1498,
-      "title": "Direct readings from simplified instrument connections",
-      "branch": "feature/1498-direct-instrument-readings"
-    },
-    "next_work_package": {
       "issue": 1500,
-      "title": "Read section-addressed XJP60D as two physical instruments",
+      "title": "Section-addressed XJP60D as two physical instruments",
       "branch": "feature/1500-section-addressed-xjp60d"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -10056,61 +10052,75 @@
     },
     {
       "issue": 1500,
-      "title": "Read section-addressed XJP60D as two physical instruments",
+      "title": "Section-addressed XJP60D as two physical instruments",
       "branch": "feature/1500-section-addressed-xjp60d",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "depends_on": [
         1496,
         1498
       ],
-      "scope": "Versioned section-addressed profile, physical instrument grouping and correct attribution; preserve legacy profile and historical provenance. No hardware writes.",
+      "scope": "Versioned section profile, scoped acquisition/range ownership, reserve non-polling, physical-instrument cards and honest temperature identities; installed reversible TEST runtime.",
       "evidence": {
-        "hardware_diagnostics": {
-          "observed_at": "2026-11-05T07:20:07.747666+00:00",
-          "diagnostic_preflight_attempts": 24,
-          "passes": 2,
-          "physical_modules": 2,
-          "first_module": {
-            "section_addresses": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
-            "valid_attached_probes": 6
-          },
-          "second_module": {
-            "section_addresses": [
-              7,
-              8,
-              9,
-              10,
-              11,
-              12
-            ],
-            "valid_attached_probe_addresses": [
-              7,
-              8
-            ],
-            "owner_declared_reserve_addresses": [
-              9,
-              10,
-              11,
-              12
-            ],
-            "reserve_observation": "sensor_error"
-          },
-          "diagnostic_result": "all24_preflights_passed_expected_quality;no_malformed_response_in_two_passes",
-          "threshold_semantics": "all8_valid_probes_report_high;thresholds_not_changed",
-          "evidence_path": "direct-data-1498/both-modules-section-acceptance.json on Pi",
-          "limitations": "preflight_API_does_not_expose_numeric_values;no_grouped_continuous_monitoring_acceptance;old_unit2_session_cannot_be_attributed_to_second_physical_module",
-          "assistant_modbus_writes": "none",
-          "assistant_runtime_changes": "none"
+        "pr": 1501,
+        "application_source": "cc9d12e3d5e92071514f1861f4478277499c3d6e",
+        "targeted_checks": {
+          "frontend": 35,
+          "central": 34,
+          "agent": 73,
+          "agent_subtests": 11
         },
-        "implementation": "not_started"
+        "regressions": "three_original_source_failures_now_pass;actual_activation_idempotency_and_restart_preserve_reserve_targets",
+        "lint_typecheck_format_compile_diff": "PASS",
+        "native_arm64_builds": {
+          "external": "fVKrLGIRsGzFoW2nB3hcO",
+          "lan": "CDL0HJqocJ4gPJwDIwwGz"
+        },
+        "test_frontends": "both_installed_4_pages_19_script_assets_each_exact_identity",
+        "actual_groups": [
+          {
+            "id": "458f2cd6-141a-4e35-be9e-2ce1e60e0530",
+            "display_name": "Dixell XJP60D · 1",
+            "unit_id": 1,
+            "profile_id": "dixell-xjp60d-sections-6",
+            "lifecycle": "active",
+            "target_equipment_key": null
+          },
+          {
+            "id": "cd600ddc-733b-4bd4-b062-19582c62f0d8",
+            "display_name": "Dixell XJP60D · 2",
+            "unit_id": 7,
+            "profile_id": "dixell-xjp60d-sections-2",
+            "lifecycle": "active",
+            "target_equipment_key": null
+          }
+        ],
+        "fresh_persisted_valid_probes": 8,
+        "reserve_targets_not_polled": 4,
+        "actual_agent_restart": "PASS_all8_new_values_after_restart_and_bus_identity_preserved",
+        "actual_temperatures_c": [
+          21.4,
+          21.7,
+          21.5,
+          21.8,
+          21.8,
+          22.0,
+          21.5,
+          21.5
+        ],
+        "hardware_evidence": "sections-1500/hardware-evidence.json on Pi",
+        "ui_evidence": "sections-1500/runtime-evidence.json on Pi",
+        "previous_state": "previous_modules_and_frontends_retained;SQLite_sections1500_before;old_intents_audited_cancelled_after_software_ownership_archived",
+        "historical_telemetry": "not_rewritten_or_deleted;new_section_source_and_bus_scoped_identity",
+        "global_agent_health": "error",
+        "global_agent_limitation": "historical_missing_adapters_remain_degraded;selected8_valid_and_persisting",
+        "browser": "visual_unverified_local_Chrome_connector_unavailable;component_tests_and_HTTP_assets_pass",
+        "offline": "no_new_dependencies;existing_local_services;no_new_network_disconnect_test",
+        "ci": "Offline_Auth_Acceptance41988978913_SUCCESS_on_application_source;full_main_production_CI_not_claimed",
+        "modbus_hardware_writes": "none",
+        "schema_changes": "none",
+        "rollback_execution": "not_exercised_previous_config_and_artifacts_retained",
+        "production_release": "not_performed;draft_stacked_PR_unmerged"
       }
     }
   ],
