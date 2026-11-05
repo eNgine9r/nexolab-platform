@@ -90,6 +90,10 @@ describe("quick device setup", () => {
     fireEvent.change(screen.getByLabelText("Назва приладу"), { target: { value: "Dixell 2 — стенд" } });
     fireEvent.click(screen.getByRole("button", { name: "Додати прилад" }));
     expect(await screen.findByText("Прилад додано. Моніторинг увімкнено.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Відкрити прилади" })).toHaveAttribute(
+      "href",
+      "/equipment?section=connections",
+    );
     expect(create).not.toHaveBeenCalled();
     expect(repository.createSession).toHaveBeenCalledWith(
       expect.objectContaining({ displayName: "Dixell 2 — стенд", targetEquipmentKey: null }),

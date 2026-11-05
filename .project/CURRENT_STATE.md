@@ -1,3 +1,25 @@
+## 2026-11-05 — two physical Dixell verified together; software integration1500 pending
+
+Owner configured both modules Snc6. Isolated first responded1–6 with six valid probes. Isolated second initially overlapped2–7; owner manually corrected each section to7–12. It now has two attached probes at7/8 and four owner-declared reserve inputs9–12. After owner reconnected BOTH, two alternating full FC03 diagnostic passes (24 preflight attempts, not24 serial frames) all passed: addresses1–8 valid,9–12 sensor_error. No malformed response in these passes. This is actual combined-bus diagnostic evidence for eight working probes; not grouped continuous monitoring/dashboard acceptance. Diagnostic API exposes quality/threshold state, not exact numeric readings. All eight valid probes report high threshold semantics; no threshold changes performed.
+
+Evidence on Pi: direct-data-1498/both-modules-section-acceptance.json plus isolated-module artifacts. No assistant Modbus/hardware writes, service restart, registry mutation or data deletion. No further physical action needed for current validation.
+
+Next Ready Work Package1500: explicit versioned section-addressed reading/grouping, preserving legacy single-address multi-register profile. One physical card per module (first1–6, second7–12), only confirmed two attached probes on second with four explicit reserve inputs. Current unit2/K2 session must not be treated as second physical module: it now addresses first module section2. Do not rewrite old telemetry provenance. Source PR1497/1499 remain drafts/unmerged; no software fix/build/deployment for1500 or full offline acceptance yet.
+
+## 2026-11-04 — correction: actual Dixell sensor counts NOT verified
+
+Owner confirms six physical probes on first Dixell and two on second. Read-only inspection found only channel01 valid on each (21.8°C initially); channels02–06 on both are communication_error/null. Actual Agent logs show FC03 exception03, not probe_error. Bounded locked read search of addresses1–12 found only1 and2. Current profile successfully reads256/257 but later probe reads are rejected. Cause is not yet established; section configuration/profile compatibility needs verification. No evidence supports declaring the other sensors absent or defective.
+
+Correction to1496/1498 reports: six fresh persisted rows per unit included failure records and did NOT prove six working physical sensors. Frontend installation/tests remain verified; 6+2 hardware acceptance is NOT passed. Next physical step is to read Snc on each KB1 PRG without changing it. No code/runtime/controller/Modbus writes or data deletion in this inspection.
+
+## 2026-11-04 — direct instrument readings #1498 / PR #1499
+
+Quick Add now returns to Connections. Active supported instruments offer a scoped Live readings link and a separate settings action. Dixell addresses1/2 open edge-01 K1/K2; supported LE-01MP and Embraco use their existing canonical activation identities. Unknown, incomplete and inactive identities expose setup only. Plain Ukrainian copy replaces technical commissioning language; activation status does not claim current online/fresh data.
+
+Verified:28 focused component/helper tests; touched ESLint, TypeScript, Prettier and diff checks PASS. Native ARM64 TEST builds OMG6ctCYO-kV7jRjGoue7 / 24eXIe1pzAg7HD_j2_pEk installed from exact source0b3e298756d7b5b65779937d09862be9e142e345. Both origins passed4 pages,19 script assets and runtime source/build identity. Actual persisted hardware readings after installation: two independent active standalone Dixell, six channels each, oldest below59s at16:02:02Z. Evidence: direct-data-1498/runtime-evidence.json and readings-evidence.json on Pi.
+
+Only TEST frontends changed; prior external drop-in and LAN .next retained with installer error rollback. Rollback was not exercised. No Agent/database changes, new dependencies, data deletion or hardware/Modbus writes. No disconnected runtime test. Local Chrome connector unavailable, so visual acceptance is unverified. PR1499 is draft/stacked on1497; GitHub reported no PR-triggered workflows/statuses for the source head, and no hosted GREEN/merge is claimed. Historical missing adapters still cause the previously recorded global Agent degraded state; both selected Dixell have fresh actual data. Broader production release gates remain separate.
+
 ## 2026-11-04 — standalone instrument onboarding #1496 / PR #1497
 
 Quick Add now saves the instrument name directly and needs no refrigeration passport or target selection. Standalone sessions proceed through the same read-only preflight/activation with organization, version/idempotency and transport checks; explicit linked workflows remain in Advanced. Default names and Add another retain the found-address list. Names/address appear in Connections.

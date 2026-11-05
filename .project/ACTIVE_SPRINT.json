@@ -61,11 +61,15 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1496,
-      "title": "Standalone named instruments without refrigeration passports",
-      "branch": "feature/1496-standalone-instruments"
+      "issue": 1498,
+      "title": "Direct readings from simplified instrument connections",
+      "branch": "feature/1498-direct-instrument-readings"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1500,
+      "title": "Read section-addressed XJP60D as two physical instruments",
+      "branch": "feature/1500-section-addressed-xjp60d"
+    }
   },
   "work_packages": [
     {
@@ -9966,11 +9970,147 @@
         "runtime_evidence": "standalone-1496/runtime-evidence.json and restart-evidence.json on Pi",
         "browser": "actual_Chrome_search_found_two; unit2_Add_succeeded; Add_another_retained_results; extension_disconnected_before_final_visual_capture; final_two_active_and_fresh_rows_verified_on_actual_local_services",
         "offline": "no_new_runtime_dependencies; existing local_API_SQLite_PostgreSQL_MQTT_only; no_new_disconnected_site_test",
-        "ci": "Offline_Auth_41852230672_PASS_on_application_source; restart_fix_41855488325_in_progress_at_checkpoint",
+        "ci": "Offline_Auth_41856357198_PASS_on_final_bdbc34cb_checkpoint",
         "modbus_writes": "none",
         "hardware_parameter_changes": "none",
         "telemetry_deletion": "none",
-        "production_release": "not_performed"
+        "production_release": "not_performed",
+        "sensor_count_correction_20261104": {
+          "expected_connected_probes": {
+            "K1": 6,
+            "K2": 2
+          },
+          "actual_latest_valid_probes": {
+            "K1": 1,
+            "K2": 1
+          },
+          "actual_latest_communication_error_probes": {
+            "K1": 5,
+            "K2": 5
+          },
+          "valid_channel": "01_on_both_units;21.8_degC_at_initial_inspection",
+          "physical_protocol": "channels02_06_return_FC03_exception03;not_probe_error",
+          "address_search": "bounded12_addresses;only1_and2_replied",
+          "previous_acceptance_correction": "Six fresh telemetry rows included communication_error/null records. Previous freshness/count checks did not verify six working sensors. Hardware sensor-count acceptance is NOT passed.",
+          "cause": "unconfirmed;device_section_configuration_or_profile_compatibility_requires_verification",
+          "required_owner_read": "Read Snc on each actual instrument using KB1_PRG; no configuration changes requested",
+          "hardware_parameter_changes": "none",
+          "modbus_writes": "none",
+          "observed_at": "2026-11-04T16:23:28.018278+00:00"
+        }
+      }
+    },
+    {
+      "issue": 1498,
+      "title": "Direct readings from simplified instrument connections",
+      "branch": "feature/1498-direct-instrument-readings",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1496
+      ],
+      "scope": "Frontend-only direct live readings links and plain instrument connections; preserve setup, scoped permissions and freshness semantics.",
+      "evidence": {
+        "pr": 1499,
+        "source_commit": "0b3e298756d7b5b65779937d09862be9e142e345",
+        "targeted_frontend_tests": 28,
+        "touched_eslint_typecheck_prettier": "PASS",
+        "native_builds": {
+          "external": "OMG6ctCYO-kV7jRjGoue7",
+          "lan": "24eXIe1pzAg7HD_j2_pEk"
+        },
+        "test_installation": "PASS_both_frontends_4_pages_and_19_script_assets_each;exact_source_and_build_identity",
+        "real_readings": "two_active_standalone_Dixell;6_channels_each;oldest_age_below_59s_at_2026-11-04T16:02:02Z",
+        "runtime_evidence": "direct-data-1498/runtime-evidence.json and readings-evidence.json on Pi",
+        "browser_visual": "unverified_local_Chrome_connector_unavailable",
+        "offline": "no_new_dependencies;existing_local_services;no_new_disconnected_runtime_test",
+        "hosted_ci": "no_PR_workflow_runs_or_combined_statuses_reported_on_source_head;draft_stacked_PR_not_merged",
+        "rollback": "previous_external_service_dropin_and_LAN_.next_pre_1498_retained;automatic_error_rollback_in_installer;rollback_not_exercised",
+        "agent_database_hardware_changes": "none",
+        "modbus_writes": "none",
+        "production_release": "not_performed",
+        "sensor_count_correction_20261104": {
+          "expected_connected_probes": {
+            "K1": 6,
+            "K2": 2
+          },
+          "actual_latest_valid_probes": {
+            "K1": 1,
+            "K2": 1
+          },
+          "actual_latest_communication_error_probes": {
+            "K1": 5,
+            "K2": 5
+          },
+          "valid_channel": "01_on_both_units;21.8_degC_at_initial_inspection",
+          "physical_protocol": "channels02_06_return_FC03_exception03;not_probe_error",
+          "address_search": "bounded12_addresses;only1_and2_replied",
+          "previous_acceptance_correction": "Six fresh telemetry rows included communication_error/null records. Previous freshness/count checks did not verify six working sensors. Hardware sensor-count acceptance is NOT passed.",
+          "cause": "unconfirmed;device_section_configuration_or_profile_compatibility_requires_verification",
+          "required_owner_read": "Read Snc on each actual instrument using KB1_PRG; no configuration changes requested",
+          "hardware_parameter_changes": "none",
+          "modbus_writes": "none",
+          "observed_at": "2026-11-04T16:23:28.018278+00:00"
+        }
+      }
+    },
+    {
+      "issue": 1500,
+      "title": "Read section-addressed XJP60D as two physical instruments",
+      "branch": "feature/1500-section-addressed-xjp60d",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        1496,
+        1498
+      ],
+      "scope": "Versioned section-addressed profile, physical instrument grouping and correct attribution; preserve legacy profile and historical provenance. No hardware writes.",
+      "evidence": {
+        "hardware_diagnostics": {
+          "observed_at": "2026-11-05T07:20:07.747666+00:00",
+          "diagnostic_preflight_attempts": 24,
+          "passes": 2,
+          "physical_modules": 2,
+          "first_module": {
+            "section_addresses": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "valid_attached_probes": 6
+          },
+          "second_module": {
+            "section_addresses": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "valid_attached_probe_addresses": [
+              7,
+              8
+            ],
+            "owner_declared_reserve_addresses": [
+              9,
+              10,
+              11,
+              12
+            ],
+            "reserve_observation": "sensor_error"
+          },
+          "diagnostic_result": "all24_preflights_passed_expected_quality;no_malformed_response_in_two_passes",
+          "threshold_semantics": "all8_valid_probes_report_high;thresholds_not_changed",
+          "evidence_path": "direct-data-1498/both-modules-section-acceptance.json on Pi",
+          "limitations": "preflight_API_does_not_expose_numeric_values;no_grouped_continuous_monitoring_acceptance;old_unit2_session_cannot_be_attributed_to_second_physical_module",
+          "assistant_modbus_writes": "none",
+          "assistant_runtime_changes": "none"
+        },
+        "implementation": "not_started"
       }
     }
   ],

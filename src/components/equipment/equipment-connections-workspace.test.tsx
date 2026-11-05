@@ -99,6 +99,8 @@ describe("EquipmentConnectionsWorkspace", () => {
           ...persistedSession,
           displayName: "Dixell стенд 2",
           unitId: 2,
+          profileId: "dixell-xjp60d",
+          nodeId: "edge-01",
           lifecycle: "active",
         })}
         discoveryRepository={null}
@@ -108,6 +110,15 @@ describe("EquipmentConnectionsWorkspace", () => {
     );
     expect(await screen.findByText("Dixell стенд 2")).toBeInTheDocument();
     expect(screen.getByText(/Адреса 2 · Самостійний прилад/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Показники: Dixell стенд 2" })).toHaveAttribute(
+      "href",
+      "/live?workspace=explorer&node=edge-01&equipment=K2",
+    );
+    expect(screen.getByRole("link", { name: "Налаштування: Dixell стенд 2" })).toHaveAttribute(
+      "href",
+      "/equipment/onboarding/commissioning-1",
+    );
+    expect(screen.queryByText("Commissioning sessions")).not.toBeInTheDocument();
   });
 
   it("surfaces persistent and unsupported drafts with discovery under Connections", async () => {
@@ -131,6 +142,7 @@ describe("EquipmentConnectionsWorkspace", () => {
       "href",
       "/equipment/onboarding/commissioning-1",
     );
+    expect(screen.queryByRole("link", { name: /Показники:/ })).not.toBeInTheDocument();
   });
 
   it("does not expose a mutation CTA without equipment.manage", async () => {
@@ -204,7 +216,11 @@ describe("EquipmentConnectionsWorkspace", () => {
     );
 
     expect(await screen.findByText("Embraco Sync")).toBeInTheDocument();
-    expect(screen.getByText("Read-only моніторинг активний")).toBeInTheDocument();
+    expect(screen.getByText("Зчитування ввімкнено")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Показники: Embraco Sync" })).toHaveAttribute(
+      "href",
+      "/live?workspace=explorer&node=edge-01&equipment=EMBRACO-2",
+    );
     expect(screen.getByText(/Прив’язка: Cool jet/)).toBeInTheDocument();
     expect(screen.getByText("1", { selector: "p" })).toBeInTheDocument();
   });
@@ -235,6 +251,6 @@ describe("EquipmentConnectionsWorkspace", () => {
     );
 
     expect(screen.queryByText("Unknown Mystery")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Завантаження чернеток");
+    expect(screen.getByRole("status")).toHaveTextContent("Завантаження приладів");
   });
 });

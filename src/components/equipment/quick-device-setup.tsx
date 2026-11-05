@@ -322,7 +322,7 @@ export function QuickDeviceSetup(props: Props) {
           </button>
         ) : (
           <Link
-            href="/equipment"
+            href="/equipment?section=connections"
             className="rounded-xl bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950"
           >
             Відкрити прилади
