@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T11:40:10.478676+00:00",
+  "timestamp": "2026-11-05T12:24:38.147916+00:00",
   "actor": "Codex",
-  "event": "1508_node_selection_and_migration_validation",
+  "event": "1518_integrate_wave_sdm_energy_update_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,13 +31,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1508,
-    "title": "Energy bus-scoped commissioned SDM meters",
-    "branch": "feature/1508-energy-scoped-sdm",
-    "status": "in_progress_per_node_selector_cross_node_comparison_pending",
-    "pr": 1509,
-    "production_mutation": false,
-    "next": "Complete simultaneous cross-node comparison only within approved issue scope; finish broader CI/review and separately authorized runtime/hardware acceptance"
+    "issue": 1518,
+    "branch": "integration/1518-sdm-waveshare-energy",
+    "status": "integration_preverification",
+    "production_mutation": false
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3270,6 +3267,44 @@
       "hardware_write": "none",
       "agent_followup": "MQTT connected, queue 0, workers 3/3, missing CP2104 F090/F246; available bus 8 valid fresh values in latest snapshot",
       "disk": "94_percent_used_approximately_15_GiB_available_no_cleanup"
+    },
+    "issue_1502_waveshare": {
+      "agent_targeted": "109 passed with MQTT mocked",
+      "central_contract": "4 passed",
+      "frontend": "44 passed",
+      "hardware": "unverified",
+      "site": "not deployed",
+      "dependencies": [
+        1504,
+        1506
+      ],
+      "hardware_read_only": "A10Q2QYX unit1 9600N1 FC03 modes 3,3,0,0,0,0,0,0; FC04 all zero; no wiring proof",
+      "false_identity_guard": "SI7 meter produces out-of-range 17253mV analogue pattern; profile check rejects",
+      "full_integration": "unverified_not_deployed"
+    },
+    "issue_1518_candidate": {
+      "components": [
+        1502,
+        1503,
+        1505,
+        1508,
+        1511,
+        1514
+      ],
+      "owner_requested_update": "2026-11-05",
+      "integration_tests": "pending",
+      "site": "not_updated",
+      "hardware_acceptance": "unverified",
+      "old_instrument_disposition": "pending_1513",
+      "modbus_writes": "none",
+      "frontend": "207_passed_28_files_act_warnings",
+      "frontend_build": "passed_next_16_3_6",
+      "lint_typecheck_compile": "passed",
+      "browser_prior_test_candidate": "42024913691_success_1514_head",
+      "first_build_attempt": "failed_symlink_node_modules_outside_root_fixed_by_copy",
+      "agent_test": "117_passed_ARM64_isolated_head_424f956a58d0d6dec861759c2253da3975200450",
+      "backend_test": "68_passed_ARM64_isolated_head_424f956a58d0d6dec861759c2253da3975200450",
+      "postgres_roundtrip": "GH_42028661518_850_pass_1_stale_head; fixed_assertion_passed_isolated_PG16_roundtrip"
     }
   },
   "observations": [
@@ -4682,7 +4717,7 @@
       }
     }
   ],
-  "next_action": "Continue #1508 cross-node comparison and dependent PR reviews. Pi Git integrity is repaired; assess absent CP2104 buses, 94% disk use, exact package and rollback before any separately approved site update.",
+  "next_action": "Verify integrated candidate, exact CI, ARM64 capacity and package/rollback; preserve A10Q34QC and old instrument records. Proceed with authorized update only when actual guards pass.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -1432,7 +1432,12 @@ function ActivationPanel({
               <div>
                 <dt className="inline text-slate-500">Polling: </dt>
                 <dd className="inline">
-                  {plan.pollingMode === "read_only_fc04" ? "FC04" : "FC03"} read-only
+                  {plan.pollingMode === "read_only_fc03_fc04"
+                    ? "FC03 + FC04"
+                    : plan.pollingMode === "read_only_fc04"
+                      ? "FC04"
+                      : "FC03"}{" "}
+                  read-only
                 </dd>
               </div>
               <div>

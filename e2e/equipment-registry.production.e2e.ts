@@ -823,6 +823,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
           await expect(engineerPage.getByText(/Чернетку скасовано/)).toBeVisible();
 
           await engineerPage.goto("/equipment/onboarding/new", { waitUntil: "domcontentloaded" });
+          await engineerPage.getByRole("button", { name: "Розширені налаштування" }).click();
           await engineerPage.getByLabel("Підтримуваний профіль").selectOption("unsupported");
           await engineerPage.getByLabel("Виробник").fill("Unknown Acceptance");
           await engineerPage.getByRole("textbox", { name: "Модель", exact: true }).fill("Unsupported 802");

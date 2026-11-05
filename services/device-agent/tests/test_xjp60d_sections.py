@@ -69,7 +69,7 @@ def test_actual_scheduled_section_dispatch_preserves_physical_group():
     from scheduler_policy import SchedulerTarget
     agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
     agent.settings = SimpleNamespace(node_id="edge-01")
-    agent.rs485_topology = SimpleNamespace(explicit=True)
+    agent.rs485_topology = SimpleNamespace(explicit=True, commissioned_bus_ids=frozenset())
     reader = XJP60DReader(SimpleNamespace(read_holding_register=lambda unit, address: 217 if address==256 else 0x1100))
     client = SimpleNamespace(instrumentation_scope=lambda **kw: nullcontext())
     agent._bus_clients = {"rs485-test":client}
