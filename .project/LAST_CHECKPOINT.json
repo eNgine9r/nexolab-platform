@@ -5,7 +5,7 @@
   "sprint": "PRODUCTION-READINESS-1",
   "timestamp": "2026-11-05T09:40:45.995769+00:00",
   "actor": "Codex",
-  "event": "1502_waveshare_scoped_source_candidate",
+  "event": "1502_real_mapping_and_analog_range_guard",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -34,9 +34,9 @@
     "issue": 1502,
     "title": "Waveshare 8CH (B) standalone onboarding",
     "branch": "feature/1502-waveshare-onboarding",
-    "status": "in_progress_simulated_only",
+    "status": "in_progress_real_read_evidence_code_uninstalled",
     "production_mutation": false,
-    "next": "review, complete acceptance and SDM Energy workspace; verify real hardware only through authorized read-only path"
+    "next": "verify CI; integrate scoped SDM Energy #1508; controlled review and deployment only with explicit authorization"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {

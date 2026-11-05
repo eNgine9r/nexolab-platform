@@ -122,6 +122,13 @@ describe("LiveTelemetryExplorer graph-first composition", () => {
     expect(screen.getByText("12 мА")).toBeVisible();
     rerender(
       <LiveTelemetryExplorer
+        telemetry={{ ...telemetry, samples: [{ ...sample, quality: "unknown", value: 0 }], freshSamples: [] }}
+      />,
+    );
+    expect(screen.getByText("Останній режим: 4–20 мА")).toBeVisible();
+    expect(screen.getByText("0 мА")).toBeVisible();
+    rerender(
+      <LiveTelemetryExplorer
         telemetry={{
           ...telemetry,
           samples: [{ ...sample, quality: "communication_error", value: null }],

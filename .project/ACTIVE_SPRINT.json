@@ -10151,7 +10151,8 @@
         "energy_workspace": "not compatible with scoped meter yet",
         "site": "not deployed",
         "dependency_pr": 1506,
-        "pr": 1504
+        "pr": 1504,
+        "hardware_read_only": "A10Q2SI7 unit1 9600N1 FC04 229.605V 50.012Hz; new implementation not deployed"
       }
     },
     {
@@ -10167,7 +10168,7 @@
       ],
       "scope": "Read-only Waveshare 8CH setup and truthful channels; no hardware writes.",
       "evidence": {
-        "agent_targeted": "108 passed with MQTT mocked",
+        "agent_targeted": "109 passed with MQTT mocked",
         "central_contract": "4 passed",
         "frontend": "44 passed",
         "hardware": "unverified",
@@ -10175,7 +10176,10 @@
         "dependencies": [
           1504,
           1506
-        ]
+        ],
+        "hardware_read_only": "A10Q2QYX unit1 9600N1 FC03 modes 3,3,0,0,0,0,0,0; FC04 all zero; no wiring proof",
+        "false_identity_guard": "SI7 meter produces out-of-range 17253mV analogue pattern; profile check rejects",
+        "full_integration": "unverified_not_deployed"
       }
     },
     {

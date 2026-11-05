@@ -1,3 +1,7 @@
+## 2026-11-05 — actual adapter mapping and analog input range
+
+Read-only evidence identifies likely SDM120 on A10Q2SI7 and Waveshare on A10Q2QYX, opposite the initial report. Waveshare channels 1–2 indicate 4–20 mA with 0 mA; physical input wiring, supply and actual sensor operation are not established. Read-profile selection must not rely on these static adapter identities and no wrong-model auto-activation is acceptable. New UI/agent code remains uninstalled and full physical acceptance is pending.
+
 ## 2026-11-05 — #1502 Waveshare source candidate awaits acceptance
 
 The eight-channel commissioning candidate has only simulated evidence. Actual A10Q2SI7 device identity, unit/line settings, input modes, sensor wiring and channel values remain unverified. Real-channel mode display, full central backend suite, exact CI, offline and site/hardware acceptance are pending. No release/update signal. SDM Energy workspace limitation remains separately open.

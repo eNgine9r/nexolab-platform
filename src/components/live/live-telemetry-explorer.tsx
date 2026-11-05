@@ -110,7 +110,8 @@ function formatValue(sample: TelemetrySample): string {
 }
 
 function analogInputMode(sample: TelemetrySample): string | null {
-  if (sample.source !== "waveshare-analog-input-8ch-b-v3" || sample.quality !== "valid") return null;
+  if (sample.source !== "waveshare-analog-input-8ch-b-v3" || sample.quality === "communication_error")
+    return null;
   const modes: Record<number, string> = { 0: "0–10 В", 1: "2–10 В", 2: "0–20 мА", 3: "4–20 мА", 4: "ADC" };
   return typeof sample.raw_status === "number" ? (modes[sample.raw_status] ?? null) : null;
 }

@@ -316,6 +316,17 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         client.read_holding_registers.assert_called_once_with(1, 0x1000, 1)
         client.read_input_registers.assert_called_once_with(1, 0, 1)
         client.write_single_register.assert_not_called()
+        # A real SDM120 meter replied to both generic functions on the wrong
+        # adapter. Its IEEE-754 voltage high word is not a valid 0-10 V input.
+        client.read_holding_registers.return_value = (0,)
+        client.read_input_registers.return_value = (17253,)
+        with self.assertRaises(PreflightExecutionError) as wrong_model:
+            agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(wrong_model.exception.code, "profile_mismatch")
+        client.read_holding_registers.return_value = (3,)
+        client.read_input_registers.return_value = (0,)
+        observations = agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(observations[0].quality, "unknown")
 
     def test_present_alias_of_two_buses_is_rejected(self) -> None:
         root = Path(self.temporary.name)

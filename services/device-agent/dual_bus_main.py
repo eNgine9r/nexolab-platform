@@ -582,6 +582,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         raise
                     except RuntimeError as error:
                         raise PreflightExecutionError("malformed_response", "Analog module returned an invalid mode or value") from error
+                    if (reading.mode in {0, 1} and reading.raw_value > 10000) or (reading.mode in {2, 3} and reading.raw_value > 20000):
+                        raise PreflightExecutionError("profile_mismatch", "Analog value exceeds the selected electrical input range")
                     observations.append(PreflightObservation(key="channel-01", quality=reading.quality, semantic=reading.mode_label))
                 elif profile.profile_id == "embraco-sync":
                     if embraco is None:
