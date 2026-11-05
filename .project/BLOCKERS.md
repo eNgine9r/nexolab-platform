@@ -1,3 +1,7 @@
+## 2026-11-05 — obsolete adapters and onboarding acceptance
+
+Owner does not need the two absent CP2104 adapters. Their 12 active instrument records and 53 active targets still require a device-by-device disposition; do not silently disable, rebind or delete them. Protect the two live XJP60D section devices on FTDI A10Q34QC and retain history. #1513 tracks reversible preparation; site cutover is separately gated. #1508 browser acceptance failed on an outdated onboarding step; #1514 / PR #1515 is under exact-head browser verification. New SDM/Waveshare source remains draft and not hardware-accepted. PR #1512 fixed the unrelated backup fixture and merged; no runtime mutation.
+
 ## 2026-11-03 — #1474 optional assets cannot be mistaken for active site monitoring
 
 The current NEXOLAB Pi runtime still uses accepted ffdefc... source. The existing offline release builder omitted new LAN monitoring files despite earlier source-only merges. The #1474 opt-in hashed source asset payload corrects packaging but does not create /opt/nexolab/current, install a safe source path, enable an alert timer, or verify actual alert delivery. Protected offline package source mapping and rollback must be independently reviewed with owner consent before live activation; original local Dashboard/API remain accessible. Site Docker Edge 172.18.0.0/16 overlaps LAN 172.18.48.0/21 (#1409), so post-reboot automatic repair #1399 is prohibited pending site CIDR allocation/physical acceptance. Unverified hardware/RS485 cannot be presented as healthy.
