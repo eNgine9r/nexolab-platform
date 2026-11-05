@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1503,
-      "title": "SDM120M standalone onboarding",
-      "branch": "feature/1503-sdm120-onboarding"
+      "issue": 1508,
+      "title": "Energy bus-scoped commissioned SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm"
     },
     "next_work_package": {
       "issue": 1502,
@@ -10190,6 +10190,24 @@
         "runtime": "not deployed",
         "modbus_writes": "none",
         "pr": 1506
+      }
+    },
+    {
+      "issue": 1508,
+      "title": "Energy bus-scoped commissioned SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1503,
+        1505
+      ],
+      "scope": "Identity-safe local Energy inventory, latest, chart/history, cumulative consumption and export without history reassignment.",
+      "evidence": {
+        "software": "partial; 121 frontend tests, 6 isolated ARM64 harness scenarios; frontend build passed",
+        "hardware": "unverified by new source",
+        "runtime": "not deployed",
+        "modbus_writes": "none"
       }
     }
   ],

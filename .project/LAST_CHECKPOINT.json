@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T09:31:26.512205+00:00",
+  "timestamp": "2026-11-05T10:29:01.979922+00:00",
   "actor": "Codex",
-  "event": "1503_scoped_sdm_activation_source_candidate",
+  "event": "1508_partial_scoped_energy_identity",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,12 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1503,
-    "title": "SDM120M standalone onboarding",
-    "branch": "feature/1503-sdm120-onboarding",
-    "status": "in_progress_scoped_activation_energy_ui_missing",
+    "issue": 1508,
+    "title": "Energy bus-scoped commissioned SDM meters",
+    "branch": "feature/1508-energy-scoped-sdm",
+    "status": "in_progress_partial_export_identity_only",
     "production_mutation": false,
-    "next": "complete Energy support, full tests, hardware verification; then #1502"
+    "next": "complete identity-safe UI, history, cadence and consumption using authorized inventory; validate exact head and CI"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3238,6 +3238,17 @@
       "schema_changes": "none",
       "rollback_execution": "not_exercised_previous_config_and_artifacts_retained",
       "production_release": "not_performed;draft_stacked_PR_unmerged"
+    },
+    "issue_1508_partial": {
+      "frontend_energy_tests": "121_passed_20_files",
+      "focused_export_and_cadence": "11_passed",
+      "backend_scenarios": "6_passed_arm64_minimal_harness_not_pytest",
+      "frontend_build": "passed_current_source",
+      "exact_head_ci": "not_verified",
+      "full_backend_pytest": "not_run",
+      "production_mutation": false,
+      "hardware_acceptance": "unverified",
+      "complete_energy_ui": false
     }
   },
   "observations": [
@@ -4650,7 +4661,7 @@
       }
     }
   ],
-  "next_action": "Owner may refresh TEST monitoring and open either named instrument readings. Source PR1501 review/stack integration and full production merge gates remain separate; no further physical user action for current tested scenario.",
+  "next_action": "Continue issue 1508; partial source only, no installation. Preserve legacy history and node/bus identity; no green update signal.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4659,7 +4670,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-authorized reversible TEST Agent/central/frontend overlay; obsolete software ownership and intents archived with before state/audit; two new explicit standalone section sessions activated. No controller/Modbus writes, schema change, historical telemetry relabeling/deletion or production release.",
+  "runtime_mutation": "None for issue 1508. ARM64 isolated container had no network or device access; no production state, hardware, Modbus or data writes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

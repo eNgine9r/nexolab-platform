@@ -1,3 +1,7 @@
+## 2026-11-05 — #1508 scoped Energy integration remains incomplete
+
+Scoped catalog/export and identity/cadence groundwork exist in source only. UI inventory, selections, live, multi-node history, calculations and chart integration are still incomplete; do not show the new meter as fully supported or deploy. Exact-head required CI, backend pytest, real runtime/offline and hardware acceptance remain pending. Raspberry source repository has corrupt Git objects, root storage was 94% used, and device-agent reported unhealthy; investigate before any release. No production/site cutover has been authorized.
+
 ## 2026-11-05 — #1503 scoped meter not yet in Energy workspace
 
 Bus-scoped SDM120M source has a simulated activation and restart only. Existing Energy UI and selection/history use a fixed meter catalog and numeric Unit IDs, so new scoped meter values are not yet accepted there. Full API/organization tests, hardware preflight/live samples, exact-head CI and site release remain unverified. No update signal.

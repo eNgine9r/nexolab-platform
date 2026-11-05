@@ -55,6 +55,19 @@ function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapte
 }
 
 describe("energy history", () => {
+  it("downsamples identical legacy meter IDs separately for different nodes", () => {
+    const source = [
+      ...Array.from({ length: 8 }, (_, index) => sample(index, 200, "edge-01")),
+      ...Array.from({ length: 8 }, (_, index) => sample(index, 200, "edge-02")),
+    ];
+    const reduced = downsampleEnergyHistory(source, 4);
+    for (const nodeId of ["edge-01", "edge-02"]) {
+      const nodeSamples = reduced.filter((item) => item.node_id === nodeId);
+      expect(nodeSamples.length).toBeGreaterThan(0);
+      expect(nodeSamples[0].event_id).toBe(`energy-${nodeId}-200-0`);
+      expect(nodeSamples.at(-1)?.event_id).toBe(`energy-${nodeId}-200-7`);
+    }
+  });
   it("uses an overlapping captured-at cursor pinned to one ingestion snapshot", async () => {
     const adapter = adapterWithPages([
       {

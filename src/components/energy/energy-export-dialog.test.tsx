@@ -80,6 +80,26 @@ function custom(from: string, to: string) {
   fireEvent.change(screen.getByLabelText("Завершення · Europe/Kyiv"), { target: { value: to } });
 }
 describe("Energy export dialog", () => {
+  it("keeps scoped meters and legacy history separate in the export selection", async () => {
+    const controller = model();
+    const base = controller.catalog!.items[1];
+    const ids = ["SDM120M:commissioning-0123456789abcdef:1", "SDM120M:commissioning-fedcba9876543210:1"];
+    controller.catalog!.items.push(
+      ...ids.map((id) => ({
+        ...base,
+        equipment_id: id,
+        equipment_name: id,
+        meter_label: id,
+      })),
+    );
+    render(<EnergyExportDialog model={controller} defaults={defaults} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Вибрати всі доступні лічильники" }));
+    fireEvent.change(screen.getByLabelText("Формат"), { target: { value: "csv" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Попередній перегляд" })));
+    const series = vi.mocked(controller.preview).mock.calls[0][0].series;
+    expect(series.map((item) => item.equipment_id)).toEqual(expect.arrayContaining([...ids, "SDM120M-1"]));
+    expect(new Set(series.map((item) => JSON.stringify([item.node_id, item.equipment_id]))).size).toBe(4);
+  });
   it("selects graph parameters, all meters, exact custom Kyiv times and supported formats", async () => {
     const controller = model();
     render(<EnergyExportDialog model={controller} defaults={defaults} onClose={vi.fn()} />);

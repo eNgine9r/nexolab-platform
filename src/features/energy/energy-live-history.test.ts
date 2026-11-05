@@ -23,20 +23,38 @@ function sample(second: number, quality: TelemetrySample["quality"] = "valid"): 
   };
 }
 
+const meterKey = JSON.stringify(["edge-01", "LE01MP-200"]);
+
 describe("energy live history reconciliation", () => {
+  it("does not let a different node clear an outage on the same meter ID", () => {
+    const outage = reconcileEnergyLiveHistory([sample(5, "communication_error")]);
+    const other = reconcileEnergyLiveHistory(
+      [{ ...sample(10), node_id: "edge-02" }],
+      outage.pendingMeterKeys,
+      outage.newestCapturedAtByMeterKey,
+    );
+    expect(other.pendingMeterKeys.has(meterKey)).toBe(true);
+    expect(isEnergyHistorySegmentStart(other.samples[0].event_id)).toBe(false);
+    const recovered = reconcileEnergyLiveHistory(
+      [sample(15)],
+      other.pendingMeterKeys,
+      other.newestCapturedAtByMeterKey,
+    );
+    expect(isEnergyHistorySegmentStart(recovered.samples[0].event_id)).toBe(true);
+  });
   it("retains a startup error without a prior renderable point", () => {
     const errorBatch = reconcileEnergyLiveHistory([sample(5, "communication_error")]);
 
-    expect(errorBatch.pendingUnitIds.has(200)).toBe(true);
+    expect(errorBatch.pendingMeterKeys.has(meterKey)).toBe(true);
     expect(errorBatch.samples).toHaveLength(1);
 
     const recoveryBatch = reconcileEnergyLiveHistory(
       [sample(10)],
-      errorBatch.pendingUnitIds,
-      errorBatch.newestCapturedAtByUnitId,
+      errorBatch.pendingMeterKeys,
+      errorBatch.newestCapturedAtByMeterKey,
     );
 
-    expect(recoveryBatch.pendingUnitIds.size).toBe(0);
+    expect(recoveryBatch.pendingMeterKeys.size).toBe(0);
     expect(isEnergyHistorySegmentStart(recoveryBatch.samples[0].event_id)).toBe(true);
   });
 
@@ -49,27 +67,27 @@ describe("energy live history reconciliation", () => {
       "energy-15",
     ]);
     expect(isEnergyHistorySegmentStart(result.samples[2].event_id)).toBe(true);
-    expect(result.pendingUnitIds.size).toBe(0);
+    expect(result.pendingMeterKeys.size).toBe(0);
   });
 
   it("does not let a delayed valid replay resolve a newer outage", () => {
     const outage = reconcileEnergyLiveHistory([sample(20, "communication_error")]);
     const delayed = reconcileEnergyLiveHistory(
       [sample(10)],
-      outage.pendingUnitIds,
-      outage.newestCapturedAtByUnitId,
+      outage.pendingMeterKeys,
+      outage.newestCapturedAtByMeterKey,
     );
 
-    expect(delayed.pendingUnitIds.has(200)).toBe(true);
+    expect(delayed.pendingMeterKeys.has(meterKey)).toBe(true);
     expect(isEnergyHistorySegmentStart(delayed.samples[0].event_id)).toBe(false);
 
     const recovery = reconcileEnergyLiveHistory(
       [sample(25)],
-      delayed.pendingUnitIds,
-      delayed.newestCapturedAtByUnitId,
+      delayed.pendingMeterKeys,
+      delayed.newestCapturedAtByMeterKey,
     );
 
-    expect(recovery.pendingUnitIds.size).toBe(0);
+    expect(recovery.pendingMeterKeys.size).toBe(0);
     expect(isEnergyHistorySegmentStart(recovery.samples[0].event_id)).toBe(true);
   });
 
@@ -77,29 +95,29 @@ describe("energy live history reconciliation", () => {
     const current = reconcileEnergyLiveHistory([sample(25)]);
     const delayed = reconcileEnergyLiveHistory(
       [sample(10, "communication_error")],
-      current.pendingUnitIds,
-      current.newestCapturedAtByUnitId,
+      current.pendingMeterKeys,
+      current.newestCapturedAtByMeterKey,
     );
 
-    expect(delayed.pendingUnitIds.size).toBe(0);
+    expect(delayed.pendingMeterKeys.size).toBe(0);
   });
 
   it("seeds a metric switch from retained samples before delayed replay", () => {
     const seed = seedEnergyLiveHistoryState([sample(25)]);
     const delayed = reconcileEnergyLiveHistory(
       [sample(10, "communication_error")],
-      seed.pendingUnitIds,
-      seed.newestCapturedAtByUnitId,
+      seed.pendingMeterKeys,
+      seed.newestCapturedAtByMeterKey,
     );
 
-    expect(seed.newestCapturedAtByUnitId.get(200)).toBe(Date.parse(sample(25).captured_at));
-    expect(delayed.pendingUnitIds.size).toBe(0);
+    expect(seed.newestCapturedAtByMeterKey.get(meterKey)).toBe(Date.parse(sample(25).captured_at));
+    expect(delayed.pendingMeterKeys.size).toBe(0);
   });
 
   it("preserves a retained latest communication error as pending", () => {
     const seed = seedEnergyLiveHistoryState([sample(10), sample(20, "communication_error")]);
 
-    expect(seed.newestCapturedAtByUnitId.get(200)).toBe(Date.parse(sample(20).captured_at));
-    expect(seed.pendingUnitIds.has(200)).toBe(true);
+    expect(seed.newestCapturedAtByMeterKey.get(meterKey)).toBe(Date.parse(sample(20).captured_at));
+    expect(seed.pendingMeterKeys.has(meterKey)).toBe(true);
   });
 });

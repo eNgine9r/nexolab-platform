@@ -1,5 +1,6 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import { chartPointBudget } from "@/features/charts/point-budget";
+import { energyMeterIdentity } from "@/features/energy/energy-commissioned-meters";
 import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
 import {
   clearEnergyHistoryBreakPending,
@@ -341,20 +342,21 @@ export function downsampleEnergyHistory(
   window?: Pick<EnergyHistoryWindow, "from" | "to">,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
 ): TelemetrySample[] {
-  const byMeter = new Map<number, TelemetrySample[]>();
+  const byMeter = new Map<string, { unitId: number; samples: TelemetrySample[] }>();
 
   for (const sample of samples) {
     if (!isAcceptedEnergyHistorySample(sample)) continue;
     const meter = resolveEnergyMeter(sample);
     if (!meter) continue;
-    const current = byMeter.get(meter.unitId) ?? [];
-    current.push(sample);
-    byMeter.set(meter.unitId, current);
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const current = byMeter.get(key) ?? { unitId: meter.unitId, samples: [] };
+    current.samples.push(sample);
+    byMeter.set(key, current);
   }
 
   return [...byMeter.entries()]
-    .sort(([left], [right]) => left - right)
-    .flatMap(([unitId, meterSamples]) => {
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([, { unitId, samples: meterSamples }]) => {
       const cadenceState = cadenceStateFromSamples(meterSamples);
       const annotation = annotateSourceSegments(
         meterSamples,
@@ -393,10 +395,10 @@ export function mergeEnergyHistoryTail(
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
-  const currentByMeter = new Map<number, TelemetrySample[]>();
-  const incomingByMeter = new Map<number, TelemetrySample[]>();
+  const currentByMeter = new Map<string, TelemetrySample[]>();
+  const incomingByMeter = new Map<string, TelemetrySample[]>();
 
-  const collect = (target: Map<number, TelemetrySample[]>, sample: TelemetrySample) => {
+  const collect = (target: Map<string, TelemetrySample[]>, sample: TelemetrySample) => {
     const capturedAt = Date.parse(sample.captured_at);
     if (
       sample.node_id !== window.nodeId ||
@@ -410,19 +412,20 @@ export function mergeEnergyHistoryTail(
 
     const meter = resolveEnergyMeter(sample);
     if (!meter) return;
-    const values = target.get(meter.unitId) ?? [];
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const values = target.get(key) ?? [];
     values.push(sample);
-    target.set(meter.unitId, values);
+    target.set(key, values);
   };
 
   current.forEach((sample) => collect(currentByMeter, sample));
   incoming.forEach((sample) => collect(incomingByMeter, sample));
 
-  const unitIds = new Set([...currentByMeter.keys(), ...incomingByMeter.keys()]);
+  const meterKeys = new Set([...currentByMeter.keys(), ...incomingByMeter.keys()]);
   const merged: TelemetrySample[] = [];
 
-  for (const unitId of [...unitIds].sort((left, right) => left - right)) {
-    const existing = [...(currentByMeter.get(unitId) ?? [])].sort(
+  for (const meterKey of [...meterKeys].sort()) {
+    const existing = [...(currentByMeter.get(meterKey) ?? [])].sort(
       (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
     );
     const latestExisting = existing.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
@@ -435,7 +438,10 @@ export function mergeEnergyHistoryTail(
         .map((sample) => Date.parse(sample.captured_at))
         .filter(Number.isFinite)
         .at(-1) ?? null;
-    const incomingSamples = incomingByMeter.get(unitId) ?? [];
+    const incomingSamples = incomingByMeter.get(meterKey) ?? [];
+    const representative = existing[0] ?? incomingSamples[0];
+    if (!representative) continue;
+    const unitId = resolveEnergyMeter(representative)?.unitId;
     const inheritedCadenceState = sourceCadenceForTail(latestExisting);
     const incomingCadenceState = cadenceStateFromSamples(incomingSamples);
     const fallbackThresholds = [
@@ -453,7 +459,7 @@ export function mergeEnergyHistoryTail(
       existingBreakPending,
       maximumSourceGapMs,
       "inferred",
-      cadenceAuthority === null
+      cadenceAuthority === null || unitId === undefined
         ? null
         : (previousAtMs, capturedAtMs) => {
             const authoritativeGapMs = cadenceAuthority.maximumSourceGapMs(

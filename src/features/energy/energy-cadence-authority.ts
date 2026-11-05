@@ -33,7 +33,7 @@ type AuditRecord = {
 type CadenceCheckpoint = {
   revision: number;
   atMs: number;
-  intervalMsByUnitId: Map<number, number>;
+  intervalMsByMeterKey: Map<string, number>;
 };
 
 export interface EnergyCadenceAuthority {
@@ -43,6 +43,13 @@ export interface EnergyCadenceAuthority {
   coverageStartsAtMs: number;
   intervalMsAt: (unitId: number, capturedAtMs: number) => number | null;
   maximumSourceGapMs: (unitId: number, previousAtMs: number, capturedAtMs: number) => number | null;
+  intervalMsFor: (busId: string, unitId: number, capturedAtMs: number) => number | null;
+  maximumSourceGapFor: (
+    busId: string,
+    unitId: number,
+    previousAtMs: number,
+    capturedAtMs: number,
+  ) => number | null;
 }
 
 function record(value: unknown): UnknownRecord | null {
@@ -67,6 +74,10 @@ function timestampMs(value: unknown): number | null {
 
 function familyKey(busId: string, deviceFamily: string): string {
   return `${busId}/${deviceFamily}`;
+}
+
+function meterKey(busId: string, unitId: number): string {
+  return JSON.stringify([busId, unitId]);
 }
 
 function clonePolicy(policy: CadencePolicyState): CadencePolicyState {
@@ -129,15 +140,16 @@ function parseCurrentPolicy(root: UnknownRecord): CadencePolicyState | null {
 function effectiveIntervals(
   policy: CadencePolicyState,
   devices: readonly EnergyRegistryDevice[],
-): Map<number, number> | null {
-  const result = new Map<number, number>();
+): Map<string, number> | null {
+  const result = new Map<string, number>();
   for (const device of devices) {
-    if (result.has(device.unitId)) return null;
+    const key = meterKey(device.busId, device.unitId);
+    if (result.has(key)) return null;
     const intervalMs =
       policy.deviceOverrides.get(device.deviceId) ??
       policy.familyDefaults.get(familyKey(device.busId, device.deviceFamily));
     if (intervalMs === undefined || !Number.isFinite(intervalMs) || intervalMs <= 0) return null;
-    result.set(device.unitId, intervalMs);
+    result.set(key, intervalMs);
   }
   return result;
 }
@@ -202,8 +214,8 @@ function sourceGapForIntervalMs(intervalMs: number): number {
 
 function maximumResetAwareSourceGapMs(
   checkpoints: readonly CadenceCheckpoint[],
-  intervalMsAt: (unitId: number, capturedAtMs: number) => number | null,
-  unitId: number,
+  intervalMsAt: (key: string, capturedAtMs: number) => number | null,
+  key: string,
   previousAtMs: number,
   capturedAtMs: number,
 ): number | null {
@@ -211,7 +223,7 @@ function maximumResetAwareSourceGapMs(
     return null;
   }
 
-  let intervalMs = intervalMsAt(unitId, previousAtMs);
+  let intervalMs = intervalMsAt(key, previousAtMs);
   if (intervalMs === null) return null;
 
   let deadlineMs = previousAtMs + sourceGapForIntervalMs(intervalMs);
@@ -219,7 +231,7 @@ function maximumResetAwareSourceGapMs(
     if (checkpoint.atMs <= previousAtMs) continue;
     if (checkpoint.atMs > capturedAtMs) break;
 
-    const nextIntervalMs = checkpoint.intervalMsByUnitId.get(unitId) ?? NaN;
+    const nextIntervalMs = checkpoint.intervalMsByMeterKey.get(key) ?? NaN;
     if (!Number.isFinite(nextIntervalMs) || nextIntervalMs <= 0) return null;
     if (nextIntervalMs === intervalMs) continue;
 
@@ -251,13 +263,20 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
 
   const currentIntervals = effectiveIntervals(currentPolicy, devices);
   if (!currentIntervals) return null;
+  const uniqueUnitKeys = new Map<number, string | null>();
+  for (const device of devices) {
+    uniqueUnitKeys.set(
+      device.unitId,
+      uniqueUnitKeys.has(device.unitId) ? null : meterKey(device.busId, device.unitId),
+    );
+  }
 
   const checkpoints: CadenceCheckpoint[] = [];
   let coverageStartsAtMs = updatedAtMs;
   let workingPolicy = clonePolicy(currentPolicy);
 
   if (audit.length === 0) {
-    checkpoints.push({ revision, atMs: updatedAtMs, intervalMsByUnitId: currentIntervals });
+    checkpoints.push({ revision, atMs: updatedAtMs, intervalMsByMeterKey: currentIntervals });
   } else {
     for (const item of audit) {
       const afterIntervals = effectiveIntervals(workingPolicy, devices);
@@ -265,7 +284,7 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
       checkpoints.push({
         revision: item.revision,
         atMs: item.changedAtMs,
-        intervalMsByUnitId: afterIntervals,
+        intervalMsByMeterKey: afterIntervals,
       });
       coverageStartsAtMs = item.changedAtMs;
 
@@ -281,14 +300,19 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
   if (chronological.length === 0) return null;
   coverageStartsAtMs = chronological[0].atMs;
 
-  const intervalMsAt = (unitId: number, capturedAtMs: number): number | null => {
+  const intervalMsForKey = (key: string, capturedAtMs: number): number | null => {
     if (!Number.isFinite(capturedAtMs) || capturedAtMs < coverageStartsAtMs) return null;
     let selected: CadenceCheckpoint | null = null;
     for (const checkpoint of chronological) {
       if (checkpoint.atMs > capturedAtMs) break;
       selected = checkpoint;
     }
-    return selected?.intervalMsByUnitId.get(unitId) ?? null;
+    return selected?.intervalMsByMeterKey.get(key) ?? null;
+  };
+
+  const intervalMsAt = (unitId: number, capturedAtMs: number): number | null => {
+    const key = uniqueUnitKeys.get(unitId);
+    return key ? intervalMsForKey(key, capturedAtMs) : null;
   };
 
   return {
@@ -297,8 +321,21 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
     fingerprint: `${revision}:${updatedAt}:${coverageStartsAtMs}`,
     coverageStartsAtMs,
     intervalMsAt,
-    maximumSourceGapMs: (unitId, previousAtMs, capturedAtMs) =>
-      maximumResetAwareSourceGapMs(chronological, intervalMsAt, unitId, previousAtMs, capturedAtMs),
+    maximumSourceGapMs: (unitId, previousAtMs, capturedAtMs) => {
+      const key = uniqueUnitKeys.get(unitId);
+      return key
+        ? maximumResetAwareSourceGapMs(chronological, intervalMsForKey, key, previousAtMs, capturedAtMs)
+        : null;
+    },
+    intervalMsFor: (busId, unitId, capturedAtMs) => intervalMsForKey(meterKey(busId, unitId), capturedAtMs),
+    maximumSourceGapFor: (busId, unitId, previousAtMs, capturedAtMs) =>
+      maximumResetAwareSourceGapMs(
+        chronological,
+        intervalMsForKey,
+        meterKey(busId, unitId),
+        previousAtMs,
+        capturedAtMs,
+      ),
   };
 }
 

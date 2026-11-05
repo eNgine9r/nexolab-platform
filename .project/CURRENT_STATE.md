@@ -1,3 +1,9 @@
+## 2026-11-05 — #1508 Energy scoped identity, partial source only
+
+On feature/1508-energy-scoped-sdm, source work keeps latest samples, downsampling and live recovery state isolated by node/equipment; adds bus-scoped cadence lookups which fail closed for ambiguous numeric Unit IDs; and lets the Energy export catalog admit exact active scoped SDM identities without reassigning legacy SDM120M-1 data. Client inventory identity helpers reject ambiguous sessions. The operator Energy cards, graph selection, live acquisition, consumption and multi-node flow still use the old fixed Unit-based catalog; new scoped meters are NOT yet integrated there. Source is NOT installed and there is no green update signal.
+
+Verification on the partial candidate: 121 frontend Energy tests passed on the current source; scoped export selection and cadence tests also passed; touched ESLint and production frontend build passed. Six isolated ARM64 functional source scenarios passed using a minimal pytest.raises-compatible harness, not pytest. Exact-head full CI, full Python pytest, offline runtime and real hardware acceptance remain unverified. The base is PR #1504, itself dependent on PR #1506. PR #1507 remains separate. No runtime, hardware or Modbus write.
+
 ## 2026-11-05 — #1503 SDM120M scoped activation source candidate
 
 SDM120M now has read-only FC04 preflight and activation contracts; new commissioning-bus devices receive bus-scoped registry, target, channel and telemetry equipment identities so old SDM120M-1 history is not relabeled or merged. One agent simulation verified old and new Unit 1 can coexist on distinct buses and restart. Quick Add and Live links use the explicit scoped identity. No site deployment or live hardware read. The existing Energy workspace still has a fixed meter catalog keyed by numeric unit and DOES NOT yet support the new bus-scoped SDM; do not claim full energy integration or task completion. Depends on #1505 / PR #1506.

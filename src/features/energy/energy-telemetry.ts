@@ -167,7 +167,9 @@ export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): 
     if (!meter || !energyMeterSupportsMetric(meter, sample.metric) || !hasExpectedEnergyUnit(sample)) {
       continue;
     }
-    const key = `${meter.equipmentId}:${sample.metric}`;
+    // A Unit ID and even a legacy equipment ID can exist on more than one node.
+    // Keep node identity in the latest-sample key to prevent cross-node replacement.
+    const key = JSON.stringify([sample.node_id, meter.equipmentId, sample.metric]);
     const current = latest.get(key);
     if (!current || Date.parse(current.captured_at) <= Date.parse(sample.captured_at)) {
       latest.set(key, sample);

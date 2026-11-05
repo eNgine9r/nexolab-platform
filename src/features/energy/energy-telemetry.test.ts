@@ -44,6 +44,15 @@ function cumulativeEnergySample(overrides: Partial<TelemetrySample> = {}): Telem
 }
 
 describe("energy telemetry", () => {
+  it("keeps latest samples from identical meter IDs on different nodes separate", () => {
+    const a = sample({ event_id: "a", node_id: "node-a", value: 10 });
+    const b = sample({ event_id: "b", node_id: "node-b", value: 20 });
+    expect(
+      selectLatestEnergySamples([a, b])
+        .map((item) => item.node_id)
+        .sort(),
+    ).toEqual(["node-a", "node-b"]);
+  });
   it("maps heterogeneous production energy meters deterministically", () => {
     expect(resolveEnergyMeter(sample())?.label).toBe("W1");
     expect(

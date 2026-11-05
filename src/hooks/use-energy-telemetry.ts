@@ -498,8 +498,8 @@ export function useEnergyTelemetry({
         const seed = liveHistoryStateByMetricRef.current.get(metric);
         const reconciliation = reconcileEnergyLiveHistory(
           selectedTail,
-          seed?.pendingUnitIds,
-          seed?.newestCapturedAtByUnitId,
+          seed?.pendingMeterKeys,
+          seed?.newestCapturedAtByMeterKey,
         );
         liveHistoryStateByMetricRef.current.set(metric, reconciliation);
         return reconciliation.samples;
