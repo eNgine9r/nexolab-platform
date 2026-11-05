@@ -115,6 +115,14 @@ class DeviceAgentActivationClient:
             ) from error
 
 
+def polling_mode(profile_id: str, version: str) -> str:
+    if (profile_id, version) == ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1"):
+        return "read_only_fc03_fc04"
+    if (profile_id, version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
+        return "read_only_fc04"
+    return "read_only_fc03"
+
+
 def validate_activation_evidence(
     payload: object,
     command: DeviceAgentActivationCommand,
@@ -123,7 +131,7 @@ def validate_activation_evidence(
         raise DeviceAgentActivationError(
             "device_agent_response_invalid", "Activation evidence must be an object"
         )
-    polling_mode = "read_only_fc04" if (command.profile_id, command.profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1") else "read_only_fc03"
+    read_mode = polling_mode(command.profile_id, command.profile_version)
     exact = {
         "schema_version": 1,
         "activation_id": command.activation_id,
@@ -133,7 +141,7 @@ def validate_activation_evidence(
         "unit_id": command.unit_id,
         "profile_id": command.profile_id,
         "profile_version": command.profile_version,
-        "polling_mode": polling_mode,
+        "polling_mode": read_mode,
         "modbus_writes": "none",
         "hardware_writes": "none",
     }
@@ -185,7 +193,7 @@ def validate_activation_evidence(
         "registry_revision": payload["registry_revision"],
         "telemetry_source": payload["telemetry_source"],
         "telemetry_equipment_id": payload["telemetry_equipment_id"],
-        "polling_mode": polling_mode,
+        "polling_mode": read_mode,
         "modbus_writes": "none",
         "hardware_writes": "none",
         "reason": payload.get("reason"),

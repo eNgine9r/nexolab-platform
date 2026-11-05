@@ -1,3 +1,7 @@
+## 2026-11-05 — #1502 Waveshare source candidate awaits acceptance
+
+The eight-channel commissioning candidate has only simulated evidence. Actual A10Q2SI7 device identity, unit/line settings, input modes, sensor wiring and channel values remain unverified. Dedicated eight-channel mode display, full central backend suite, exact CI, offline and site/hardware acceptance are pending. No release/update signal. SDM Energy workspace limitation remains separately open.
+
 ## 2026-11-05 — #1503 scoped meter not yet in Energy workspace
 
 Bus-scoped SDM120M source has a simulated activation and restart only. Existing Energy UI and selection/history use a fixed meter catalog and numeric Unit IDs, so new scoped meter values are not yet accepted there. Full API/organization tests, hardware preflight/live samples, exact-head CI and site release remain unverified. No update signal.

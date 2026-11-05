@@ -61,15 +61,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1503,
-      "title": "SDM120M standalone onboarding",
-      "branch": "feature/1503-sdm120-onboarding"
-    },
-    "next_work_package": {
       "issue": 1502,
       "title": "Waveshare 8CH (B) standalone onboarding",
       "branch": "feature/1502-waveshare-onboarding"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -10132,7 +10128,7 @@
       "title": "SDM120M standalone onboarding",
       "branch": "feature/1503-sdm120-onboarding",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         1500,
         1505
@@ -10154,7 +10150,8 @@
         "frontend": "34 passed",
         "energy_workspace": "not compatible with scoped meter yet",
         "site": "not deployed",
-        "dependency_pr": 1506
+        "dependency_pr": 1506,
+        "pr": 1504
       }
     },
     {
@@ -10162,7 +10159,7 @@
       "title": "Waveshare 8CH (B) standalone onboarding",
       "branch": "feature/1502-waveshare-onboarding",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         1500,
         1505,
@@ -10170,7 +10167,15 @@
       ],
       "scope": "Read-only Waveshare 8CH setup and truthful channels; no hardware writes.",
       "evidence": {
-        "status": "not_started"
+        "agent_targeted": "108 passed with MQTT mocked",
+        "central_contract": "4 passed",
+        "frontend": "44 passed",
+        "hardware": "unverified",
+        "site": "not deployed",
+        "dependencies": [
+          1504,
+          1506
+        ]
       }
     },
     {

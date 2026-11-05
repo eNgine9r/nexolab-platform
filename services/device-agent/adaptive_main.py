@@ -214,6 +214,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                 return f"SDM120M:{target.bus_id}:{target.unit_id}"
             return f"SDM120M-{target.unit_id}"
         if target.device_family == "waveshare_8ai":
+            if target.device_id.startswith("waveshare-8ai-commissioning-"):
+                return f"WAVESHARE-8AI:{target.bus_id}:{target.unit_id}"
             return f"WAVESHARE-8AI-{target.unit_id}"
         if target.device_family == "embraco":
             return f"EMBRACO-{target.unit_id}"

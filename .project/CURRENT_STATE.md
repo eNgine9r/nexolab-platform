@@ -1,3 +1,9 @@
+## 2026-11-05 — #1502 Waveshare 8AI scoped source candidate
+
+Waveshare (B) V3 added to commissioning with bounded FC03 mode and FC04 input preflight, scoped activation and eight acquisition targets on the approved persistent commissioning bus. Distinct new source/equipment/channel identities avoid reassigning historical data. The UI states that an electrical value does not prove a sensor is connected. No guessed humidity/pressure conversion, channel attachment, device settings or controller writes. Channel mode is captured in raw_status but a dedicated per-channel mode display is not yet verified. Existing local drivers and API contracts only; no runtime deployment or real hardware verification.
+
+Simulated verification: 108 Device Agent unittests with MQTT mocked, 4 API contract unittests, 44 frontend tests, touched ESLint/TypeScript/format/compile, state checks and production frontend build passed. Exact CI, full backend suites, connected module, actual modes/units, persisted fresh samples and offline runtime remain unverified. Depends on #1505 / PR #1506 and #1503 / PR #1504. SDM bus-scoped Energy workspace integration remains open.
+
 ## 2026-11-05 — #1503 SDM120M scoped activation source candidate
 
 SDM120M now has read-only FC04 preflight and activation contracts; new commissioning-bus devices receive bus-scoped registry, target, channel and telemetry equipment identities so old SDM120M-1 history is not relabeled or merged. One agent simulation verified old and new Unit 1 can coexist on distinct buses and restart. Quick Add and Live links use the explicit scoped identity. No site deployment or live hardware read. The existing Energy workspace still has a fixed meter catalog keyed by numeric unit and DOES NOT yet support the new bus-scoped SDM; do not claim full energy integration or task completion. Depends on #1505 / PR #1506.

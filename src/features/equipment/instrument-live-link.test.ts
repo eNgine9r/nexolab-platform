@@ -85,3 +85,12 @@ describe("SDM120M instrument scope", () => {
     expect(instrumentLiveLink({ ...active, profileId: "eastron-sdm120m", busId: null })).toBeNull();
   });
 });
+
+describe("Waveshare instrument scope", () => {
+  it("uses a scoped module identity and never invents an attachment state", () => {
+    const busId = "commissioning-0123456789abcdef";
+    const href = instrumentLiveLink({ ...active, profileId: "waveshare-8ai-b-v3", busId, unitId: 1 });
+    expect(new URL(href!, "http://localhost").searchParams.get("equipment")).toBe(`WAVESHARE-8AI:${busId}:1`);
+    expect(instrumentLiveLink({ ...active, profileId: "waveshare-8ai-b-v3", busId: null })).toBeNull();
+  });
+});

@@ -168,6 +168,8 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
 
 
 def read_contract(profile_id: str, profile_version: str) -> tuple[str, list[int]]:
+    if (profile_id, profile_version) == ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1"):
+        return "modbus_rtu_fc03_fc04", [3, 4]
     if (profile_id, profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
         return "modbus_rtu_fc04", [4]
     return "modbus_rtu_fc03", [3]
