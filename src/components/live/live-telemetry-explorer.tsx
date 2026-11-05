@@ -100,9 +100,19 @@ function stateClasses(state: LiveTelemetryState): string {
 
 function formatValue(sample: TelemetrySample): string {
   if (sample.value === null || !Number.isFinite(sample.value)) return "—";
+  if (sample.source === "waveshare-analog-input-8ch-b-v3" && ["uA", "mV"].includes(sample.unit)) {
+    const unit = sample.unit === "uA" ? "мА" : "В";
+    return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 3 }).format(sample.value / 1000)} ${unit}`;
+  }
   const absolute = Math.abs(sample.value);
   const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
   return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
+}
+
+function analogInputMode(sample: TelemetrySample): string | null {
+  if (sample.source !== "waveshare-analog-input-8ch-b-v3" || sample.quality !== "valid") return null;
+  const modes: Record<number, string> = { 0: "0–10 В", 1: "2–10 В", 2: "0–20 мА", 3: "4–20 мА", 4: "ADC" };
+  return typeof sample.raw_status === "number" ? (modes[sample.raw_status] ?? null) : null;
 }
 
 function formatTimestamp(value: string, displayTimeZone: string): string {
@@ -887,6 +897,11 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                           {sample.equipment_id} · {sample.channel_id} · {sample.metric}
                         </span>
                         <span className="[overflow-wrap:anywhere]">{formatValue(sample)}</span>
+                        {analogInputMode(sample) ? (
+                          <span className="mt-1 block text-xs text-slate-400">
+                            Останній режим: {analogInputMode(sample)}
+                          </span>
+                        ) : null}
                       </td>
                       <td role="cell" className="col-start-2 row-start-2 min-w-0 lg:px-3 lg:py-3">
                         <span

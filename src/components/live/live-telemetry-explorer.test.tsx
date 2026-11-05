@@ -105,6 +105,33 @@ function appearsBefore(left: Element, right: Element): boolean {
 }
 
 describe("LiveTelemetryExplorer graph-first composition", () => {
+  it("shows only evidenced Waveshare channel modes", () => {
+    const telemetry = model();
+    const sample = {
+      ...telemetry.samples[0],
+      source: "waveshare-analog-input-8ch-b-v3",
+      metric: "analog.input",
+      unit: "uA",
+      value: 12000,
+      raw_status: 3,
+    };
+    telemetry.samples = [sample];
+    telemetry.freshSamples = [sample];
+    const { rerender } = render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    expect(screen.getByText("Останній режим: 4–20 мА")).toBeVisible();
+    expect(screen.getByText("12 мА")).toBeVisible();
+    rerender(
+      <LiveTelemetryExplorer
+        telemetry={{
+          ...telemetry,
+          samples: [{ ...sample, quality: "communication_error", value: null }],
+          freshSamples: [],
+        }}
+      />,
+    );
+    expect(screen.queryByText("Останній режим: 4–20 мА")).not.toBeInTheDocument();
+  });
+
   it("places the canonical chart before filters and inventory in reading and focus order", () => {
     render(<LiveTelemetryExplorer telemetry={model()} />);
 
