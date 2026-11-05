@@ -191,7 +191,7 @@ class CommissioningActivationRepository:
                         "session_version": commissioning.version,
                         "state": "pending_activation",
                         "profile_id": plan["profile_id"],
-                        "polling_mode": "read_only_fc03",
+                        "polling_mode": plan["polling_mode"],
                         "modbus_writes": "none",
                         "hardware_writes": "none",
                     },
@@ -501,11 +501,13 @@ class CommissioningActivationRepository:
             "xjp60d": "dixell-xjp60d",
             "le01mp": "f-and-f-le-01mp",
             "embraco": "embraco-sync",
+            "sdm120": "eastron-sdm120m",
         }[family]
         equipment_id = {
             "xjp60d": f"K{row.unit_id}",
             "le01mp": f"LE01MP-{row.unit_id}",
             "embraco": f"EMBRACO-{row.unit_id}",
+            "sdm120": f"SDM120M:{row.bus_id}:{row.unit_id}" if str(row.bus_id).startswith("commissioning-") else f"SDM120M-{row.unit_id}",
         }[family]
         if section_probe_count(profile.id) is not None:
             source = "dixell-xjp60d-sections"
@@ -536,7 +538,7 @@ class CommissioningActivationRepository:
             "target_equipment_key": row.target_equipment_key,
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
-            "polling_mode": "read_only_fc03",
+            "polling_mode": "read_only_fc04" if family == "sdm120" else "read_only_fc03",
             "binding_kind": (
                 "standalone_instrument" if not row.target_equipment_key
                 else "refrigeration_controller" if family == "embraco" else "commissioning_target"

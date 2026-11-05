@@ -19,9 +19,21 @@ class SupportedDeviceProfile:
     activation_supported: bool = True
 
 
-# Repository-owned mirror of the already accepted Device Agent FC03-only profile
+# Repository-owned mirror of the accepted Device Agent read-only profile
 # identities. Commissioning never imports or invokes Device Agent runtime code.
 SUPPORTED_DEVICE_PROFILES: tuple[SupportedDeviceProfile, ...] = (
+    SupportedDeviceProfile(
+        id="eastron-sdm120m",
+        version="eastron-sdm120m-fc04-v1",
+        device_family="sdm120",
+        device_class="energy-meter",
+        manufacturer="Eastron",
+        models=("SDM120M",),
+        display_name="Eastron SDM120M",
+        transport_kind="modbus_rtu",
+        capability_status="repository_supported",
+        evidence_note="FC04 read-only preflight; live evidence is required for activation.",
+    ),
     SupportedDeviceProfile(
         id="dixell-xjp60d",
         version="dixell-xjp60d-fc03-v1",

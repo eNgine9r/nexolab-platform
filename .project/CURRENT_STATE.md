@@ -1,3 +1,9 @@
+## 2026-11-05 — #1503 SDM120M scoped activation source candidate
+
+SDM120M now has read-only FC04 preflight and activation contracts; new commissioning-bus devices receive bus-scoped registry, target, channel and telemetry equipment identities so old SDM120M-1 history is not relabeled or merged. One agent simulation verified old and new Unit 1 can coexist on distinct buses and restart. Quick Add and Live links use the explicit scoped identity. No site deployment or live hardware read. The existing Energy workspace still has a fixed meter catalog keyed by numeric unit and DOES NOT yet support the new bus-scoped SDM; do not claim full energy integration or task completion. Depends on #1505 / PR #1506.
+
+Verified: 83 Device Agent tests with mocked MQTT; 2 central pure contract tests; 34 frontend tests, touched ESLint/typecheck and formatting passed; build status in PR. Full backend suites, disconnected runtime, real device and release remain unverified. Waveshare #1502 is separate and pending.
+
 ## 2026-11-05 — #1505 approved persistent commissioning buses, source candidate
 
 Product Owner approved local onboarding-bus authority. Source candidate adds a SQLite prepared/active bus store with atomic audit, exact stable identity/profile validation and protected configured paths; active entries join static topology on restart. A fresh read-only preflight precedes enrollment, scheduler and commissioning share the same per-bus lock, and an empty registry bus precedes target activation. Active dynamic bus ownership is preserved during static topology rebinding and SDM/Waveshare lifecycle reconciliation. Serial aliases fail closed. No runtime deployment, real hardware read or Modbus/hardware write performed.

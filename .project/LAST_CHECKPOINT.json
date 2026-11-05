@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T09:21:07.000573+00:00",
+  "timestamp": "2026-11-05T09:31:26.512205+00:00",
   "actor": "Codex",
-  "event": "1505_persistent_rs485_source_candidate",
+  "event": "1503_scoped_sdm_activation_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,12 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1505,
-    "title": "Persistent commissioned RS-485 buses",
-    "branch": "feature/1505-persistent-rs485",
-    "status": "in_progress_source_candidate",
+    "issue": 1503,
+    "title": "SDM120M standalone onboarding",
+    "branch": "feature/1503-sdm120-onboarding",
+    "status": "in_progress_scoped_activation_energy_ui_missing",
     "production_mutation": false,
-    "next": "verify edge cases, CI, then complete SDM #1503 and Waveshare #1502"
+    "next": "complete Energy support, full tests, hardware verification; then #1502"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {

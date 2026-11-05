@@ -7,6 +7,7 @@ from app.commissioning.preflight_client import (
     DeviceAgentPreflightClient,
     DeviceAgentPreflightCommand,
     DeviceAgentPreflightError,
+    read_contract,
 )
 from app.commissioning.preflight_repository import CommissioningPreflightRepository
 from app.commissioning.models import EquipmentCommissioningPreflightAttempt
@@ -61,6 +62,7 @@ def _control_plane_failure(
     command: DeviceAgentPreflightCommand,
     error: DeviceAgentPreflightError,
 ) -> dict[str, Any]:
+    method, codes = read_contract(command.profile_id, command.profile_version)
     return {
         "schema_version": 1,
         "result": "failed",
@@ -72,8 +74,8 @@ def _control_plane_failure(
         "unit_id": command.unit_id,
         "profile_id": command.profile_id,
         "profile_version": command.profile_version,
-        "read_method": "modbus_rtu_fc03",
-        "function_codes": [3],
+        "read_method": method,
+        "function_codes": codes,
         "checks": [
             {
                 "key": "device_agent_transport",
@@ -83,7 +85,7 @@ def _control_plane_failure(
             {
                 "key": "write_safety",
                 "state": "passed",
-                "detail": "Commissioning preflight contract exposes FC03 reads only; Modbus writes and hardware writes are not representable.",
+                "detail": "Commissioning preflight permits fixed read-only requests; Modbus writes and hardware writes are not representable.",
             },
         ],
         "observations": [],

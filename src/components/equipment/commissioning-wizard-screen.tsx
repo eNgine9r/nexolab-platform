@@ -656,9 +656,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   !unsupported ? (
                     <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.04] p-3 text-xs leading-5 text-slate-300">
                       <span className="font-semibold text-cyan-100">Що станеться:</span> система збереже
-                      чернетку, виконає лише bounded read-only FC03 перевірку і після успіху покаже контролер
-                      у реєстрі та на вибраній вітрині. Моніторинг, polling і запис параметрів залишаться
-                      вимкненими.
+                      чернетку, виконає безпечну read-only перевірку і після успіху покаже контролер у реєстрі
+                      та на вибраній вітрині. Моніторинг, polling і запис параметрів залишаться вимкненими.
                     </div>
                   ) : null}
 
@@ -1246,8 +1245,7 @@ function PreflightPanel({
             <ShieldCheck className="h-4 w-4 text-cyan-300" /> Read-only перевірка підключення
           </h3>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
-            Exact node / bus / stable adapter / Unit ID / profile. Дозволений лише repository-owned FC03 read
-            path.
+            Exact node / bus / stable adapter / Unit ID / profile. Дозволене лише визначене профілем читання.
           </p>
         </div>
         <button
@@ -1273,7 +1271,7 @@ function PreflightPanel({
         <EvidenceStatus
           label="software verified"
           state="passed"
-          detail="Fixed repository-owned FC03-only contract; write fields are not representable."
+          detail="Фіксований read-only профіль; команди запису недоступні."
         />
         <EvidenceStatus
           label={attempt ? evidenceLabel(attempt.evidenceLevel) : "hardware unverified"}
@@ -1433,7 +1431,9 @@ function ActivationPanel({
               </div>
               <div>
                 <dt className="inline text-slate-500">Polling: </dt>
-                <dd className="inline">FC03 read-only</dd>
+                <dd className="inline">
+                  {plan.pollingMode === "read_only_fc04" ? "FC04" : "FC03"} read-only
+                </dd>
               </div>
               <div>
                 <dt className="inline text-slate-500">Binding: </dt>

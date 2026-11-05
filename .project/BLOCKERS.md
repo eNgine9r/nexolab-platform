@@ -1,3 +1,7 @@
+## 2026-11-05 — #1503 scoped meter not yet in Energy workspace
+
+Bus-scoped SDM120M source has a simulated activation and restart only. Existing Energy UI and selection/history use a fixed meter catalog and numeric Unit IDs, so new scoped meter values are not yet accepted there. Full API/organization tests, hardware preflight/live samples, exact-head CI and site release remain unverified. No update signal.
+
 ## 2026-11-05 — #1505 source candidate not runtime accepted
 
 Dynamic adapter topology is approved and under implementation; simulated tests do not establish device acceptance or production readiness. No deployed code, real adapter preflight, off-network live runtime test or rollback execution in this work package. SDM #1503 still needs activation and actual energy samples; Waveshare #1502 still needs channel integration. Full local Python dependencies are absent; CI and independent review remain required.

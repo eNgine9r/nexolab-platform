@@ -73,3 +73,15 @@ describe("section instrument scope", () => {
     expect(instrumentLiveLink({ ...active, profileId: "dixell-xjp60d-sections-6", busId: null })).toBeNull();
   });
 });
+
+describe("SDM120M instrument scope", () => {
+  it("does not mix newly commissioned telemetry with historic meter readings", () => {
+    const busId = "commissioning-0123456789abcdef";
+    const url = new URL(
+      instrumentLiveLink({ ...active, profileId: "eastron-sdm120m", busId, unitId: 1 })!,
+      "http://localhost",
+    );
+    expect(url.searchParams.get("equipment")).toBe(`SDM120M:${busId}:1`);
+    expect(instrumentLiveLink({ ...active, profileId: "eastron-sdm120m", busId: null })).toBeNull();
+  });
+});

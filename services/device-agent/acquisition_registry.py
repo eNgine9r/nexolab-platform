@@ -958,6 +958,7 @@ class AcquisitionRegistry:
         *,
         lifecycle: str = "active",
         bus_for_unit: Callable[[int], str] | None = None,
+        scoped: bool = False,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
         requested_values = tuple(unit_ids)
         if any(
@@ -995,7 +996,8 @@ class AcquisitionRegistry:
                         f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}"
                     )
                 continue
-            conflicting = existing_by_device_id.get(f"sdm120-{unit_id}")
+            device_id = f"sdm120-{bus_id}-{unit_id}" if scoped else f"sdm120-{unit_id}"
+            conflicting = existing_by_device_id.get(device_id)
             if conflicting is not None:
                 raise ValueError(
                     "Conflicting Modbus Unit ownership for SDM120 enrollment: "
@@ -1009,7 +1011,7 @@ class AcquisitionRegistry:
         targets = list(self.document.targets)
         changes: list[dict[str, str]] = []
         for unit_id, bus_id in additions:
-            device_id = f"sdm120-{unit_id}"
+            device_id = f"sdm120-{bus_id}-{unit_id}" if scoped else f"sdm120-{unit_id}"
             devices.append(
                 RegistryDevice(
                     device_id,
@@ -1027,8 +1029,8 @@ class AcquisitionRegistry:
                 target = replace(
                     _sdm120_target(unit_id, register.key, desired_lifecycle),
                     device_id=device_id,
-                    target_id=f"sdm120:{unit_id}-{register.key.replace('_', '-')}",
-                    telemetry_channel_id=f"{unit_id}-{register.key.replace('_', '-')}",
+                    target_id=f"sdm120:{bus_id}:{unit_id}-{register.key.replace('_', '-')}" if scoped else f"sdm120:{unit_id}-{register.key.replace('_', '-')}",
+                    telemetry_channel_id=f"{bus_id}:{unit_id}-{register.key.replace('_', '-')}" if scoped else f"{unit_id}-{register.key.replace('_', '-')}",
                 )
                 targets.append(target)
                 changes.append(
@@ -1764,10 +1766,12 @@ class AcquisitionRegistryStore:
         actor: str,
         reason: str,
         bus_for_unit: Callable[[int], str] | None = None,
+        scoped: bool = False,
     ) -> AcquisitionRegistry:
         document, changes = registry.with_sdm120_enrollment(
             unit_ids,
             lifecycle="reserve",
+            scoped=scoped,
             bus_for_unit=(
                 bus_for_unit
                 or self._configured_sdm120_bus_for_unit

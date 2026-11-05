@@ -210,6 +210,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         if target.device_family == "le01mp":
             return f"LE01MP-{target.unit_id}"
         if target.device_family == "sdm120":
+            if target.device_id.startswith("sdm120-commissioning-"):
+                return f"SDM120M:{target.bus_id}:{target.unit_id}"
             return f"SDM120M-{target.unit_id}"
         if target.device_family == "waveshare_8ai":
             return f"WAVESHARE-8AI-{target.unit_id}"
