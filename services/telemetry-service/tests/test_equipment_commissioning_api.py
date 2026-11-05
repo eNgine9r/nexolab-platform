@@ -147,6 +147,8 @@ def test_supported_profile_catalog_is_read_only_and_exact() -> None:
         (item["id"], item["version"], item["read_only"], item["activation_supported"])
         for item in response.json()["items"]
     ] == [
+        ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1", True, True),
+        ("eastron-sdm120m", "eastron-sdm120m-fc04-v1", True, True),
         ("dixell-xjp60d", "dixell-xjp60d-fc03-v1", True, True),
         ("f-and-f-le01mp", "f-and-f-le01mp-fc03-v2", True, True),
         ("embraco-sync", "embraco-sync-fc03-v1.00.04", True, True),
