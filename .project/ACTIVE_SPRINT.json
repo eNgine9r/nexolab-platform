@@ -10204,10 +10204,13 @@
       ],
       "scope": "Identity-safe local Energy inventory, latest, chart/history, cumulative consumption and export without history reassignment.",
       "evidence": {
-        "software": "partial; 121 frontend tests, 6 isolated ARM64 harness scenarios; frontend build passed",
-        "hardware": "unverified by new source",
+        "software": "136 Energy tests / 22 files; frontend build, lint/typecheck; six ARM64 functional scenarios using minimal harness, not pytest",
+        "hardware": "new source unverified",
         "runtime": "not deployed",
-        "modbus_writes": "none"
+        "modbus_writes": "none",
+        "pr": 1509,
+        "multi_node_ui": "not implemented; explicit notice",
+        "ci": "prior partial head offline auth passed; new head pending"
       }
     }
   ],

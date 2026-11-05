@@ -28,6 +28,7 @@ const PERIODS = [
   ["7d", "7 діб", 604800],
   ["custom", "Власний період", 0],
 ] as const;
+const DEFAULT_ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
 const EMPTY_ITEMS: EnergyExportCatalogSeries[] = [];
 const STEP_LABELS: Record<EnergyExportStep, string> = {
   0: "RAW · оригінальні вимірювання",
@@ -114,10 +115,12 @@ function WallTime({
 export function EnergyExportDialog({
   model,
   defaults,
+  nodeId = DEFAULT_ENERGY_NODE_ID,
   onClose,
 }: {
   model: EnergyExportController;
   defaults: readonly EnergySeriesSelection[];
+  nodeId?: string;
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -129,14 +132,18 @@ export function EnergyExportDialog({
       defaults.some(
         (pair) =>
           pair.metric === item.metric &&
-          ENERGY_METERS.find((meter) => meter.unitId === pair.unitId)?.equipmentId === item.equipment_id,
+          (pair.meterKey
+            ? pair.meterKey === JSON.stringify([item.node_id, item.equipment_id])
+            : item.node_id === nodeId &&
+              ENERGY_METERS.find((meter) => meter.unitId === pair.unitId)?.equipmentId === item.equipment_id),
       ),
     );
-    const fallback = items.filter((item) => item.metric === "electrical.power.active");
-    return (matching.length ? matching : fallback.length ? fallback : items.slice(0, 1)).map(
+    const currentNodeItems = items.filter((item) => item.node_id === nodeId);
+    const fallback = currentNodeItems.filter((item) => item.metric === "electrical.power.active");
+    return (matching.length ? matching : fallback.length ? fallback : currentNodeItems.slice(0, 1)).map(
       energyExportSeriesKey,
     );
-  }, [items, defaults]);
+  }, [items, defaults, nodeId]);
   const [keys, setKeys] = useState<string[] | null>(() => initial?.series.map(energyExportSeriesKey) ?? null);
   const chosenKeys = keys ?? defaultKeys;
   const [period, setPeriod] = useState<string>(initial ? "custom" : "1h");

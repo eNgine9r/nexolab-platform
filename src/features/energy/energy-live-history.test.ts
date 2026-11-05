@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
+import type { CommissionedEnergyMeter } from "./energy-commissioned-meters";
 
 import { reconcileEnergyLiveHistory, seedEnergyLiveHistoryState } from "./energy-live-history";
 import { energyHistorySourceEventId, isEnergyHistorySegmentStart } from "./energy-history-segment";
@@ -26,6 +27,35 @@ function sample(second: number, quality: TelemetrySample["quality"] = "valid"): 
 const meterKey = JSON.stringify(["edge-01", "LE01MP-200"]);
 
 describe("energy live history reconciliation", () => {
+  it("does not let the other bus clear an outage for the same Unit", () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      label: id,
+      modelLabel: "SDM",
+      family: "sdm120",
+    }));
+    const first = { ...sample(5, "communication_error"), equipment_id: meters[0].equipmentId };
+    const second = { ...sample(10), equipment_id: meters[1].equipmentId };
+    const outage = reconcileEnergyLiveHistory([first], undefined, undefined, meters);
+    const other = reconcileEnergyLiveHistory(
+      [second],
+      outage.pendingMeterKeys,
+      outage.newestCapturedAtByMeterKey,
+      meters,
+    );
+    expect(other.pendingMeterKeys.has(JSON.stringify(["edge-01", meters[0].equipmentId]))).toBe(true);
+    expect(isEnergyHistorySegmentStart(other.samples[0].event_id)).toBe(false);
+    const recovered = reconcileEnergyLiveHistory(
+      [{ ...sample(15), equipment_id: meters[0].equipmentId }],
+      other.pendingMeterKeys,
+      other.newestCapturedAtByMeterKey,
+      meters,
+    );
+    expect(isEnergyHistorySegmentStart(recovered.samples[0].event_id)).toBe(true);
+  });
   it("does not let a different node clear an outage on the same meter ID", () => {
     const outage = reconcileEnergyLiveHistory([sample(5, "communication_error")]);
     const other = reconcileEnergyLiveHistory(

@@ -7,6 +7,7 @@ export interface CommissionedEnergyMeter {
   unitId: number;
   equipmentId: string;
   label: string;
+  modelLabel: string;
   family: "sdm120";
 }
 
@@ -44,6 +45,7 @@ export function commissionedEnergyMeters(
       unitId,
       equipmentId,
       family: "sdm120",
+      modelLabel: "Eastron · SDM120M",
       label: session.displayName?.trim() || `SDM120M · ${busId} · Unit ${unitId}`,
     };
     candidates.set(key, [...(candidates.get(key) ?? []), meter]);

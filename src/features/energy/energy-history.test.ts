@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
+import type { CommissionedEnergyMeter } from "./energy-commissioned-meters";
 
 import {
   downsampleEnergyHistory,
@@ -55,6 +56,34 @@ function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapte
 }
 
 describe("energy history", () => {
+  it("keeps equal-Unit commissioned and legacy meter histories separate", () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      family: "sdm120",
+      label: id,
+      modelLabel: "SDM",
+    }));
+    const source = [...meters.map((meter) => meter.equipmentId), "SDM120M-1"].flatMap((equipment, index) =>
+      Array.from({ length: 8 }, (_, second) => ({
+        ...sample(second),
+        event_id: `${index}-${second}`,
+        equipment_id: equipment,
+        channel_id: "1-active-power",
+        value: index * 100 + second,
+      })),
+    );
+    const reduced = downsampleEnergyHistory(source, 4, undefined, null, meters);
+    for (const [index, equipment] of [...meters.map((meter) => meter.equipmentId), "SDM120M-1"].entries()) {
+      const readings = reduced.filter((item) => item.equipment_id === equipment);
+      expect(readings[0].value).toBe(index * 100);
+      expect(readings.at(-1)?.value).toBe(index * 100 + 7);
+      expect(readings.length).toBeLessThanOrEqual(4);
+    }
+    expect(downsampleEnergyHistory(source, 4).every((item) => item.equipment_id === "SDM120M-1")).toBe(true);
+  });
   it("downsamples identical legacy meter IDs separately for different nodes", () => {
     const source = [
       ...Array.from({ length: 8 }, (_, index) => sample(index, 200, "edge-01")),

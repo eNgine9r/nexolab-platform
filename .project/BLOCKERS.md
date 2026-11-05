@@ -1,6 +1,6 @@
-## 2026-11-05 — #1508 scoped Energy integration remains incomplete
+## 2026-11-05 — #1508 release and multi-node acceptance open
 
-Scoped catalog/export and identity/cadence groundwork exist in source only. UI inventory, selections, live, multi-node history, calculations and chart integration are still incomplete; do not show the new meter as fully supported or deploy. Exact-head required CI, backend pytest, real runtime/offline and hardware acceptance remain pending. Raspberry source repository has corrupt Git objects, root storage was 94% used, and device-agent reported unhealthy; investigate before any release. No production/site cutover has been authorized.
+Source covers one configured Energy node with authorized scoped SDM meters; other-node active instruments are explicitly disclosed but not presented on that screen. Cross-node concurrent UI comparison remains unimplemented. Full backend pytest, exact-head required CI, independent review, browser/runtime/offline verification and real hardware acceptance are pending. Raspberry source repository has corrupt Git objects, root storage was 94% used, and device-agent reported unhealthy; investigate before any release. SQLite store lifetime warnings in #1506 remain under review. No production/site cutover has been authorized; no update signal.
 
 ## 2026-11-05 — #1503 scoped meter not yet in Energy workspace
 

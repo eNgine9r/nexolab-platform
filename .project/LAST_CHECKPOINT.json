@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T10:29:01.979922+00:00",
+  "timestamp": "2026-11-05T10:57:03.698976+00:00",
   "actor": "Codex",
-  "event": "1508_partial_scoped_energy_identity",
+  "event": "1508_current_node_scoped_energy_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -34,9 +34,10 @@
     "issue": 1508,
     "title": "Energy bus-scoped commissioned SDM meters",
     "branch": "feature/1508-energy-scoped-sdm",
-    "status": "in_progress_partial_export_identity_only",
+    "status": "in_progress_current_node_software_candidate_multi_node_pending",
+    "pr": 1509,
     "production_mutation": false,
-    "next": "complete identity-safe UI, history, cadence and consumption using authorized inventory; validate exact head and CI"
+    "next": "complete multi-node scope and full backend/CI, perform review and authorized runtime/hardware acceptance"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3240,15 +3241,16 @@
       "production_release": "not_performed;draft_stacked_PR_unmerged"
     },
     "issue_1508_partial": {
-      "frontend_energy_tests": "121_passed_20_files",
-      "focused_export_and_cadence": "11_passed",
+      "frontend_energy_tests": "136_passed_22_files_act_warnings",
       "backend_scenarios": "6_passed_arm64_minimal_harness_not_pytest",
       "frontend_build": "passed_current_source",
-      "exact_head_ci": "not_verified",
+      "prior_partial_offline_auth": "42011568068_success_head_7429d6da91ddc3ed0ae652be1304b7fefa4fc0dc",
+      "exact_new_head_ci": "pending",
       "full_backend_pytest": "not_run",
       "production_mutation": false,
       "hardware_acceptance": "unverified",
-      "complete_energy_ui": false
+      "multi_node_ui": "pending",
+      "current_node_ui": "implemented_software_tests_only"
     }
   },
   "observations": [
@@ -4661,7 +4663,7 @@
       }
     }
   ],
-  "next_action": "Continue issue 1508; partial source only, no installation. Preserve legacy history and node/bus identity; no green update signal.",
+  "next_action": "Continue #1508 and dependent #1502/#1503/#1505 reviews; no install or green update signal. Verify Pi repository integrity, space, agent health and retained rollback before a future release.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

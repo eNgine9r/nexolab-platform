@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
+import type { CommissionedEnergyMeter } from "./energy-commissioned-meters";
 
 import {
   ENERGY_METRICS,
   energyMeterSupportsMetric,
   energySampleState,
   findEnergySample,
+  findEnergySampleForMeter,
   formatEnergyValue,
   isEnergySample,
   resolveEnergyMeter,
@@ -44,6 +46,51 @@ function cumulativeEnergySample(overrides: Partial<TelemetrySample> = {}): Telem
 }
 
 describe("energy telemetry", () => {
+  it("resolves only authorized node and equipment identities for scoped meters", () => {
+    const first: CommissionedEnergyMeter = {
+      nodeId: "edge-01",
+      busId: "commissioning-0123456789abcdef",
+      unitId: 1,
+      equipmentId: "SDM120M:commissioning-0123456789abcdef:1",
+      label: "First",
+      modelLabel: "SDM",
+      family: "sdm120",
+    };
+    const second: CommissionedEnergyMeter = {
+      ...first,
+      busId: "commissioning-fedcba9876543210",
+      equipmentId: "SDM120M:commissioning-fedcba9876543210:1",
+      label: "Second",
+    };
+    const inventory = [first, second];
+    const a = sample({ equipment_id: first.equipmentId, channel_id: "1-active-power", value: 100 });
+    const b = sample({
+      event_id: "b",
+      equipment_id: second.equipmentId,
+      channel_id: "1-active-power",
+      value: 200,
+    });
+    const legacy = sample({
+      event_id: "legacy",
+      equipment_id: "SDM120M-1",
+      channel_id: "1-active-power",
+      value: 300,
+    });
+    const foreign = sample({ event_id: "foreign", node_id: "edge-02", equipment_id: first.equipmentId });
+    expect(resolveEnergyMeter(a)).toBeNull();
+    expect(resolveEnergyMeter(a, inventory)).toEqual(first);
+    expect(resolveEnergyMeter(foreign, inventory)).toBeNull();
+    expect(resolveEnergyMeter({ ...foreign, channel_id: "200-active-power" }, inventory)).toBeNull();
+    const all = [a, b, legacy, foreign];
+    expect(selectLatestEnergySamples(all, inventory)).toHaveLength(3);
+    expect(findEnergySampleForMeter(all, "edge-01", first, "electrical.power.active", inventory)?.value).toBe(
+      100,
+    );
+    expect(
+      findEnergySampleForMeter(all, "edge-01", second, "electrical.power.active", inventory)?.value,
+    ).toBe(200);
+    expect(findEnergySampleForMeter(all, "edge-02", first, "electrical.power.active", inventory)).toBeNull();
+  });
   it("keeps latest samples from identical meter IDs on different nodes separate", () => {
     const a = sample({ event_id: "a", node_id: "node-a", value: 10 });
     const b = sample({ event_id: "b", node_id: "node-b", value: 20 });

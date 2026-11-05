@@ -100,6 +100,35 @@ describe("Energy export dialog", () => {
     expect(series.map((item) => item.equipment_id)).toEqual(expect.arrayContaining([...ids, "SDM120M-1"]));
     expect(new Set(series.map((item) => JSON.stringify([item.node_id, item.equipment_id]))).size).toBe(4);
   });
+  it("preselects the exact scoped graph identity instead of the legacy Unit 1 meter", async () => {
+    const controller = model();
+    const id = "SDM120M:commissioning-0123456789abcdef:1";
+    controller.catalog!.items.push({ ...controller.catalog!.items[1], equipment_id: id, meter_label: id });
+    render(
+      <EnergyExportDialog
+        model={controller}
+        defaults={[{ unitId: 1, meterKey: JSON.stringify(["edge-01", id]), metric: "electrical.voltage" }]}
+        onClose={vi.fn()}
+      />,
+    );
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Попередній перегляд" })));
+    expect(vi.mocked(controller.preview).mock.calls[0][0].series.map((item) => item.equipment_id)).toEqual([
+      id,
+    ]);
+  });
+  it("does not preselect the same legacy meter ID from a different node", async () => {
+    const controller = model();
+    controller.catalog!.items.push({
+      ...controller.catalog!.items[0],
+      node_id: "edge-other",
+      equipment_name: "Other node W1",
+    });
+    render(<EnergyExportDialog model={controller} defaults={defaults} onClose={vi.fn()} />);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Попередній перегляд" })));
+    expect(vi.mocked(controller.preview).mock.calls[0][0].series.map((item) => item.node_id)).toEqual([
+      "edge-01",
+    ]);
+  });
   it("selects graph parameters, all meters, exact custom Kyiv times and supported formats", async () => {
     const controller = model();
     render(<EnergyExportDialog model={controller} defaults={defaults} onClose={vi.fn()} />);

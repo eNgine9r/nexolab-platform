@@ -1,4 +1,5 @@
 import type { EnergyCadenceAuthority } from "./energy-cadence-authority";
+import type { CommissionedEnergyMeter } from "./energy-commissioned-meters";
 import { loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "./energy-history";
 import {
   invalidateRetainedEnergyHistory,
@@ -80,9 +81,10 @@ export function mergeEnergyComparisonHistory(
   window: EnergyComparisonWindow,
   metrics: readonly EnergyMetricId[],
   cadenceAuthority: EnergyCadenceAuthority | null,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): TelemetrySample[] {
   return metrics.flatMap((metric) =>
-    mergeEnergyHistoryTail(existing, incoming, { ...window, metric }, cadenceAuthority),
+    mergeEnergyHistoryTail(existing, incoming, { ...window, metric }, cadenceAuthority, meters),
   );
 }
 
@@ -93,6 +95,7 @@ export async function loadEnergyComparisonHistory(
   metrics: readonly EnergyMetricId[],
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): Promise<EnergyComparisonHistory> {
   const selected = normalizeEnergyMetrics(metrics);
   if (selected.length === 0) return { samples: [], errors: {} };
@@ -103,6 +106,8 @@ export async function loadEnergyComparisonHistory(
         { ...window, metric: selected[0] },
         signal,
         cadenceAuthority,
+        undefined,
+        meters,
       ),
       errors: {},
     };
@@ -142,6 +147,7 @@ export async function loadEnergyComparisonHistory(
           signal,
           cadenceAuthority,
           snapshot,
+          meters,
         );
         results.set(metric, samples);
       } catch (error) {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, Gauge, LogIn, RotateCcw } from "lucide-react";
 
 import { LoginReturnLink } from "@/components/security/login-return-link";
@@ -12,8 +12,9 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { clearRetainedEnergyHistory } from "@/features/energy/energy-history-retention";
 import { useEnergyConsumption } from "@/features/energy/use-energy-consumption";
 import { useEnergyExport } from "@/features/energy/use-energy-export";
+import { useCommissionedEnergyMeters } from "@/features/energy/use-commissioned-energy-meters";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
-import { useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
+import { ENERGY_NODE_ID, useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
 
 import { EnergyWorkspace } from "./energy-workspace";
 
@@ -62,15 +63,24 @@ export function EnergyScreen() {
   const canReadTelemetry =
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
   const organizationId = security.membership?.organizationId ?? null;
+  const securityScopeId = security.session?.identity.id ?? null;
+  const inventory = useCommissionedEnergyMeters(canReadTelemetry, organizationId, securityScopeId);
+  const meters = useMemo(
+    () => inventory.meters.filter((meter) => meter.nodeId === ENERGY_NODE_ID),
+    [inventory.meters],
+  );
+  const otherNodeCount = inventory.meters.length - meters.length;
   const telemetry = useEnergyTelemetry({
     enabled: canReadTelemetry,
     organizationId,
-    securityScopeId: security.session?.identity.id ?? null,
+    securityScopeId,
+    commissionedMeters: meters,
   });
   const consumption = useEnergyConsumption({
     enabled: canReadTelemetry,
     organizationId,
-    securityScopeId: security.session?.identity.id ?? null,
+    securityScopeId,
+    commissionedMeters: meters,
   });
   const exporter = useEnergyExport({
     enabled: canReadTelemetry,
@@ -161,7 +171,30 @@ export function EnergyScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">
-            <EnergyWorkspace telemetry={telemetry} consumption={consumption} exporter={exporter} />
+            {inventory.status === "error" ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-xl border border-amber-400/30 p-3 text-sm text-amber-100"
+              >
+                Не вдалося отримати список підключених лічильників. Перевірте доступ до обладнання та
+                з’єднання.
+              </p>
+            ) : null}
+            {otherNodeCount > 0 ? (
+              <p
+                role="status"
+                className="mb-4 rounded-xl border border-amber-400/30 p-3 text-sm text-amber-100"
+              >
+                Лічильники інших вузлів ({otherNodeCount}) тут поки не відображаються. Поточний вузол:{" "}
+                {ENERGY_NODE_ID}.
+              </p>
+            ) : null}
+            <EnergyWorkspace
+              telemetry={telemetry}
+              consumption={consumption}
+              exporter={exporter}
+              meters={meters}
+            />
           </div>
         </main>
       </div>

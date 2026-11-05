@@ -3,7 +3,10 @@ import {
   markEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
 import { resolveEnergyMeter } from "@/features/energy/energy-telemetry";
-import { energyMeterIdentity } from "@/features/energy/energy-commissioned-meters";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export interface EnergyLiveHistoryReconciliation {
@@ -21,11 +24,14 @@ function isRenderable(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
 
-export function seedEnergyLiveHistoryState(samples: readonly TelemetrySample[]): EnergyLiveHistorySeed {
+export function seedEnergyLiveHistoryState(
+  samples: readonly TelemetrySample[],
+  meters: readonly CommissionedEnergyMeter[] = [],
+): EnergyLiveHistorySeed {
   const latestByMeterKey = new Map<string, { sample: TelemetrySample; capturedAt: number }>();
 
   for (const sample of samples) {
-    const meter = resolveEnergyMeter(sample);
+    const meter = resolveEnergyMeter(sample, meters);
     const capturedAt = Date.parse(sample.captured_at);
     if (!meter || !Number.isFinite(capturedAt)) continue;
 
@@ -52,6 +58,7 @@ export function reconcileEnergyLiveHistory(
   samples: readonly TelemetrySample[],
   pendingMeterKeys: ReadonlySet<string> = new Set(),
   newestCapturedAtByMeterKey: ReadonlyMap<string, number> = new Map(),
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): EnergyLiveHistoryReconciliation {
   const pending = new Set(pendingMeterKeys);
   const newest = new Map(newestCapturedAtByMeterKey);
@@ -61,7 +68,7 @@ export function reconcileEnergyLiveHistory(
   );
 
   for (const sample of sorted) {
-    const meter = resolveEnergyMeter(sample);
+    const meter = resolveEnergyMeter(sample, meters);
     const capturedAt = Date.parse(sample.captured_at);
     if (!meter || !Number.isFinite(capturedAt)) continue;
 

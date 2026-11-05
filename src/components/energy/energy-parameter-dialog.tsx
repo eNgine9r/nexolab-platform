@@ -9,18 +9,24 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import { ENERGY_METERS, ENERGY_METRICS, energyMeterSupportsMetric } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 
 export function EnergyParameterDialog({
   selected,
+  meters = [],
   onApply,
   onClose,
 }: {
   selected: readonly EnergySeriesSelection[];
+  meters?: readonly CommissionedEnergyMeter[];
   onApply: (selected: EnergySeriesSelection[]) => void;
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [draft, setDraft] = useState(() => normalizeEnergySeriesSelection(selected));
+  const [draft, setDraft] = useState(() => normalizeEnergySeriesSelection(selected, meters));
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -32,7 +38,7 @@ export function EnergyParameterDialog({
     setDraft((current) =>
       selectedKeys.has(energySeriesSelectionKey(pair))
         ? current.filter((item) => energySeriesSelectionKey(item) !== energySeriesSelectionKey(pair))
-        : normalizeEnergySeriesSelection([...current, pair]),
+        : normalizeEnergySeriesSelection([...current, pair], meters),
     );
 
   return (
@@ -81,15 +87,23 @@ export function EnergyParameterDialog({
           </button>
         </header>
         <div className="min-h-0 space-y-4 overflow-y-auto p-5">
-          {ENERGY_METERS.map((meter) => (
-            <fieldset key={meter.unitId} className="min-w-0 rounded-2xl border border-white/[0.08] p-3">
+          {[...ENERGY_METERS, ...meters].map((meter) => (
+            <fieldset
+              key={
+                "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : meter.equipmentId
+              }
+              className="min-w-0 rounded-2xl border border-white/[0.08] p-3"
+            >
               <legend className="px-2 text-sm font-semibold text-cyan-200">
                 {meter.label} · {meter.equipmentId}
               </legend>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {ENERGY_METRICS.map((metric) => {
-                  const pair = { unitId: meter.unitId, metric: metric.id };
+                  const meterKey =
+                    "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : undefined;
+                  const pair = { unitId: meter.unitId, metric: metric.id, ...(meterKey ? { meterKey } : {}) };
                   const supported = energyMeterSupportsMetric(meter, metric.id);
+                  const descriptionId = `unsupported-energy-${encodeURIComponent(meterKey ?? meter.equipmentId)}-${metric.shortLabel}`;
                   return (
                     <label
                       key={metric.id}
@@ -100,19 +114,14 @@ export function EnergyParameterDialog({
                         checked={selectedKeys.has(energySeriesSelectionKey(pair))}
                         disabled={!supported}
                         onChange={() => toggle(pair)}
-                        aria-label={`${meter.label} · ${metric.label}`}
-                        aria-describedby={
-                          !supported ? `unsupported-energy-${meter.unitId}-${metric.shortLabel}` : undefined
-                        }
+                        aria-label={`${meter.label}${"busId" in meter ? ` · ${meter.busId}` : ""} · ${metric.label}`}
+                        aria-describedby={!supported ? descriptionId : undefined}
                         className="h-4 w-4 shrink-0 accent-cyan-400"
                       />
                       <span className="min-w-0">
                         {metric.label} · {energySeriesDisplayUnit(metric.id)}
                         {!supported ? (
-                          <span
-                            id={`unsupported-energy-${meter.unitId}-${metric.shortLabel}`}
-                            className="mt-1 block text-[10px]"
-                          >
+                          <span id={descriptionId} className="mt-1 block text-[10px]">
                             Не підтримується цим лічильником
                           </span>
                         ) : null}
