@@ -60,10 +60,7 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1534,
-      "branch": "feat/1534-overview-sensor-picker"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -9871,7 +9868,7 @@
       "title": "Overview device-first sensor picker and scalable history controls",
       "branch": "feat/1534-overview-sensor-picker",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1532
       ],
@@ -9905,9 +9902,25 @@
         "verified_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
         "source_ci": "not_run",
         "browser_acceptance": "not_run",
-        "production_build": "not_run",
+        "production_build": "PASS_42238642725",
         "release": "not_installed",
-        "browser_test_update": "replace obsolete chamber bulk checkbox with optional context assertion; no weakened negative safety assertions"
+        "browser_test_update": "replace obsolete chamber bulk checkbox with optional context assertion; no weakened negative safety assertions",
+        "pull_request": 1535,
+        "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "github_exact_head_ci": "PASS_42238642725",
+        "authenticated_dashboard": "PASS_42_of_42_42238642310",
+        "frontend_browser_test_viewports": [
+          320,
+          375,
+          390,
+          768,
+          1280,
+          1440,
+          1920
+        ],
+        "source_only": true,
+        "site_installed": false,
+        "exact_head_ci_after_state_evidence": "pending"
       }
     }
   ],
@@ -11768,6 +11781,22 @@
         "format": "PASS",
         "lint": "PASS",
         "typecheck": "PASS",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_source_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "browser_passed": 42,
+        "targeted_tests": 28,
+        "source_only": true,
         "site_mutation": false
       }
     }
