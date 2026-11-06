@@ -110,7 +110,6 @@ function appearsBefore(left: Element, right: Element): boolean {
   return Boolean(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
-
 describe("LiveTelemetryExplorer progressive filtering", () => {
   it("keeps search visible, remembers hidden advanced selections and clears all filter conditions", () => {
     const telemetry = model();
