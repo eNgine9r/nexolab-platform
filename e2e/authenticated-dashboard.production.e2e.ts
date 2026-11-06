@@ -817,6 +817,10 @@ test("grouped navigation shows destinations allowed for the viewer", async ({ br
 test("navigation follows a restricted selected membership on mobile and desktop", async ({ browser }) => {
   const context = await authenticatedContext(browser);
   await context.route("**/api/v1/auth/session", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
     const response = await route.fetch();
     const payload = await response.json();
     for (const membership of payload.memberships) {
