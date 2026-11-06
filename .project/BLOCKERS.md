@@ -1,6 +1,6 @@
-## 2026-11-06 — #1532 Overview UI browser/merge acceptance (soft blocker)
+## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
 
-Draft PR #1533 has source-only readable KPI, infrastructure and freshness labels. Isolated Pi targeted tests 7/7, Prettier, ESLint and TypeScript passed on exact matching six file blobs. Before merge, require full GitHub source-bound CI/production build, authenticated 375/768/1440/1920 browser visual/a11y verification and integration with open page-grant PR #1531 (and its #1529 foundation), without weakening per-user visibility. The production Raspberry source remains ffdefc... and is NOT updated; real runtime/offline installation, rollback, protected backup and site authorization gates remain separate. No hardware or Modbus write.
+PR #1533 source candidate dd660a49... passed exact-head CI #42233327149 and 42/42 authenticated browser cases #42233327115 (Overview responsive at 360/1440/1920; shared header at 320/375/768/1280; no acquisition writes). Captured browser evidence artifact 13510498719. No independent manual visual pixel review was recorded, but required automated browser/API and build checks have succeeded. The open stacked permission PRs #1529/#1531 share four .project state files but not the three modified dashboard UI components; reconcile state changes if their merge order changes. Runtime/offline installation and backup/rollback, exact accepted package, protected Pi release, and explicit production/site authorization remain separate blockers. No hardware or Modbus write.
 
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
