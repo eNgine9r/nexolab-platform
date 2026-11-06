@@ -84,7 +84,12 @@ describe("security session client", () => {
   it("accepts named navigation grants without granting resource permissions", async () => {
     const payload = {
       ...sessionPayload,
-      memberships: [{ ...sessionPayload.memberships[0], permissions: ["navigation.reports", "navigation.instrumentation"] }],
+      memberships: [
+        {
+          ...sessionPayload.memberships[0],
+          permissions: ["navigation.reports", "navigation.instrumentation"],
+        },
+      ],
     };
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
