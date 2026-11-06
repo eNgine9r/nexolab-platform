@@ -81,7 +81,10 @@ describe("Topbar operator actions", () => {
   });
 
   it("shows the alerts link only when the selected membership grants alerts.read", () => {
-    const allowed = { ...session.memberships[0], permissions: ["alerts.read" as const] };
+    const allowed = {
+      ...session.memberships[0],
+      permissions: ["alerts.read" as const, "navigation.alerts" as const],
+    };
     const allowedSession = { ...session, memberships: [allowed, session.memberships[1]] };
     const { rerender } = render(
       <Topbar
@@ -115,6 +118,35 @@ describe("Topbar operator actions", () => {
     );
     expect(screen.getByText("Організація 1")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("shows session creation only when both page and action rights exist", () => {
+    const permitted = {
+      ...session.memberships[0],
+      permissions: ["navigation.sessions" as const, "dashboard.read" as const, "sessions.manage" as const],
+    };
+    const selectedSession = { ...session, memberships: [permitted] };
+    const { rerender } = render(
+      <Topbar
+        title="Огляд"
+        onMenuOpen={vi.fn()}
+        securitySession={selectedSession}
+        selectedMembership={permitted}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Нова сесія" })).toBeVisible();
+    for (const missing of ["navigation.sessions", "dashboard.read", "sessions.manage"]) {
+      const restricted = { ...permitted, permissions: permitted.permissions.filter((p) => p !== missing) };
+      rerender(
+        <Topbar
+          title="Огляд"
+          onMenuOpen={vi.fn()}
+          securitySession={{ ...session, memberships: [restricted] }}
+          selectedMembership={restricted}
+        />,
+      );
+      expect(screen.queryByRole("link", { name: "Нова сесія" })).not.toBeInTheDocument();
+    }
   });
 
   it("keeps named session creation callbacks and supports hiding the action", () => {

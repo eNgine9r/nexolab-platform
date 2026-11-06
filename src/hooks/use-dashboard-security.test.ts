@@ -139,6 +139,20 @@ describe("useDashboardSecurity", () => {
     expect(result.current.error).toContain("відсутня");
   });
 
+  it("updates all mounted security boundaries after an organization change", async () => {
+    const first = renderHook(() => useDashboardSecurity());
+    const second = renderHook(() => useDashboardSecurity());
+    await waitFor(() => expect(first.result.current.state).toBe("ready"));
+    await waitFor(() => expect(second.result.current.state).toBe("ready"));
+    expect(first.result.current.membership?.organizationId).toBe("org-1");
+    expect(second.result.current.membership?.organizationId).toBe("org-1");
+    act(() => first.result.current.selectOrganization("org-2"));
+    await waitFor(() => expect(first.result.current.state).toBe("ready"));
+    await waitFor(() => expect(second.result.current.state).toBe("ready"));
+    expect(first.result.current.membership?.organizationId).toBe("org-2");
+    expect(second.result.current.membership?.organizationId).toBe("org-2");
+  });
+
   it("rejects an explicitly selected organization that is not in the verified session", async () => {
     setSecurityCredentials({ accessToken: "access-token", organizationId: "foreign-org" });
     authState.credentials.mockResolvedValue({

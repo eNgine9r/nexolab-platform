@@ -115,7 +115,13 @@ it("keeps canonical link clicks closing the mobile menu", () => {
 });
 
 it("shows only destinations permitted by the selected membership", () => {
-  const security = liveSecurity(["telemetry.read", "reports.read"]);
+  const security = liveSecurity([
+    "telemetry.read",
+    "reports.read",
+    "navigation.live",
+    "navigation.energy",
+    "navigation.reports",
+  ]);
   render(<Sidebar security={security} open onClose={vi.fn()} />);
   for (const label of ["Live дані", "Енергомоніторинг", "Звіти", "Налаштування"]) {
     expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
@@ -144,8 +150,12 @@ it("hides navigation on missing, loading or invalid membership and removes empty
 });
 
 it("recomputes permissions on organization changes and logout", () => {
-  const first = liveSecurity(["dashboard.read"]);
-  const other = { ...first.membership, organizationId: "lab-b", permissions: ["reports.read"] as const };
+  const first = liveSecurity(["dashboard.read", "navigation.overview"]);
+  const other = {
+    ...first.membership,
+    organizationId: "lab-b",
+    permissions: ["reports.read", "navigation.reports"] as const,
+  };
   const session = {
     ...first.session,
     memberships: [first.membership, { ...other, permissions: [...other.permissions] }],
@@ -168,7 +178,7 @@ it("recomputes permissions on organization changes and logout", () => {
 });
 
 it("removes an entry when the refreshed session revokes its permission", () => {
-  const before = liveSecurity(["alerts.read"]);
+  const before = liveSecurity(["alerts.read", "navigation.alerts"]);
   const { rerender } = render(<Sidebar security={before} open onClose={vi.fn()} />);
   expect(screen.getByRole("link", { name: "Тривоги" })).toBeInTheDocument();
   const after = liveSecurity([]);
@@ -177,11 +187,27 @@ it("removes an entry when the refreshed session revokes its permission", () => {
 });
 
 it("keeps administrator-only placeholders and cameras hidden from other roles", () => {
-  const security = liveSecurity(["dashboard.read"], true);
+  const security = liveSecurity(["dashboard.read", "navigation.cameras", "navigation.lockers"], true);
   const { rerender } = render(<Sidebar security={security} open onClose={vi.fn()} />);
   expect(screen.getByRole("link", { name: "Камери" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Поштомати" })).toBeInTheDocument();
   rerender(<Sidebar security={liveSecurity(["dashboard.read"])} open onClose={vi.fn()} />);
   expect(screen.queryByRole("link", { name: "Камери" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Поштомати" })).not.toBeInTheDocument();
+});
+
+it("requires each page grant separately even when resource access is shared", () => {
+  const security = liveSecurity(["telemetry.read", "navigation.live"]);
+  const { rerender } = render(<Sidebar security={security} open onClose={vi.fn()} />);
+  expect(screen.getByRole("link", { name: "Live дані" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Енергомоніторинг" })).not.toBeInTheDocument();
+  rerender(<Sidebar security={liveSecurity(["navigation.live"])} open onClose={vi.fn()} />);
+  expect(screen.queryByRole("link", { name: "Live дані" })).not.toBeInTheDocument();
+});
+
+it("allows a specifically granted camera page for a non-administrator", () => {
+  const user = liveSecurity(["navigation.cameras"]);
+  render(<Sidebar security={user} open onClose={vi.fn()} />);
+  expect(screen.getByRole("link", { name: "Камери" })).toBeVisible();
   expect(screen.queryByRole("link", { name: "Поштомати" })).not.toBeInTheDocument();
 });

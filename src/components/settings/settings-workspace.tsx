@@ -315,7 +315,8 @@ export function SettingsWorkspace({
               })}
             </nav>
 
-            {membership.permissions.includes("dashboard.read") ? (
+            {membership.permissions.includes("dashboard.read") &&
+            membership.permissions.includes("navigation.instrumentation") ? (
               <div className="mt-3 border-t border-white/[0.07] pt-3">
                 <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
                   Реєстри
@@ -448,7 +449,7 @@ function GeneralSection({
         )}
       </div>
 
-      {membership.roles.includes("administrator") ? (
+      {membership.permissions.includes("navigation.cameras") ? (
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4">
           <span className="text-sm text-slate-400">Камери: стан і доступність перегляду</span>
           <Link

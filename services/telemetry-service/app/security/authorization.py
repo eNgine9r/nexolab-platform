@@ -52,6 +52,30 @@ class Permission(StrEnum):
     ACKNOWLEDGE_ALERTS = "alerts.acknowledge"
     APPROVE_REPORTS = "reports.approve"
     MANAGE_PROJECT_VERSIONS = "project_versions.manage"
+    # These grants control navigation visibility; resource permissions remain
+    # separately enforced by their existing server-side authorization checks.
+    NAV_OVERVIEW = "navigation.overview"
+    NAV_NODES = "navigation.nodes"
+    NAV_SESSIONS = "navigation.sessions"
+    NAV_LIVE = "navigation.live"
+    NAV_EQUIPMENT_LAYOUTS = "navigation.equipment_layouts"
+    NAV_LOCKERS = "navigation.lockers"
+    NAV_REFRIGERATION = "navigation.refrigeration"
+    NAV_ALERTS = "navigation.alerts"
+    NAV_CAMERAS = "navigation.cameras"
+    NAV_ENERGY = "navigation.energy"
+    NAV_REPORTS = "navigation.reports"
+    NAV_EQUIPMENT = "navigation.equipment"
+    NAV_INSTRUMENTATION = "navigation.instrumentation"
+
+
+NAVIGATION_PERMISSIONS = frozenset({
+    Permission.NAV_OVERVIEW, Permission.NAV_NODES, Permission.NAV_SESSIONS,
+    Permission.NAV_LIVE, Permission.NAV_EQUIPMENT_LAYOUTS, Permission.NAV_LOCKERS,
+    Permission.NAV_REFRIGERATION, Permission.NAV_ALERTS, Permission.NAV_CAMERAS,
+    Permission.NAV_ENERGY, Permission.NAV_REPORTS, Permission.NAV_EQUIPMENT,
+    Permission.NAV_INSTRUMENTATION,
+})
 
 
 ADMIN_ONLY_PERMISSIONS = frozenset(

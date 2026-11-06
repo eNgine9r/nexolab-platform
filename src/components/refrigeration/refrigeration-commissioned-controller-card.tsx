@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { CheckCircle2, RadioTower } from "lucide-react";
 
+import { canSeePlatformDestination } from "@/components/dashboard/sidebar";
+import { useRefrigerationAccount } from "./refrigeration-security-boundary";
 import type { CommissionedControllerAssociation } from "@/features/equipment/commissioned-controller-association";
 
 export function RefrigerationCommissionedControllerCard({
@@ -11,6 +13,8 @@ export function RefrigerationCommissionedControllerCard({
   association: CommissionedControllerAssociation;
 }) {
   const { session, profile } = association;
+  const account = useRefrigerationAccount();
+  const canAccessEquipment = canSeePlatformDestination(account?.security, "/equipment");
   return (
     <section
       className="rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.04] p-5"
@@ -42,12 +46,14 @@ export function RefrigerationCommissionedControllerCard({
         Контролер додано до реєстру після bounded read-only перевірки. Production polling і live KPI ще не
         активовані; значення контролера тут не підміняються mock-даними.
       </p>
-      <Link
-        href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}
-        className="mt-4 inline-flex text-xs font-semibold text-cyan-200 hover:text-cyan-100"
-      >
-        Відкрити картку підключення →
-      </Link>
+      {canAccessEquipment ? (
+        <Link
+          href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}
+          className="mt-4 inline-flex text-xs font-semibold text-cyan-200 hover:text-cyan-100"
+        >
+          Відкрити картку підключення →
+        </Link>
+      ) : null}
     </section>
   );
 }

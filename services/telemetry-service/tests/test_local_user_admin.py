@@ -171,6 +171,51 @@ def test_permission_change_revokes_active_local_session(tmp_path: Path) -> None:
     database.dispose()
 
 
+def test_navigation_grants_round_trip_without_granting_resource_access(tmp_path: Path) -> None:
+    database, security, _, service, actor, actor_identity_id = build_runtime(tmp_path)
+    user = create_engineer(service, actor=actor, actor_identity_id=actor_identity_id)
+    changed = service.set_permissions(
+        organization_id=ORGANIZATION_ID,
+        account_id=user.account_id,
+        permissions={Permission.NAV_REPORTS},
+        actor_identity_id=actor_identity_id,
+        actor=actor,
+        reason="navigation fixture",
+        request_id=None,
+        source_ip=None,
+        user_agent=None,
+        navigation_contract_version=1,
+    )
+    assert changed.granted_permissions == frozenset({Permission.NAV_REPORTS})
+    _, principal = security.resolve_principal(
+        VerifiedIdentityClaims(provider=LOCAL_AUTH_PROVIDER, subject=user.account_id),
+        organization_id=ORGANIZATION_ID,
+    )
+    assert authorize(principal, Permission.NAV_REPORTS, resource_organization_id=ORGANIZATION_ID).allowed
+    assert not authorize(principal, Permission.READ_REPORTS, resource_organization_id=ORGANIZATION_ID).allowed
+    assert not authorize(principal, Permission.NAV_REPORTS, resource_organization_id="other-org").allowed
+    legacy_update = service.set_permissions(
+        organization_id=ORGANIZATION_ID, account_id=user.account_id,
+        permissions={Permission.READ_NODES}, actor_identity_id=actor_identity_id,
+        actor=actor, reason=None, request_id=None, source_ip=None, user_agent=None,
+    )
+    assert legacy_update.granted_permissions == frozenset({Permission.READ_NODES, Permission.NAV_REPORTS})
+    with pytest.raises(LocalUserValidationError):
+        service.set_permissions(
+            organization_id=ORGANIZATION_ID, account_id=user.account_id,
+            permissions={Permission.NAV_NODES}, actor_identity_id=actor_identity_id,
+            actor=actor, reason=None, request_id=None, source_ip=None, user_agent=None,
+        )
+    revoked = service.set_permissions(
+        organization_id=ORGANIZATION_ID, account_id=user.account_id,
+        permissions={Permission.READ_NODES}, actor_identity_id=actor_identity_id,
+        actor=actor, reason=None, request_id=None, source_ip=None, user_agent=None,
+        navigation_contract_version=1,
+    )
+    assert revoked.granted_permissions == frozenset({Permission.READ_NODES})
+    database.dispose()
+
+
 def test_non_admin_cannot_receive_administrator_only_permissions(
     tmp_path: Path,
 ) -> None:
@@ -192,6 +237,26 @@ def test_non_admin_cannot_receive_administrator_only_permissions(
             source_ip=None,
             user_agent=None,
         )
+    database.dispose()
+
+
+def test_promoting_and_demoting_preserves_navigation_but_not_resource_grants(tmp_path: Path) -> None:
+    database, _, _, service, actor, actor_identity_id = build_runtime(tmp_path)
+    user = create_engineer(service, actor=actor, actor_identity_id=actor_identity_id)
+    service.set_permissions(
+        organization_id=ORGANIZATION_ID, account_id=user.account_id,
+        permissions={Permission.NAV_REPORTS, Permission.READ_REPORTS},
+        actor_identity_id=actor_identity_id, actor=actor, reason=None,
+        request_id=None, source_ip=None, user_agent=None, navigation_contract_version=1,
+    )
+    for role in (Role.ADMINISTRATOR, Role.ENGINEER):
+        updated = service.update_user(
+            organization_id=ORGANIZATION_ID, account_id=user.account_id,
+            role=role.value, is_active=None, actor_identity_id=actor_identity_id,
+            actor=actor, reason=None, request_id=None, source_ip=None, user_agent=None,
+        )
+    assert updated.granted_permissions == frozenset({Permission.NAV_REPORTS})
+    assert Permission.READ_REPORTS not in updated.effective_permissions
     database.dispose()
 
 

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from app.db import Database
 from app.security.authentication import VerifiedIdentityClaims
-from app.security.authorization import Role
+from app.security.authorization import Permission, Role
+from app.security.models import SecurityMembershipPermission, SecurityOrganizationMembership
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -94,6 +98,22 @@ def test_reprovisioning_replaces_role_assignments(tmp_path: Path) -> None:
     )
 
     assert session.memberships[0].roles == frozenset({Role.VIEWER})
+
+
+def test_legacy_reprovision_preserves_navigation_decisions(tmp_path: Path) -> None:
+    repo = repository(tmp_path)
+    repo.provision_organization(organization_id=ORGANIZATION_ID, slug="nexolab-lab", name="Lab")
+    initial = repo.provision_membership(organization_id=ORGANIZATION_ID, claims=claims(), roles={Role.VIEWER})
+    with Session(repo._engine) as session, session.begin():
+        membership_id = session.scalar(select(SecurityOrganizationMembership.id).where(
+            SecurityOrganizationMembership.identity_id == initial.identity_id,
+            SecurityOrganizationMembership.organization_id == ORGANIZATION_ID,
+        ))
+        session.add(SecurityMembershipPermission(membership_id=membership_id, permission=Permission.NAV_REPORTS.value,
+                                                 assigned_by="operator"))
+    for role in (Role.ENGINEER, Role.ADMINISTRATOR, Role.VIEWER):
+        current = repo.provision_membership(organization_id=ORGANIZATION_ID, claims=claims(), roles={role})
+        assert Permission.NAV_REPORTS in current.memberships[0].granted_permissions
 
 
 def test_audit_event_is_returned_newest_first(tmp_path: Path) -> None:

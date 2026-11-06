@@ -6,6 +6,20 @@ import type {
   RefrigerationCircuitRecord,
 } from "@/features/refrigeration/circuit-configuration-repository";
 
+const accountState = vi.hoisted(() => ({ granted: true }));
+vi.mock("./refrigeration-security-boundary", () => ({
+  useRefrigerationAccount: () => {
+    const membership = {
+      organizationId: "lab",
+      permissions: accountState.granted
+        ? ["dashboard.read", "navigation.instrumentation"]
+        : ["dashboard.read"],
+      roles: ["engineer"],
+    };
+    return { security: { mode: "live", state: "ready", membership, session: { memberships: [membership] } } };
+  },
+}));
+
 import { RefrigerationCircuitConfigurationWorkspace } from "./refrigeration-circuit-configuration-workspace";
 
 const circuit: RefrigerationCircuitRecord = {
@@ -231,7 +245,8 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
     expect(screen.getByRole("button", { name: "Додати версію конфігурації" })).toBeDisabled();
   });
 
-  it("routes an authorized operator to the canonical registry when no candidate exists", async () => {
+  it.each([true, false])("only links to the registry when page access is granted (%s)", async (granted) => {
+    accountState.granted = granted;
     render(
       <RefrigerationCircuitConfigurationWorkspace
         equipmentId="equipment-1"
@@ -245,10 +260,11 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
     if (!card) throw new Error("Role card missing");
     fireEvent.click(within(card).getByRole("button", { name: "Обрати сигнал" }));
 
-    const link = await within(card).findByRole("link", {
-      name: "Відкрити canonical Instrumentation Registry",
-    });
-    expect(link).toHaveAttribute("href", "/settings/instrumentation");
+    await within(card).findByText(/Немає accepted сумісних Signals/);
+    const link = within(card).queryByRole("link", { name: "Відкрити canonical Instrumentation Registry" });
+    if (granted) expect(link).toHaveAttribute("href", "/settings/instrumentation");
+    else expect(link).not.toBeInTheDocument();
+    accountState.granted = true;
   });
 
   it("uses backend candidate discovery before binding a semantic role", async () => {

@@ -16,7 +16,8 @@ export function SessionReportAction({ session, pending }: { session: LaboratoryS
     !organizationId ||
     session.organization_id !== organizationId ||
     (session.state !== "completed" && session.state !== "archived") ||
-    !hasPermission(security.session, organizationId, "reports.read")
+    !hasPermission(security.session, organizationId, "reports.read") ||
+    !hasPermission(security.session, organizationId, "navigation.reports")
   )
     return null;
   const label = hasPermission(security.session, organizationId, "reports.generate")

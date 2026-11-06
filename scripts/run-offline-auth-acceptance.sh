@@ -242,6 +242,12 @@ create_account "$NEXOLAB_LOCAL_AUTH_VIEWER_USERNAME" viewer "Local Viewer"
 create_account "$NEXOLAB_LOCAL_AUTH_OPERATOR_USERNAME" operator "Local Operator"
 create_account "$NEXOLAB_LOCAL_AUTH_ADMIN_USERNAME" administrator "Local Administrator"
 
+# This isolated acceptance database seeds accounts after migrations. Give
+# fixture users the same page visibility that pre-existing users retain.
+compose exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+  < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+
 npm ci --no-audit --no-fund
 if [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
   npx playwright install --with-deps chromium

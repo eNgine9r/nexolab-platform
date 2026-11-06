@@ -12,7 +12,14 @@ const membership: SecurityMembership = {
   organizationSlug: "dashboard-acceptance",
   organizationName: "NEXOLAB Dashboard Acceptance",
   roles: ["viewer"],
-  permissions: ["dashboard.read", "telemetry.read", "alerts.read", "reports.read", "nodes.read"],
+  permissions: [
+    "dashboard.read",
+    "telemetry.read",
+    "alerts.read",
+    "reports.read",
+    "nodes.read",
+    "navigation.instrumentation",
+  ],
 };
 
 const session: SecuritySession = {
@@ -100,7 +107,12 @@ describe("SettingsWorkspace", () => {
         membership={{
           ...membership,
           roles: ["administrator"],
-          permissions: [...membership.permissions, "memberships.manage", "project_versions.manage"],
+          permissions: [
+            ...membership.permissions,
+            "memberships.manage",
+            "project_versions.manage",
+            "navigation.cameras",
+          ],
         }}
         diagnostics={diagnostics}
         preferences={createDefaultSettingsPreferences()}
@@ -120,6 +132,24 @@ describe("SettingsWorkspace", () => {
       "href",
       "/settings/system/version",
     );
+    expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
+  });
+
+  it("hides the instruments link when its page grant is absent", () => {
+    const restricted = {
+      ...membership,
+      permissions: membership.permissions.filter((p) => p !== "navigation.instrumentation"),
+    };
+    renderWorkspace({ membership: restricted, session: { ...session, memberships: [restricted] } });
+    expect(screen.queryByRole("link", { name: "Прилади та сигнали" })).not.toBeInTheDocument();
+  });
+
+  it("shows the camera link to a non-administrator only when the page is granted", () => {
+    const cameraUser = {
+      ...membership,
+      permissions: [...membership.permissions, "navigation.cameras" as const],
+    };
+    renderWorkspace({ membership: cameraUser, session: { ...session, memberships: [cameraUser] } });
     expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
   });
 

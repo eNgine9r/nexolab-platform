@@ -5,7 +5,7 @@ import type { LaboratorySession } from "@/lib/sessions/types";
 import { SessionReportAction } from "./session-report-action";
 
 const mock = vi.hoisted(() => ({
-  permissions: ["reports.read", "reports.generate"],
+  permissions: ["reports.read", "reports.generate", "navigation.reports"],
   organizationId: "org-a",
   operationPending: false,
 }));
@@ -25,7 +25,7 @@ const session = {
   state: "completed",
 } as LaboratorySession;
 beforeEach(() => {
-  mock.permissions = ["reports.read", "reports.generate"];
+  mock.permissions = ["reports.read", "reports.generate", "navigation.reports"];
   mock.organizationId = "org-a";
   mock.operationPending = false;
 });
@@ -45,12 +45,17 @@ describe("SessionReportAction", () => {
     },
   );
   it("offers viewing for a report reader", () => {
-    mock.permissions = ["reports.read"];
+    mock.permissions = ["reports.read", "navigation.reports"];
     render(<SessionReportAction session={session} pending={false} />);
     expect(screen.getByRole("link", { name: "Переглянути звіти" })).toBeVisible();
   });
   it("hides the action without report access", () => {
     mock.permissions = [];
+    render(<SessionReportAction session={session} pending={false} />);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+  it("hides reports when its page grant is absent even if data access exists", () => {
+    mock.permissions = ["reports.read", "reports.generate"];
     render(<SessionReportAction session={session} pending={false} />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });

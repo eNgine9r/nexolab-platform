@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } from "lucide-react";
 
-import { Sidebar } from "@/components/dashboard/sidebar";
+import { canSeePlatformDestination, Sidebar } from "@/components/dashboard/sidebar";
 import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-lifecycle-panel";
 import { RefrigerationCircuitConfigurationWorkspace } from "@/components/refrigeration/refrigeration-circuit-configuration-workspace";
@@ -526,7 +526,11 @@ export function RefrigerationDetailScreen({
                 <RefrigerationControllerOverview
                   controller={controller}
                   equipmentId={equipment.id}
-                  canCommission={canManageEquipment && !retired}
+                  canCommission={
+                    canManageEquipment &&
+                    !retired &&
+                    (runtime.mode === "demo" || canSeePlatformDestination(account?.security, "/equipment"))
+                  }
                   commissionedAssociation={commissionedAssociation}
                   commissionedAssociationLoading={commissionedAssociationLoading}
                   commissionedAssociationError={commissionedAssociationError}
@@ -559,7 +563,11 @@ export function RefrigerationDetailScreen({
               <RefrigerationControllerDetail
                 controller={controller}
                 equipmentId={equipment.id}
-                canCommission={canManageEquipment && !retired}
+                canCommission={
+                  canManageEquipment &&
+                  !retired &&
+                  (runtime.mode === "demo" || canSeePlatformDestination(account?.security, "/equipment"))
+                }
                 commissionedAssociation={commissionedAssociation}
                 commissionedAssociationLoading={commissionedAssociationLoading}
                 commissionedAssociationError={commissionedAssociationError}

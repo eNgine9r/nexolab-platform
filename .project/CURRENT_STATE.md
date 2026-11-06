@@ -1,3 +1,15 @@
+## 2026-11-06 — #1530 page-visibility source candidate
+
+Stacked on #1528. Selected-organization page grants gate sidebar, topbar, overview panels and direct nested routes before page mounting. Login and Telegram Mini App remain outside this gate; organization changes invalidate peer security boundaries. CI fixtures seed migration-equivalent grants only in isolated acceptance databases. Server resource enforcement remains independent. No site deployment; complete browser CI, protected recovery and #1447 security gate remain pending.
+
+## 2026-11-06 — page-grant CI and independent security blocker
+
+PR #1529 head cd539ef: Offline Auth Acceptance and PostgreSQL migration evidence passed. Telemetry service found one stale hardcoded schema-head assertion (837 other tests passed); its test now resolves the actual Alembic head and requires a fresh CI run. Container Supply Chain failed because 48 existing exception entries expired. Verified scan artifacts for the exact candidate amd64 builds report 5 CRITICAL and 83 HIGH image/package/CVE tuples; these are not evidence of the installed ARM64 site. Remediation is tracked in #1447. Navigation wiring #1530, separate resource enforcement, GREEN CI, verified recovery and separately approved site cutover remain outstanding.
+
+## 2026-11-06 — page-grant foundation #1528 (source candidate)
+
+#1525 / PR #1527 merged source-only after 10/10 exact-head workflows passed. It hides destinations using existing coarse rights but is not deployed. #1528 prepares individually named navigation grants, existing-grant compatibility backfill, fail-closed downgrade, local-admin/session contracts and readable labels. Navigation is not yet wired to the new grants; independent resource authorization and direct-camera enforcement remain open under #1526. The migration is not approved or applied to the site, and a protected paired frontend/backend rollout plus independently verified recovery are prerequisites.
+
 ## 2026-11-06 — permission-aware navigation #1525 (source candidate)
 
 The owner requested hiding destinations and actions without access. The shared sidebar and selected overview/settings links now use selected-organization effective permissions; UI-only camera/planned-module visibility defaults to administrator because no independent grants exist. Existing server authorization is unchanged. Current grants are shared among multiple pages, and direct camera URL is not blocked by this UI change. Full independent page-grant and backend enforcement are tracked by #1526. #1525 is a source candidate; exact-head CI, actual selected-user browser acceptance and site deployment remain pending. No hardware/Modbus actions.
