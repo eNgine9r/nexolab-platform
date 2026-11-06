@@ -9928,7 +9928,7 @@
       "title": "Live retry acceptance must wait for authenticated WebSocket before MQTT sample publication",
       "branch": "fix/1537-websocket-retry-acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1534
       ],
@@ -9950,7 +9950,47 @@
         "authenticated_browser_acceptance": "pending",
         "modbus_write": false,
         "hardware_write": false,
-        "production_mutation": false
+        "production_mutation": false,
+        "github_ci": "PASS_42283567771",
+        "selected_auth_browser": "PASS_13_of_13_42283567775",
+        "merged_source_pr": 1538,
+        "merged_source_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1536,
+      "title": "Live Data progressive advanced-filter disclosure and compact search",
+      "branch": "feat/1536-live-progressive-filters",
+      "priority": "normal",
+      "lifecycle": "review",
+      "depends_on": [
+        1534,
+        1537
+      ],
+      "scope": "Frontend-only Live Data filtering UX: visible search; optional collapsible advanced Node/Equipment/Channel/Metric/Quality/Alarm selectors; active count and deep-link preservation; unchanged telemetry acquisition.",
+      "permitted_paths": [
+        "src/components/live/live-telemetry-explorer.tsx",
+        "src/components/live/live-telemetry-explorer.test.tsx",
+        "e2e/live.production.e2e.ts",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue": 1536,
+        "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+        "focused_vitest": "12_passed_1_file",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_code_test_blobs": 2,
+        "integrated_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "site_mutation": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts"
       }
     }
   ],
@@ -11842,6 +11882,21 @@
         "browser_one_failed_attempt": true,
         "browser_rerun_passed": 42,
         "test_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merged_1536_ui_source_candidate",
+      "data": {
+        "merged_issue": 1537,
+        "merged_pr": 1538,
+        "merged_main_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "new_issue": 1536,
+        "tests_passed": 12,
+        "blobs_matched": 2,
+        "source_only": true,
         "site_mutation": false
       }
     }

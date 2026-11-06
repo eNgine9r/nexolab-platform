@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-06T19:52:59.892Z",
+  "timestamp": "2026-11-06T20:01:57.324Z",
   "actor": "ChatGPT",
-  "event": "1534_merged_1537_retry_acceptance_test_candidate",
+  "event": "1537_source_merged_1536_live_filter_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3068,11 +3068,29 @@
       "targeted_eslint": "PASS",
       "targeted_tsc": "PASS",
       "previous_42_browser_rerun": "PASS_42240068804_attempt2",
-      "new_exact_head_ci": "pending",
-      "new_exact_head_browser": "pending",
+      "new_exact_head_ci": "PASS_42283567771",
+      "new_exact_head_browser": "PASS_13_of_13_42283567775",
       "site_installed": false,
       "hardware_write": false,
-      "modbus_write": false
+      "modbus_write": false,
+      "source_merged": true,
+      "source_merge_commit_observation_only": "recorded_in_observations"
+    },
+    "issue_1536_live_progressive_filters": {
+      "issue": 1536,
+      "branch": "feat/1536-live-progressive-filters",
+      "base_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+      "vitest": "12_pass",
+      "changed_file_prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "source_blobs_verified": 2,
+      "github_ci": "pending",
+      "browser_acceptance": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false
     }
   },
   "observations": [
@@ -4574,6 +4592,19 @@
         "merge_commit": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
         "new_issue": 1537,
         "new_pr": 1538,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merge_and_1536_ui_checkpoint",
+      "data": {
+        "source_merged_pr": 1538,
+        "source_merge_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "issue": 1536,
+        "checks_isolated": 12,
         "source_only": true,
         "site_mutation": false
       }
