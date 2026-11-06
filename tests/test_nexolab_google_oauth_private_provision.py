@@ -33,6 +33,9 @@ class PrivateGoogleOAuthProvisioningTests(unittest.TestCase):
             allowlist.write_text(TEST_EMAIL + "\n" + TEST_EMAIL + "\n")
             with self.assertRaises(MOD.ProvisioningError):
                 MOD.check_local_files(target)
+            allowlist.write_text(TEST_EMAIL + "\nOther@example.test\n")
+            with self.assertRaises(MOD.ProvisioningError):
+                MOD.check_local_files(target)
 
     def test_synthetic_credentials_have_correct_permissions_and_no_logging(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
