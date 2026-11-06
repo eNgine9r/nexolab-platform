@@ -235,16 +235,15 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [filters, setFilters] = useState<LiveTelemetryFilters>(() =>
     filtersFromParams(new URLSearchParams(searchParams.toString())),
   );
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(
-    () =>
-      [
-        filters.nodeId,
-        filters.equipmentId,
-        filters.channelId,
-        filters.metric,
-        filters.quality,
-        filters.alarm,
-      ].some((value) => value !== "all"),
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(() =>
+    [
+      filters.nodeId,
+      filters.equipmentId,
+      filters.channelId,
+      filters.metric,
+      filters.quality,
+      filters.alarm,
+    ].some((value) => value !== "all"),
   );
   const [range, setRange] = useState<CanonicalChartTimeRangeId>(() =>
     canonicalRangeFromParams(new URLSearchParams(searchParams.toString())),
