@@ -83,6 +83,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
   const [error, setError] = useState<Error | null>(null);
   const [actionError, setActionError] = useState<Error | null>(null);
   const [canGenerate, setCanGenerate] = useState(false);
+  const [canAccessSessions, setCanAccessSessions] = useState(false);
   const [generation, setGeneration] = useState(0);
   const [lastSuccessfulAt, setLastSuccessfulAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -144,6 +145,14 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
             securityResult.ok &&
             nextOrganizationId &&
             hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
+          ),
+        );
+        setCanAccessSessions(
+          Boolean(
+            securityResult.ok &&
+            nextOrganizationId &&
+            hasPermission(securityResult.value, nextOrganizationId, "dashboard.read") &&
+            hasPermission(securityResult.value, nextOrganizationId, "navigation.sessions"),
           ),
         );
         setError(null);
@@ -261,7 +270,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
             <p role="status">Перевіряємо вибране випробування…</p>
           )}
           <div className="flex flex-wrap gap-4">
-            {requestedSession && (
+            {requestedSession && canAccessSessions && (
               <Link
                 href={`/sessions/${encodeURIComponent(requestedSession.id)}`}
                 className="text-sm text-cyan-300"

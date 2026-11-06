@@ -7,6 +7,8 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Link2, Plus, RefreshCw, Snowflake } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
+import { canSeePlatformDestination } from "@/components/dashboard/sidebar";
+import { useRefrigerationAccount } from "./refrigeration-security-boundary";
 import {
   CANONICAL_PROPERTY_PROVIDER_PROFILE,
   CIRCUIT_PROCESS_ROLES,
@@ -712,6 +714,8 @@ function CircuitBindingsSection({
   onEnd: (role: CircuitProcessRole) => Promise<void>;
 }) {
   const displayTimeZone = useDisplayTimeZone();
+  const account = useRefrigerationAccount();
+  const canAccessInstrumentation = canSeePlatformDestination(account?.security, "/settings/instrumentation");
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -794,12 +798,14 @@ function CircuitBindingsSection({
                           <p className="text-xs text-amber-200">
                             Немає accepted сумісних Signals для цього role та effective time.
                           </p>
-                          <Link
-                            href="/settings/instrumentation"
-                            className="w-fit text-[10px] font-medium text-cyan-200 underline decoration-cyan-300/30 underline-offset-4"
-                          >
-                            Відкрити canonical Instrumentation Registry
-                          </Link>
+                          {canAccessInstrumentation ? (
+                            <Link
+                              href="/settings/instrumentation"
+                              className="w-fit text-[10px] font-medium text-cyan-200 underline decoration-cyan-300/30 underline-offset-4"
+                            >
+                              Відкрити canonical Instrumentation Registry
+                            </Link>
+                          ) : null}
                         </div>
                       ) : (
                         <>

@@ -246,7 +246,7 @@ export function DashboardShell() {
                       ) : null
                     }
                   >
-                    <SessionsPanel organizationId={organizationId} />
+                    <SessionsPanel organizationId={organizationId} canCreate={canCreateSession} />
                   </Panel>
                 ) : null
               }

@@ -10,7 +10,13 @@ import { AlertTriangle, Clock3, LoaderCircle } from "lucide-react";
 import { useSessionListReadModel } from "@/features/test-sessions/use-session-list-read-model";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
-export function SessionsPanel({ organizationId }: { organizationId: string | null }) {
+export function SessionsPanel({
+  organizationId,
+  canCreate = false,
+}: {
+  organizationId: string | null;
+  canCreate?: boolean;
+}) {
   const displayTimeZone = useDisplayTimeZone();
   const sessionsModel = useSessionListReadModel({
     organizationId,
@@ -55,12 +61,14 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
             </p>
           ) : null}
           <p className="text-[11px] font-semibold text-white">Активних сесій немає</p>
-          <Link
-            href="/sessions/new"
-            className="mt-3 inline-flex text-[10px] text-cyan-300 hover:text-cyan-200"
-          >
-            Створити реальний draft →
-          </Link>
+          {canCreate ? (
+            <Link
+              href="/sessions/new"
+              className="mt-3 inline-flex text-[10px] text-cyan-300 hover:text-cyan-200"
+            >
+              Створити реальний draft →
+            </Link>
+          ) : null}
         </div>
       </div>
     );

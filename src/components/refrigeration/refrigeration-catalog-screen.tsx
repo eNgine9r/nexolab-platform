@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Sidebar } from "@/components/dashboard/sidebar";
+import { canSeePlatformDestination, Sidebar } from "@/components/dashboard/sidebar";
 import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import {
   CreateEquipmentDialog,
@@ -484,6 +484,9 @@ export function RefrigerationCatalogScreen({
                         : null
                     }
                     canManage={canManage}
+                    canAccessEquipment={
+                      runtime.mode === "demo" || canSeePlatformDestination(account?.security, "/equipment")
+                    }
                     controllerSummary={controllerByEquipmentId.get(item.id) ?? null}
                     controllerSummaryState={controllerSummaryState}
                     onDuplicate={() => openDuplicate(item)}
@@ -537,6 +540,7 @@ function EquipmentCard({
   item,
   chamberName,
   canManage,
+  canAccessEquipment,
   controllerSummary,
   controllerSummaryState,
   onDuplicate,
@@ -545,6 +549,7 @@ function EquipmentCard({
   item: RefrigerationEquipment;
   chamberName: string | null;
   canManage: boolean;
+  canAccessEquipment: boolean;
   controllerSummary: RefrigerationControllerSummary | null;
   controllerSummaryState: ControllerSummaryState;
   onDuplicate: () => void;
@@ -608,7 +613,7 @@ function EquipmentCard({
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]">
             <span className="text-slate-500">○</span>
             <span className="font-medium text-slate-300">Контролер не підключено</span>
-            {canManage && item.lifecycleStatus !== "retired" ? (
+            {canManage && canAccessEquipment && item.lifecycleStatus !== "retired" ? (
               <Link
                 href={`/equipment/onboarding/new?target=${encodeURIComponent(item.id)}`}
                 className="ml-auto font-medium text-cyan-300 hover:text-cyan-200 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
