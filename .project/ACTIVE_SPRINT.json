@@ -61,8 +61,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1514,
-      "branch": "fix/1514-advanced-onboarding-e2e"
+      "issue": 1534,
+      "branch": "feat/1534-overview-sensor-picker"
     },
     "next_work_package": null
   },
@@ -9776,9 +9776,12 @@
       "issue": 1514,
       "title": "Update advanced onboarding browser acceptance",
       "branch": "fix/1514-advanced-onboarding-e2e",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [],
-      "evidence": {}
+      "evidence": {
+        "priority_interruption": "Product Owner requested sequential Overview UI optimization; #1515 is a draft stacked on unmerged feature/1508-energy-scoped-sdm",
+        "source_change": "preserved_no_modification"
+      }
     },
     {
       "issue": 1516,
@@ -9814,7 +9817,7 @@
       "title": "Overview readable compact KPI and infrastructure status",
       "branch": "feat/1532-overview-readability",
       "priority": "normal",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Overview UI typography/labels/freshness only; source candidate in draft PR #1533. Merge depends on independent per-page grant UI integration, exact-head CI, authenticated browser acceptance; no production deployment.",
       "permitted_paths": [
@@ -9853,7 +9856,44 @@
         ],
         "browser_screenshot_artifact": 13510498719,
         "human_visual_acceptance": "not_independently_recorded",
-        "github_exact_head_ci_update_note": "State-only recording commit after exact-head code acceptance; rerun required on new head."
+        "github_exact_head_ci_update_note": "State-only recording commit after exact-head code acceptance; rerun required on new head.",
+        "merged_source_pr": 1533,
+        "merged_source_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "final_exact_head_sha": "90dcde6d550656acd54460b42301a6e7b5bb787d",
+        "final_ci": "PASS_42234941179",
+        "final_browser": "PASS_42234941253",
+        "site_installed": false,
+        "source_only": true
+      }
+    },
+    {
+      "issue": 1534,
+      "title": "Overview device-first sensor picker and scalable history controls",
+      "branch": "feat/1534-overview-sensor-picker",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1532
+      ],
+      "scope": "Display-only Overview channel selector and chart controls; device-first hierarchy with explicit unknown fallback; no chamber assignment requirement, RS485 writes or telemetry backend changes.",
+      "permitted_paths": [
+        "src/components/dashboard/overview-sensor-groups.tsx",
+        "src/components/dashboard/overview-sensor-hierarchy.ts",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/dashboard/temperature-chart.tsx",
+        "src/components/dashboard/overview-chart-panel.tsx",
+        "src/components/dashboard/*.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1534,
+        "source_branch_base": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue_1514_review_preserved": true,
+        "tests": "not_run",
+        "ci": "not_run",
+        "hardware_write": false,
+        "modbus_write": false,
+        "site_mutation": false
       }
     }
   ],
@@ -11685,6 +11725,21 @@
         "authenticated_dashboard_run": 42233327115,
         "browser_pass": 42,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:45:46.063Z",
+      "kind": "1532_source_merged_1534_selected",
+      "data": {
+        "merged_pr": 1533,
+        "merged_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue": 1534,
+        "branch": "feat/1534-overview-sensor-picker",
+        "source_only": true,
+        "previous_active_issue": 1514,
+        "previous_active_moved_to_review": true,
+        "production_mutation": false
       }
     }
   ],
