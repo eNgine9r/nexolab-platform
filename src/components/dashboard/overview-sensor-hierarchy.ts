@@ -30,7 +30,10 @@ export function buildOverviewSensorHierarchy(
     });
 
     // An ambiguous or missing catalog association must never fabricate a controller identity.
-    const match = candidates.length === 1 && candidates[0]?.device ? candidates[0] : undefined;
+    const candidate = candidates.length === 1 ? candidates[0] : undefined;
+    const match = candidate?.device
+      ? { equipment: candidate.equipment, channel: candidate.channel, device: candidate.device }
+      : undefined;
     const id = match
       ? JSON.stringify([
           nodeId,
