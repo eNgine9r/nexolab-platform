@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-06T14:20:15.309Z",
+  "timestamp": "2026-11-06T14:33:06.620Z",
   "actor": "ChatGPT",
-  "event": "1532_overview_readability_source_candidate_draft_pr",
+  "event": "1532_overview_exact_head_ci_and_42_browser_cases_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3005,15 +3005,30 @@
       "typescript_noemit": "passed",
       "target_node_version": "22.23.1",
       "tests_vitest_version": "4.1.10",
-      "exact_head_required_ci": "in_progress_after_source_only_candidate",
-      "browser_verified": false,
-      "production_build_verified": false,
+      "exact_head_required_ci": "PASS_42233327149_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_verified": true,
+      "production_build_verified": true,
       "permission_pr_dependency": 1531,
       "prod_installed": false,
       "modbus_write": false,
       "hardware_write": false,
       "runtime_mutation": false,
-      "update_signal": "withheld"
+      "update_signal": "withheld",
+      "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_viewport_verified_overview": [
+        360,
+        1440,
+        1920
+      ],
+      "browser_viewport_verified_header": [
+        320,
+        375,
+        768,
+        1280
+      ],
+      "browser_evidence_artifact": 13510498719,
+      "manual_pixel_review": "not_recorded",
+      "needs_new_exact_head_ci_after_state_change": true
     }
   },
   "observations": [
@@ -4453,6 +4468,19 @@
         "github_ci": "pending",
         "browser_acceptance": "pending",
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:33:06.620Z",
+      "kind": "1532_source_ci_green_before_checkpoint_commit",
+      "data": {
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "browser_run": 42233327115,
+        "browser_passed": 42,
+        "release_gate": "pending_protected_installer",
+        "site_mutation": false
       }
     }
   ],
