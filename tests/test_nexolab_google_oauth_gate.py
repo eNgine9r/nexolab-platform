@@ -48,6 +48,12 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
             "approved@example.com\napproved@example.com",
         )
 
+    def test_unapproved_addition_is_rejected_even_with_multiple_approved(self) -> None:
+        self.assert_reject_allowlist(
+            "approved@example.com\nother@example.com\nextra@example.com\n",
+            "approved@example.com\nother@example.com",
+        )
+
     def test_missing_identity_denied(self) -> None:
         self.assert_reject_allowlist("", "approved@example.com")
 

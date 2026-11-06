@@ -121,6 +121,24 @@ class GoogleOAuthPrivateHandoffTests(unittest.TestCase):
                 MOD.prepare_arguments(cred, runtime)
             self.assertEqual(list(runtime.iterdir()), [])
 
+    def test_six_named_users_keep_owner_and_secret_isolation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            identities = [EMAIL] + [f"user{n}@example.test" for n in range(5)]
+            (cred / "allowed-emails.txt").write_text("\n".join(identities) + "\n")
+            args = MOD.prepare_arguments(cred, runtime)
+            self.assertEqual((cred / "allowed-emails.txt").read_text(), "\n".join(identities) + "\n")
+            self.assertTrue(all(identity not in " ".join(args) for identity in identities))
+
+    def test_empty_uppercase_or_whitespace_entries_denied(self) -> None:
+        for data in ("", "\n", "User@example.test\n", "a@example.test\n\nb@example.test\n", " user@example.test\n"):
+            with self.subTest(data=data), tempfile.TemporaryDirectory() as tmp:
+                cred, runtime = create_fixture(Path(tmp))
+                (cred / "allowed-emails.txt").write_text(data)
+                with self.assertRaises(MOD.CredentialError):
+                    MOD.prepare_arguments(cred, runtime)
+                self.assertEqual(list(runtime.iterdir()), [])
+
     def test_domain_wildcard_denied_before_secret_handoff(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cred, runtime = create_fixture(Path(tmp))
