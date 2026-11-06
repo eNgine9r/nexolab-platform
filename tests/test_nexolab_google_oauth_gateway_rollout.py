@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import os
 import sys
 import tempfile
@@ -111,6 +112,51 @@ class GatewayRolloutTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.GuardError, "automatic rollback failed"):
                 MODULE.transact(launcher, allowlist, b"new", self.old + self.additions,
                                 b"old", self.old, lambda: (_ for _ in ()).throw(OSError()))
+
+    def test_crash_recovery_from_each_intermediate_file_pair(self) -> None:
+        previous, candidate = b"original launcher", b"candidate launcher"
+        old_sha, new_sha = hashlib.sha256(previous).hexdigest(), hashlib.sha256(candidate).hexdigest()
+        proposed = self.old + self.additions
+        for active_launcher, active_list in ((previous, self.old), (candidate, self.old), (candidate, proposed), (previous, proposed)):
+            with self.subTest(active_launcher=active_launcher, active_list=active_list), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                backup = root / "backup"
+                backup.mkdir(mode=0o700)
+                launcher, allowlist = root / "launcher", root / "allowlist"
+                launcher.write_bytes(active_launcher)
+                allowlist.write_bytes(active_list)
+                MODULE.save_backup(backup, previous, self.old, proposed)
+                restarted = []
+                MODULE.recover_from_backup(launcher, allowlist, backup, old_sha, new_sha, lambda: restarted.append(True))
+                self.assertEqual((launcher.read_bytes(), allowlist.read_bytes()), (previous, self.old))
+                self.assertEqual(restarted, [True])
+
+    def test_crash_recovery_refuses_unrelated_changes_without_mutation(self) -> None:
+        previous, candidate = b"original launcher", b"candidate launcher"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backup = root / "backup"
+            backup.mkdir(mode=0o700)
+            launcher, allowlist = root / "launcher", root / "allowlist"
+            launcher.write_bytes(b"unrelated launcher")
+            allowlist.write_bytes(self.old)
+            MODULE.save_backup(backup, previous, self.old, self.old + self.additions)
+            with self.assertRaises(MODULE.GuardError):
+                MODULE.recover_from_backup(
+                    launcher, allowlist, backup, hashlib.sha256(previous).hexdigest(),
+                    hashlib.sha256(candidate).hexdigest(), lambda: self.fail("unexpected restart"),
+                )
+            self.assertEqual(launcher.read_bytes(), b"unrelated launcher")
+            self.assertEqual(allowlist.read_bytes(), self.old)
+
+    def test_existing_backup_files_are_never_overwritten(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            backup = Path(temp) / "backup"
+            backup.mkdir(mode=0o700)
+            (backup / "launcher").write_bytes(b"preserve")
+            with self.assertRaises(MODULE.GuardError):
+                MODULE.save_backup(backup, b"new", self.old, self.old + self.additions)
+            self.assertEqual((backup / "launcher").read_bytes(), b"preserve")
 
 
 if __name__ == "__main__":

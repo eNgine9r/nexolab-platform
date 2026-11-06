@@ -104,6 +104,50 @@ def atomic_write(path: Path, data: bytes, mode: int) -> None:
         Path(temp).unlink(missing_ok=True)
 
 
+def save_backup(directory: Path, old_launcher: bytes, old_list: bytes, new_list: bytes) -> None:
+    """Persist and verify both sides before any changes to a running gateway."""
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise GuardError("backup directory is unsafe")
+    for name, data in (("launcher", old_launcher), ("allowlist", old_list), ("proposed-list", new_list)):
+        target = directory / name
+        if target.exists() or target.is_symlink():
+            raise GuardError("backup destination already exists")
+        atomic_write(target, data, 0o600)
+        if read_regular(target, uid=os.geteuid(), mode=0o600) != data:
+            raise GuardError("backup readback mismatch")
+    parent = os.open(directory.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(parent)
+    finally:
+        os.close(parent)
+
+
+def recover_from_backup(launcher: Path, allowlist: Path, directory: Path,
+                        old_sha: str, new_sha: str, restart) -> None:
+    """Restore only a known pre-activation state, never an unrelated update."""
+    info = directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise GuardError("backup directory is unsafe")
+    original = read_regular(directory / "launcher", uid=os.geteuid(), mode=0o600)
+    previous_list = read_regular(directory / "allowlist", uid=os.geteuid(), mode=0o600)
+    proposed = read_regular(directory / "proposed-list", uid=os.geteuid(), mode=0o600)
+    if hashlib.sha256(original).hexdigest() != old_sha:
+        raise GuardError("backup launcher checksum mismatch")
+    old_lines, proposed_lines = previous_list.splitlines(), proposed.splitlines()
+    if len(proposed_lines) != 6 or proposed_lines[:1] != old_lines or validate_identities(previous_list, b"\n".join(proposed_lines[1:]) + b"\n") != proposed:
+        raise GuardError("backup identity lists do not match rollout contract")
+    active_launcher = read_regular(launcher)
+    active_list = read_regular(allowlist)
+    if hashlib.sha256(active_launcher).hexdigest() not in (old_sha, new_sha) or active_list not in (previous_list, proposed):
+        raise GuardError("site state is not part of the backed up rollout")
+    atomic_write(allowlist, previous_list, 0o600)
+    atomic_write(launcher, original, 0o755)
+    if read_regular(launcher) != original or read_regular(allowlist) != previous_list:
+        raise GuardError("restored file readback mismatch")
+    restart()
+
+
 def run_systemctl(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["/usr/bin/systemctl", *args], capture_output=True, text=True,
