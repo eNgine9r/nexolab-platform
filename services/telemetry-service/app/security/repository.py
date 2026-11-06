@@ -12,6 +12,7 @@ from app.db import Database
 from app.security.authentication import VerifiedIdentityClaims
 from app.security.authorization import (
     AuthenticatedPrincipal,
+    NAVIGATION_PERMISSIONS,
     Permission,
     Role,
     effective_permissions,
@@ -196,8 +197,10 @@ class SecurityRepository:
 
                 for assignment in existing_roles:
                     session.delete(assignment)
+                navigation_values = {permission.value for permission in NAVIGATION_PERMISSIONS}
                 for assignment in existing_permissions:
-                    session.delete(assignment)
+                    if assignment.permission not in navigation_values:
+                        session.delete(assignment)
                 session.flush()
 
                 session.add_all(
@@ -252,11 +255,13 @@ class SecurityRepository:
                                 "display_name": identity.display_name,
                                 "roles": sorted(role.value for role in resolved_roles),
                                 "permissions": sorted(
-                                    permission.value
-                                    for permission in compatibility_permissions
-                                    if permission != Permission.MANAGE_MEMBERSHIPS
-                                    and permission
-                                    != Permission.MANAGE_PROJECT_VERSIONS
+                                    {
+                                        permission.value
+                                        for permission in compatibility_permissions
+                                        if permission != Permission.MANAGE_MEMBERSHIPS
+                                        and permission != Permission.MANAGE_PROJECT_VERSIONS
+                                    }
+                                    | {value for value in before_permissions if value in navigation_values}
                                 ),
                                 "is_active": membership.is_active,
                             },

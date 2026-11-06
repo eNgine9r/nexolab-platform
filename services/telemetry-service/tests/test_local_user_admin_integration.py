@@ -129,7 +129,7 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
                 "password": ENGINEER_PASSWORD,
                 "display_name": "Engineer One",
                 "role": "engineer",
-                "permissions": ["dashboard.read", "telemetry.read"],
+                "permissions": ["dashboard.read", "telemetry.read", "navigation.live"],
                 "reason": "integration test",
             },
         )
@@ -138,6 +138,7 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
         assert created["role"] == "engineer"
         assert created["effective_permissions"] == [
             "dashboard.read",
+            "navigation.live",
             "telemetry.read",
         ]
         assert ENGINEER_PASSWORD not in created_response.text
@@ -154,6 +155,7 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
         assert membership["roles"] == ["engineer"]
         assert membership["permissions"] == [
             "dashboard.read",
+            "navigation.live",
             "telemetry.read",
         ]
 
@@ -164,17 +166,45 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
         assert denied_response.status_code == 403
         assert denied_response.json()["detail"]["code"] == "permission_denied"
 
+        invalid_response = fixture.client.put(
+            f"/api/v1/admin/users/{created['id']}/permissions",
+            headers=admin_headers,
+            json={"permissions": ["navigation.unknown"]},
+        )
+        assert invalid_response.status_code == 422
+        assert fixture.client.get("/api/v1/auth/session", headers=engineer_headers).status_code == 200
+
+        unversioned_navigation_update = fixture.client.put(
+            f"/api/v1/admin/users/{created['id']}/permissions",
+            headers=admin_headers,
+            json={"permissions": ["navigation.nodes"]},
+        )
+        assert unversioned_navigation_update.status_code == 422
+        assert fixture.client.get("/api/v1/auth/session", headers=engineer_headers).status_code == 200
+
+        legacy_update = fixture.client.put(
+            f"/api/v1/admin/users/{created['id']}/permissions",
+            headers=admin_headers,
+            json={"permissions": ["dashboard.read", "nodes.read"]},
+        )
+        assert legacy_update.status_code == 200, legacy_update.text
+        assert legacy_update.json()["effective_permissions"] == [
+            "dashboard.read", "navigation.live", "nodes.read",
+        ]
+
         changed_response = fixture.client.put(
             f"/api/v1/admin/users/{created['id']}/permissions",
             headers=admin_headers,
             json={
-                "permissions": ["dashboard.read", "nodes.read"],
+                "permissions": ["dashboard.read", "nodes.read", "navigation.nodes"],
+                "navigation_contract_version": 1,
                 "reason": "integration permission change",
             },
         )
         assert changed_response.status_code == 200, changed_response.text
         assert changed_response.json()["effective_permissions"] == [
             "dashboard.read",
+            "navigation.nodes",
             "nodes.read",
         ]
 
@@ -193,6 +223,7 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
         assert refreshed_session.status_code == 200
         assert refreshed_session.json()["memberships"][0]["permissions"] == [
             "dashboard.read",
+            "navigation.nodes",
             "nodes.read",
         ]
 

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.db import Database
 from app.security.authorization import (
     GRANTABLE_PERMISSIONS,
+    NAVIGATION_PERMISSIONS,
     PRODUCT_ROLES,
     AuthenticatedPrincipal,
     Permission,
@@ -343,7 +344,10 @@ class LocalUserAdminService:
                         session.execute(
                             delete(SecurityMembershipPermission).where(
                                 SecurityMembershipPermission.membership_id
-                                == membership.id
+                                == membership.id,
+                                SecurityMembershipPermission.permission.not_in(
+                                    [permission.value for permission in NAVIGATION_PERMISSIONS]
+                                ),
                             )
                         )
                     self._audit(
@@ -406,6 +410,7 @@ class LocalUserAdminService:
         request_id: str | None,
         source_ip: str | None,
         user_agent: str | None,
+        navigation_contract_version: int | None = None,
     ) -> LocalUserRecord:
         if actor_identity_id is not None:
             with Session(self._engine) as lookup_session:
@@ -443,6 +448,15 @@ class LocalUserAdminService:
                     role=role,
                 )
                 before = self._permission_values(session, membership.id)
+                if navigation_contract_version != 1:
+                    if resolved_permissions & NAVIGATION_PERMISSIONS:
+                        raise LocalUserValidationError("navigation grant updates require contract version 1")
+                    # An older client can update resource grants without silently
+                    # erasing navigation choices it cannot represent.
+                    resolved_permissions |= frozenset(
+                        Permission(value) for value in before
+                        if value in {permission.value for permission in NAVIGATION_PERMISSIONS}
+                    )
                 after = tuple(
                     permission.value
                     for permission in sorted(

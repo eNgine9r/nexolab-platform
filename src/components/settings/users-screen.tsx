@@ -66,6 +66,19 @@ const permissionLabels: Partial<Record<SecurityEffectivePermission, string>> = {
   "alerts.acknowledge": "Підтвердження тривог",
   "memberships.manage": "Керування користувачами",
   "project_versions.manage": "Керування версіями NEXOLAB",
+  "navigation.overview": "Пункт меню: Огляд",
+  "navigation.nodes": "Пункт меню: Вузли",
+  "navigation.sessions": "Пункт меню: Сесії випробувань",
+  "navigation.live": "Пункт меню: Live дані",
+  "navigation.equipment_layouts": "Пункт меню: Схеми обладнання",
+  "navigation.lockers": "Пункт меню: Поштомати",
+  "navigation.refrigeration": "Пункт меню: Холодильне обладнання",
+  "navigation.alerts": "Пункт меню: Тривоги",
+  "navigation.cameras": "Пункт меню: Камери",
+  "navigation.energy": "Пункт меню: Енергомоніторинг",
+  "navigation.reports": "Пункт меню: Звіти",
+  "navigation.equipment": "Пункт меню: Обладнання",
+  "navigation.instrumentation": "Пункт меню: Прилади та сигнали",
 };
 
 type CreateDraft = {
@@ -730,25 +743,33 @@ function PermissionGrid({
   onToggle: (permission: SecurityEffectivePermission) => void;
 }) {
   return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/8 bg-white/[0.025] p-3 text-sm"
-        >
-          <input
-            type="checkbox"
-            checked={selected.includes(option.value)}
-            onChange={() => onToggle(option.value)}
-            className="mt-1"
-          />
-          <span>
-            <span className="block text-slate-200">{permissionLabels[option.value] ?? option.value}</span>
-            <span className="mt-1 block text-[11px] text-slate-500">{option.value}</span>
-          </span>
-        </label>
-      ))}
-    </div>
+    <>
+      {options.some((option) => option.value.startsWith("navigation.")) ? (
+        <p className="mt-4 text-xs leading-5 text-slate-400">
+          Пункти меню визначають видимість сторінок. Права на перегляд даних і виконання дій налаштовуються
+          окремо.
+        </p>
+      ) : null}
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/8 bg-white/[0.025] p-3 text-sm"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(option.value)}
+              onChange={() => onToggle(option.value)}
+              className="mt-1"
+            />
+            <span>
+              <span className="block text-slate-200">{permissionLabels[option.value] ?? option.value}</span>
+              <span className="mt-1 block text-[11px] text-slate-500">{option.value}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </>
   );
 }
 

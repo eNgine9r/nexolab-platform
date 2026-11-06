@@ -9,6 +9,53 @@ function createClient(fetchImpl: typeof fetch): LocalUserAdminClient {
 }
 
 describe("LocalUserAdminClient", () => {
+  it("exposes named navigation grants without inferring resource permissions", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            items: [
+              { value: "navigation.reports", grantable: true, administrator_only: false },
+              { value: "reports.read", grantable: true, administrator_only: false },
+            ],
+          }),
+        ),
+    ) as unknown as typeof fetch;
+    const options = await createClient(fetchImpl).permissions();
+    expect(options).toEqual([
+      { value: "navigation.reports", grantable: true, administratorOnly: false },
+      { value: "reports.read", grantable: true, administratorOnly: false },
+    ]);
+  });
+
+  it("declares navigation-aware permission replacement", async () => {
+    const calls: RequestInit[] = [];
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      if (init) calls.push(init);
+      return new Response(
+        JSON.stringify({
+          id: "account-1",
+          identity_id: "identity-1",
+          username: "operator",
+          is_active: true,
+          role: "engineer",
+          legacy_roles: [],
+          granted_permissions: ["navigation.reports"],
+          effective_permissions: ["navigation.reports"],
+          created_at: "2026-01-01T00:00:00Z",
+          password_changed_at: "2026-01-01T00:00:00Z",
+          last_authenticated_at: "2026-01-01T00:00:00Z",
+        }),
+      );
+    }) as unknown as typeof fetch;
+    const result = await createClient(fetchImpl).setPermissions("account-1", ["navigation.reports"]);
+    expect(result.grantedPermissions).toEqual(["navigation.reports"]);
+    expect(JSON.parse(String(calls[0]?.body))).toMatchObject({
+      permissions: ["navigation.reports"],
+      navigation_contract_version: 1,
+    });
+  });
+
   it("classifies an unmounted admin route as a LOCAL_LAN profile mismatch", async () => {
     const fetchImpl = vi.fn(
       async () =>

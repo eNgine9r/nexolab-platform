@@ -27,7 +27,23 @@ export type SecurityPermission =
   | "alerts.acknowledge"
   | "project_versions.manage";
 
-export type SecurityEffectivePermission = SecurityPermission;
+/** Navigation visibility is independent of server-enforced resource permissions. */
+export type SecurityNavigationPermission =
+  | "navigation.overview"
+  | "navigation.nodes"
+  | "navigation.sessions"
+  | "navigation.live"
+  | "navigation.equipment_layouts"
+  | "navigation.lockers"
+  | "navigation.refrigeration"
+  | "navigation.alerts"
+  | "navigation.cameras"
+  | "navigation.energy"
+  | "navigation.reports"
+  | "navigation.equipment"
+  | "navigation.instrumentation";
+
+export type SecurityEffectivePermission = SecurityPermission | SecurityNavigationPermission;
 
 export type SecurityIdentity = {
   id: string;
@@ -362,7 +378,20 @@ function isSecurityPermission(value: unknown): value is SecurityEffectivePermiss
     value === "sessions.operate" ||
     value === "alerts.rules.manage" ||
     value === "alerts.acknowledge" ||
-    value === "project_versions.manage"
+    value === "project_versions.manage" ||
+    value === "navigation.overview" ||
+    value === "navigation.nodes" ||
+    value === "navigation.sessions" ||
+    value === "navigation.live" ||
+    value === "navigation.equipment_layouts" ||
+    value === "navigation.lockers" ||
+    value === "navigation.refrigeration" ||
+    value === "navigation.alerts" ||
+    value === "navigation.cameras" ||
+    value === "navigation.energy" ||
+    value === "navigation.reports" ||
+    value === "navigation.equipment" ||
+    value === "navigation.instrumentation"
   );
 }
 
