@@ -43,7 +43,21 @@ test("renders truthful local Cameras without fabricated LIVE evidence or mutatio
 
   try {
     await page.goto("/cameras", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Доступ до сторінки не надано" })).toBeVisible();
+    await page.goto("/settings", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("link", { name: "Перевірити стан камер" })).toHaveCount(0);
 
+    // Model an explicitly granted page while retaining all server-issued resource rights.
+    await context.route("**/api/v1/auth/session", async (route) => {
+      if (route.request().method() !== "GET") return route.continue();
+      const response = await route.fetch();
+      const payload = await response.json();
+      for (const membership of payload.memberships) {
+        if (membership.organization_id === organizationId) membership.permissions.push("navigation.cameras");
+      }
+      await route.fulfill({ response, json: payload });
+    });
+    await page.goto("/cameras", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Viewer Acceptance", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Камери", exact: true })).toBeVisible();
     await expect(page.getByText("Камери не налаштовані", { exact: true })).toBeVisible();
@@ -62,7 +76,7 @@ test("renders truthful local Cameras without fabricated LIVE evidence or mutatio
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/settings", { waitUntil: "domcontentloaded" });
       const cameraLink = page.getByRole("link", { name: "Перевірити стан камер" });
-      await expect(cameraLink).toHaveCount(0);
+      await expect(cameraLink).toBeVisible();
     }
 
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
@@ -79,8 +93,10 @@ test("renders truthful local Cameras without fabricated LIVE evidence or mutatio
           unconfiguredStateVerified: true,
           fabricatedLiveEvidenceObserved: false,
           emptyOverviewPanelRemoved: true,
-          restrictedSettingsCameraLinkHidden: true,
-          directCameraRouteStillAccessible: true,
+          ungrantedCameraRouteDenied: true,
+          ungrantedSettingsCameraLinkHidden: true,
+          grantedCameraRouteAccessible: true,
+          grantedSettingsCameraLinkVisible: true,
           mutationsObserved: requests.filter((request) => request.method !== "GET").length,
           secretExposureObserved: false,
         },
