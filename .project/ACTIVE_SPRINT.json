@@ -9973,7 +9973,8 @@
         "src/components/live/live-telemetry-explorer.tsx",
         "src/components/live/live-telemetry-explorer.test.tsx",
         "e2e/live.production.e2e.ts",
-        ".project/"
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts"
       ],
       "evidence": {
         "issue": 1536,
@@ -9988,7 +9989,8 @@
         "browser_acceptance": "pending",
         "site_mutation": false,
         "hardware_write": false,
-        "modbus_write": false
+        "modbus_write": false,
+        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts"
       }
     }
   ],
