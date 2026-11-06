@@ -51,6 +51,7 @@ class LocalUserUpdateRequest(BaseModel):
 class LocalUserPermissionsRequest(BaseModel):
     permissions: set[Permission] = Field(default_factory=set)
     reason: str | None = Field(default=None, max_length=1024)
+    navigation_contract_version: Literal[1] | None = None
 
 
 class LocalUserPasswordResetRequest(BaseModel):
@@ -185,6 +186,7 @@ def create_local_user_admin_router(
                 organization_id=authorized.principal.organization_id,
                 account_id=account_id,
                 permissions=payload.permissions,
+                navigation_contract_version=payload.navigation_contract_version,
                 actor_identity_id=authorized.identity_id,
                 actor=authorized.principal,
                 reason=payload.reason,

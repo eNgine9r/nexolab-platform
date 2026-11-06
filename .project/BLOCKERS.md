@@ -1,3 +1,7 @@
+## 2026-11-06 — navigation-grant rollout and data isolation remain unverified (#1526, #1528)
+
+Source-only #1528 does not wire page grants into navigation or isolate shared API data. Its migration deliberately blocks automatic downgrade and older frontends reject the extended session contract, including for administrators. Do not deploy the foundation alone. Coordinated frontend/backend compatibility, actual PostgreSQL upgrade tests, protected backup/restore, per-page UI integration and separately approved site cutover remain required.
+
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
 Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.

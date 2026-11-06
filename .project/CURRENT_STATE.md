@@ -1,3 +1,7 @@
+## 2026-11-06 — page-grant foundation #1528 (source candidate)
+
+#1525 / PR #1527 merged source-only after 10/10 exact-head workflows passed. It hides destinations using existing coarse rights but is not deployed. #1528 prepares individually named navigation grants, existing-grant compatibility backfill, fail-closed downgrade, local-admin/session contracts and readable labels. Navigation is not yet wired to the new grants; independent resource authorization and direct-camera enforcement remain open under #1526. The migration is not approved or applied to the site, and a protected paired frontend/backend rollout plus independently verified recovery are prerequisites.
+
 ## 2026-11-06 — permission-aware navigation #1525 (source candidate)
 
 The owner requested hiding destinations and actions without access. The shared sidebar and selected overview/settings links now use selected-organization effective permissions; UI-only camera/planned-module visibility defaults to administrator because no independent grants exist. Existing server authorization is unchanged. Current grants are shared among multiple pages, and direct camera URL is not blocked by this UI change. Full independent page-grant and backend enforcement are tracked by #1526. #1525 is a source candidate; exact-head CI, actual selected-user browser acceptance and site deployment remain pending. No hardware/Modbus actions.

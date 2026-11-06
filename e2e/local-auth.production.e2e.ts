@@ -193,8 +193,9 @@ test("administrator provisions every product role with bounded server-side acces
     await createPanel.getByLabel("Ім’я").fill("Issue 385 Engineer");
     await createPanel.getByLabel("Початковий пароль").fill(password);
     await createPanel.getByRole("combobox", { name: "Роль", exact: true }).selectOption("engineer");
-    await createPanel.getByRole("checkbox", { name: /Огляд/ }).check();
+    await createPanel.getByRole("checkbox", { name: /^Огляд/ }).check();
     await createPanel.getByRole("checkbox", { name: /Перегляд телеметрії/ }).check();
+    await createPanel.getByRole("checkbox", { name: /^Пункт меню: Звіти/ }).check();
     await createPanel.getByRole("button", { name: "Створити" }).click();
 
     await expect(adminPage.getByText(`Користувача ${username} створено.`)).toBeVisible();
@@ -274,7 +275,11 @@ test("administrator provisions every product role with bounded server-side acces
       memberships: Array<{ roles: string[]; permissions: string[] }>;
     };
     expect(session.memberships[0]?.roles).toEqual(["engineer"]);
-    expect(session.memberships[0]?.permissions).toEqual(["dashboard.read", "telemetry.read"]);
+    expect(session.memberships[0]?.permissions).toEqual([
+      "dashboard.read",
+      "navigation.reports",
+      "telemetry.read",
+    ]);
 
     const adminApiResponse = await engineerPage.request.get(`${apiBaseUrl}/api/v1/admin/users`, {
       headers: apiHeaders(accessToken),
@@ -293,7 +298,7 @@ test("administrator provisions every product role with bounded server-side acces
       {
         username,
         role: "engineer",
-        permissions: ["dashboard.read", "telemetry.read"],
+        permissions: ["dashboard.read", "navigation.reports", "telemetry.read"],
         non_admin_admin_api_status: 403,
       },
       null,
@@ -330,6 +335,7 @@ test("revokes sessions across access and account lifecycle changes", async ({ br
         headers: apiHeaders(adminToken),
         data: {
           permissions: ["dashboard.read", "nodes.read"],
+          navigation_contract_version: 1,
           reason: "local production acceptance permission change",
         },
       },

@@ -2991,6 +2991,16 @@
       "independent_page_grants": "unimplemented_issue_1526",
       "site_deployed": false,
       "runtime_user_acceptance": "pending"
+    },
+    "issue_1528_navigation_grant_foundation": {
+      "issue": 1528,
+      "parent": 1526,
+      "branch": "feat/1528-page-grant-foundation",
+      "state": "source_candidate",
+      "site_deployed": false,
+      "postgresql_migration": "pending_ci",
+      "new_navigation_wiring": "not_implemented",
+      "downgrade": "refused_pending_verified_recovery"
     }
   },
   "observations": [
@@ -4416,7 +4426,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
+  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants. Complete #1528 PostgreSQL/CI evidence and implement #1526 page-grant UI and resource boundaries before any site update.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

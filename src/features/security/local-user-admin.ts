@@ -143,7 +143,7 @@ export class LocalUserAdminClient {
   ): Promise<LocalUserAdminUser> {
     const payload = await this.request(`/api/v1/admin/users/${encodeURIComponent(userId)}/permissions`, {
       method: "PUT",
-      body: JSON.stringify({ permissions, reason: reason ?? null }),
+      body: JSON.stringify({ permissions, reason: reason ?? null, navigation_contract_version: 1 }),
     });
     return parseUser(payload);
   }

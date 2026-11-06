@@ -81,6 +81,24 @@ describe("security session client", () => {
     expect(hasPermission(result.value, "org-1", "layout.draft.edit")).toBe(false);
   });
 
+  it("accepts named navigation grants without granting resource permissions", async () => {
+    const payload = {
+      ...sessionPayload,
+      memberships: [{ ...sessionPayload.memberships[0], permissions: ["navigation.reports"] }],
+    };
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "https://api.example.test",
+      browserLocation,
+      fetchImpl: vi.fn(async () => new Response(JSON.stringify(payload))) as unknown as typeof fetch,
+    });
+    const result = await client.getSession();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(hasPermission(result.value, "org-1", "navigation.reports")).toBe(true);
+    expect(hasPermission(result.value, "org-1", "reports.read")).toBe(false);
+    expect(hasPermission(result.value, "other-org", "navigation.reports")).toBe(false);
+  });
+
   it("maps HTTP 401 to an authentication-required result", async () => {
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",

@@ -9808,6 +9808,19 @@
         1525
       ],
       "evidence": {}
+    },
+    {
+      "issue": 1528,
+      "title": "Guarded per-page navigation grants foundation",
+      "branch": "feat/1528-page-grant-foundation",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {
+        "parent": 1526,
+        "site_deployed": false,
+        "postgresql_migration": "pending_ci",
+        "navigation_wiring": "not_implemented"
+      }
     }
   ],
   "maintenance_actions": [
