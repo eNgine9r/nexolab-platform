@@ -76,9 +76,7 @@ export function OverviewSensorGroups({
               </span>
             </summary>
             {group.context ? (
-              <p className="mt-1 text-[11px] leading-4 text-slate-400">
-                Розташування: {group.context}
-              </p>
+              <p className="mt-1 text-[11px] leading-4 text-slate-400">Розташування: {group.context}</p>
             ) : group.id === "unconfirmed" ? (
               <p className="mt-1 text-[11px] leading-4 text-amber-200">
                 Канали доступні за ID без обов’язкової прив’язки до камери.
