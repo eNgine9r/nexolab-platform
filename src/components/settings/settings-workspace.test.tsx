@@ -100,7 +100,12 @@ describe("SettingsWorkspace", () => {
         membership={{
           ...membership,
           roles: ["administrator"],
-          permissions: [...membership.permissions, "memberships.manage", "project_versions.manage"],
+          permissions: [
+            ...membership.permissions,
+            "memberships.manage",
+            "project_versions.manage",
+            "navigation.cameras",
+          ],
         }}
         diagnostics={diagnostics}
         preferences={createDefaultSettingsPreferences()}
@@ -120,6 +125,15 @@ describe("SettingsWorkspace", () => {
       "href",
       "/settings/system/version",
     );
+    expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
+  });
+
+  it("shows the camera link to a non-administrator only when the page is granted", () => {
+    const cameraUser = {
+      ...membership,
+      permissions: [...membership.permissions, "navigation.cameras" as const],
+    };
+    renderWorkspace({ membership: cameraUser, session: { ...session, memberships: [cameraUser] } });
     expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
   });
 

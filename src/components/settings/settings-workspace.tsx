@@ -448,7 +448,7 @@ function GeneralSection({
         )}
       </div>
 
-      {membership.roles.includes("administrator") ? (
+      {membership.permissions.includes("navigation.cameras") ? (
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4">
           <span className="text-sm text-slate-400">Камери: стан і доступність перегляду</span>
           <Link
