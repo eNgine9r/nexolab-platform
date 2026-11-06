@@ -95,11 +95,27 @@ class GoogleOAuthPrivateHandoffTests(unittest.TestCase):
             with self.assertRaises(MOD.CredentialError):
                 MOD.prepare_arguments(cred, runtime)
 
-    def test_two_google_identities_fail_closed(self) -> None:
+    def test_multiple_exact_google_identities_allowed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cred, runtime = create_fixture(Path(tmp))
             (cred / "allowed-emails.txt").write_text(
                 "synthetic@example.test\nother@example.test\n"
+            )
+            MOD.prepare_arguments(cred, runtime)
+
+    def test_duplicate_google_identities_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            (cred / "allowed-emails.txt").write_text(EMAIL + "\n" + EMAIL + "\n")
+            with self.assertRaises(MOD.CredentialError):
+                MOD.prepare_arguments(cred, runtime)
+            self.assertEqual(list(runtime.iterdir()), [])
+
+    def test_google_identity_count_is_bounded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            (cred / "allowed-emails.txt").write_text(
+                "".join(f"user{n}@example.test\n" for n in range(101))
             )
             with self.assertRaises(MOD.CredentialError):
                 MOD.prepare_arguments(cred, runtime)

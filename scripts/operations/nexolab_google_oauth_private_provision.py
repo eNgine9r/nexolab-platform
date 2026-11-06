@@ -134,8 +134,12 @@ def check_local_files(directory: Path) -> None:
     if names != ["OAUTH2_PROXY_CLIENT_ID", "OAUTH2_PROXY_CLIENT_SECRET", "OAUTH2_PROXY_COOKIE_SECRET"]:
         raise ProvisioningError("unexpected credentials layout")
     lines = (directory / ALLOWLIST_NAME).read_text(encoding="ascii").splitlines()
-    if len(lines) != 1 or not EMAIL_RE.fullmatch(lines[0]) or lines[0] != lines[0].lower():
-        raise ProvisioningError("allowlist must contain exactly one email")
+    if (
+        not 1 <= len(lines) <= 100
+        or len(set(lines)) != len(lines)
+        or any(len(email) > 254 or not EMAIL_RE.fullmatch(email) for email in lines)
+    ):
+        raise ProvisioningError("allowlist must contain unique named Google users")
 
 
 def read_ascii_field(prompt: str, *, hidden: bool) -> str:
