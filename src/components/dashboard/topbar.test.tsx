@@ -120,6 +120,35 @@ describe("Topbar operator actions", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("shows session creation only when both page and action rights exist", () => {
+    const permitted = {
+      ...session.memberships[0],
+      permissions: ["navigation.sessions" as const, "dashboard.read" as const, "sessions.manage" as const],
+    };
+    const selectedSession = { ...session, memberships: [permitted] };
+    const { rerender } = render(
+      <Topbar
+        title="Огляд"
+        onMenuOpen={vi.fn()}
+        securitySession={selectedSession}
+        selectedMembership={permitted}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Нова сесія" })).toBeVisible();
+    for (const missing of ["navigation.sessions", "dashboard.read", "sessions.manage"]) {
+      const restricted = { ...permitted, permissions: permitted.permissions.filter((p) => p !== missing) };
+      rerender(
+        <Topbar
+          title="Огляд"
+          onMenuOpen={vi.fn()}
+          securitySession={{ ...session, memberships: [restricted] }}
+          selectedMembership={restricted}
+        />,
+      );
+      expect(screen.queryByRole("link", { name: "Нова сесія" })).not.toBeInTheDocument();
+    }
+  });
+
   it("keeps named session creation callbacks and supports hiding the action", () => {
     const create = vi.fn();
     const { rerender } = render(<Topbar title="Огляд" onMenuOpen={vi.fn()} onCreateSession={create} />);

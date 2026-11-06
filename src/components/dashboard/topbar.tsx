@@ -98,7 +98,9 @@ export function Topbar({
           securitySession.memberships.some(
             (membership) =>
               membership.organizationId === selectedMembership?.organizationId &&
-              membership.permissions.includes("navigation.sessions"),
+              membership.permissions.includes("navigation.sessions") &&
+              membership.permissions.includes("dashboard.read") &&
+              membership.permissions.includes("sessions.manage"),
           )) ? (
           onCreateSession ? (
             <button type="button" onClick={onCreateSession} className={createClasses} aria-label="Нова сесія">
