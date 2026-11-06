@@ -76,5 +76,4 @@ describe("Overview hierarchy controls", () => {
     expect(screen.queryByText("106-03 106-03")).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /датчики групи/ })).toBePartiallyChecked();
   });
-
 });
