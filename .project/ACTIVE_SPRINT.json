@@ -9832,14 +9832,28 @@
         "touched_file_eslint": "passed",
         "source_matched_six_github_blobs": true,
         "typescript_noemit": "passed",
-        "github_exact_head_ci": "pending",
-        "authenticated_browser_acceptance": "not_run",
-        "production_build": "pending_ci",
+        "github_exact_head_ci": "PASS_42233327149_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "production_build": "PASS_42233327149",
         "runtime_offline_release": "not_installed",
         "hardware_evidence": "not_applicable_no_hardware_change",
         "modbus_write": "none",
         "site_mutation": false,
-        "integration_gate": "Unmerged #1531/#1529 navigation work reviewed before merge; not a sprint-machine dependency"
+        "integration_gate": "Unmerged #1531/#1529 navigation work reviewed before merge; not a sprint-machine dependency",
+        "browser_responsive_overview_px": [
+          360,
+          1440,
+          1920
+        ],
+        "browser_responsive_header_px": [
+          320,
+          375,
+          768,
+          1280
+        ],
+        "browser_screenshot_artifact": 13510498719,
+        "human_visual_acceptance": "not_independently_recorded",
+        "github_exact_head_ci_update_note": "State-only recording commit after exact-head code acceptance; rerun required on new head."
       }
     }
   ],
@@ -11657,6 +11671,20 @@
         "browser_acceptance": "pending",
         "site_mutation": false,
         "hardware_write": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:32:52.833Z",
+      "kind": "1532_ci_browser_acceptance_green",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "authenticated_dashboard_run": 42233327115,
+        "browser_pass": 42,
+        "site_mutation": false
       }
     }
   ],
