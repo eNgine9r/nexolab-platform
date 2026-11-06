@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-06T14:33:06.620Z",
+  "timestamp": "2026-11-06T15:06:55.926Z",
   "actor": "ChatGPT",
-  "event": "1532_overview_exact_head_ci_and_42_browser_cases_green",
+  "event": "1534_source_42_browser_cases_and_ci_green_pending_final_state_ci",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,12 +30,7 @@
     "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
-  "active_work": {
-    "issue": 1514,
-    "branch": "fix/1514-advanced-onboarding-e2e",
-    "status": "browser_ci_in_progress",
-    "production_mutation": false
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -3028,7 +3023,41 @@
       ],
       "browser_evidence_artifact": 13510498719,
       "manual_pixel_review": "not_recorded",
-      "needs_new_exact_head_ci_after_state_change": true
+      "needs_new_exact_head_ci_after_state_change": true,
+      "merged_pr": 1533,
+      "final_ci": "PASS_42234941179",
+      "final_browser": "PASS_42234941253",
+      "production_installed": false
+    },
+    "issue_1534_overview_device_first": {
+      "issue": 1534,
+      "branch": "feat/1534-overview-sensor-picker",
+      "base_main_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+      "source_blobs_verified": 7,
+      "targeted_tests": "28_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "github_ci": "PASS_42238642725",
+      "browser_acceptance": "PASS_42_of_42_42238642310",
+      "release": "not_installed",
+      "modbus_write": false,
+      "hardware_write": false,
+      "site_mutation": false,
+      "pull_request": 1535,
+      "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+      "responsive_viewport_widths": [
+        320,
+        375,
+        390,
+        768,
+        1280,
+        1440,
+        1920
+      ],
+      "source_completion": "verified_candidate",
+      "final_documentation_ci": "pending"
     }
   },
   "observations": [
@@ -4481,6 +4510,44 @@
         "browser_passed": 42,
         "release_gate": "pending_protected_installer",
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_ui_checkpoint",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "verified_sha_files": 7,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:57:35.922Z",
+      "kind": "1532_merge_commit_recorded_as_observation",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "source_only": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_ci_acceptance_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "checks_green": true,
+        "browser_passed": 42,
+        "production_mutation": false
       }
     }
   ],
