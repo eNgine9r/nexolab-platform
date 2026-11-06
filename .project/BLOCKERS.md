@@ -1,3 +1,7 @@
+## 2026-11-06 — #1537 Live retry flaky browser acceptance; site release unaffected
+
+Authenticated acceptance run #42240068804 failed first attempt (41/42) after retry displayed connected status but lacked the post-retry 6.4 sample; exact same PR head passed 42/42 on retry. The pre-existing test published MQTT immediately after websocket route creation, before confirming UI connection. Isolated test-only PR #1538 waits for actual connected UI before publication and retains both new-sample assertions. Await full exact-head CI/Browser before source merge; repeated green does not prove hardware acceptance or production delivery. No instrument writes or production/site mutation. PR #1535 has been source-merged as a5e39e12; Raspberry protected runtime not updated.
+
 ## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
 
 #1534 / PR #1535 completed candidate 693d983cd280fbb453b588303d4048b67bc879fb CI #42238642725 and Authenticated Dashboard Acceptance #42238642310 GREEN (42/42). Newly adapted device-first E2E checks seven responsive widths and retains no acquisition writes. Await exact-head CI after final documentation-only state commits before merge. Permission PR #1531 has an overlapping E2E file at separate scenario lines and shared .project state; review integration on merge order. The protected Raspberry runtime has NOT been deployed. Exact matching offline package, backups/rollback, and explicit production release authorization remain required. No Modbus/hardware writes or protected data mutation.
