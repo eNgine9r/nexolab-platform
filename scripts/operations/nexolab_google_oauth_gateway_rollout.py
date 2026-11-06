@@ -92,13 +92,42 @@ def verify_version_plane(root: Path) -> None:
 
 
 def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[Path, ...], *,
-                                      owner_uids: tuple[int, ...] = (0, 1000)) -> None:
-    """Lock both known deployment contexts, never creating shared lock files."""
+                                      owner_uids: tuple[int, ...] = (0, 1000),
+                                      prepare_user_lock: bool = False,
+                                      allow_missing_user_lock: bool = False,
+                                      user_uid: int = 1000) -> bool:
+    """Lock both contexts; only the missing user-runtime lock may be created."""
     if len(paths) != 2 or paths[0] == paths[1]:
         raise GuardError("both distinct deployment lock paths must be verified")
     identities = set()
-    for path in paths:
-        fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK)
+    missing_user_lock = False
+    for index, path in enumerate(paths):
+        try:
+            fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK)
+        except FileNotFoundError:
+            if index != 1 or not (prepare_user_lock or allow_missing_user_lock):
+                raise
+            parent_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            stack.callback(os.close, parent_fd)
+            parent = os.fstat(parent_fd)
+            if parent.st_uid != user_uid or stat.S_IMODE(parent.st_mode) != 0o700:
+                raise GuardError("user runtime directory is unsafe")
+            if not prepare_user_lock:
+                missing_user_lock = True
+                continue
+            try:
+                fd = os.open(path.name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                             0o600, dir_fd=parent_fd)
+            except FileExistsError:
+                raise GuardError("user deployment lock appeared during preparation; retry") from None
+            try:
+                os.fchown(fd, user_uid, parent.st_gid)
+                os.fchmod(fd, 0o600)
+                os.fsync(fd)
+                os.fsync(parent_fd)
+            except Exception:
+                os.close(fd)
+                raise
         stack.callback(os.close, fd)
         info = os.fstat(fd)
         if (not stat.S_ISREG(info.st_mode) or info.st_uid not in owner_uids
@@ -112,6 +141,30 @@ def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[
         if (named.st_dev, named.st_ino) != identity:
             raise GuardError("deployment lock identity changed")
         identities.add(identity)
+    return missing_user_lock
+
+
+def assert_no_deleted_deployment_locks(paths: tuple[Path, ...], proc: Path = Path("/proc")) -> None:
+    """Refuse to create or use a replacement while any process holds an unlinked lock."""
+    deleted = {str(path) + " (deleted)" for path in paths}
+    for process in proc.iterdir():
+        if not process.name.isdigit():
+            continue
+        try:
+            descriptors = list((process / "fd").iterdir())
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        except PermissionError:
+            raise GuardError("cannot inspect active deployment lock descriptors") from None
+        for descriptor in descriptors:
+            try:
+                target = os.readlink(descriptor)
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except PermissionError:
+                raise GuardError("cannot inspect active deployment lock descriptors") from None
+            if target in deleted:
+                raise GuardError("an unlinked deployment lock is still open")
 
 
 def atomic_write(path: Path, data: bytes, mode: int) -> None:
@@ -279,7 +332,6 @@ def main() -> int:
     if args.recover and args.additions_file:
         raise GuardError("recovery cannot accept new identities")
     with contextlib.ExitStack() as stack:
-        acquire_existing_deployment_locks(stack, DEPLOYMENT_LOCKS)
         for name in ("worker.lock", "queue.lock", "update-plane.lock"):
             fd = os.open(ROOT / name, os.O_RDWR | os.O_NOFOLLOW)
             stack.callback(os.close, fd)
@@ -291,6 +343,12 @@ def main() -> int:
             if (named.st_dev, named.st_ino) != (info.st_dev, info.st_ino):
                 raise GuardError("canonical lock identity changed")
         verify_version_plane(ROOT)
+        assert_no_deleted_deployment_locks(DEPLOYMENT_LOCKS)
+        missing_user_lock = acquire_existing_deployment_locks(
+            stack, DEPLOYMENT_LOCKS, prepare_user_lock=bool(args.execute or args.recover),
+            allow_missing_user_lock=not bool(args.execute or args.recover),
+        )
+        assert_no_deleted_deployment_locks(DEPLOYMENT_LOCKS)
         definition = run_systemctl("cat", UNIT)
         active_start = run_systemctl("show", UNIT, "-p", "ExecStart", "--value")
         required = "LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt"
@@ -320,7 +378,8 @@ def main() -> int:
         new_list = validate_identities(old_list, additions)
         verify_service()
         if not args.execute:
-            print("PREFLIGHT_PASS: gateway and six named identities verified; no changes made")
+            suffix = "; missing user lock will be created at execution" if missing_user_lock else ""
+            print(f"PREFLIGHT_PASS: gateway and six named identities verified; no changes made{suffix}")
             return 0
         activate_with_backup(LAUNCHER, ALLOWLIST, BACKUP_PARENT, candidate, new_list,
                              old_launcher, old_list, restart_and_verify)

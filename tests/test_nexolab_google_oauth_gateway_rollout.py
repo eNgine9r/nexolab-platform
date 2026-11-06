@@ -100,6 +100,87 @@ class GatewayRolloutTests(unittest.TestCase):
             with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
                 MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid() + 100000,))
 
+    def test_missing_user_lock_is_not_created_during_read_only_check(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first"
+            first.touch(mode=0o600)
+            user_dir = root / "user-runtime"
+            user_dir.mkdir(mode=0o700)
+            second = user_dir / "lock"
+            with contextlib.ExitStack() as stack:
+                missing = MODULE.acquire_existing_deployment_locks(
+                    stack, (first, second), owner_uids=(os.geteuid(),),
+                    allow_missing_user_lock=True, user_uid=os.geteuid(),
+                )
+                self.assertTrue(missing)
+                self.assertFalse(second.exists())
+
+    def test_missing_user_lock_is_safely_created_only_in_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first"
+            first.touch(mode=0o600)
+            user_dir = root / "user-runtime"
+            user_dir.mkdir(mode=0o700)
+            second = user_dir / "lock"
+            with contextlib.ExitStack() as stack:
+                missing = MODULE.acquire_existing_deployment_locks(
+                    stack, (first, second), owner_uids=(os.geteuid(),),
+                    prepare_user_lock=True, user_uid=os.geteuid(),
+                )
+                self.assertFalse(missing)
+                self.assertEqual(second.stat().st_uid, os.geteuid())
+                self.assertEqual(second.stat().st_mode & 0o777, 0o600)
+
+    def test_missing_user_lock_requires_private_owned_runtime_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first"
+            first.touch(mode=0o600)
+            user_dir = root / "unsafe-runtime"
+            user_dir.mkdir(mode=0o755)
+            os.chmod(user_dir, 0o755)
+            with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
+                MODULE.acquire_existing_deployment_locks(
+                    stack, (first, user_dir / "lock"), owner_uids=(os.geteuid(),),
+                    prepare_user_lock=True, user_uid=os.geteuid(),
+                )
+            self.assertFalse((user_dir / "lock").exists())
+
+    def test_missing_user_lock_does_not_use_wrong_runtime_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first"
+            first.touch(mode=0o600)
+            user_dir = root / "user-runtime"
+            user_dir.mkdir(mode=0o700)
+            with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
+                MODULE.acquire_existing_deployment_locks(
+                    stack, (first, user_dir / "lock"), owner_uids=(os.geteuid(),),
+                    prepare_user_lock=True, user_uid=os.geteuid() + 100000,
+                )
+            self.assertFalse((user_dir / "lock").exists())
+
+    def test_unlinked_lock_still_open_by_another_process_blocks_rollout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            proc = root / "proc"
+            descriptors = proc / "123" / "fd"
+            descriptors.mkdir(parents=True)
+            lock = root / "gateway.lock"
+            (descriptors / "7").symlink_to(str(lock) + " (deleted)")
+            with self.assertRaisesRegex(MODULE.GuardError, "unlinked deployment lock"):
+                MODULE.assert_no_deleted_deployment_locks((lock,), proc)
+
+    def test_other_open_files_do_not_trigger_deleted_lock_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            descriptors = root / "proc" / "123" / "fd"
+            descriptors.mkdir(parents=True)
+            (descriptors / "7").symlink_to("/tmp/unrelated (deleted)")
+            MODULE.assert_no_deleted_deployment_locks((root / "gateway.lock",), root / "proc")
+
     def test_rollout_and_restore_on_post_restart_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             launcher, allowlist = Path(temp) / "launcher", Path(temp) / "allowlist"
