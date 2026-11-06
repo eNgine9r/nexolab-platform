@@ -4,8 +4,8 @@ export type OverviewSensor = { channelId: string; label: string };
 export type OverviewGroup = {
   id: string;
   label: string;
+  context?: string;
   sensors: OverviewSensor[];
-  children?: OverviewGroup[];
 };
 
 export function buildOverviewSensorHierarchy(
@@ -13,40 +13,64 @@ export function buildOverviewSensorHierarchy(
   nodeId: string | null,
   catalog: readonly ClimateChamberEquipment[],
 ): OverviewGroup[] {
-  const cameras = new Map<string, OverviewGroup>();
+  const devices = new Map<string, OverviewGroup>();
+  const contexts = new Map<string, Set<string>>();
+
   for (const channelId of new Set(channelIds)) {
     const candidates = catalog.flatMap((equipment) => {
       if (!nodeId || equipment.climateChamber.transportNodeId !== nodeId) return [];
       return equipment.temperatureChannels
         .filter((channel) => channel.sourceChannelId === channelId)
         .map((channel) => {
-          const devices = equipment.temperatureControllers.filter(
+          const matches = equipment.temperatureControllers.filter(
             (device) => device.id === channel.deviceId && device.unitId === channel.controllerUnitId,
           );
-          return { equipment, channel, device: devices.length === 1 ? devices[0] : undefined };
+          return { equipment, channel, device: matches.length === 1 ? matches[0] : undefined };
         });
     });
+
+    // An ambiguous or missing catalog association must never fabricate a controller identity.
     const match = candidates.length === 1 && candidates[0]?.device ? candidates[0] : undefined;
-    const cameraId = match?.equipment.climateChamber.id ?? "unconfirmed";
-    let camera = cameras.get(cameraId);
-    if (!camera) {
-      camera = {
-        id: cameraId,
-        label: match?.equipment.climateChamber.name ?? "Прив’язку до камери не підтверджено",
+    const id = match
+      ? JSON.stringify([
+          nodeId,
+          match.equipment.climateChamber.busId,
+          match.device.id,
+          match.device.unitId,
+        ])
+      : "unconfirmed";
+
+    let group = devices.get(id);
+    if (!group) {
+      group = {
+        id,
+        label: match?.device.displayName?.trim() || "Прилад не підтверджено",
         sensors: [],
-        children: [],
       };
-      cameras.set(cameraId, camera);
+      devices.set(id, group);
     }
-    const deviceId = match?.device?.id ?? "unconfirmed";
-    let device = camera.children!.find((item) => item.id === deviceId);
-    if (!device) {
-      device = { id: deviceId, label: match?.device?.displayName ?? "Прилад не визначено", sensors: [] };
-      camera.children!.push(device);
+    group.sensors.push({
+      channelId,
+      label: match?.channel.displayName?.trim() || channelId,
+    });
+
+    // A chamber is optional context only; it is never required to display or select a channel.
+    const chamberName = match?.equipment.climateChamber.name?.trim();
+    if (chamberName) {
+      const names = contexts.get(id) ?? new Set<string>();
+      names.add(chamberName);
+      contexts.set(id, names);
     }
-    const sensor = { channelId, label: match?.channel.displayName ?? channelId };
-    device.sensors.push(sensor);
-    camera.sensors.push(sensor);
   }
-  return [...cameras.values()];
+
+  for (const group of devices.values()) {
+    const names = contexts.get(group.id);
+    if (names?.size) group.context = [...names].sort((a, b) => a.localeCompare(b, "uk-UA")).join(" · ");
+  }
+
+  return [...devices.values()].sort((left, right) => {
+    if (left.id === "unconfirmed") return 1;
+    if (right.id === "unconfirmed") return -1;
+    return left.label.localeCompare(right.label, "uk-UA") || left.id.localeCompare(right.id);
+  });
 }
