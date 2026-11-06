@@ -19,9 +19,10 @@ attempts to assign navigation grants are rejected. Legacy membership
 reprovisioning and administrator promotion retain stored navigation choices.
 The application still revokes affected local sessions on permission changes.
 
-The migration deliberately refuses automatic downgrade: removing the new
-grants would discard administrator decisions, and an older interface cannot
-enforce those decisions. Recovery requires a separately verified backup and
+The migration refuses downgrade while any navigation grants exist: removing
+them would discard administrator decisions, and an older interface cannot
+enforce those decisions. An empty test database can downgrade without deleting
+grants. Recovery of a populated site requires a separately verified backup and
 restore plan, with the compatible frontend and backend restored together.
 
 Older frontends reject sessions containing unknown permission names, including

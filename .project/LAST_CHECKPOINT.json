@@ -3000,7 +3000,7 @@
       "site_deployed": false,
       "postgresql_migration": "pending_ci",
       "new_navigation_wiring": "not_implemented",
-      "downgrade": "refused_pending_verified_recovery"
+      "downgrade": "refused_when_navigation_grants_exist"
     }
   },
   "observations": [

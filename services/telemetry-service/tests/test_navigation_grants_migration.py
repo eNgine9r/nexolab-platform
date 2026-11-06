@@ -85,6 +85,28 @@ def test_upgrade_preserves_resource_grants_and_backfills_only_existing_visibilit
     engine.dispose()
 
 
+def test_empty_database_can_downgrade_without_discarding_grants(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = sa.create_engine("sqlite:///:memory:")
+    metadata = sa.MetaData()
+    legacy_grants(metadata)
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        monkeypatch.setattr(migration, "op", Operations(MigrationContext.configure(connection)))
+        migration.upgrade()
+        migration.downgrade()
+        connection.execute(sa.text(
+            "INSERT INTO security_membership_permissions "
+            "(membership_id, permission, assigned_at) VALUES ('one', 'dashboard.read', CURRENT_TIMESTAMP)"
+        ))
+        with pytest.raises(sa.exc.IntegrityError):
+            with connection.begin_nested():
+                connection.execute(sa.text(
+                    "INSERT INTO security_membership_permissions "
+                    "(membership_id, permission, assigned_at) VALUES ('one', 'navigation.reports', CURRENT_TIMESTAMP)"
+                ))
+    engine.dispose()
+
+
 def test_postgresql_upgrade_uses_a_rolled_back_isolated_schema(monkeypatch: pytest.MonkeyPatch) -> None:
     database_url = os.environ.get("DATABASE_URL", "")
     try:
@@ -124,8 +146,20 @@ def test_postgresql_upgrade_uses_a_rolled_back_isolated_schema(monkeypatch: pyte
                         "(membership_id, permission, assigned_at) "
                         "VALUES ('one', 'navigation.unknown', CURRENT_TIMESTAMP)"
                     ))
-            with pytest.raises(RuntimeError, match="separately verified recovery"):
-                migration.downgrade()
+            with pytest.raises(sa.exc.DBAPIError, match="separately verified recovery"):
+                with connection.begin_nested():
+                    migration.downgrade()
+            assert connection.scalar(sa.text("SELECT count(*) FROM security_membership_permissions")) == len(rows)
+            # Rows and schema are synthetic and rolled back at the end of this test.
+            connection.execute(sa.text("DELETE FROM security_membership_permissions"))
+            migration.downgrade()
+            with pytest.raises(sa.exc.IntegrityError):
+                with connection.begin_nested():
+                    connection.execute(sa.text(
+                        "INSERT INTO security_membership_permissions "
+                        "(membership_id, permission, assigned_at) "
+                        "VALUES ('one', 'navigation.reports', CURRENT_TIMESTAMP)"
+                    ))
         finally:
             # The schema and every test row are transactional PostgreSQL DDL.
             transaction.rollback()

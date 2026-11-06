@@ -67,6 +67,33 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # An older frontend cannot enforce individually assigned navigation grants.
-    # Silently deleting them or falling back would lose intent or broaden access.
-    raise RuntimeError("navigation grants require a separately verified recovery plan before downgrade")
+    # An older frontend cannot enforce assigned navigation choices. Serialize
+    # writers and refuse before changing the schema if any choices exist.
+    context = op.get_context()
+    if context.dialect.name == "postgresql":
+        op.execute("LOCK TABLE security_membership_permissions IN SHARE ROW EXCLUSIVE MODE")
+        op.execute("""
+            DO $nexolab$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM security_membership_permissions
+                    WHERE permission LIKE 'navigation.%'
+                ) THEN
+                    RAISE EXCEPTION 'navigation grants require a separately verified recovery plan before downgrade';
+                END IF;
+            END;
+            $nexolab$
+        """)
+    else:
+        if context.as_sql:
+            raise RuntimeError("offline downgrade is supported only for PostgreSQL")
+        present = op.get_bind().execute(sa.text(
+            "SELECT 1 FROM security_membership_permissions "
+            "WHERE permission LIKE 'navigation.%' LIMIT 1"
+        )).first()
+        if present:
+            raise RuntimeError("navigation grants require a separately verified recovery plan before downgrade")
+    values = ", ".join(f"'{value}'" for value in _OLD_PERMISSIONS)
+    with op.batch_alter_table("security_membership_permissions") as batch:
+        batch.drop_constraint("ck_security_membership_permission_known", type_="check")
+        batch.create_check_constraint("ck_security_membership_permission_known", f"permission IN ({values})")

@@ -1,6 +1,6 @@
 ## 2026-11-06 — navigation-grant rollout and data isolation remain unverified (#1526, #1528)
 
-Source-only #1528 does not wire page grants into navigation or isolate shared API data. Its migration deliberately blocks automatic downgrade and older frontends reject the extended session contract, including for administrators. Do not deploy the foundation alone. Coordinated frontend/backend compatibility, actual PostgreSQL upgrade tests, protected backup/restore, per-page UI integration and separately approved site cutover remain required.
+Source-only #1528 does not wire page grants into navigation or isolate shared API data. Its migration blocks downgrade while navigation grants exist, and older frontends reject the extended session contract, including for administrators. Do not deploy the foundation alone. Coordinated frontend/backend compatibility, actual PostgreSQL upgrade tests, protected backup/restore, per-page UI integration and separately approved site cutover remain required.
 
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
