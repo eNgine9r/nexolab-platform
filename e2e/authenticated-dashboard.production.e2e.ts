@@ -813,3 +813,36 @@ test("grouped navigation shows destinations allowed for the viewer", async ({ br
     await context.close();
   }
 });
+
+test("navigation follows a restricted selected membership on mobile and desktop", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  await context.route("**/api/v1/auth/session", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    for (const membership of payload.memberships) {
+      membership.permissions = ["dashboard.read", "reports.read"];
+    }
+    await route.fulfill({ response, json: payload });
+  });
+  const page = await context.newPage();
+  try {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+      if (width < 1024) {
+        await page.getByTestId("platform-topbar").getByRole("button", { name: "Відкрити меню" }).click();
+      }
+      const navigation = page.getByRole("navigation", { name: "Головна навігація" });
+      for (const name of ["Огляд", "Сесії випробувань", "Звіти", "Налаштування"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toBeVisible();
+      }
+      for (const name of ["Live дані", "Енергомоніторинг", "Тривоги", "Вузли", "Камери", "Поштомати"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toHaveCount(0);
+      }
+      await expect(page.getByRole("link", { name: "Відкрити тривоги" })).toHaveCount(0);
+    }
+  } finally {
+    await context.close();
+  }
+});
