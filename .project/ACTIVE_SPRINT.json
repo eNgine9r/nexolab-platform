@@ -9893,7 +9893,19 @@
         "ci": "not_run",
         "hardware_write": false,
         "modbus_write": false,
-        "site_mutation": false
+        "site_mutation": false,
+        "changed_ui_files": 4,
+        "changed_test_files": 3,
+        "targeted_tests": "28_passed_4_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 7,
+        "verified_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+        "source_ci": "not_run",
+        "browser_acceptance": "not_run",
+        "production_build": "not_run",
+        "release": "not_installed"
       }
     }
   ],
@@ -11740,6 +11752,21 @@
         "previous_active_issue": 1514,
         "previous_active_moved_to_review": true,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_device_first_source_isolated_pass",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "source_files": 7,
+        "source_blob_match": true,
+        "format": "PASS",
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "site_mutation": false
       }
     }
   ],
