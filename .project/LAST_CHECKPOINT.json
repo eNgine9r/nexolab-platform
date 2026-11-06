@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T12:14:14.443448+00:00",
-  "actor": "Codex",
-  "event": "1511_ci_repair_merged_1513_adapter_disposition_1514_browser_fix",
+  "timestamp": "2026-11-06T14:20:15.309Z",
+  "actor": "ChatGPT",
+  "event": "1532_overview_readability_source_candidate_draft_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -2991,6 +2991,29 @@
       "independent_page_grants": "unimplemented_issue_1526",
       "site_deployed": false,
       "runtime_user_acceptance": "pending"
+    },
+    "issue_1532_overview_readability": {
+      "issue": 1532,
+      "pull_request": 1533,
+      "branch": "feat/1532-overview-readability",
+      "base_main_sha": "8ba483b6edb3adca75c23923ee74657cc96929c6",
+      "verified_isolated_workspace": "/home/nexolab/commander-workspaces/overview-1532-validation-20261106",
+      "source_file_blob_match": 6,
+      "focused_vitest": "7_passed_3_files",
+      "changed_file_prettier": "passed",
+      "changed_file_eslint": "passed",
+      "typescript_noemit": "passed",
+      "target_node_version": "22.23.1",
+      "tests_vitest_version": "4.1.10",
+      "exact_head_required_ci": "in_progress_after_source_only_candidate",
+      "browser_verified": false,
+      "production_build_verified": false,
+      "permission_pr_dependency": 1531,
+      "prod_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "runtime_mutation": false,
+      "update_signal": "withheld"
     }
   },
   "observations": [
@@ -4413,6 +4436,23 @@
         "old_active_targets": 53,
         "protected_adapter": "A10Q34QC",
         "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:20:15.309Z",
+      "kind": "1532_overview_isolated_source_check",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "focused_tests_passed": 7,
+        "source_blobs_match": 6,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "production_mutation": false
       }
     }
   ],
