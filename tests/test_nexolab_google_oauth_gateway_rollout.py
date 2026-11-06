@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+import contextlib
+import fcntl
 import os
 import sys
 import tempfile
@@ -49,6 +51,43 @@ class GatewayRolloutTests(unittest.TestCase):
             (base / "link").symlink_to(base / "actual")
             with self.assertRaises(OSError):
                 MODULE.read_regular(base / "link")
+
+    def test_deployment_locks_must_both_exist_and_are_not_replaced(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            first, second = Path(temp) / "first", Path(temp) / "second"
+            first.touch(mode=0o600)
+            with contextlib.ExitStack() as stack, self.assertRaises(FileNotFoundError):
+                MODULE.acquire_existing_deployment_locks(stack, (first, second))
+            self.assertFalse(second.exists())
+            second.touch(mode=0o600)
+            before = (first.stat().st_ino, second.stat().st_ino)
+            with contextlib.ExitStack() as stack:
+                MODULE.acquire_existing_deployment_locks(stack, (first, second))
+                self.assertEqual(before, (first.stat().st_ino, second.stat().st_ino))
+
+    def test_busy_deployment_lock_aborts_without_replacing_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            first, second = Path(temp) / "first", Path(temp) / "second"
+            first.touch(mode=0o600)
+            second.touch(mode=0o600)
+            inode = second.stat().st_ino
+            with second.open("r+") as held:
+                fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with contextlib.ExitStack() as stack, self.assertRaises(BlockingIOError):
+                    MODULE.acquire_existing_deployment_locks(stack, (first, second))
+            self.assertEqual(second.stat().st_ino, inode)
+
+    def test_deployment_lock_symlink_and_world_writable_file_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            first, second, link = (Path(temp) / name for name in ("first", "second", "link"))
+            first.touch(mode=0o600)
+            second.touch(mode=0o600)
+            link.symlink_to(second)
+            with contextlib.ExitStack() as stack, self.assertRaises(OSError):
+                MODULE.acquire_existing_deployment_locks(stack, (first, link))
+            os.chmod(second, 0o666)
+            with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
+                MODULE.acquire_existing_deployment_locks(stack, (first, second))
 
     def test_rollout_and_restore_on_post_restart_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

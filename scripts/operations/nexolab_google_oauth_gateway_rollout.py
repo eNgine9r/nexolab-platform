@@ -29,6 +29,10 @@ ALLOWLIST = Path("/etc/nexolab-external/allowed-emails.txt")
 CANDIDATE = Path("/home/nexolab/commander-workspaces/nexolab-platform/nexolab-1523-launcher-candidate.py")
 ROOT = Path("/var/lib/nexolab/version-management")
 EMAIL = re.compile(rb"[a-z0-9_.+%-]+@[a-z0-9.-]+\.[a-z]{2,}\Z")
+DEPLOYMENT_LOCKS = (
+    Path("/tmp/nexolab-current-head-launch.lock"),
+    Path("/run/user/1000/nexolab-current-head-launch.lock"),
+)
 
 
 class GuardError(Exception):
@@ -84,6 +88,28 @@ def verify_version_plane(root: Path) -> None:
         operation = json.loads(read_regular(path, uid=(0, 10001)))
         if not isinstance(operation, dict) or operation.get("status") in {"queued", "running"}:
             raise GuardError("version operation is active or malformed")
+
+
+def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[Path, ...]) -> None:
+    """Fixture-ready lock guard; never creates or replaces shared lock files."""
+    if len(paths) != 2 or paths[0] == paths[1]:
+        raise GuardError("both distinct deployment lock paths must be verified")
+    identities = set()
+    for path in paths:
+        fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK)
+        stack.callback(os.close, fd)
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid not in (0, 1000)
+                or info.st_nlink != 1 or info.st_mode & 0o022):
+            raise GuardError("deployment lock is unsafe")
+        identity = (info.st_dev, info.st_ino)
+        if identity in identities:
+            raise GuardError("deployment locks unexpectedly share an inode")
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        named = path.lstat()
+        if (named.st_dev, named.st_ino) != identity:
+            raise GuardError("deployment lock identity changed")
+        identities.add(identity)
 
 
 def atomic_write(path: Path, data: bytes, mode: int) -> None:
