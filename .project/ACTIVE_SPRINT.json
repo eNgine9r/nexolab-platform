@@ -9815,9 +9815,7 @@
       "branch": "feat/1532-overview-readability",
       "priority": "normal",
       "lifecycle": "review",
-      "depends_on": [
-        1530
-      ],
+      "depends_on": [],
       "scope": "Overview UI typography/labels/freshness only; source candidate in draft PR #1533. Merge depends on independent per-page grant UI integration, exact-head CI, authenticated browser acceptance; no production deployment.",
       "permitted_paths": [
         "src/components/dashboard/kpi-card.tsx",
@@ -9840,7 +9838,8 @@
         "runtime_offline_release": "not_installed",
         "hardware_evidence": "not_applicable_no_hardware_change",
         "modbus_write": "none",
-        "site_mutation": false
+        "site_mutation": false,
+        "integration_gate": "Unmerged #1531/#1529 navigation work reviewed before merge; not a sprint-machine dependency"
       }
     }
   ],
