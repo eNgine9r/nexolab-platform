@@ -3030,7 +3030,6 @@
       "manual_pixel_review": "not_recorded",
       "needs_new_exact_head_ci_after_state_change": true,
       "merged_pr": 1533,
-      "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
       "final_ci": "PASS_42234941179",
       "final_browser": "PASS_42234941253",
       "production_installed": false
@@ -4515,6 +4514,17 @@
         "verified_sha_files": 7,
         "source_only": true,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:57:35.922Z",
+      "kind": "1532_merge_commit_recorded_as_observation",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "source_only": true
       }
     }
   ],
