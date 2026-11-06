@@ -9883,7 +9883,8 @@
         "src/components/dashboard/temperature-chart.tsx",
         "src/components/dashboard/overview-chart-panel.tsx",
         "src/components/dashboard/*.test.tsx",
-        ".project/"
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
       ],
       "evidence": {
         "issue": 1534,
@@ -9905,7 +9906,8 @@
         "source_ci": "not_run",
         "browser_acceptance": "not_run",
         "production_build": "not_run",
-        "release": "not_installed"
+        "release": "not_installed",
+        "browser_test_update": "replace obsolete chamber bulk checkbox with optional context assertion; no weakened negative safety assertions"
       }
     }
   ],
