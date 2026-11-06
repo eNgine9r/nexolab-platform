@@ -12,7 +12,14 @@ const membership: SecurityMembership = {
   organizationSlug: "dashboard-acceptance",
   organizationName: "NEXOLAB Dashboard Acceptance",
   roles: ["viewer"],
-  permissions: ["dashboard.read", "telemetry.read", "alerts.read", "reports.read", "nodes.read"],
+  permissions: [
+    "dashboard.read",
+    "telemetry.read",
+    "alerts.read",
+    "reports.read",
+    "nodes.read",
+    "navigation.instrumentation",
+  ],
 };
 
 const session: SecuritySession = {
@@ -126,6 +133,15 @@ describe("SettingsWorkspace", () => {
       "/settings/system/version",
     );
     expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
+  });
+
+  it("hides the instruments link when its page grant is absent", () => {
+    const restricted = {
+      ...membership,
+      permissions: membership.permissions.filter((p) => p !== "navigation.instrumentation"),
+    };
+    renderWorkspace({ membership: restricted, session: { ...session, memberships: [restricted] } });
+    expect(screen.queryByRole("link", { name: "Прилади та сигнали" })).not.toBeInTheDocument();
   });
 
   it("shows the camera link to a non-administrator only when the page is granted", () => {

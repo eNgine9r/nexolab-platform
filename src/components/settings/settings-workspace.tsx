@@ -315,7 +315,8 @@ export function SettingsWorkspace({
               })}
             </nav>
 
-            {membership.permissions.includes("dashboard.read") ? (
+            {membership.permissions.includes("dashboard.read") &&
+            membership.permissions.includes("navigation.instrumentation") ? (
               <div className="mt-3 border-t border-white/[0.07] pt-3">
                 <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
                   Реєстри

@@ -86,6 +86,7 @@ JOIN (VALUES
   ('dashboard.read', 'navigation.equipment_layouts'),
   ('dashboard.read', 'navigation.refrigeration'),
   ('dashboard.read', 'navigation.equipment'),
+  ('dashboard.read', 'navigation.instrumentation'),
   ('nodes.read', 'navigation.nodes'),
   ('telemetry.read', 'navigation.live'),
   ('telemetry.read', 'navigation.energy'),

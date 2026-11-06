@@ -83,6 +83,23 @@ describe("RouteAccessBoundary", () => {
     );
     expect(screen.queryByText("Protected child")).not.toBeInTheDocument();
   });
+  it("gates the instruments settings page independently from dashboard access", () => {
+    mock.pathname = "/settings/instrumentation";
+    mock.security = security(["dashboard.read"]);
+    const { rerender } = render(
+      <RouteAccessBoundary>
+        <div>Instruments content</div>
+      </RouteAccessBoundary>,
+    );
+    expect(screen.queryByText("Instruments content")).not.toBeInTheDocument();
+    mock.security = security(["dashboard.read", "navigation.instrumentation"]);
+    rerender(
+      <RouteAccessBoundary>
+        <div>Instruments content</div>
+      </RouteAccessBoundary>,
+    );
+    expect(screen.getByText("Instruments content")).toBeVisible();
+  });
   it("does not mount protected content while authentication is loading or after logout", () => {
     mock.security = {
       ...security(["reports.read", "navigation.reports"]),

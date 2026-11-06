@@ -108,6 +108,7 @@ const destinationGrants: Readonly<Record<string, SecurityEffectivePermission>> =
   "/energy": "navigation.energy",
   "/reports": "navigation.reports",
   "/equipment": "navigation.equipment",
+  "/settings/instrumentation": "navigation.instrumentation",
 };
 
 export const platformNavGroups = [
@@ -128,6 +129,9 @@ interface SidebarProps {
 
 export function platformDestinationForPath(pathname: string): string | null {
   if (pathname === "/") return "/";
+  if (pathname === "/settings/instrumentation" || pathname.startsWith("/settings/instrumentation/")) {
+    return "/settings/instrumentation";
+  }
   return (
     platformNavItems.find(
       (item) =>
@@ -140,7 +144,8 @@ export function platformDestinationForPath(pathname: string): string | null {
 
 export function canSeePlatformDestination(security: SidebarProps["security"], href: string): boolean {
   const item = platformNavItems.find((entry) => entry.href === href);
-  if (!item) return false;
+  const instrumentation = href === "/settings/instrumentation";
+  if (!item && !instrumentation) return false;
   if (security?.mode === "demo") return true;
   const membership =
     security?.state === "ready" && security.session && security.membership
@@ -151,8 +156,9 @@ export function canSeePlatformDestination(security: SidebarProps["security"], hr
   return Boolean(
     membership &&
     (!destinationGrants[href] || membership.permissions.includes(destinationGrants[href])) &&
-    (!item.permission || membership.permissions.includes(item.permission)) &&
-    (!item.administratorOnly || membership.roles.includes("administrator")),
+    (!instrumentation || membership.permissions.includes("dashboard.read")) &&
+    (!item?.permission || membership.permissions.includes(item.permission)) &&
+    (!item?.administratorOnly || membership.roles.includes("administrator")),
   );
 }
 
