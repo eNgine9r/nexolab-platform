@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "infrastructure/external-access/**"
+      - "scripts/operations/nexolab_google_oauth_*.py"
+      - "scripts/inspection/nexolab_google_oauth_gate.py"
+      - "tests/test_nexolab_google_oauth_*.py"
       - ".github/workflows/offline-bundle.yml"
       - "scripts/classify-ci-impact.py"
       - "scripts/prepare-version-update-lock.py"

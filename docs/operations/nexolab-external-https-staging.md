@@ -65,14 +65,17 @@ and validation. Never publish or deploy this template as-is.
 
 ## Google identity and MFA — approved choice, not activated
 
-**Selected external identity:** personal Google Account with the owner-approved
-single email address. Store that address only in the protected on-device
+**Selected external identity:** owner-approved individual Google Accounts.
+Store those addresses only in the protected on-device
 `/etc/nexolab-external/allowed-emails.txt`, not this public repository.
-The file MUST contain exactly one address. `--authenticated-emails-file`
+The candidate launcher accepts one to 100 unique lowercase named addresses.
+The independently approved list must match exactly; this source change alone
+does not modify any installed gateway or grant any new user access.
+`--authenticated-emails-file`
 is a named-user authorization boundary. Do NOT configure
 `email_domains = ["*"]`, `trusted_ips`, unauthenticated routes, or
-`skip_jwt_bearer_tokens`. A Google login by someone else (including a
-different Gmail user) must be denied. Local NEXOLAB JWT and RBAC remain enabled.
+`skip_jwt_bearer_tokens`. An identity absent from the approved list must be
+denied. Local NEXOLAB JWT and RBAC remain enabled.
 
 Inert candidate: `infrastructure/external-access/oauth2-proxy-google.example.cfg`.
 It accepts Google identity on loopback `127.0.0.1:4180`, has a dedicated
