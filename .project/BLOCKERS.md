@@ -1,3 +1,7 @@
+## 2026-11-06 — #1528 CI blocked by security policy (#1447)
+
+Candidate cd539ef: 48 existing vulnerability exceptions expired; fresh source-bound amd64 image scan reports 5 CRITICAL and 83 HIGH tuples. No exception was extended. The report does not establish installed ARM64 exposure. #1447 requires remediation and a fresh policy evaluation. The obsolete hardcoded telemetry migration-head assertion has been corrected, but requires fresh CI. Page grants remain source-only and navigation wiring is not implemented.
+
 ## 2026-11-06 — navigation-grant rollout and data isolation remain unverified (#1526, #1528)
 
 Source-only #1528 does not wire page grants into navigation or isolate shared API data. Its migration blocks downgrade while navigation grants exist, and older frontends reject the extended session contract, including for administrators. Do not deploy the foundation alone. Coordinated frontend/backend compatibility, actual PostgreSQL upgrade tests, protected backup/restore, per-page UI integration and separately approved site cutover remain required.
