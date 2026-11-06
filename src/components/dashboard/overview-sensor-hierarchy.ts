@@ -35,12 +35,7 @@ export function buildOverviewSensorHierarchy(
       ? { equipment: candidate.equipment, channel: candidate.channel, device: candidate.device }
       : undefined;
     const id = match
-      ? JSON.stringify([
-          nodeId,
-          match.equipment.climateChamber.busId,
-          match.device.id,
-          match.device.unitId,
-        ])
+      ? JSON.stringify([nodeId, match.equipment.climateChamber.busId, match.device.id, match.device.unitId])
       : "unconfirmed";
 
     let group = devices.get(id);
