@@ -1,3 +1,7 @@
+## 2026-11-06 — #1532 Overview UI browser/merge acceptance (soft blocker)
+
+Draft PR #1533 has source-only readable KPI, infrastructure and freshness labels. Isolated Pi targeted tests 7/7, Prettier, ESLint and TypeScript passed on exact matching six file blobs. Before merge, require full GitHub source-bound CI/production build, authenticated 375/768/1440/1920 browser visual/a11y verification and integration with open page-grant PR #1531 (and its #1529 foundation), without weakening per-user visibility. The production Raspberry source remains ffdefc... and is NOT updated; real runtime/offline installation, rollback, protected backup and site authorization gates remain separate. No hardware or Modbus write.
+
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
 Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.
