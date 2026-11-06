@@ -91,7 +91,8 @@ def verify_version_plane(root: Path) -> None:
             raise GuardError("version operation is active or malformed")
 
 
-def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[Path, ...]) -> None:
+def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[Path, ...], *,
+                                      owner_uids: tuple[int, ...] = (0, 1000)) -> None:
     """Lock both known deployment contexts, never creating shared lock files."""
     if len(paths) != 2 or paths[0] == paths[1]:
         raise GuardError("both distinct deployment lock paths must be verified")
@@ -100,7 +101,7 @@ def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[
         fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK)
         stack.callback(os.close, fd)
         info = os.fstat(fd)
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid not in (0, 1000)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid not in owner_uids
                 or info.st_nlink != 1 or info.st_mode & 0o022):
             raise GuardError("deployment lock is unsafe")
         identity = (info.st_dev, info.st_ino)

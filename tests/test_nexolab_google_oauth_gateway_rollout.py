@@ -65,12 +65,12 @@ class GatewayRolloutTests(unittest.TestCase):
             first, second = Path(temp) / "first", Path(temp) / "second"
             first.touch(mode=0o600)
             with contextlib.ExitStack() as stack, self.assertRaises(FileNotFoundError):
-                MODULE.acquire_existing_deployment_locks(stack, (first, second))
+                MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid(),))
             self.assertFalse(second.exists())
             second.touch(mode=0o600)
             before = (first.stat().st_ino, second.stat().st_ino)
             with contextlib.ExitStack() as stack:
-                MODULE.acquire_existing_deployment_locks(stack, (first, second))
+                MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid(),))
                 self.assertEqual(before, (first.stat().st_ino, second.stat().st_ino))
 
     def test_busy_deployment_lock_aborts_without_replacing_it(self) -> None:
@@ -82,7 +82,7 @@ class GatewayRolloutTests(unittest.TestCase):
             with second.open("r+") as held:
                 fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 with contextlib.ExitStack() as stack, self.assertRaises(BlockingIOError):
-                    MODULE.acquire_existing_deployment_locks(stack, (first, second))
+                    MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid(),))
             self.assertEqual(second.stat().st_ino, inode)
 
     def test_deployment_lock_symlink_and_world_writable_file_are_rejected(self) -> None:
@@ -92,10 +92,13 @@ class GatewayRolloutTests(unittest.TestCase):
             second.touch(mode=0o600)
             link.symlink_to(second)
             with contextlib.ExitStack() as stack, self.assertRaises(OSError):
-                MODULE.acquire_existing_deployment_locks(stack, (first, link))
+                MODULE.acquire_existing_deployment_locks(stack, (first, link), owner_uids=(os.geteuid(),))
             os.chmod(second, 0o666)
             with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
-                MODULE.acquire_existing_deployment_locks(stack, (first, second))
+                MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid(),))
+            os.chmod(second, 0o600)
+            with contextlib.ExitStack() as stack, self.assertRaises(MODULE.GuardError):
+                MODULE.acquire_existing_deployment_locks(stack, (first, second), owner_uids=(os.geteuid() + 100000,))
 
     def test_rollout_and_restore_on_post_restart_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
