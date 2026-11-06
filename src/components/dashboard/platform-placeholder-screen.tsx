@@ -4,7 +4,11 @@ import { useState, type ReactNode } from "react";
 import { Construction, Layers3 } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { PlatformAccountBoundary, PlatformAccountTopbar } from "./platform-account-boundary";
+import {
+  PlatformAccountBoundary,
+  PlatformAccountTopbar,
+  usePlatformAccount,
+} from "./platform-account-boundary";
 
 type PlaceholderProps = { title: string; eyebrow: string; description: string; icon?: ReactNode };
 
@@ -27,11 +31,13 @@ function PlatformPlaceholderContent({
   description: string;
   icon?: ReactNode;
 }) {
+  const account = usePlatformAccount();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={account?.security}
         open={sidebarOpen}
         activeItem={title}
         onClose={() => setSidebarOpen(false)}

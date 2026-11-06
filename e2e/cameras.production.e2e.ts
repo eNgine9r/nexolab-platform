@@ -62,12 +62,7 @@ test("renders truthful local Cameras without fabricated LIVE evidence or mutatio
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/settings", { waitUntil: "domcontentloaded" });
       const cameraLink = page.getByRole("link", { name: "Перевірити стан камер" });
-      await expect(cameraLink).toBeVisible();
-      await expect(cameraLink).toHaveAttribute("href", "/cameras");
-      await cameraLink.focus();
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/cameras$/);
-      await expect(page.getByText("Камери не налаштовані", { exact: true })).toBeVisible();
+      await expect(cameraLink).toHaveCount(0);
     }
 
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
@@ -84,8 +79,8 @@ test("renders truthful local Cameras without fabricated LIVE evidence or mutatio
           unconfiguredStateVerified: true,
           fabricatedLiveEvidenceObserved: false,
           emptyOverviewPanelRemoved: true,
-          compactSettingsNavigation: true,
-          narrowKeyboardNavigationVerified: true,
+          restrictedSettingsCameraLinkHidden: true,
+          directCameraRouteStillAccessible: true,
           mutationsObserved: requests.filter((request) => request.method !== "GET").length,
           secretExposureObserved: false,
         },

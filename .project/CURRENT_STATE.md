@@ -1,3 +1,7 @@
+## 2026-11-06 — permission-aware navigation #1525 (source candidate)
+
+The owner requested hiding destinations and actions without access. The shared sidebar and selected overview/settings links now use selected-organization effective permissions; UI-only camera/planned-module visibility defaults to administrator because no independent grants exist. Existing server authorization is unchanged. Current grants are shared among multiple pages, and direct camera URL is not blocked by this UI change. Full independent page-grant and backend enforcement are tracked by #1526. #1525 is a source candidate; exact-head CI, actual selected-user browser acceptance and site deployment remain pending. No hardware/Modbus actions.
+
 ## 2026-11-05 — adapter disposition and onboarding work
 
 Owner confirmed CP2104 0133F090 and 0133F246 are no longer needed; reconnection is not presumed. Read-only Agent registry revision 34 still has 40 active acquisition targets on rs485-main (eight XJP60D and three LE-01MP devices) and 13 targets on rs485-embraco (one Embraco). Their instrument disposition is not confirmed. The functioning FTDI A10Q34QC bus has two active XJP60D section devices with six and two eligible targets; preserve both and their history. #1513 tracks a reversible disposition with explicit decision, rollback and separate authorization for site cutover. Agent health remains degraded for absent buses. No live configuration was changed.

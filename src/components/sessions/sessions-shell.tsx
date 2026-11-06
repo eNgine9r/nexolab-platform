@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import {
   PlatformAccountBoundary,
   PlatformAccountTopbar,
+  usePlatformAccount,
 } from "@/components/dashboard/platform-account-boundary";
 
 export function SessionsShell({ children }: { children: ReactNode }) {
@@ -15,10 +16,12 @@ export function SessionsShell({ children }: { children: ReactNode }) {
   );
 }
 function SessionsShellContent({ children }: { children: ReactNode }) {
+  const account = usePlatformAccount();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={account?.security}
         open={sidebarOpen}
         activeItem="Сесії випробувань"
         onClose={() => setSidebarOpen(false)}

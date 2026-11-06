@@ -2983,6 +2983,14 @@
       "browser_run": "42024913691_in_progress",
       "prior_failure": "42023138252_old_wizard_field_hidden_by_quick_add",
       "hardware_acceptance": "unverified"
+    },
+    "issue_1525_permission_navigation": {
+      "issue": 1525,
+      "branch": "feat/1525-permission-aware-navigation",
+      "state": "source_candidate",
+      "independent_page_grants": "unimplemented_issue_1526",
+      "site_deployed": false,
+      "runtime_user_acceptance": "pending"
     }
   },
   "observations": [
@@ -4408,7 +4416,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization.",
+  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

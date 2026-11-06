@@ -22,7 +22,7 @@ import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
 import { TemperatureVisibilityDialog } from "./temperature-visibility-dialog";
 import { SessionsPanel } from "./sessions-panel";
-import { Sidebar } from "./sidebar";
+import { canSeePlatformDestination, Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
@@ -101,9 +101,10 @@ export function DashboardShell() {
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar security={security} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
+          showAlerts={security.mode === "demo" ? true : undefined}
           title="Огляд"
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={canCreateSession}
@@ -192,36 +193,57 @@ export function DashboardShell() {
                 </Panel>
               }
               attention={
-                <Panel
-                  title={telemetry.mode === "live" ? "Потребує уваги" : "Тривоги · demo"}
-                  action={<PanelAction label="Всі тривоги" href="/alerts" />}
-                  className="min-w-0"
-                >
-                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
-                </Panel>
+                canSeePlatformDestination(security, "/alerts") ? (
+                  <Panel
+                    title={telemetry.mode === "live" ? "Потребує уваги" : "Тривоги · demo"}
+                    action={
+                      canSeePlatformDestination(security, "/alerts") ? (
+                        <PanelAction label="Всі тривоги" href="/alerts" />
+                      ) : null
+                    }
+                    className="min-w-0"
+                  >
+                    <AlarmsPanel
+                      mode={telemetry.mode}
+                      organizationId={organizationId}
+                      samples={liveSamples}
+                    />
+                  </Panel>
+                ) : null
               }
               supporting={
-                <Panel
-                  title={telemetry.mode === "live" ? "Стан інфраструктури" : "Вузли системи · demo"}
-                  action={<PanelAction label="Всі вузли" href="/nodes" />}
-                  className="min-w-0"
-                >
-                  {telemetry.mode === "live" ? (
-                    <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
-                  ) : (
-                    <NodesPanel />
-                  )}
-                </Panel>
+                canSeePlatformDestination(security, "/nodes") ? (
+                  <Panel
+                    title={telemetry.mode === "live" ? "Стан інфраструктури" : "Вузли системи · demo"}
+                    action={
+                      canSeePlatformDestination(security, "/nodes") ? (
+                        <PanelAction label="Всі вузли" href="/nodes" />
+                      ) : null
+                    }
+                    className="min-w-0"
+                  >
+                    {telemetry.mode === "live" ? (
+                      <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
+                    ) : (
+                      <NodesPanel />
+                    )}
+                  </Panel>
+                ) : null
               }
             />
 
             <OverviewSecondaryWorkspace
               cameraInventory={cameraInventory}
+              showCameras={canSeePlatformDestination(security, "/cameras")}
               cameraAction={<PanelAction label="Всі камери" href="/cameras" />}
               sessions={
                 <Panel
                   title="Активні лабораторні сесії"
-                  action={<PanelAction label="Всі сесії" href="/sessions" />}
+                  action={
+                    canSeePlatformDestination(security, "/sessions") ? (
+                      <PanelAction label="Всі сесії" href="/sessions" />
+                    ) : null
+                  }
                 >
                   <SessionsPanel organizationId={organizationId} />
                 </Panel>
@@ -229,7 +251,11 @@ export function DashboardShell() {
               layouts={
                 <Panel
                   title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
-                  action={<PanelAction label="Всі схеми" href="/equipment-layouts" />}
+                  action={
+                    canSeePlatformDestination(security, "/equipment-layouts") ? (
+                      <PanelAction label="Всі схеми" href="/equipment-layouts" />
+                    ) : null
+                  }
                 >
                   <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
                 </Panel>

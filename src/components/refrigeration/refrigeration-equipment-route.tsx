@@ -112,10 +112,12 @@ function EquipmentRouteState({
   error: string | null;
   returnHref: string | null;
 }) {
+  const account = useRefrigerationAccount();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={account?.security}
         open={sidebarOpen}
         activeItem="Холодильне обладнання"
         onClose={() => setSidebarOpen(false)}

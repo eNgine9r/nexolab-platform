@@ -757,7 +757,7 @@ test("Overview groups real catalog sensors and preserves display-only choices", 
   }
 });
 
-test("grouped navigation preserves every destination and labels planned Lockers", async ({ browser }) => {
+test("grouped navigation shows destinations allowed for the viewer", async ({ browser }) => {
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
   const mutations = observeAcquisitionMutations(page);
@@ -767,12 +767,10 @@ test("grouped navigation preserves every destination and labels planned Lockers"
     "/equipment-layouts",
     "/refrigeration",
     "/alerts",
-    "/cameras",
     "/energy",
     "/sessions",
     "/reports",
     "/nodes",
-    "/lockers",
     "/equipment",
     "/settings",
   ];
@@ -796,12 +794,12 @@ test("grouped navigation preserves every destination and labels planned Lockers"
         if (index < destinations.length - 1) await page.keyboard.press("Tab");
       }
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
-      const lockers = navigation.getByRole("link", { name: "Поштомати", exact: true });
-      await expect(lockers).toHaveAccessibleDescription("Заплановано");
-      await expect(lockers.getByText("Заплановано", { exact: true })).toBeVisible();
-      await lockers.focus();
+      await expect(navigation.getByRole("link", { name: "Поштомати", exact: true })).toHaveCount(0);
+      await expect(navigation.getByRole("link", { name: "Камери", exact: true })).toHaveCount(0);
+      const sessions = navigation.getByRole("link", { name: "Сесії випробувань", exact: true });
+      await sessions.focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/lockers$/);
+      await expect(page).toHaveURL(/\/sessions$/);
       await expect(
         page.getByTestId("platform-topbar").getByText("Viewer Acceptance", { exact: true }),
       ).toBeVisible();
@@ -811,6 +809,43 @@ test("grouped navigation preserves every destination and labels planned Lockers"
           .toBeLessThanOrEqual(0);
     }
     expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("navigation follows a restricted selected membership on mobile and desktop", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  await context.route("**/api/v1/auth/session", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    const payload = await response.json();
+    for (const membership of payload.memberships) {
+      membership.permissions = ["dashboard.read", "reports.read"];
+    }
+    await route.fulfill({ response, json: payload });
+  });
+  const page = await context.newPage();
+  try {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+      if (width < 1024) {
+        await page.getByTestId("platform-topbar").getByRole("button", { name: "Відкрити меню" }).click();
+      }
+      const navigation = page.getByRole("navigation", { name: "Головна навігація" });
+      for (const name of ["Огляд", "Сесії випробувань", "Звіти", "Налаштування"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toBeVisible();
+      }
+      for (const name of ["Live дані", "Енергомоніторинг", "Тривоги", "Вузли", "Камери", "Поштомати"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toHaveCount(0);
+      }
+      await expect(page.getByRole("link", { name: "Відкрити тривоги" })).toHaveCount(0);
+    }
   } finally {
     await context.close();
   }
