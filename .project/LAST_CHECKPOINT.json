@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-06T15:06:55.926Z",
+  "timestamp": "2026-11-06T19:52:59.892Z",
   "actor": "ChatGPT",
-  "event": "1534_source_42_browser_cases_and_ci_green_pending_final_state_ci",
+  "event": "1534_merged_1537_retry_acceptance_test_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3058,6 +3058,21 @@
       ],
       "source_completion": "verified_candidate",
       "final_documentation_ci": "pending"
+    },
+    "issue_1537_live_retry_flake": {
+      "issue": 1537,
+      "pull_request": 1538,
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "source_base_main": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+      "targeted_prettier": "PASS",
+      "targeted_eslint": "PASS",
+      "targeted_tsc": "PASS",
+      "previous_42_browser_rerun": "PASS_42240068804_attempt2",
+      "new_exact_head_ci": "pending",
+      "new_exact_head_browser": "pending",
+      "site_installed": false,
+      "hardware_write": false,
+      "modbus_write": false
     }
   },
   "observations": [
@@ -4548,6 +4563,19 @@
         "checks_green": true,
         "browser_passed": 42,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1534_merged_and_1537_test_candidate",
+      "data": {
+        "merged_issue": 1534,
+        "merge_commit": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "new_issue": 1537,
+        "new_pr": 1538,
+        "source_only": true,
+        "site_mutation": false
       }
     }
   ],
