@@ -1,6 +1,6 @@
-## 2026-11-06 — #1534 device-first Overview source candidate verification pending
+## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
 
-Source-only issue #1534 retains display-only behavior and fail-closed unknown controller identity. 28/28 targeted tests, changed-file lint, TS and formatting passed in isolated Pi workspace on exact seven source blobs. GitHub required CI, browser acceptance for authenticated 375/768/1440/1920 viewports, permissions, staging screenshots, and protected offline release/install remain unverified for this new PR. Do not merge or present as deployed until required checks complete. Active priority shifted to #1534 by Product Owner's page-by-page design instruction; #1514 / PR #1515 remains stacked on draft #1508 and preserved in review. No physical hardware evidence needed for display-only source changes; no Modbus write.
+#1534 / PR #1535 completed candidate 693d983cd280fbb453b588303d4048b67bc879fb CI #42238642725 and Authenticated Dashboard Acceptance #42238642310 GREEN (42/42). Newly adapted device-first E2E checks seven responsive widths and retains no acquisition writes. Await exact-head CI after final documentation-only state commits before merge. Permission PR #1531 has an overlapping E2E file at separate scenario lines and shared .project state; review integration on merge order. The protected Raspberry runtime has NOT been deployed. Exact matching offline package, backups/rollback, and explicit production release authorization remain required. No Modbus/hardware writes or protected data mutation.
 
 ## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
 
