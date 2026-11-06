@@ -69,7 +69,7 @@ def test_upgrade_preserves_resource_grants_and_backfills_only_existing_visibilit
         assert by_user["one"] == {
             "dashboard.read", "reports.read", "navigation.overview", "navigation.sessions",
             "navigation.equipment_layouts", "navigation.refrigeration", "navigation.equipment",
-            "navigation.reports",
+            "navigation.reports", "navigation.instrumentation",
         }
         assert by_user["two"] == {"telemetry.read", "navigation.live", "navigation.energy"}
         assert all("navigation.cameras" not in values and "navigation.lockers" not in values

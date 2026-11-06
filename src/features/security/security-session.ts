@@ -40,7 +40,8 @@ export type SecurityNavigationPermission =
   | "navigation.cameras"
   | "navigation.energy"
   | "navigation.reports"
-  | "navigation.equipment";
+  | "navigation.equipment"
+  | "navigation.instrumentation";
 
 export type SecurityEffectivePermission = SecurityPermission | SecurityNavigationPermission;
 
@@ -389,7 +390,8 @@ function isSecurityPermission(value: unknown): value is SecurityEffectivePermiss
     value === "navigation.cameras" ||
     value === "navigation.energy" ||
     value === "navigation.reports" ||
-    value === "navigation.equipment"
+    value === "navigation.equipment" ||
+    value === "navigation.instrumentation"
   );
 }
 

@@ -24,7 +24,7 @@ _NAVIGATION_PERMISSIONS = (
     "navigation.overview", "navigation.nodes", "navigation.sessions", "navigation.live",
     "navigation.equipment_layouts", "navigation.lockers", "navigation.refrigeration",
     "navigation.alerts", "navigation.cameras", "navigation.energy", "navigation.reports",
-    "navigation.equipment",
+    "navigation.equipment", "navigation.instrumentation",
 )
 _BACKFILL = (
     ("dashboard.read", "navigation.overview"),
@@ -32,6 +32,7 @@ _BACKFILL = (
     ("dashboard.read", "navigation.equipment_layouts"),
     ("dashboard.read", "navigation.refrigeration"),
     ("dashboard.read", "navigation.equipment"),
+    ("dashboard.read", "navigation.instrumentation"),
     ("nodes.read", "navigation.nodes"),
     ("telemetry.read", "navigation.live"),
     ("telemetry.read", "navigation.energy"),
