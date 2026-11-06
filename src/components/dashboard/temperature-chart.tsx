@@ -152,7 +152,12 @@ function HistoryChart({
       ) : status === "error" ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300/15 p-3 text-xs text-amber-100">
           <span>{error?.message ?? "Не вдалося завантажити історію."}</span>
-          <button type="button" onClick={onRetry} aria-label="Повторити завантаження історії" className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-amber-300/15">
+          <button
+            type="button"
+            onClick={onRetry}
+            aria-label="Повторити завантаження історії"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-amber-300/15"
+          >
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
