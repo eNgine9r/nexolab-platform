@@ -755,6 +755,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         </div>
         <div
           id="live-advanced-filter-fields"
+          hidden={!advancedFiltersOpen}
           className={
             advancedFiltersOpen
               ? "mt-3 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
