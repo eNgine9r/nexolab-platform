@@ -123,19 +123,20 @@ function HistoryChart({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-medium text-slate-200">Історія температур</p>
-          <p className="mt-0.5 text-[9px] text-slate-500">
+          <p className="text-sm font-semibold text-slate-100">Історія температур</p>
+          <p className="mt-0.5 text-xs text-slate-400">
             {samples.length} записів · {seriesCount} каналів
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl border border-white/[0.06] p-1">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-white/[0.06] p-1">
           {ranges.map((item) => (
             <button
               key={item.value}
               type="button"
               onClick={() => onRangeChange(item.value)}
-              className={`rounded-lg px-2.5 py-1.5 text-[9px] ${
-                range === item.value ? "bg-blue-600 text-white" : "text-slate-500"
+              aria-pressed={range === item.value}
+              className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium ${
+                range === item.value ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-white/[0.06]"
               }`}
             >
               {item.label}
@@ -145,18 +146,18 @@ function HistoryChart({
       </div>
 
       {status === "loading" ? (
-        <p className="mt-4 inline-flex items-center gap-2 text-[10px] text-cyan-200">
+        <p className="mt-4 inline-flex items-center gap-2 text-xs text-cyan-200">
           <LoaderCircle className="h-4 w-4 animate-spin" /> Завантаження історії…
         </p>
       ) : status === "error" ? (
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-amber-300/15 p-3 text-[10px] text-amber-100">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300/15 p-3 text-xs text-amber-100">
           <span>{error?.message ?? "Не вдалося завантажити історію."}</span>
-          <button type="button" onClick={onRetry} aria-label="Повторити завантаження історії">
+          <button type="button" onClick={onRetry} aria-label="Повторити завантаження історії" className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-amber-300/15">
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
       ) : renderedPointCount === 0 ? (
-        <p className="mt-4 text-[10px] text-slate-500">Немає валідної температурної історії.</p>
+        <p className="mt-4 text-xs text-slate-400">Немає валідної температурної історії.</p>
       ) : (
         <div className="mt-3 grid min-w-0 gap-3">
           {groups.map((group) => (
