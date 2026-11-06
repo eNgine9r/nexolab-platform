@@ -1,6 +1,10 @@
-## 2026-11-06 — #1537 Live retry flaky browser acceptance; site release unaffected
+## 2026-11-06 — #1536 Live Data UI source candidate pending exact-head browser/CI
 
-Authenticated acceptance run #42240068804 failed first attempt (41/42) after retry displayed connected status but lacked the post-retry 6.4 sample; exact same PR head passed 42/42 on retry. The pre-existing test published MQTT immediately after websocket route creation, before confirming UI connection. Isolated test-only PR #1538 waits for actual connected UI before publication and retains both new-sample assertions. Await full exact-head CI/Browser before source merge; repeated green does not prove hardware acceptance or production delivery. No instrument writes or production/site mutation. PR #1535 has been source-merged as a5e39e12; Raspberry protected runtime not updated.
+Progressive Live filtering changes are display-only and preserve existing URL filters and selection. Twelve targeted component tests, changed-file lint, TS and formatting passed against matching isolated source blobs. Full CI, 320/375/390/768/1440/1920 authenticated browser acceptance, offline/no-remote review, permission review, production build and source merge are NOT yet verified for #1536. PR #1531 continues independently on per-page grants; do not claim protected site updated. No Modbus/hardware writes.
+
+## 2026-11-06 — #1537 source-merged; ongoing production release gates
+
+#1537 / PR #1538 passed exact-head CI #42283567771 and selected authenticated browser acceptance #42283567775 (13/13) before source merge 767fa6f3b82790dba52219cc389103c6c5806797. Previously observed 41/42 intermittent test failure led to waiting for connected UI before publishing both live/retry MQTT samples; the test retains actual delivery assertions and exactly-one retry. No Raspberry protected runtime update, hardware acceptance or source-bound installer follows automatically.
 
 ## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
 
