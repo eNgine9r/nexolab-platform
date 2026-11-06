@@ -48,17 +48,19 @@ export function KpiCard({ item }: KpiCardProps) {
   const isLiveBadge = badgeTone === "live";
 
   return (
-    <article className="group relative min-w-0 overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(16,39,76,.88),rgba(8,24,49,.92))] px-3 py-2.5 transition hover:border-cyan-300/18">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${tone.bg}`}>
-          <Icon className={`h-3.5 w-3.5 ${tone.icon}`} strokeWidth={1.9} />
+    <article className="group relative min-w-0 overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(16,39,76,.88),rgba(8,24,49,.92))] px-3 py-3 transition hover:border-cyan-300/18">
+      <div className="flex min-w-0 items-start gap-2.5">
+        <div className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg ${tone.bg}`}>
+          <Icon className={`h-3.5 w-3.5 ${tone.icon}`} strokeWidth={1.9} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <p className="truncate text-[9px] font-medium text-slate-400">{item.label}</p>
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-2 gap-y-1">
+            <p className="min-w-0 text-[11px] leading-4 font-medium break-words text-slate-300">
+              {item.label}
+            </p>
             {isLiveBadge ? (
               <span
-                className="inline-flex shrink-0 items-center gap-1 text-[8px] font-medium text-emerald-300"
+                className="inline-flex shrink-0 items-center gap-1 text-[10px] leading-4 font-medium text-emerald-300"
                 aria-label="Live"
                 title="Live"
               >
@@ -67,19 +69,23 @@ export function KpiCard({ item }: KpiCardProps) {
               </span>
             ) : (
               <span
-                className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[7px] tracking-[0.1em] uppercase ${badgeStyles[badgeTone]}`}
+                className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] leading-4 font-medium uppercase ${badgeStyles[badgeTone]}`}
               >
                 {item.badge ?? "demo"}
               </span>
             )}
           </div>
-          <div className="mt-0.5 flex min-w-0 items-baseline justify-between gap-2">
-            <p className="truncate text-base font-semibold tracking-tight text-slate-50 xl:text-lg">
-              {item.value}
+          <p className="mt-1 text-lg leading-6 font-semibold tracking-tight break-words text-slate-50 tabular-nums xl:text-xl">
+            {item.value}
+          </p>
+          {item.detail ? (
+            <p className={`mt-0.5 text-[11px] leading-4 font-medium break-words ${tone.icon}`}>
+              {item.detail}
             </p>
-            <p className={`truncate text-right text-[8px] font-medium ${tone.icon}`}>{item.detail}</p>
-          </div>
-          <p className="mt-0.5 truncate text-[7px] text-slate-600">{item.trend}</p>
+          ) : null}
+          {item.trend ? (
+            <p className="mt-1 text-[11px] leading-4 break-words text-slate-400">{item.trend}</p>
+          ) : null}
         </div>
       </div>
     </article>

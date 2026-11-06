@@ -1,3 +1,7 @@
+## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
+
+PR #1533 source candidate dd660a49... passed exact-head CI #42233327149 and 42/42 authenticated browser cases #42233327115 (Overview responsive at 360/1440/1920; shared header at 320/375/768/1280; no acquisition writes). Captured browser evidence artifact 13510498719. No independent manual visual pixel review was recorded, but required automated browser/API and build checks have succeeded. The open stacked permission PRs #1529/#1531 share four .project state files but not the three modified dashboard UI components; reconcile state changes if their merge order changes. Runtime/offline installation and backup/rollback, exact accepted package, protected Pi release, and explicit production/site authorization remain separate blockers. No hardware or Modbus write.
+
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
 Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.
