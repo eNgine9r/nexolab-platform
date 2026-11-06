@@ -65,7 +65,9 @@ export function LiveInventoryPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="min-w-0 text-xs font-semibold break-all text-white">{node.nodeId}</p>
-                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] leading-4 font-medium ${stateClasses[node.state]}`}>
+                  <span
+                    className={`shrink-0 rounded-full border px-2 py-1 text-[11px] leading-4 font-medium ${stateClasses[node.state]}`}
+                  >
                     {stateLabels[node.state]}
                   </span>
                 </div>
@@ -79,7 +81,9 @@ export function LiveInventoryPanel({
                   </span>
                   <span
                     className={
-                      node.issueCount > 0 ? "inline-flex items-center gap-1 text-amber-300" : "inline-flex items-center gap-1 text-slate-400"
+                      node.issueCount > 0
+                        ? "inline-flex items-center gap-1 text-amber-300"
+                        : "inline-flex items-center gap-1 text-slate-400"
                     }
                   >
                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> {node.issueCount} проблем
@@ -110,7 +114,9 @@ export function LiveInventoryPanel({
               </div>
               <span
                 className={
-                  equipment.issueCount > 0 ? "text-[11px] font-medium text-amber-300" : "text-[11px] font-medium text-emerald-300"
+                  equipment.issueCount > 0
+                    ? "text-[11px] font-medium text-amber-300"
+                    : "text-[11px] font-medium text-emerald-300"
                 }
               >
                 {equipment.issueCount > 0
