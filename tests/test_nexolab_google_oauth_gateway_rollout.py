@@ -8,6 +8,7 @@ import fcntl
 import os
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -23,11 +24,11 @@ class GatewayRolloutTests(unittest.TestCase):
     old = b"owner@example.test\n"
     additions = b"a@example.test\nb@example.test\nc@example.test\nd@example.test\ne@example.test\n"
 
-    def test_activation_is_disabled_before_any_site_access(self) -> None:
+    def test_activation_without_approved_file_stops_before_any_site_access(self) -> None:
         with (patch.object(MODULE.os, "geteuid", return_value=0),
-              patch.object(sys, "argv", ["rollout", "--additions-file", "/missing", "--execute"]),
+              patch.object(sys, "argv", ["rollout", "--execute"]),
               patch.object(MODULE, "read_regular", side_effect=AssertionError("site access attempted"))):
-            with self.assertRaisesRegex(MODULE.GuardError, "activation disabled"):
+            with self.assertRaisesRegex(MODULE.GuardError, "approved additions file is required"):
                 MODULE.main()
 
     def test_exact_six_preserves_owner(self) -> None:
@@ -51,6 +52,13 @@ class GatewayRolloutTests(unittest.TestCase):
             (base / "link").symlink_to(base / "actual")
             with self.assertRaises(OSError):
                 MODULE.read_regular(base / "link")
+
+    def test_unexpected_running_process_is_not_accepted(self) -> None:
+        with (patch.object(MODULE, "run_systemctl", return_value=SimpleNamespace(returncode=0, stdout="123\n")),
+              patch.object(MODULE.os.path, "samefile", return_value=False),
+              patch.object(MODULE.http.client, "HTTPConnection", side_effect=AssertionError("unexpected probe"))):
+            with self.assertRaisesRegex(MODULE.GuardError, "expected proxy binary"):
+                MODULE.verify_service()
 
     def test_deployment_locks_must_both_exist_and_are_not_replaced(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -188,6 +196,30 @@ class GatewayRolloutTests(unittest.TestCase):
             self.assertEqual(launcher.read_bytes(), b"unrelated launcher")
             self.assertEqual(allowlist.read_bytes(), self.old)
 
+    def test_interrupted_update_can_be_recovered_from_saved_private_backup(self) -> None:
+        previous, candidate = b"original launcher", b"candidate launcher"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            private = root / "private"
+            private.mkdir(mode=0o700)
+            launcher, allowlist = root / "launcher", root / "allowlist"
+            launcher.write_bytes(previous)
+            allowlist.write_bytes(self.old)
+            backup = MODULE.protected_backup(private, previous, self.old, self.old + self.additions)
+            with self.assertRaises(KeyboardInterrupt):
+                MODULE.transact(
+                    launcher, allowlist, candidate, self.old + self.additions, previous, self.old,
+                    lambda: (_ for _ in ()).throw(KeyboardInterrupt()),
+                )
+            self.assertEqual((launcher.read_bytes(), allowlist.read_bytes()), (candidate, self.old + self.additions))
+            restarts = []
+            MODULE.recover_from_backup(
+                launcher, allowlist, backup, hashlib.sha256(previous).hexdigest(),
+                hashlib.sha256(candidate).hexdigest(), lambda: restarts.append(True),
+            )
+            self.assertEqual((launcher.read_bytes(), allowlist.read_bytes()), (previous, self.old))
+            self.assertEqual(restarts, [True])
+
     def test_existing_backup_files_are_never_overwritten(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             backup = Path(temp) / "backup"
@@ -196,6 +228,71 @@ class GatewayRolloutTests(unittest.TestCase):
             with self.assertRaises(MODULE.GuardError):
                 MODULE.save_backup(backup, b"new", self.old, self.old + self.additions)
             self.assertEqual((backup / "launcher").read_bytes(), b"preserve")
+
+    def test_protected_backup_is_private_and_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp) / "private"
+            parent.mkdir(mode=0o700)
+            backup = MODULE.protected_backup(parent, b"original", self.old, self.old + self.additions)
+            self.assertEqual(backup.stat().st_mode & 0o777, 0o700)
+            for name in ("launcher", "allowlist", "proposed-list"):
+                self.assertEqual((backup / name).stat().st_mode & 0o777, 0o600)
+            self.assertEqual((backup / "launcher").read_bytes(), b"original")
+
+    def test_backup_refuses_world_readable_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp) / "unsafe"
+            parent.mkdir(mode=0o755)
+            os.chmod(parent, 0o755)
+            with self.assertRaises(MODULE.GuardError):
+                MODULE.protected_backup(parent, b"original", self.old, self.old + self.additions)
+            self.assertEqual(list(parent.iterdir()), [])
+
+    def test_full_fixture_activation_saves_backup_before_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backup_parent = root / "private"
+            backup_parent.mkdir(mode=0o700)
+            launcher, allowlist = root / "launcher", root / "allowlist"
+            launcher.write_bytes(b"old")
+            allowlist.write_bytes(self.old)
+            launcher.chmod(0o755)
+            allowlist.chmod(0o600)
+            restarted = []
+            backup = MODULE.activate_with_backup(
+                launcher, allowlist, backup_parent, b"new", self.old + self.additions,
+                b"old", self.old, lambda: restarted.append(True),
+            )
+            self.assertEqual((backup / "launcher").read_bytes(), b"old")
+            self.assertEqual((backup / "allowlist").read_bytes(), self.old)
+            self.assertEqual((launcher.read_bytes(), allowlist.read_bytes()), (b"new", self.old + self.additions))
+            self.assertEqual(restarted, [True])
+
+    def test_file_change_after_backup_aborts_without_restart_or_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            backup_parent = root / "private"
+            backup_parent.mkdir(mode=0o700)
+            launcher, allowlist = root / "launcher", root / "allowlist"
+            launcher.write_bytes(b"old")
+            allowlist.write_bytes(self.old)
+            launcher.chmod(0o755)
+            allowlist.chmod(0o600)
+            save = MODULE.protected_backup
+
+            def mutate_after_backup(*args):
+                backup = save(*args)
+                launcher.write_bytes(b"other update")
+                return backup
+
+            with patch.object(MODULE, "protected_backup", side_effect=mutate_after_backup):
+                with self.assertRaisesRegex(MODULE.GuardError, "site files changed"):
+                    MODULE.activate_with_backup(
+                        launcher, allowlist, backup_parent, b"new", self.old + self.additions,
+                        b"old", self.old, lambda: self.fail("unexpected restart"),
+                    )
+            self.assertEqual(launcher.read_bytes(), b"other update")
+            self.assertEqual(allowlist.read_bytes(), self.old)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Draft read-only gateway preflight with isolated transaction prototypes.
+"""Guarded owner-operated gateway update; never log identities or credentials.
 
-Production activation is disabled until deployment-lock and crash-recovery
-contracts are independently reviewed and verified. Never log identities or
-credentials. The prototype transaction must only be exercised in fixtures.
+Default mode only checks readiness. --execute is a separate explicit action.
+Protected backups support recovery after process or power interruption.
 """
 from __future__ import annotations
 
@@ -28,6 +27,8 @@ LAUNCHER = Path("/opt/nexolab-external/bin/launch-google-oauth.py")
 ALLOWLIST = Path("/etc/nexolab-external/allowed-emails.txt")
 CANDIDATE = Path("/home/nexolab/commander-workspaces/nexolab-platform/nexolab-1523-launcher-candidate.py")
 ROOT = Path("/var/lib/nexolab/version-management")
+BACKUP_PARENT = Path("/etc/nexolab-external")
+PROXY_BINARY = Path("/opt/nexolab-external/bin/oauth2-proxy")
 EMAIL = re.compile(rb"[a-z0-9_.+%-]+@[a-z0-9.-]+\.[a-z]{2,}\Z")
 DEPLOYMENT_LOCKS = (
     Path("/tmp/nexolab-current-head-launch.lock"),
@@ -91,7 +92,7 @@ def verify_version_plane(root: Path) -> None:
 
 
 def acquire_existing_deployment_locks(stack: contextlib.ExitStack, paths: tuple[Path, ...]) -> None:
-    """Fixture-ready lock guard; never creates or replaces shared lock files."""
+    """Lock both known deployment contexts, never creating shared lock files."""
     if len(paths) != 2 or paths[0] == paths[1]:
         raise GuardError("both distinct deployment lock paths must be verified")
     identities = set()
@@ -186,6 +187,8 @@ def verify_service() -> None:
     pid = run_systemctl("show", UNIT, "-p", "MainPID", "--value")
     if state.returncode or pid.returncode or not pid.stdout.strip().isdigit():
         raise GuardError("gateway service is not active")
+    if not os.path.samefile(Path("/proc", pid.stdout.strip(), "exe"), PROXY_BINARY):
+        raise GuardError("gateway process is not the expected proxy binary")
     args = Path("/proc", pid.stdout.strip(), "cmdline").read_bytes().split(b"\0")
     option = b"--authenticated-emails-file"
     if option not in args:
@@ -232,22 +235,50 @@ def transact(launcher: Path, allowlist: Path, candidate: bytes, new_list: bytes,
         try:
             atomic_write(allowlist, old_list, 0o600)
             atomic_write(launcher, old_launcher, 0o755)
+            if read_regular(launcher) != old_launcher or read_regular(allowlist) != old_list:
+                raise GuardError("rollback file readback mismatch")
             restart()
         except Exception:
             raise GuardError("activation and automatic rollback failed; use protected backup") from None
         raise GuardError("activation failed; previous files and gateway restored") from error
 
 
+def protected_backup(parent: Path, old_launcher: bytes, old_list: bytes, new_list: bytes) -> Path:
+    info = parent.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+        raise GuardError("backup parent is unsafe")
+    backup = Path(tempfile.mkdtemp(prefix="gateway-1523-", dir=parent))
+    save_backup(backup, old_launcher, old_list, new_list)
+    return backup
+
+
+def activate_with_backup(launcher: Path, allowlist: Path, backup_parent: Path,
+                         candidate: bytes, new_list: bytes, old_launcher: bytes,
+                         old_list: bytes, restart) -> Path:
+    backup = protected_backup(backup_parent, old_launcher, old_list, new_list)
+    print(f"BACKUP_READY={backup}", flush=True)
+    if (read_regular(launcher, uid=os.geteuid(), mode=0o755) != old_launcher
+            or read_regular(allowlist, uid=os.geteuid(), mode=0o600) != old_list):
+        raise GuardError("site files changed during preflight")
+    transact(launcher, allowlist, candidate, new_list, old_launcher, old_list, restart)
+    return backup
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--additions-file", type=Path, required=True)
-    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--additions-file", type=Path)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--execute", action="store_true")
+    mode.add_argument("--recover", type=Path)
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise GuardError("root is required")
-    if args.execute:
-        raise GuardError("activation disabled pending canonical deployment-lock and crash-recovery review")
+    if not args.recover and not args.additions_file:
+        raise GuardError("private approved additions file is required")
+    if args.recover and args.additions_file:
+        raise GuardError("recovery cannot accept new identities")
     with contextlib.ExitStack() as stack:
+        acquire_existing_deployment_locks(stack, DEPLOYMENT_LOCKS)
         for name in ("worker.lock", "queue.lock", "update-plane.lock"):
             fd = os.open(ROOT / name, os.O_RDWR | os.O_NOFOLLOW)
             stack.callback(os.close, fd)
@@ -259,6 +290,24 @@ def main() -> int:
             if (named.st_dev, named.st_ino) != (info.st_dev, info.st_ino):
                 raise GuardError("canonical lock identity changed")
         verify_version_plane(ROOT)
+        definition = run_systemctl("cat", UNIT)
+        active_start = run_systemctl("show", UNIT, "-p", "ExecStart", "--value")
+        required = "LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt"
+        if definition.returncode or required not in definition.stdout.splitlines():
+            raise GuardError("unit credential source not confirmed")
+        if active_start.returncode or str(LAUNCHER) not in active_start.stdout or "--run" not in active_start.stdout:
+            raise GuardError("unit does not start the expected launcher")
+        if args.recover:
+            if args.recover.parent != BACKUP_PARENT or not args.recover.name.startswith("gateway-1523-"):
+                raise GuardError("recovery path is outside the protected backup directory")
+            parent = BACKUP_PARENT.lstat()
+            if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != 0 or parent.st_mode & 0o077:
+                raise GuardError("backup parent is unsafe")
+            read_regular(LAUNCHER, uid=0, mode=0o755)
+            read_regular(ALLOWLIST, uid=0, mode=0o600)
+            recover_from_backup(LAUNCHER, ALLOWLIST, args.recover, OLD_SHA, NEW_SHA, restart_and_verify)
+            print("RECOVERY_PASS: original files restored; actual owner login remains to be verified")
+            return 0
         old_launcher = read_regular(LAUNCHER, uid=0, mode=0o755)
         old_list = read_regular(ALLOWLIST, uid=0, mode=0o600)
         candidate = read_regular(CANDIDATE)
@@ -267,13 +316,14 @@ def main() -> int:
             raise GuardError("installed launcher does not match baseline")
         if hashlib.sha256(candidate).hexdigest() != NEW_SHA:
             raise GuardError("candidate launcher checksum mismatch")
-        validate_identities(old_list, additions)
-        definition = run_systemctl("cat", UNIT)
-        required = "LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt"
-        if definition.returncode or required not in definition.stdout.splitlines():
-            raise GuardError("unit credential source not confirmed")
+        new_list = validate_identities(old_list, additions)
         verify_service()
-        print("PREFLIGHT_PASS: gateway and six named identities verified; no changes made")
+        if not args.execute:
+            print("PREFLIGHT_PASS: gateway and six named identities verified; no changes made")
+            return 0
+        activate_with_backup(LAUNCHER, ALLOWLIST, BACKUP_PARENT, candidate, new_list,
+                             old_launcher, old_list, restart_and_verify)
+        print("GATEWAY_UPDATED: anonymous denial verified; actual user logins remain to be verified")
         return 0
 
 
