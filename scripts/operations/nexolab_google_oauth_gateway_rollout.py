@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""Draft read-only gateway preflight with isolated transaction prototypes.
+
+Production activation is disabled until deployment-lock and crash-recovery
+contracts are independently reviewed and verified. Never log identities or
+credentials. The prototype transaction must only be exercised in fixtures.
+"""
+from __future__ import annotations
+
+import argparse
+import contextlib
+import fcntl
+import hashlib
+import http.client
+import json
+import os
+import re
+import stat
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+
+OLD_SHA = "ff1ddd7f96a67790f897f0c2a1450e864fd4a918c13e2fa66d8dbeb4682f0a1d"
+NEW_SHA = "1856f7622531f7b0f5e12d56815717f5bdaf1a49d5f69d952704bd30f6de6794"
+UNIT = "nexolab-google-oauth-stage.service"
+LAUNCHER = Path("/opt/nexolab-external/bin/launch-google-oauth.py")
+ALLOWLIST = Path("/etc/nexolab-external/allowed-emails.txt")
+CANDIDATE = Path("/home/nexolab/commander-workspaces/nexolab-platform/nexolab-1523-launcher-candidate.py")
+ROOT = Path("/var/lib/nexolab/version-management")
+EMAIL = re.compile(rb"[a-z0-9_.+%-]+@[a-z0-9.-]+\.[a-z]{2,}\Z")
+
+
+class GuardError(Exception):
+    pass
+
+
+def read_regular(path: Path, *, uid: int | tuple[int, ...] | None = None, mode: int | None = None) -> bytes:
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(fd)
+        permitted = (uid,) if isinstance(uid, int) else uid
+        if not stat.S_ISREG(info.st_mode) or (permitted is not None and info.st_uid not in permitted):
+            raise GuardError("file type or owner rejected")
+        if mode is not None and stat.S_IMODE(info.st_mode) != mode:
+            raise GuardError("file mode rejected")
+        if info.st_size > 100_000:
+            raise GuardError("file exceeds size limit")
+        with os.fdopen(fd, "rb", closefd=False) as handle:
+            return handle.read(100_001)
+    finally:
+        os.close(fd)
+
+
+def validate_identities(current: bytes, additions: bytes) -> bytes:
+    old, extra = current.splitlines(), additions.splitlines()
+    values = old + extra
+    if (
+        len(old) != 1 or len(extra) != 5 or len(set(values)) != 6
+        or any(len(value) > 254 or not EMAIL.fullmatch(value) for value in values)
+    ):
+        raise GuardError("expected one existing and five distinct named identities")
+    return b"\n".join(values) + b"\n"
+
+
+def verify_version_plane(root: Path) -> None:
+    info = root.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid not in (0, 10001) or info.st_mode & 0o022:
+        raise GuardError("version authority directory is unsafe")
+    current = json.loads(read_regular(root / "current.json", uid=(0, 10001)))
+    if not isinstance(current, dict) or current.get("runtime_state_known") is not True or current.get("health") != "ready":
+        raise GuardError("version authority is not ready")
+    for name in ("requests", "update-check-requests", "operations"):
+        directory = root / name
+        try:
+            metadata = directory.lstat()
+        except FileNotFoundError:
+            continue
+        if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid not in (0, 10001) or metadata.st_mode & 0o022:
+            raise GuardError("version queue directory is unsafe")
+        if name != "operations" and any(directory.glob("*.json")):
+            raise GuardError("version operation is queued")
+    for path in (root / "operations").glob("*.json"):
+        operation = json.loads(read_regular(path, uid=(0, 10001)))
+        if not isinstance(operation, dict) or operation.get("status") in {"queued", "running"}:
+            raise GuardError("version operation is active or malformed")
+
+
+def atomic_write(path: Path, data: bytes, mode: int) -> None:
+    fd, temp = tempfile.mkstemp(prefix=".nexolab-oauth-", dir=path.parent)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        Path(temp).unlink(missing_ok=True)
+
+
+def run_systemctl(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["/usr/bin/systemctl", *args], capture_output=True, text=True,
+        check=False, timeout=30,
+    )
+
+
+def verify_service() -> None:
+    state = run_systemctl("is-active", "--quiet", UNIT)
+    pid = run_systemctl("show", UNIT, "-p", "MainPID", "--value")
+    if state.returncode or pid.returncode or not pid.stdout.strip().isdigit():
+        raise GuardError("gateway service is not active")
+    args = Path("/proc", pid.stdout.strip(), "cmdline").read_bytes().split(b"\0")
+    option = b"--authenticated-emails-file"
+    if option not in args:
+        raise GuardError("gateway credential argument missing")
+    index = args.index(option)
+    if index + 1 >= len(args) or args[index + 1] != (
+        b"/run/credentials/" + UNIT.encode("ascii") + b"/allowed-emails.txt"
+    ):
+        raise GuardError("gateway is not using the expected systemd credential")
+    connection = http.client.HTTPConnection("127.0.0.1", 4180, timeout=5)
+    try:
+        connection.request("GET", "/oauth2/auth")
+        response = connection.getresponse()
+        response.read()
+        if response.status != 401:
+            raise GuardError("anonymous gateway request was not denied")
+    finally:
+        connection.close()
+
+
+def restart_and_verify() -> None:
+    if run_systemctl("restart", UNIT).returncode:
+        raise GuardError("gateway restart failed")
+    for attempt in range(20):
+        try:
+            verify_service()
+            return
+        except (GuardError, OSError, http.client.HTTPException):
+            if attempt == 19:
+                raise GuardError("gateway did not pass post-restart checks") from None
+            time.sleep(0.5)
+
+
+def transact(launcher: Path, allowlist: Path, candidate: bytes, new_list: bytes,
+             old_launcher: bytes, old_list: bytes, restart) -> None:
+    """Never expose a new list to the old launcher; reverse order on rollback."""
+    try:
+        atomic_write(launcher, candidate, 0o755)
+        atomic_write(allowlist, new_list, 0o600)
+        if read_regular(launcher) != candidate or read_regular(allowlist) != new_list:
+            raise GuardError("installed file readback mismatch")
+        restart()
+    except Exception as error:
+        try:
+            atomic_write(allowlist, old_list, 0o600)
+            atomic_write(launcher, old_launcher, 0o755)
+            restart()
+        except Exception:
+            raise GuardError("activation and automatic rollback failed; use protected backup") from None
+        raise GuardError("activation failed; previous files and gateway restored") from error
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--additions-file", type=Path, required=True)
+    parser.add_argument("--execute", action="store_true")
+    args = parser.parse_args()
+    if os.geteuid() != 0:
+        raise GuardError("root is required")
+    if args.execute:
+        raise GuardError("activation disabled pending canonical deployment-lock and crash-recovery review")
+    with contextlib.ExitStack() as stack:
+        for name in ("worker.lock", "queue.lock", "update-plane.lock"):
+            fd = os.open(ROOT / name, os.O_RDWR | os.O_NOFOLLOW)
+            stack.callback(os.close, fd)
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid not in (0, 10001) or info.st_nlink != 1 or info.st_mode & 0o022:
+                raise GuardError("canonical lock is unsafe")
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            named = (ROOT / name).lstat()
+            if (named.st_dev, named.st_ino) != (info.st_dev, info.st_ino):
+                raise GuardError("canonical lock identity changed")
+        verify_version_plane(ROOT)
+        old_launcher = read_regular(LAUNCHER, uid=0, mode=0o755)
+        old_list = read_regular(ALLOWLIST, uid=0, mode=0o600)
+        candidate = read_regular(CANDIDATE)
+        additions = read_regular(args.additions_file, uid=0, mode=0o600)
+        if hashlib.sha256(old_launcher).hexdigest() != OLD_SHA:
+            raise GuardError("installed launcher does not match baseline")
+        if hashlib.sha256(candidate).hexdigest() != NEW_SHA:
+            raise GuardError("candidate launcher checksum mismatch")
+        validate_identities(old_list, additions)
+        definition = run_systemctl("cat", UNIT)
+        required = "LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt"
+        if definition.returncode or required not in definition.stdout.splitlines():
+            raise GuardError("unit credential source not confirmed")
+        verify_service()
+        print("PREFLIGHT_PASS: gateway and six named identities verified; no changes made")
+        return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (GuardError, OSError, ValueError, subprocess.SubprocessError) as exc:
+        print(f"STOP: {type(exc).__name__}: {exc if isinstance(exc, GuardError) else 'system preflight failed'}")
+        raise SystemExit(1)
