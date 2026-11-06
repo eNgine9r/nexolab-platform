@@ -259,7 +259,9 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
     await expect(nodeFilter).toBeHidden();
     const socketCountBeforeToggle = runtime.sockets.opened;
-    const historyCountBeforeToggle = runtime.telemetry.filter((request) => request.url.includes("/history")).length;
+    const historyCountBeforeToggle = runtime.telemetry.filter((request) =>
+      request.url.includes("/history"),
+    ).length;
     await advancedFilters.focus();
     await page.keyboard.press("Enter");
     await expect(advancedFilters).toHaveAttribute("aria-expanded", "true");
