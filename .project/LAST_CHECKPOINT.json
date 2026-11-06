@@ -3003,6 +3003,16 @@
       "downgrade": "refused_when_navigation_grants_exist",
       "migration_head_test": "corrected_fresh_ci_pending",
       "security_blocker": "issue_1447_expired_exceptions_and_new_candidate_scan_findings"
+    },
+    "issue_1530_page_visibility": {
+      "issue": 1530,
+      "branch": "feat/1530-per-page-navigation",
+      "state": "source_candidate",
+      "stacked_on": 1528,
+      "site_deployed": false,
+      "resource_authorization": "existing_independent_server_rules",
+      "exact_head_ci": "pending",
+      "security_blocker": 1447
     }
   },
   "observations": [
@@ -4428,7 +4438,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants. Complete #1528 PostgreSQL/CI evidence and implement #1526 page-grant UI and resource boundaries before any site update.",
+  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants. Complete #1528 PostgreSQL/CI evidence and implement #1526 page-grant UI and resource boundaries before any site update. Complete #1530 stacked UI/browser acceptance and reconcile #1447 security scans; verify recovery and actual site access before owner-approved update.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

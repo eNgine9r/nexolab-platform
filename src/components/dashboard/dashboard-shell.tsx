@@ -237,28 +237,32 @@ export function DashboardShell() {
               showCameras={canSeePlatformDestination(security, "/cameras")}
               cameraAction={<PanelAction label="Всі камери" href="/cameras" />}
               sessions={
-                <Panel
-                  title="Активні лабораторні сесії"
-                  action={
-                    canSeePlatformDestination(security, "/sessions") ? (
-                      <PanelAction label="Всі сесії" href="/sessions" />
-                    ) : null
-                  }
-                >
-                  <SessionsPanel organizationId={organizationId} />
-                </Panel>
+                canSeePlatformDestination(security, "/sessions") ? (
+                  <Panel
+                    title="Активні лабораторні сесії"
+                    action={
+                      canSeePlatformDestination(security, "/sessions") ? (
+                        <PanelAction label="Всі сесії" href="/sessions" />
+                      ) : null
+                    }
+                  >
+                    <SessionsPanel organizationId={organizationId} />
+                  </Panel>
+                ) : null
               }
               layouts={
-                <Panel
-                  title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
-                  action={
-                    canSeePlatformDestination(security, "/equipment-layouts") ? (
-                      <PanelAction label="Всі схеми" href="/equipment-layouts" />
-                    ) : null
-                  }
-                >
-                  <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
-                </Panel>
+                canSeePlatformDestination(security, "/equipment-layouts") ? (
+                  <Panel
+                    title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
+                    action={
+                      canSeePlatformDestination(security, "/equipment-layouts") ? (
+                        <PanelAction label="Всі схеми" href="/equipment-layouts" />
+                      ) : null
+                    }
+                  >
+                    <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
+                  </Panel>
+                ) : null
               }
             />
           </div>

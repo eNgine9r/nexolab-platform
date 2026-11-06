@@ -9823,6 +9823,22 @@
         "migration_head_test": "corrected_fresh_ci_pending",
         "security_blocker": "issue_1447_expired_exceptions_and_new_candidate_scan_findings"
       }
+    },
+    {
+      "issue": 1530,
+      "title": "Apply individually granted page visibility across interface",
+      "branch": "feat/1530-per-page-navigation",
+      "lifecycle": "review",
+      "depends_on": [
+        1528
+      ],
+      "evidence": {
+        "stacked_on": "issue_1528",
+        "site_deployed": false,
+        "page_boundary": "ui_only",
+        "exact_head_ci": "pending",
+        "security_blocker": "issue_1447"
+      }
     }
   ],
   "maintenance_actions": [

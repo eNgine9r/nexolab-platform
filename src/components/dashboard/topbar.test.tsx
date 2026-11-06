@@ -81,7 +81,10 @@ describe("Topbar operator actions", () => {
   });
 
   it("shows the alerts link only when the selected membership grants alerts.read", () => {
-    const allowed = { ...session.memberships[0], permissions: ["alerts.read" as const] };
+    const allowed = {
+      ...session.memberships[0],
+      permissions: ["alerts.read" as const, "navigation.alerts" as const],
+    };
     const allowedSession = { ...session, memberships: [allowed, session.memberships[1]] };
     const { rerender } = render(
       <Topbar

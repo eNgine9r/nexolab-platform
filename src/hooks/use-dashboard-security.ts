@@ -8,6 +8,7 @@ import { createRuntimeCredentialProvider, signOut as signOutRuntime } from "@/fe
 import {
   createAuthenticatedFetch,
   getSecurityCredentials,
+  notifySecurityCredentialsUpdated,
   HttpSecuritySessionClient,
   SECURITY_CREDENTIALS_INVALIDATED_EVENT,
   SECURITY_CREDENTIALS_UPDATED_EVENT,
@@ -317,6 +318,8 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       setMembership(selected);
       clearFailure();
       setState("ready");
+      // Other mounted security boundaries must stop using the previous organization.
+      notifySecurityCredentialsUpdated();
     },
     [clearFailure, session],
   );

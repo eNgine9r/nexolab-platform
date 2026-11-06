@@ -1,3 +1,7 @@
+## 2026-11-06 — #1530 requires stacked review and site proof
+
+Page visibility candidate is not deployed or merged. Require exact-head browser and auth CI, security remediation #1447, coordinated #1528 migration, verified protected restore and actual Raspberry acceptance. Direct page gating is UI-only and does not separate shared API resource permissions.
+
 ## 2026-11-06 — #1528 CI blocked by security policy (#1447)
 
 Candidate cd539ef: 48 existing vulnerability exceptions expired; fresh source-bound amd64 image scan reports 5 CRITICAL and 83 HIGH tuples. No exception was extended. The report does not establish installed ARM64 exposure. #1447 requires remediation and a fresh policy evaluation. The obsolete hardcoded telemetry migration-head assertion has been corrected, but requires fresh CI. Page grants remain source-only and navigation wiring is not implemented.

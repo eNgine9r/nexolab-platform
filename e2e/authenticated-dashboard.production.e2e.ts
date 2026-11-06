@@ -824,7 +824,12 @@ test("navigation follows a restricted selected membership on mobile and desktop"
     const response = await route.fetch();
     const payload = await response.json();
     for (const membership of payload.memberships) {
-      membership.permissions = ["dashboard.read", "reports.read"];
+      membership.permissions = [
+        "dashboard.read",
+        "reports.read",
+        "navigation.overview",
+        "navigation.reports",
+      ];
     }
     await route.fulfill({ response, json: payload });
   });
@@ -838,13 +843,23 @@ test("navigation follows a restricted selected membership on mobile and desktop"
         await page.getByTestId("platform-topbar").getByRole("button", { name: "Відкрити меню" }).click();
       }
       const navigation = page.getByRole("navigation", { name: "Головна навігація" });
-      for (const name of ["Огляд", "Сесії випробувань", "Звіти", "Налаштування"]) {
+      for (const name of ["Огляд", "Звіти", "Налаштування"]) {
         await expect(navigation.getByRole("link", { name, exact: true })).toBeVisible();
       }
-      for (const name of ["Live дані", "Енергомоніторинг", "Тривоги", "Вузли", "Камери", "Поштомати"]) {
+      for (const name of [
+        "Сесії випробувань",
+        "Live дані",
+        "Енергомоніторинг",
+        "Тривоги",
+        "Вузли",
+        "Камери",
+        "Поштомати",
+      ]) {
         await expect(navigation.getByRole("link", { name, exact: true })).toHaveCount(0);
       }
       await expect(page.getByRole("link", { name: "Відкрити тривоги" })).toHaveCount(0);
+      await page.goto("/sessions", { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Доступ до сторінки не надано" })).toBeVisible();
     }
   } finally {
     await context.close();

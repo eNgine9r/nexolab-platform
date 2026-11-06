@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import { RouteAccessBoundary } from "@/components/dashboard/route-access-boundary";
 import { TelemetryStateProvider } from "@/components/providers/telemetry-state-provider";
 
 import "./globals.css";
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="uk" className="h-full antialiased">
       <body className="min-h-full bg-[#06142a] font-sans">
-        <TelemetryStateProvider>{children}</TelemetryStateProvider>
+        <TelemetryStateProvider>
+          <RouteAccessBoundary>{children}</RouteAccessBoundary>
+        </TelemetryStateProvider>
       </body>
     </html>
   );

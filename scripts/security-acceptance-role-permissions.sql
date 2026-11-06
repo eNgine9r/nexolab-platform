@@ -74,3 +74,22 @@ JOIN (
 ) AS grants(role, permission)
   ON grants.role = roles.role
 ON CONFLICT (membership_id, permission) DO NOTHING;
+
+-- Test-only: emulate the #1528 migration for memberships that the acceptance
+-- harness creates after migrations. Production account creation remains explicit.
+INSERT INTO security_membership_permissions (membership_id, permission, assigned_by)
+SELECT source.membership_id, mapping.navigation, 'acceptance-navigation-compatibility'
+FROM security_membership_permissions AS source
+JOIN (VALUES
+  ('dashboard.read', 'navigation.overview'),
+  ('dashboard.read', 'navigation.sessions'),
+  ('dashboard.read', 'navigation.equipment_layouts'),
+  ('dashboard.read', 'navigation.refrigeration'),
+  ('dashboard.read', 'navigation.equipment'),
+  ('nodes.read', 'navigation.nodes'),
+  ('telemetry.read', 'navigation.live'),
+  ('telemetry.read', 'navigation.energy'),
+  ('alerts.read', 'navigation.alerts'),
+  ('reports.read', 'navigation.reports')
+) AS mapping(resource, navigation) ON source.permission = mapping.resource
+ON CONFLICT (membership_id, permission) DO NOTHING;

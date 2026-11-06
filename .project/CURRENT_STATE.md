@@ -1,3 +1,7 @@
+## 2026-11-06 — #1530 page-visibility source candidate
+
+Stacked on #1528. Selected-organization page grants gate sidebar, topbar, overview panels and direct nested routes before page mounting. Login and Telegram Mini App remain outside this gate; organization changes invalidate peer security boundaries. CI fixtures seed migration-equivalent grants only in isolated acceptance databases. Server resource enforcement remains independent. No site deployment; complete browser CI, protected recovery and #1447 security gate remain pending.
+
 ## 2026-11-06 — page-grant CI and independent security blocker
 
 PR #1529 head cd539ef: Offline Auth Acceptance and PostgreSQL migration evidence passed. Telemetry service found one stale hardcoded schema-head assertion (837 other tests passed); its test now resolves the actual Alembic head and requires a fresh CI run. Container Supply Chain failed because 48 existing exception entries expired. Verified scan artifacts for the exact candidate amd64 builds report 5 CRITICAL and 83 HIGH image/package/CVE tuples; these are not evidence of the installed ARM64 site. Remediation is tracked in #1447. Navigation wiring #1530, separate resource enforcement, GREEN CI, verified recovery and separately approved site cutover remain outstanding.

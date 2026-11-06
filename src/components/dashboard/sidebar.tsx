@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { BrandLogo } from "./brand-logo";
-import type { SecurityPermission } from "@/features/security/security-session";
+import type { SecurityEffectivePermission, SecurityPermission } from "@/features/security/security-session";
 import type { DashboardSecurityModel } from "@/hooks/use-dashboard-security";
 
 type NavItem = {
@@ -67,7 +67,6 @@ export const platformNavItems: readonly NavItem[] = [
     href: "/lockers",
     group: "administration",
     planned: true,
-    administratorOnly: true,
   },
   {
     label: "Холодильне обладнання",
@@ -77,7 +76,7 @@ export const platformNavItems: readonly NavItem[] = [
     permission: "dashboard.read",
   },
   { label: "Тривоги", icon: AlertTriangle, href: "/alerts", group: "monitoring", permission: "alerts.read" },
-  { label: "Камери", icon: Camera, href: "/cameras", group: "monitoring", administratorOnly: true },
+  { label: "Камери", icon: Camera, href: "/cameras", group: "monitoring" },
   {
     label: "Енергомоніторинг",
     icon: Zap,
@@ -96,6 +95,21 @@ export const platformNavItems: readonly NavItem[] = [
   { label: "Налаштування", icon: Settings, href: "/settings", group: "administration" },
 ];
 
+const destinationGrants: Readonly<Record<string, SecurityEffectivePermission>> = {
+  "/": "navigation.overview",
+  "/nodes": "navigation.nodes",
+  "/sessions": "navigation.sessions",
+  "/live": "navigation.live",
+  "/equipment-layouts": "navigation.equipment_layouts",
+  "/lockers": "navigation.lockers",
+  "/refrigeration": "navigation.refrigeration",
+  "/alerts": "navigation.alerts",
+  "/cameras": "navigation.cameras",
+  "/energy": "navigation.energy",
+  "/reports": "navigation.reports",
+  "/equipment": "navigation.equipment",
+};
+
 export const platformNavGroups = [
   { id: "monitoring", label: "Моніторинг" },
   { id: "tests", label: "Випробування" },
@@ -112,6 +126,18 @@ interface SidebarProps {
   onSelect?: (item: string) => void;
 }
 
+export function platformDestinationForPath(pathname: string): string | null {
+  if (pathname === "/") return "/";
+  return (
+    platformNavItems.find(
+      (item) =>
+        item.href !== "/" &&
+        item.href !== "/settings" &&
+        (pathname === item.href || pathname.startsWith(`${item.href}/`)),
+    )?.href ?? null
+  );
+}
+
 export function canSeePlatformDestination(security: SidebarProps["security"], href: string): boolean {
   const item = platformNavItems.find((entry) => entry.href === href);
   if (!item) return false;
@@ -124,6 +150,7 @@ export function canSeePlatformDestination(security: SidebarProps["security"], hr
       : null;
   return Boolean(
     membership &&
+    (!destinationGrants[href] || membership.permissions.includes(destinationGrants[href])) &&
     (!item.permission || membership.permissions.includes(item.permission)) &&
     (!item.administratorOnly || membership.roles.includes("administrator")),
   );
