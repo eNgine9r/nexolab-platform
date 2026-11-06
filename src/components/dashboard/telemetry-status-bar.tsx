@@ -167,7 +167,9 @@ export function TelemetryStatusBar({
               </span>
             ) : null}
           </div>
-          <p className={`${compactHealthy ? "mt-0" : "mt-0.5"} text-[11px] leading-4 break-words text-slate-300`}>
+          <p
+            className={`${compactHealthy ? "mt-0" : "mt-0.5"} text-[11px] leading-4 break-words text-slate-300`}
+          >
             {error?.message ?? copy.detail}
           </p>
         </div>
