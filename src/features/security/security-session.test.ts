@@ -84,7 +84,7 @@ describe("security session client", () => {
   it("accepts named navigation grants without granting resource permissions", async () => {
     const payload = {
       ...sessionPayload,
-      memberships: [{ ...sessionPayload.memberships[0], permissions: ["navigation.reports"] }],
+      memberships: [{ ...sessionPayload.memberships[0], permissions: ["navigation.reports", "navigation.instrumentation"] }],
     };
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
@@ -95,6 +95,7 @@ describe("security session client", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(hasPermission(result.value, "org-1", "navigation.reports")).toBe(true);
+    expect(hasPermission(result.value, "org-1", "navigation.instrumentation")).toBe(true);
     expect(hasPermission(result.value, "org-1", "reports.read")).toBe(false);
     expect(hasPermission(result.value, "other-org", "navigation.reports")).toBe(false);
   });

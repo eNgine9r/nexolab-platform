@@ -66,6 +66,7 @@ class Permission(StrEnum):
     NAV_ENERGY = "navigation.energy"
     NAV_REPORTS = "navigation.reports"
     NAV_EQUIPMENT = "navigation.equipment"
+    NAV_INSTRUMENTATION = "navigation.instrumentation"
 
 
 NAVIGATION_PERMISSIONS = frozenset({
@@ -73,6 +74,7 @@ NAVIGATION_PERMISSIONS = frozenset({
     Permission.NAV_LIVE, Permission.NAV_EQUIPMENT_LAYOUTS, Permission.NAV_LOCKERS,
     Permission.NAV_REFRIGERATION, Permission.NAV_ALERTS, Permission.NAV_CAMERAS,
     Permission.NAV_ENERGY, Permission.NAV_REPORTS, Permission.NAV_EQUIPMENT,
+    Permission.NAV_INSTRUMENTATION,
 })
 
 

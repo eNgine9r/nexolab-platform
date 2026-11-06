@@ -78,6 +78,7 @@ const permissionLabels: Partial<Record<SecurityEffectivePermission, string>> = {
   "navigation.energy": "Пункт меню: Енергомоніторинг",
   "navigation.reports": "Пункт меню: Звіти",
   "navigation.equipment": "Пункт меню: Обладнання",
+  "navigation.instrumentation": "Пункт меню: Прилади та сигнали",
 };
 
 type CreateDraft = {
