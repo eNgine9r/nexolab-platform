@@ -9808,6 +9808,150 @@
         1525
       ],
       "evidence": {}
+    },
+    {
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "priority": "unspecified",
+      "lifecycle": "blocked",
+      "branch": "feature/1486-search-ui",
+      "evidence": {
+        "hardware": "unverified",
+        "site_activation": false,
+        "production_mutation": false,
+        "owner_context": "instruments_not_yet_connected",
+        "integration_checks": "local_PASS_hosted_domain_gates_PASS_security_merge_gate_RED",
+        "local_device_agent_tests": 342,
+        "local_central_commissioning_tests": 24,
+        "local_frontend_tests": 1233,
+        "local_frontend_test_files": 200,
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "production_build": "PASS",
+        "api_transport_redirect_test": "PASS",
+        "ci": "blocked_security",
+        "isolated_search_capability": "explicit_only_no_production_enrollment",
+        "blocker_issue": 1447,
+        "pull_request": 1488,
+        "source_candidate_sha": "0577ec6e5efb6bd9f324d30428e6a0883e8f791b",
+        "github_ci": "11_of_13_workflows_PASS_security_and_merge_gate_FAIL"
+      },
+      "scope": "One address per bounded authenticated request; explicit isolated XJP60D scan, progress/cancel/selection; source-only, no automatic enrollment or site activation.",
+      "depends_on": [
+        1482
+      ]
+    },
+    {
+      "issue": 1479,
+      "title": "Identify newly connected RS-485 adapter",
+      "branch": "feature/1479-rs485-adapter-identification",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "f3afd92e25e023ce489ed9471848fe89b1b17370",
+        "pull_request": 1480,
+        "checks": {
+          "CI": "success_41792736839",
+          "authenticated_dashboard": "success_41792736667"
+        },
+        "scope": "source_only_UI",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1482,
+      "title": "Bounded XJP60D address search core",
+      "branch": "feature/1482-xjp-search-core",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "evidence": {
+        "pull_request": 1483,
+        "local_agent_tests": 338,
+        "source_candidate_sha": "1678d1979412a99135f169164607753013500a39",
+        "github_security_gate": "Trivy_installer_exit6_persists_after_failed_jobs_retry_and_refreshed_head_run41798806416",
+        "hardware": "unverified",
+        "site_activation": false,
+        "blocker_issue": 1447
+      }
+    },
+    {
+      "issue": 1484,
+      "title": "Avoid self-matching security test marker",
+      "branch": "fix/1484-ci-secret-marker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "ef91a896d4a526fe0802a086dd24565ce5009210",
+        "pull_request": 1485,
+        "checks": {
+          "CI": "success_41794354174",
+          "offline_bundle": "success_41794354166"
+        },
+        "local_tests": 17,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "issue": 1487,
+      "title": "Restore pinned CI scanner installation from official release",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "fix/1487-trivy-download",
+      "depends_on": [],
+      "scope": "CI-only fixed Trivy version and SHA256 official release installer, preserve action scans and vulnerability policy; no runtime or site changes.",
+      "evidence": {
+        "installer_negative_tests": 4,
+        "container_policy_tests": 53,
+        "actual_official_binary_sha256_verified": true,
+        "actual_version": "0.70.0",
+        "site_mutation": false,
+        "github_ci": "pending",
+        "blocker_issue": 1447,
+        "pull_request": 1489,
+        "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+        "hosted_run": 41800839925,
+        "image_build_and_scan_jobs": "5_of_5_PASS",
+        "unchanged_policy": "FAIL_expired_2026_10_20",
+        "telemetry_high": 74,
+        "telemetry_critical": 5,
+        "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+        "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+        "ci_routing_tests": 82,
+        "final_source_ci": "4_of_6_workflows_PASS_security_and_merge_gate_FAIL",
+        "final_source_sha": "af21be8a86a8f04d87608c2ff33c1e70be1a6953"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Current source-bound container residual-risk technical review",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "depends_on": [],
+      "scope": "Review five immutable image SBOMs with fresh vulnerability DB, fix stale packaging tests and execute them in Telemetry CI, preserve exception registry and runtime versions.",
+      "evidence": {
+        "pull_request": 1448,
+        "reviewed_immutable_source": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+        "source_image_run": 41076486729,
+        "verified_manifests": 5,
+        "verified_evidence_hashes": 15,
+        "current_db_updated_at": "2026-11-04T07:16:25.226375897Z",
+        "current_telemetry_high": 50,
+        "current_all_images_critical": 0,
+        "current_other_images_high": 0,
+        "unique_high_cves": 14,
+        "debian_trixie_open_cves": 14,
+        "current_tuple_policy": "BLOCKED_new_SQLite_119373",
+        "focused_local_tests": 67,
+        "exception_registry_changed": false,
+        "approval_scope": "technical_review_only",
+        "specific_owner_risk_decision": "pending",
+        "site_activation": false,
+        "hardware": "unverified",
+        "review_evidence": "docs/architecture/security-container-review-20261104.json",
+        "full_updated_head_ci": "pending"
+      }
     }
   ],
   "maintenance_actions": [
@@ -11604,6 +11748,20 @@
           2
         ],
         "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-04T08:11:34.227467+00:00",
+      "kind": "rs485_source_progress",
+      "data": {
+        "merged_prs": [
+          1480,
+          1485
+        ],
+        "pending_core_pr": 1483,
+        "separate_monitor_pr": 1477,
+        "deployment_unchanged": true
       }
     }
   ],

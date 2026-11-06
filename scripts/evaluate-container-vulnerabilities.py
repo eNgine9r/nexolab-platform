@@ -169,7 +169,14 @@ def evaluate(
             blocked.append(finding)
             continue
         if finding.severity == "HIGH":
-            if finding.vulnerability.startswith("CVE-") and finding.key in exceptions:
+            # An accepted HIGH must never hide a scanner-known compatible
+            # fix. The owner must remediate or prove incompatibility before
+            # changing a source-bound exception decision.
+            if (
+                finding.vulnerability.startswith("CVE-")
+                and finding.key in exceptions
+                and not finding.fixed_version
+            ):
                 accepted.append(finding)
             else:
                 blocked.append(finding)

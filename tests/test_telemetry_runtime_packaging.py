@@ -28,6 +28,6 @@ def test_telemetry_runtime_keeps_fixed_msgpack_and_no_new_security_exception() -
         ROOT / "security/vulnerability-exceptions.json"
     ).read_text(encoding="utf-8")
 
-    assert "msgpack==1.2.1" in requirements.splitlines()
+    assert "msgpack==1.2.3" in requirements.splitlines()
     assert "GHSA-6v7p-g79w-8964" not in exceptions
     assert "CVE-2025-47273" not in exceptions

@@ -440,11 +440,12 @@ def test_telemetry_image_hardens_python_supply_chain() -> None:
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
 
-    assert "msgpack==1.2.1" in requirements.splitlines()
+    assert "msgpack==1.2.3" in requirements.splitlines()
+    assert "Pillow==13.0.0" in requirements.splitlines()
     assert "python -m pip uninstall --yes setuptools" in dockerfile
     assert "! python -m pip show setuptools >/dev/null 2>&1" in dockerfile
     assert 'msgpack; print(msgpack.__version__)' in dockerfile
-    assert '"1.2.1"' in dockerfile
+    assert '"1.2.3"' in dockerfile
     assert "python -m pip check" in dockerfile
 
     telemetry_exceptions = [

@@ -1,3 +1,7 @@
+## 2026-11-06 — container security #1447 source reconciliation
+
+Draft PR #1448 is being reconciled with current main. Earlier 2026-11-04 image evidence is historical; fresh candidate amd64 scan reports five CRITICAL Pillow findings and expired exceptions. Dependency fixes and exact-head scans must be verified. No exception extension, site change or production acceptance is implied.
+
 ## 2026-11-06 — permission-aware navigation #1525 (source candidate)
 
 The owner requested hiding destinations and actions without access. The shared sidebar and selected overview/settings links now use selected-organization effective permissions; UI-only camera/planned-module visibility defaults to administrator because no independent grants exist. Existing server authorization is unchanged. Current grants are shared among multiple pages, and direct camera URL is not blocked by this UI change. Full independent page-grant and backend enforcement are tracked by #1526. #1525 is a source candidate; exact-head CI, actual selected-user browser acceptance and site deployment remain pending. No hardware/Modbus actions.

@@ -1,3 +1,7 @@
+## 2026-11-06 — container security #1447 source reconciliation
+
+Draft PR #1448 is being reconciled with current main. Earlier 2026-11-04 image evidence is historical; fresh candidate amd64 scan reports five CRITICAL Pillow findings and expired exceptions. Dependency fixes and exact-head scans must be verified. No exception extension, site change or production acceptance is implied.
+
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 
 Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.

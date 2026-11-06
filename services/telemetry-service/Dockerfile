@@ -23,7 +23,7 @@ COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir -r requirements.txt \
     && python -m pip uninstall --yes setuptools \
     && ! python -m pip show setuptools >/dev/null 2>&1 \
-    && test "$(python -c 'import msgpack; print(msgpack.__version__)')" = "1.2.1" \
+    && test "$(python -c 'import msgpack; print(msgpack.__version__)')" = "1.2.3" \
     && python -m pip check \
     && python -m pip uninstall --yes pip \
     && python -c 'import importlib.util; assert importlib.util.find_spec("pip") is None'
