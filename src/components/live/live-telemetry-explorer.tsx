@@ -9,6 +9,7 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FilterX,
   Pause,
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   Search,
   Signal,
+  SlidersHorizontal,
   WifiOff,
 } from "lucide-react";
 
@@ -233,6 +235,17 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [filters, setFilters] = useState<LiveTelemetryFilters>(() =>
     filtersFromParams(new URLSearchParams(searchParams.toString())),
   );
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(
+    () =>
+      [
+        filters.nodeId,
+        filters.equipmentId,
+        filters.channelId,
+        filters.metric,
+        filters.quality,
+        filters.alarm,
+      ].some((value) => value !== "all"),
+  );
   const [range, setRange] = useState<CanonicalChartTimeRangeId>(() =>
     canonicalRangeFromParams(new URLSearchParams(searchParams.toString())),
   );
@@ -256,6 +269,15 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
     [filters, telemetry.samples],
   );
   const options = useMemo(() => liveTelemetryFilterOptions(telemetry.samples), [telemetry.samples]);
+  const activeAdvancedFilterCount = [
+    filters.nodeId,
+    filters.equipmentId,
+    filters.channelId,
+    filters.metric,
+    filters.quality,
+    filters.alarm,
+  ].filter((value) => value !== "all").length;
+  const activeConditionCount = activeAdvancedFilterCount + (filters.search.trim() ? 1 : 0);
   const selected = useMemo(
     () => selectedLiveSamples(telemetry.selectedKeys, telemetry.samples),
     [telemetry.samples, telemetry.selectedKeys],
@@ -667,15 +689,18 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
       <section
         data-testid="live-filter-panel"
         aria-labelledby="live-filter-panel-title"
-        className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"
+        className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-3 sm:p-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="live-filter-panel-title" className="text-base font-semibold text-white">
               Пошук і фільтри
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Усі умови застосовуються одночасно та зберігаються в URL.
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Знайдіть канал за назвою або ID. Усі умови зберігаються в URL.
+            </p>
+            <p role="status" aria-live="polite" className="mt-1 text-xs text-cyan-200">
+              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} / 8
             </p>
           </div>
           <button
@@ -685,16 +710,16 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               setFilters(next);
               syncUrl(next, telemetry.selectedKeys, range);
             }}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs text-slate-300 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-medium text-slate-200 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
             <FilterX className="h-4 w-4" aria-hidden="true" />
             Очистити
           </button>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
-          <label className="grid gap-1.5 text-xs font-medium text-slate-400 sm:col-span-2 xl:col-span-2">
+        <div className="mt-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1 text-xs font-medium text-slate-300">
             Пошук
-            <span className="relative">
+            <span className="relative mt-1.5 block">
               <Search
                 className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
                 aria-hidden="true"
@@ -704,42 +729,70 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 value={filters.search}
                 onChange={(event) => updateFilters({ search: event.target.value })}
                 placeholder="node, equipment, channel, metric, source..."
-                className="h-10 w-full rounded-xl border border-white/10 bg-[#081a32] pr-3 pl-10 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
+                className="h-10 w-full rounded-xl border border-white/10 bg-[#081a32] pr-3 pl-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
               />
             </span>
           </label>
+          <button
+            type="button"
+            aria-expanded={advancedFiltersOpen}
+            aria-controls="live-advanced-filter-fields"
+            onClick={() => setAdvancedFiltersOpen((open) => !open)}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 text-xs font-medium text-slate-200 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <SlidersHorizontal className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            Додаткові фільтри
+            {activeAdvancedFilterCount > 0 ? (
+              <span className="rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[11px] text-cyan-100">
+                {activeAdvancedFilterCount}
+              </span>
+            ) : null}
+            <ChevronDown
+              className={advancedFiltersOpen ? "h-4 w-4 rotate-180" : "h-4 w-4"}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        <div
+          id="live-advanced-filter-fields"
+          className={
+            advancedFiltersOpen
+              ? "mt-3 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
+              : "hidden"
+          }
+        >
           <FilterSelect
-            label="Node"
+            label="Вузол"
             value={filters.nodeId}
             values={options.nodeIds}
             onChange={(nodeId) => updateFilters({ nodeId })}
           />
           <FilterSelect
-            label="Equipment"
+            label="Прилад"
             value={filters.equipmentId}
             values={options.equipmentIds}
             onChange={(equipmentId) => updateFilters({ equipmentId })}
           />
           <FilterSelect
-            label="Channel"
+            label="Канал"
             value={filters.channelId}
             values={options.channelIds}
             onChange={(channelId) => updateFilters({ channelId })}
           />
           <FilterSelect
-            label="Metric"
+            label="Показник"
             value={filters.metric}
             values={options.metrics}
             onChange={(metric) => updateFilters({ metric })}
           />
           <FilterSelect
-            label="Quality"
+            label="Якість"
             value={filters.quality}
             values={QUALITY_VALUES}
             onChange={(quality) => updateFilters({ quality: quality as "all" | TelemetryQuality })}
           />
           <FilterSelect
-            label="Alarm"
+            label="Тривога"
             value={filters.alarm}
             values={["active", "none", "low", "high"]}
             onChange={(alarm) => updateFilters({ alarm: alarm as LiveAlarmFilter })}
