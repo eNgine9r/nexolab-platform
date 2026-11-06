@@ -6,6 +6,21 @@ import { parseCameraInventory } from "@/features/cameras/domain";
 import { OverviewSecondaryWorkspace } from "./overview-secondary-workspace";
 
 describe("OverviewSecondaryWorkspace", () => {
+  it("hides configured cameras when this user cannot see them", () => {
+    render(
+      <OverviewSecondaryWorkspace
+        sessions={<h2>Сесії</h2>}
+        layouts={<h2>Схеми</h2>}
+        cameraInventory={parseCameraInventory([{ id: "camera-offline", name: "Вхід", state: "offline" }])}
+        cameraAction={<a href="/cameras">Всі камери</a>}
+        showCameras={false}
+      />,
+    );
+    expect(screen.queryByRole("heading", { name: "Камери" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Всі камери" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/camera-offline/)).not.toBeInTheDocument();
+  });
+
   it.each([{ input: [] }, { input: [null] }])("shares empty camera space", ({ input }) => {
     render(
       <OverviewSecondaryWorkspace

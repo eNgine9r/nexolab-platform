@@ -1,3 +1,7 @@
+## 2026-11-06 — per-page access is not yet independently enforced (#1526)
+
+Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.
+
 ## 2026-11-05 — obsolete adapters and onboarding acceptance
 
 Owner does not need the two absent CP2104 adapters. Their 12 active instrument records and 53 active targets still require a device-by-device disposition; do not silently disable, rebind or delete them. Protect the two live XJP60D section devices on FTDI A10Q34QC and retain history. #1513 tracks reversible preparation; site cutover is separately gated. #1508 browser acceptance failed on an outdated onboarding step; #1514 / PR #1515 is under exact-head browser verification. New SDM/Waveshare source remains draft and not hardware-accepted. PR #1512 fixed the unrelated backup fixture and merged; no runtime mutation.

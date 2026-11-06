@@ -139,6 +139,7 @@ export function EnergyScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Енергомоніторинг"
         onClose={() => setSidebarOpen(false)}

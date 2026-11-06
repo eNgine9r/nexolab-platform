@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { BrandLogo } from "./brand-logo";
+import type { SecurityPermission } from "@/features/security/security-session";
+import type { DashboardSecurityModel } from "@/hooks/use-dashboard-security";
 
 type NavItem = {
   label: string;
@@ -31,21 +33,66 @@ type NavItem = {
   badge?: number;
   group: "monitoring" | "tests" | "administration";
   planned?: boolean;
+  permission?: SecurityPermission;
+  administratorOnly?: boolean;
 };
 
 export const platformNavItems: readonly NavItem[] = [
-  { label: "Огляд", icon: Home, href: "/", group: "monitoring" },
-  { label: "Вузли", icon: Network, href: "/nodes", group: "administration" },
-  { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions", group: "tests" },
-  { label: "Live дані", icon: ChartNoAxesCombined, href: "/live", group: "monitoring" },
-  { label: "Схеми обладнання", icon: Boxes, href: "/equipment-layouts", group: "monitoring" },
-  { label: "Поштомати", icon: LockKeyhole, href: "/lockers", group: "administration", planned: true },
-  { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration", group: "monitoring" },
-  { label: "Тривоги", icon: AlertTriangle, href: "/alerts", group: "monitoring" },
-  { label: "Камери", icon: Camera, href: "/cameras", group: "monitoring" },
-  { label: "Енергомоніторинг", icon: Zap, href: "/energy", group: "monitoring" },
-  { label: "Звіти", icon: FileText, href: "/reports", group: "tests" },
-  { label: "Обладнання", icon: Cpu, href: "/equipment", group: "administration" },
+  { label: "Огляд", icon: Home, href: "/", group: "monitoring", permission: "dashboard.read" },
+  { label: "Вузли", icon: Network, href: "/nodes", group: "administration", permission: "nodes.read" },
+  {
+    label: "Сесії випробувань",
+    icon: ClipboardCheck,
+    href: "/sessions",
+    group: "tests",
+    permission: "dashboard.read",
+  },
+  {
+    label: "Live дані",
+    icon: ChartNoAxesCombined,
+    href: "/live",
+    group: "monitoring",
+    permission: "telemetry.read",
+  },
+  {
+    label: "Схеми обладнання",
+    icon: Boxes,
+    href: "/equipment-layouts",
+    group: "monitoring",
+    permission: "dashboard.read",
+  },
+  {
+    label: "Поштомати",
+    icon: LockKeyhole,
+    href: "/lockers",
+    group: "administration",
+    planned: true,
+    administratorOnly: true,
+  },
+  {
+    label: "Холодильне обладнання",
+    icon: Snowflake,
+    href: "/refrigeration",
+    group: "monitoring",
+    permission: "dashboard.read",
+  },
+  { label: "Тривоги", icon: AlertTriangle, href: "/alerts", group: "monitoring", permission: "alerts.read" },
+  { label: "Камери", icon: Camera, href: "/cameras", group: "monitoring", administratorOnly: true },
+  {
+    label: "Енергомоніторинг",
+    icon: Zap,
+    href: "/energy",
+    group: "monitoring",
+    permission: "telemetry.read",
+  },
+  { label: "Звіти", icon: FileText, href: "/reports", group: "tests", permission: "reports.read" },
+  {
+    label: "Обладнання",
+    icon: Cpu,
+    href: "/equipment",
+    group: "administration",
+    permission: "dashboard.read",
+  },
   { label: "Налаштування", icon: Settings, href: "/settings", group: "administration" },
 ];
 
@@ -58,15 +105,39 @@ export const platformNavGroups = [
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  security: Pick<DashboardSecurityModel, "mode" | "state" | "session" | "membership"> | undefined;
   /** @deprecated Active navigation is derived exclusively from the current pathname. */
   activeItem?: string;
   /** @deprecated Navigation uses canonical links; callers only need onClose. */
   onSelect?: (item: string) => void;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function canSeePlatformDestination(security: SidebarProps["security"], href: string): boolean {
+  const item = platformNavItems.find((entry) => entry.href === href);
+  if (!item) return false;
+  if (security?.mode === "demo") return true;
+  const membership =
+    security?.state === "ready" && security.session && security.membership
+      ? security.session.memberships.find(
+          (entry) => entry.organizationId === security.membership?.organizationId,
+        )
+      : null;
+  return Boolean(
+    membership &&
+    (!item.permission || membership.permissions.includes(item.permission)) &&
+    (!item.administratorOnly || membership.roles.includes("administrator")),
+  );
+}
+
+export function Sidebar({ open, onClose, security }: SidebarProps) {
   const pathname = usePathname();
   const navigationId = useId();
+  const groups = platformNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canSeePlatformDestination(security, item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>
@@ -92,7 +163,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex-1 scrollbar-thin overflow-y-auto px-3 py-4" aria-label="Головна навігація">
-          {platformNavGroups.map((group) => (
+          {groups.map((group) => (
             <section
               key={group.id}
               aria-labelledby={`${navigationId}-${group.id}`}

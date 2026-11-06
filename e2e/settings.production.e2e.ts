@@ -273,10 +273,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(compactNavigation).toBeVisible();
       await compactNavigation.selectOption("general");
       const cameraStatus = settingsWorkspace.getByRole("link", { name: "Перевірити стан камер" });
-      await expect(cameraStatus).toBeVisible();
-      await expect(cameraStatus).toHaveAttribute("href", "/cameras");
-      await cameraStatus.focus();
-      await expect(cameraStatus).toBeFocused();
+      await expect(cameraStatus).toHaveCount(0);
       await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveCount(0);
       await compactNavigation.selectOption("data-collection");
       await expect(page.getByRole("region", { name: "Фізичний інтервал опитування" })).toBeVisible();

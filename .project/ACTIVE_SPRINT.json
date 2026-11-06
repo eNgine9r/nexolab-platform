@@ -9787,6 +9787,27 @@
       "lifecycle": "review",
       "depends_on": [],
       "evidence": {}
+    },
+    {
+      "issue": 1525,
+      "title": "Permission-aware navigation and known permission gaps",
+      "branch": "feat/1525-permission-aware-navigation",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {
+        "site_deployed": false,
+        "independent_page_grants": "not_implemented_issue_1526"
+      }
+    },
+    {
+      "issue": 1526,
+      "title": "Independently grant and enforce per-page access",
+      "branch": null,
+      "lifecycle": "ready",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
