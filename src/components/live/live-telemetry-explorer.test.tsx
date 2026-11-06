@@ -1,15 +1,21 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { LiveTelemetryModel } from "@/hooks/use-live-telemetry";
 
 import { LiveTelemetryExplorer } from "./live-telemetry-explorer";
 
+const navigationState = vi.hoisted(() => ({ search: "workspace=explorer" }));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/live",
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams("workspace=explorer"),
+  useSearchParams: () => new URLSearchParams(navigationState.search),
 }));
+
+afterEach(() => {
+  navigationState.search = "workspace=explorer";
+});
 
 vi.mock("@/components/live/live-chart-panel", () => ({
   LiveChartPanel: ({
@@ -103,6 +109,57 @@ function modelWithChart(): LiveTelemetryModel {
 function appearsBefore(left: Element, right: Element): boolean {
   return Boolean(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
+
+
+describe("LiveTelemetryExplorer progressive filtering", () => {
+  it("keeps search visible, remembers hidden advanced selections and clears all filter conditions", () => {
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const search = screen.getByPlaceholderText("node, equipment, channel, metric, source...");
+    const expand = screen.getByRole("button", { name: /Додаткові фільтри/ });
+    const node = screen.getByLabelText("Вузол");
+
+    expect(search).toBeVisible();
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(node).not.toBeVisible();
+    fireEvent.change(search, { target: { value: "K106" } });
+    expect(screen.getByText(/Активних умов: 1 · Обрано для графіка: 0/)).toBeVisible();
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(node).toBeVisible();
+    fireEvent.change(node, { target: { value: "edge-01" } });
+    expect(screen.getByText(/Активних умов: 2 · Обрано для графіка: 0/)).toBeVisible();
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(node).not.toBeVisible();
+    fireEvent.click(expand);
+    expect(node).toHaveValue("edge-01");
+    fireEvent.click(screen.getByRole("button", { name: "Очистити" }));
+    expect(screen.getByText(/Активних умов: 0 · Обрано для графіка: 0/)).toBeVisible();
+    expect(node).toHaveValue("all");
+    expect(search).toHaveValue("");
+    expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+    expect(telemetry.setSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  it("expands active advanced filters from a shared URL and leaves acquisition untouched", () => {
+    navigationState.search = "workspace=explorer&node=edge-01&quality=valid";
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const expand = screen.getByRole("button", { name: /Додаткові фільтри/ });
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Вузол")).toHaveValue("edge-01");
+    expect(screen.getByLabelText("Якість")).toHaveValue("valid");
+    expect(screen.getByText(/Активних умов: 2/)).toBeVisible();
+    fireEvent.click(expand);
+    expect(screen.getByLabelText("Якість")).not.toBeVisible();
+    expect(screen.getByText(/Активних умов: 2/)).toBeVisible();
+    expect(telemetry.retry).not.toHaveBeenCalled();
+    expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+  });
+});
 
 describe("LiveTelemetryExplorer graph-first composition", () => {
   it("places the canonical chart before filters and inventory in reading and focus order", () => {
