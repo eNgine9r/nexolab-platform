@@ -685,14 +685,15 @@ test("Overview groups real catalog sensors and preserves display-only choices", 
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const opener = page.getByRole("button", { name: "Налаштувати датчики на графіку Огляду" });
     const dialog = page.getByRole("dialog", { name: "Датчики на графіку Огляду" });
-    for (const width of [320, 390, 1280]) {
+    for (const width of [320, 375, 390, 768, 1280, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(opener).toBeEnabled();
       await opener.click();
       const device = dialog.getByRole("checkbox", { name: /Показувати всі датчики приладу:.*106/ });
+      await expect(dialog.getByText("Розташування: Кліматична камера №2")).toBeVisible();
       await expect(
         dialog.getByRole("checkbox", { name: "Показувати всі датчики камери: Кліматична камера №2" }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(device).toBeChecked();
       await dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді", exact: true }).uncheck();
       await expect(device).toHaveAttribute("aria-checked", "mixed");
