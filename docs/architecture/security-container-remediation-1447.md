@@ -1,5 +1,7 @@
 # NEXOLAB #1447 — exact-image container security revalidation
 
+> **2026-11-06 reconciliation:** All counts and proposed exceptions below describe historical image reviews. The current branch retains the main-branch registry unchanged: 48 entries, expired 2026-10-20; no new or renewed exception is approved. The latest separate #1529 candidate scan reports 5 CRITICAL and 83 HIGH amd64 image/package/CVE tuples before this remediation; it does not establish installed ARM64 exposure. Fresh builds and policy review are required. The owner requested an update; the bounded residual-risk decision described below remains a separate, as-yet-unmade decision.
+
 **Status:** source-only risk review. The seven-day exception registry is a narrow risk decision, **not** proof of vulnerability elimination or permission to merge/deploy. The production site, credentials, field buses and data volumes were not changed.
 
 ## Source-bound scan and fixes

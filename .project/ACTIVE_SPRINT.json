@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1514,
+      "branch": "fix/1514-advanced-onboarding-e2e"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -9718,13 +9721,93 @@
         "change_impact_test_cases": 81,
         "ci_expected_skips": 1,
         "source_ast_bash_prettier": "PASS",
-        "git_diff_check": "PASS",
-        "verified_head_sha": "508b1e60357c34871b66d27c0ede90cbbc9299c6",
-        "pull_request": 1475,
-        "checks": {
-          "github_workflows": "6_of_6_success"
-        }
+        "git_diff_check": "PASS"
       }
+    },
+    {
+      "issue": 1505,
+      "title": "Persist commissioned RS-485 buses",
+      "branch": "feature/1505-persistent-rs485",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1503,
+      "title": "Commission bus-scoped SDM120M",
+      "branch": "feature/1503-sdm120-onboarding",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1502,
+      "title": "Commission Waveshare 8AI read-only",
+      "branch": "feature/1502-waveshare-onboarding",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1508,
+      "title": "Energy bus-scoped SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1511,
+      "title": "Isolate backup fixture device IDs",
+      "branch": "fix/1511-backup-fixture-filesystem",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1513,
+      "title": "Plan disposition of obsolete CP2104 buses",
+      "branch": null,
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1514,
+      "title": "Update advanced onboarding browser acceptance",
+      "branch": "fix/1514-advanced-onboarding-e2e",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1516,
+      "title": "Checkpoint current onboarding and adapter evidence",
+      "branch": "docs/1516-current-device-checkpoint",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1525,
+      "title": "Permission-aware navigation and known permission gaps",
+      "branch": "feat/1525-permission-aware-navigation",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {
+        "site_deployed": false,
+        "independent_page_grants": "not_implemented_issue_1526"
+      }
+    },
+    {
+      "issue": 1526,
+      "title": "Independently grant and enforce per-page access",
+      "branch": null,
+      "lifecycle": "ready",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {}
     },
     {
       "issue": 1486,
@@ -11641,6 +11724,30 @@
         "unknown_files": 0,
         "required_external": 3,
         "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-05T12:14:14.443448+00:00",
+      "kind": "obsolete_cp2104_decision_and_active_device_inventory",
+      "data": {
+        "issue": 1513,
+        "owner_no_longer_needs_adapters": [
+          "0133F090",
+          "0133F246"
+        ],
+        "registry_revision": 34,
+        "old_bus_active_targets": [
+          40,
+          13
+        ],
+        "old_active_devices": 12,
+        "protected_adapter": "A10Q34QC",
+        "protected_section_targets": [
+          6,
+          2
+        ],
+        "runtime_mutation": false
       }
     },
     {

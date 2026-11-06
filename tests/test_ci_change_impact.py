@@ -93,6 +93,40 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 
+    def test_local_textfile_exporter_is_known_offline_workflow_tool(self) -> None:
+        path = "scripts/serve-prometheus-textfile.py"
+        result = classify([path])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        trigger = workflow.split("  pull_request:", 1)[1].split(
+            "  workflow_dispatch:", 1
+        )[0]
+        self.assertIn('      - "scripts/serve-prometheus-textfile.py"', trigger)
+        # Other unknown scripts must still trigger fail-closed routing.
+        unknown = classify(["scripts/unregistered-new-external-agent.py"])
+        self.assertTrue(unknown["fail_closed"])
+
+    def test_exact_lan_monitor_offline_payload_is_known_and_bundle_required(self) -> None:
+        path = "scripts/tests/test_lan_monitor_offline_payload.py"
+        result = classify([path])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        self.assertIn('      - "' + path + '"', trigger)
+        unknown = classify(["scripts/unregistered-new-external-agent.py"])
+        self.assertTrue(unknown["fail_closed"])
+
     def test_site_capture_handoff_is_offline_routed(self) -> None:
         paths = [
             "scripts/nexolab-site-dr-capture-handoff.py",

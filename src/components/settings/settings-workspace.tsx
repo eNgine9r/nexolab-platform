@@ -315,12 +315,14 @@ export function SettingsWorkspace({
               })}
             </nav>
 
-            <div className="mt-3 border-t border-white/[0.07] pt-3">
-              <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
-                Реєстри
-              </p>
-              <AdminLink href="/settings/instrumentation" icon={Gauge} title="Прилади та сигнали" />
-            </div>
+            {membership.permissions.includes("dashboard.read") ? (
+              <div className="mt-3 border-t border-white/[0.07] pt-3">
+                <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
+                  Реєстри
+                </p>
+                <AdminLink href="/settings/instrumentation" icon={Gauge} title="Прилади та сигнали" />
+              </div>
+            ) : null}
 
             {canManageUsers || canManageVersions ? (
               <div className="mt-3 border-t border-white/[0.07] pt-3">
@@ -446,15 +448,17 @@ function GeneralSection({
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4">
-        <span className="text-sm text-slate-400">Камери: стан і доступність перегляду</span>
-        <Link
-          href="/cameras"
-          className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-sm text-cyan-200 focus-visible:ring-2 focus-visible:ring-cyan-300"
-        >
-          Перевірити стан камер
-        </Link>
-      </div>
+      {membership.roles.includes("administrator") ? (
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4">
+          <span className="text-sm text-slate-400">Камери: стан і доступність перегляду</span>
+          <Link
+            href="/cameras"
+            className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-sm text-cyan-200 focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            Перевірити стан камер
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mt-7 border-t border-white/[0.07] pt-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

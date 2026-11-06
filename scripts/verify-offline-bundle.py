@@ -24,6 +24,14 @@ IMAGE_ENV = {
 }
 REQUIRED_IMAGES = set(IMAGE_ENV)
 AUTH_PROVIDERS = {"disabled", "local", "acceptance", "supabase"}
+LAN_MONITOR_CAPABILITY = "lan-access-monitor-source-only"
+LAN_MONITOR_ASSETS = frozenset({
+    "infrastructure/offline/inspect-site-lan-access.py",
+    "infrastructure/offline/emit-lan-access-prometheus.py",
+    "infrastructure/systemd/nexolab-lan-access-probe.service",
+    "infrastructure/systemd/nexolab-lan-access-probe.timer",
+    "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.yml",
+})
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_ID_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 SECRET_PATTERNS = (
@@ -62,17 +70,42 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(message)
 
 
+def verify_lan_monitor_payload(
+    bundle_root: Path, seen_paths: set[str], capabilities: list[str]
+) -> None:
+    """LAN monitor payload must be all-or-none, provenance gated and hashed."""
+    enabled = LAN_MONITOR_CAPABILITY in capabilities
+    payload = seen_paths & LAN_MONITOR_ASSETS
+    require(
+        (enabled and payload == LAN_MONITOR_ASSETS) or (not enabled and not payload),
+        "Incomplete or unclaimed opt-in LAN monitor payload",
+    )
+    if enabled:
+        for relative in sorted(LAN_MONITOR_ASSETS):
+            path = bundle_root / relative
+            require(path.is_file() and not path.is_symlink(),
+                    "Unsafe or missing source-only LAN monitor payload: " + relative)
+
+
 def verify_backup_policy_inventory(bundle_root: Path, seen_paths: set[str]) -> None:
     provenance_path = bundle_root / "evidence" / "provenance.json"
+    require(not provenance_path.is_symlink(), "Unsafe tooling provenance symlink")
+    capabilities: list[str] = []
     if provenance_path.is_file():
         capabilities = load_json(provenance_path).get("tooling_capabilities", [])
         require(isinstance(capabilities, list), "Invalid tooling capabilities")
+        require(all(isinstance(capability, str) for capability in capabilities),
+                "Invalid tooling capability identifier")
+        require(len(set(capabilities)) == len(capabilities), "Duplicate tooling capability")
         if "hardware-startup-gate" in capabilities:
             require("scripts/device-agent-startup-gate.py" in seen_paths,
                     "Hardware startup gate is not digest-bound")
         if "bounded-postgresql-backup" in capabilities:
             require("scripts/lib/postgresql-backup-client.sh" in seen_paths,
                     "Bounded PostgreSQL backup policy is not digest-bound")
+    # Even a bundle missing its provenance file must not silently carry
+    # undeclared LAN monitoring assets. Legacy payload-free bundles remain safe.
+    verify_lan_monitor_payload(bundle_root, seen_paths, capabilities)
 
 
 def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:

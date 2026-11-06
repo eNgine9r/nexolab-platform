@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-04T10:44:17Z",
-  "actor": "ChatGPT",
-  "event": "1447_current_SBOM_residual_risk_review_for_owner",
+  "timestamp": "2026-11-05T12:14:14.443448+00:00",
+  "actor": "Codex",
+  "event": "1511_ci_repair_merged_1513_adapter_disposition_1514_browser_fix",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,7 +30,12 @@
     "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1514,
+    "branch": "fix/1514-advanced-onboarding-e2e",
+    "status": "browser_ci_in_progress",
+    "production_mutation": false
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2953,6 +2958,40 @@
       "change_impact_tests": 81,
       "sealed_assets_tests": 16
     },
+    "issue_1511_ci_fixture": {
+      "pr": 1512,
+      "status": "merged",
+      "focused_tests": 9,
+      "telemetry_ci": "42022667354_success",
+      "offline_bundle": "42022667360_success",
+      "merge_gate": "42022667638_success",
+      "production_mutation": false
+    },
+    "issue_1513_obsolete_buses": {
+      "registry_revision": 34,
+      "owner_decision": "two_old_CP2104_adapters_no_longer_required",
+      "old_active_instruments": 12,
+      "old_active_targets": 53,
+      "device_disposition": "not_confirmed",
+      "protected_adapter": "A10Q34QC",
+      "protected_devices": "two_XJP60D_6_and_2_eligible_targets",
+      "runtime_mutation": false
+    },
+    "issue_1514_dashboard_test": {
+      "pr": 1515,
+      "head": "4813e422128ca01ceb28930b9ab81360cb8f89a4",
+      "browser_run": "42024913691_in_progress",
+      "prior_failure": "42023138252_old_wizard_field_hidden_by_quick_add",
+      "hardware_acceptance": "unverified"
+    },
+    "issue_1525_permission_navigation": {
+      "issue": 1525,
+      "branch": "feat/1525-permission-aware-navigation",
+      "state": "source_candidate",
+      "independent_page_grants": "unimplemented_issue_1526",
+      "site_deployed": false,
+      "runtime_user_acceptance": "pending"
+    },
     "rs485_integration_1486": {
       "source_only": true,
       "hardware": "unverified",
@@ -4413,9 +4452,22 @@
         "unknown_files": 0,
         "site_activation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-05T12:14:14.443448+00:00",
+      "kind": "obsolete_cp2104_decision_and_active_device_inventory",
+      "data": {
+        "issue": 1513,
+        "registry_revision": 34,
+        "old_active_devices": 12,
+        "old_active_targets": 53,
+        "protected_adapter": "A10Q34QC",
+        "runtime_mutation": false
+      }
     }
   ],
-  "next_action": "Specific Product Owner decision on proposed exact 50 HIGH source-only bounded exceptions (through 2026-11-06) remains pending. No blanket waiver granted. Reconcile source with current main/scanner repair, fresh final-source/platform build and policy/CI after decision. Do not merge/deploy RED or claim hardware acceptance.",
+  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
