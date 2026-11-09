@@ -349,5 +349,4 @@ describe("EquipmentConnectionsWorkspace", () => {
     expect(screen.getAllByText("—")).toHaveLength(3);
     expect(screen.queryByRole("searchbox", { name: "Пошук підключень" })).not.toBeInTheDocument();
   });
-
 });
