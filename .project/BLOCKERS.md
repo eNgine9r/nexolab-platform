@@ -1,6 +1,10 @@
-## 2026-11-06 — #1536 Live Data UI source candidate pending exact-head browser/CI
+## 2026-11-09 — #1544 Equipment connections source acceptance pending
 
-Progressive Live filtering changes are display-only and preserve existing URL filters and selection. Twelve targeted component tests, changed-file lint, TS and formatting passed against matching isolated source blobs. Full CI, 320/375/390/768/1440/1920 authenticated browser acceptance, offline/no-remote review, permission review, production build and source merge are NOT yet verified for #1536. PR #1531 continues independently on per-page grants; do not claim protected site updated. No Modbus/hardware writes.
+Issue #1544 / feature branch feat/1544-equipment-connections-readability updates read-only commissioning session presentation and filtering only. Eight focused tests, Prettier/ESLint/TS on three verified UI/test/E2E file blobs passed in isolated Pi workspace. Required source-bound GitHub CI, build, authenticated 375/768/1440/1920 acceptance and post-merge integration remain unverified. LAN discovery remains separate from Modbus scanning; no hardware/model recognition or activation added. Permission integration PR #1531 and commissioning PRs #1519/#1521 are still draft. Protected site release, backup/rollback and offline package remain separate gates; no production/Modbus write.
+
+## 2026-11-09 — #1536 source-only merge complete, site release separate
+
+Live Data PR #1539 passed exact-head CI #42285423569 and Authenticated Dashboard Acceptance #42285423714 (42/42) and merged into main as b854590323e3213ad2ef32a8828de502324a4b98. Raspberry deployed release not updated; guarded package and rollback required.
 
 ## 2026-11-06 — #1537 source-merged; ongoing production release gates
 
