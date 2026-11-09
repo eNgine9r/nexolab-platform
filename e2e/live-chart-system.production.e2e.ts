@@ -252,6 +252,27 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(primaryChart).toBeVisible();
     await expect(filterPanel).toBeVisible();
     await expect(inventoryPanel).toBeVisible();
+    await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible();
+
+    const advancedFilters = filterPanel.getByRole("button", { name: /Додаткові фільтри/ });
+    const nodeFilter = filterPanel.getByLabel("Вузол");
+    await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
+    await expect(nodeFilter).toBeHidden();
+    const socketCountBeforeToggle = runtime.sockets.opened;
+    const historyCountBeforeToggle = runtime.telemetry.filter((request) =>
+      request.url.includes("/history"),
+    ).length;
+    await advancedFilters.focus();
+    await page.keyboard.press("Enter");
+    await expect(advancedFilters).toHaveAttribute("aria-expanded", "true");
+    await expect(nodeFilter).toBeVisible();
+    await advancedFilters.click();
+    await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
+    await expect(nodeFilter).toBeHidden();
+    expect(runtime.sockets.opened).toBe(socketCountBeforeToggle);
+    expect(runtime.telemetry.filter((request) => request.url.includes("/history")).length).toBe(
+      historyCountBeforeToggle,
+    );
     await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
     await primaryChart.getByRole("button", { name: "Обрати датчики" }).focus();
     await page.keyboard.press("Enter");
@@ -480,7 +501,11 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await page.getByRole("button", { name: "Return to Live", exact: true }).click();
 
     for (const viewport of [
+      { width: 320, height: 800 },
       { width: 360, height: 800 },
+      { width: 375, height: 800 },
+      { width: 390, height: 800 },
+      { width: 768, height: 900 },
       { width: 1440, height: 900 },
       { width: 1920, height: 1080 },
     ]) {
