@@ -100,7 +100,9 @@ export function EquipmentConnectionsWorkspace({
       .map((asset) => [asset.id, asset.displayName]),
   );
   const activeSessions = visibleSessions.filter((session) => session.lifecycle !== "cancelled");
-  const attentionCount = activeSessions.filter((session) => attentionLifecycles.has(session.lifecycle)).length;
+  const attentionCount = activeSessions.filter((session) =>
+    attentionLifecycles.has(session.lifecycle),
+  ).length;
   const pendingCount = activeSessions.filter((session) => inProgressLifecycles.has(session.lifecycle)).length;
   const viewState = repository ? (loadedRepository === repository ? state : "loading") : "error";
   const viewError = repository ? error : "Локальний сервіс чернеток комісіонування не налаштований.";
@@ -134,7 +136,11 @@ export function EquipmentConnectionsWorkspace({
     { id: "all", label: "Усі", count: visibleSessions.length },
     { id: "attention", label: "Потрібна увага", count: attentionCount },
     { id: "in_progress", label: "У процесі", count: pendingCount },
-    { id: "active", label: "Активні", count: activeSessions.filter((item) => item.lifecycle === "active").length },
+    {
+      id: "active",
+      label: "Активні",
+      count: activeSessions.filter((item) => item.lifecycle === "active").length,
+    },
   ];
 
   return (
@@ -148,8 +154,8 @@ export function EquipmentConnectionsWorkspace({
             <h1 className="mt-2 text-2xl font-semibold text-white">Підключення пристроїв</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
               Знайдіть прилад, перевірте збережену шину та статус підключення. Активний моніторинг
-              відображається лише після підтвердженої активації. Зміни в цьому списку не
-              надсилають команди обладнанню.
+              відображається лише після підтвердженої активації. Зміни в цьому списку не надсилають команди
+              обладнанню.
             </p>
           </div>
           {canManage ? (
@@ -168,10 +174,18 @@ export function EquipmentConnectionsWorkspace({
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
           <Metric
             label="Моніторинг активний"
-            value={viewState === "ready" ? activeSessions.filter((item) => item.lifecycle === "active").length : "—"}
+            value={
+              viewState === "ready"
+                ? activeSessions.filter((item) => item.lifecycle === "active").length
+                : "—"
+            }
           />
           <Metric label="У процесі підключення" value={viewState === "ready" ? pendingCount : "—"} />
-          <Metric label="Потрібна увага" value={viewState === "ready" ? attentionCount : "—"} warning={viewState === "ready" && attentionCount > 0} />
+          <Metric
+            label="Потрібна увага"
+            value={viewState === "ready" ? attentionCount : "—"}
+            warning={viewState === "ready" && attentionCount > 0}
+          />
         </div>
       </section>
 
@@ -215,7 +229,7 @@ export function EquipmentConnectionsWorkspace({
                   className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-cyan-300 ${statusFilter === option.id ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-slate-300 hover:border-cyan-300/20 hover:text-white"}`}
                 >
                   {option.label}
-                  <span className="tabular-nums text-[11px] opacity-75">{option.count}</span>
+                  <span className="text-[11px] tabular-nums opacity-75">{option.count}</span>
                 </button>
               ))}
             </div>
@@ -273,12 +287,12 @@ export function EquipmentConnectionsWorkspace({
                     <p className="truncate text-sm font-semibold text-white">
                       {session.manufacturer} {session.model}
                     </p>
-                    <p className="mt-1 break-words text-[11px] leading-4 text-slate-400">
+                    <p className="mt-1 text-[11px] leading-4 break-words text-slate-400">
                       {session.profileId ?? "Профіль не визначено"} · версія {session.version}
                     </p>
                   </div>
                   <span
-                    className={`max-w-[12rem] shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-4 text-center ${lifecycleTone[session.lifecycle]}`}
+                    className={`max-w-[12rem] shrink-0 rounded-full border px-2.5 py-1 text-center text-[11px] leading-4 font-medium ${lifecycleTone[session.lifecycle]}`}
                   >
                     {lifecycleLabel[session.lifecycle]}
                   </span>
@@ -306,8 +320,8 @@ export function EquipmentConnectionsWorkspace({
 
       <div className="space-y-2">
         <p className="px-1 text-xs leading-5 text-slate-400">
-          LAN-пошук мережевих пристроїв — окрема функція. Він не визначає Modbus ID та не
-          сканує активні шини RS-485.
+          LAN-пошук мережевих пристроїв — окрема функція. Він не визначає Modbus ID та не сканує активні шини
+          RS-485.
         </p>
         <EquipmentDiscoveryInbox repository={discoveryRepository} canManage={canManage} assets={assets} />
       </div>
@@ -315,7 +329,15 @@ export function EquipmentConnectionsWorkspace({
   );
 }
 
-function Metric({ label, value, warning = false }: { label: string; value: number | string; warning?: boolean }) {
+function Metric({
+  label,
+  value,
+  warning = false,
+}: {
+  label: string;
+  value: number | string;
+  warning?: boolean;
+}) {
   return (
     <div className="rounded-2xl border border-white/[0.07] bg-[#06142a]/55 p-3">
       <p className="text-xs font-medium text-slate-300">{label}</p>
