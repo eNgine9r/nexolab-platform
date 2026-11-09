@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EnergySeriesSelection } from "@/features/energy/energy-series-selection";
@@ -24,6 +24,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
   for (const [name, descriptor] of [
     ["showModal", previousShowModal],
     ["close", previousClose],
