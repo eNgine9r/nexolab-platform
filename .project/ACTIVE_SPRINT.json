@@ -10024,13 +10024,16 @@
         "changed_file_eslint": "PASS",
         "typescript_noemit": "PASS",
         "matched_source_blob_count": 3,
-        "authenticated_browser_acceptance": "not_run",
+        "authenticated_browser_acceptance": "not_observed_at_pr_creation",
         "exact_head_ci": "not_run",
         "production_build": "not_run",
         "hardware_acceptance": "not_applicable_source_only",
         "site_installed": false,
         "hardware_write": false,
-        "modbus_write": false
+        "modbus_write": false,
+        "pull_request": 1545,
+        "ready_for_review": true,
+        "github_ci": "not_observed_at_pr_creation"
       }
     }
   ],
@@ -11953,6 +11956,18 @@
         "focused_tests": 8,
         "source_blobs_matched": 3,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:18:58.056Z",
+      "kind": "1544_pr_open_checks_not_yet_observed",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "branch": "feat/1544-equipment-connections-readability",
+        "workflow_runs_count_at_creation": 0,
+        "release_not_authorized": true
       }
     }
   ],
