@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-06T20:01:57.324Z",
+  "timestamp": "2026-11-09T10:15:16.545Z",
   "actor": "ChatGPT",
-  "event": "1537_source_merged_1536_live_filter_source_candidate",
+  "event": "1536_source_merged_1544_equipment_ui_isolated_pass",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3086,8 +3086,27 @@
       "eslint": "PASS",
       "tsc_noemit": "PASS",
       "source_blobs_verified": 2,
+      "github_ci": "PASS_42285423569",
+      "browser_acceptance": "PASS_42_of_42_42285423714",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1544_equipment_connections": {
+      "issue": 1544,
+      "related_discovery_issue": 1478,
+      "branch": "feat/1544-equipment-connections-readability",
+      "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+      "targeted_vitest": "8_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "verified_blobs": 3,
       "github_ci": "pending",
-      "browser_acceptance": "pending",
+      "authenticated_browser_acceptance": "pending",
+      "production_build": "pending",
       "site_installed": false,
       "modbus_write": false,
       "hardware_write": false
@@ -4606,6 +4625,19 @@
         "issue": 1536,
         "checks_isolated": 12,
         "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1544_ui_checkpoint",
+      "data": {
+        "issue": 1544,
+        "source_merge_previous": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "verified_test_count": 8,
+        "verified_blobs": 3,
+        "read_only": true,
         "site_mutation": false
       }
     }

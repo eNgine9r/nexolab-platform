@@ -9963,7 +9963,7 @@
       "title": "Live Data progressive advanced-filter disclosure and compact search",
       "branch": "feat/1536-live-progressive-filters",
       "priority": "normal",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1534,
         1537
@@ -9990,7 +9990,50 @@
         "site_mutation": false,
         "hardware_write": false,
         "modbus_write": false,
-        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts"
+        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts",
+        "github_exact_head_ci": "PASS_42285423569",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42285423714",
+        "merged_source_pr": 1539,
+        "merged_source_commit": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1544,
+      "title": "Equipment connections: compact, searchable persisted read-only sessions",
+      "branch": "feat/1544-equipment-connections-readability",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1536
+      ],
+      "scope": "Equipment Connections read-only UI: accurate counters while loading/error; local-only session search, status filtering, readable saved bus/Unit identities; unchanged commissioning activation, LAN discovery, permissions and Modbus.",
+      "permitted_paths": [
+        "src/components/equipment/equipment-connections-workspace.tsx",
+        "src/components/equipment/equipment-connections-workspace.test.tsx",
+        "e2e/equipment-registry.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1544,
+        "related_discovery_issue": 1478,
+        "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+        "focused_vitest": "PASS_8_of_8",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_source_blob_count": 3,
+        "authenticated_browser_acceptance": "not_observed_at_pr_creation",
+        "exact_head_ci": "not_run",
+        "production_build": "not_run",
+        "hardware_acceptance": "not_applicable_source_only",
+        "site_installed": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "pull_request": 1545,
+        "ready_for_review": true,
+        "github_ci": "not_observed_at_pr_creation"
       }
     }
   ],
@@ -11898,6 +11941,33 @@
         "blobs_matched": 2,
         "source_only": true,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1536_merged_1544_equipment_candidate",
+      "data": {
+        "prior_issue": 1536,
+        "source_merged_pr": 1539,
+        "main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "issue": 1544,
+        "linked_discovery": 1478,
+        "focused_tests": 8,
+        "source_blobs_matched": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:18:58.056Z",
+      "kind": "1544_pr_open_checks_not_yet_observed",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "branch": "feat/1544-equipment-connections-readability",
+        "workflow_runs_count_at_creation": 0,
+        "release_not_authorized": true
       }
     }
   ],

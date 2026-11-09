@@ -817,6 +817,30 @@ test("renders and navigates the authenticated Equipment and metrology registry",
           await expect(engineerPage.getByRole("link", { name: "Підключення" })).toBeVisible();
           await expect(engineerPage.getByRole("link", { name: "Метрологія" })).toBeVisible();
           await expect(engineerPage.getByText("LOCAL_LAN discovery inbox", { exact: true })).toBeVisible();
+          await test.step("search and filter persisted RS-485 sessions without changing acquisition", async () => {
+            const sessionSearch = engineerPage.getByRole("searchbox", { name: "Пошук підключень" });
+            await expect(sessionSearch).toBeVisible();
+            await sessionSearch.fill("Embraco");
+            await expect(engineerPage.getByRole("link", { name: /Embraco Sync/ }).first()).toBeVisible();
+            await sessionSearch.fill("unmatched-session-999");
+            await expect(engineerPage.getByText("За заданими умовами підключень немає")).toBeVisible();
+            await engineerPage.getByRole("button", { name: "Скинути фільтри" }).click();
+            await expect(engineerPage.getByRole("link", { name: /Embraco Sync/ }).first()).toBeVisible();
+            for (const viewport of [
+              { width: 375, height: 800 },
+              { width: 768, height: 900 },
+              { width: 1440, height: 900 },
+              { width: 1920, height: 1080 },
+            ]) {
+              await engineerPage.setViewportSize(viewport);
+              await expect(sessionSearch).toBeVisible();
+              const overflow = await engineerPage.evaluate(
+                () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+              );
+              expect(overflow).toBe(false);
+            }
+            expect(engineerAcquisitionMutations).toEqual([]);
+          });
           await engineerPage.getByRole("link", { name: /Embraco Sync/ }).click();
           await expect(engineerPage).toHaveURL(persistedDraftUrl);
           await engineerPage.getByRole("button", { name: "Скасувати чернетку" }).click();
