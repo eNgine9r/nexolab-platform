@@ -10003,7 +10003,7 @@
       "title": "Equipment connections: compact, searchable persisted read-only sessions",
       "branch": "feat/1544-equipment-connections-readability",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1536
       ],
@@ -10033,7 +10033,43 @@
         "modbus_write": false,
         "pull_request": 1545,
         "ready_for_review": true,
-        "github_ci": "not_observed_at_pr_creation"
+        "github_ci": "not_observed_at_pr_creation",
+        "source_merged_pr": 1545,
+        "github_exact_head_ci": "PASS_42600416268",
+        "authenticated_equipment": "PASS_6_of_6_42600416103"
+      }
+    },
+    {
+      "issue": 1546,
+      "title": "Energy Monitoring: compact searchable multi-meter metric selector",
+      "branch": "feat/1546-energy-parameter-picker",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1544
+      ],
+      "scope": "Display-only Energy parameter modal local search and selected-only review; preserve disabled unsupported metrics, multi-series/history/export, offline and all existing acquisition and permissions.",
+      "permitted_paths": [
+        "src/components/energy/energy-parameter-dialog.tsx",
+        "src/components/energy/energy-parameter-dialog.test.tsx",
+        "e2e/energy.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1546,
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+        "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "focused_vitest": "PASS_10_of_10_two_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 3,
+        "github_ci": "pending",
+        "production_build": "pending",
+        "authenticated_energy_browser": "pending",
+        "modbus_write": false,
+        "hardware_write": false,
+        "site_mutation": false
       }
     }
   ],
@@ -11968,6 +12004,32 @@
         "branch": "feat/1544-equipment-connections-readability",
         "workflow_runs_count_at_creation": 0,
         "release_not_authorized": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1544_merged_1546_energy_isolated_candidate",
+      "data": {
+        "previous_pr": 1545,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "issue": 1546,
+        "focused_tests": 10,
+        "verified_blobs": 3,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:40:52.840Z",
+      "kind": "1544_source_merged_observation",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "merge_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "source_only": true,
+        "site_mutation": false
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-09T10:15:16.545Z",
+  "timestamp": "2026-11-09T10:38:06.071Z",
   "actor": "ChatGPT",
-  "event": "1536_source_merged_1544_equipment_ui_isolated_pass",
+  "event": "1544_equipment_source_merged_1546_energy_ui_targeted_checks_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3104,8 +3104,26 @@
       "eslint": "PASS",
       "typecheck": "PASS",
       "verified_blobs": 3,
+      "github_ci": "PASS_42600416268",
+      "authenticated_browser_acceptance": "PASS_6_of_6_42600416103",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1546_energy_parameter_picker": {
+      "issue": 1546,
+      "branch": "feat/1546-energy-parameter-picker",
+      "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+      "focused_vitest": "10_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "source_blobs_verified": 3,
       "github_ci": "pending",
-      "authenticated_browser_acceptance": "pending",
+      "authenticated_energy_browser": "pending",
       "production_build": "pending",
       "site_installed": false,
       "modbus_write": false,
@@ -4638,6 +4656,18 @@
         "verified_test_count": 8,
         "verified_blobs": 3,
         "read_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1546_energy_source_checkpoint",
+      "data": {
+        "issue": 1546,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "tests_passed": 10,
+        "blob_count": 3,
         "site_mutation": false
       }
     }

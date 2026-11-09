@@ -1,6 +1,10 @@
-## 2026-11-09 — #1544 Equipment connections source acceptance pending
+## 2026-11-09 — #1546 Energy parameters UI source acceptance pending
 
-Issue #1544 / feature branch feat/1544-equipment-connections-readability updates read-only commissioning session presentation and filtering only. Eight focused tests, Prettier/ESLint/TS on three verified UI/test/E2E file blobs passed in isolated Pi workspace. Required source-bound GitHub CI, build, authenticated 375/768/1440/1920 acceptance and post-merge integration remain unverified. LAN discovery remains separate from Modbus scanning; no hardware/model recognition or activation added. Permission integration PR #1531 and commissioning PRs #1519/#1521 are still draft. Protected site release, backup/rollback and offline package remain separate gates; no production/Modbus write.
+Issue #1546 / feature branch feat/1546-energy-parameter-picker is display-only. Ten targeted Energy Vitest cases and Prettier/ESLint/TypeScript noEmit passed on exact three matched source/test/E2E blobs. Required GitHub exact-head CI, production build, authenticated Energy browser at 375/390/768/1440/1920 px, offline and permissions review, and source-merge are not yet verified. No meter integration, runtime modification or hardware proof. Draft integration #1519 and permission grants #1531 remain open; reconcile when merged. Do not deploy protected Pi without offline matching release, verified backup/rollback and explicit site boundary.
+
+## 2026-11-09 — #1544 Equipment source accepted, runtime update separate
+
+Equipment Connections PR #1545 passed exact-head CI #42600416268 and authenticated Equipment acceptance #42600416103 GREEN (6/6) before source merge 9caffc8f0a106f2b151ce12a15ee0e26a974bc53. No production installation, Modbus write or hardware acceptance followed.
 
 ## 2026-11-09 — #1536 source-only merge complete, site release separate
 
