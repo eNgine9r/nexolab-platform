@@ -10108,6 +10108,45 @@
         "modbus_write": false,
         "hardware_write": false
       }
+    },
+    {
+      "issue": 1553,
+      "title": "Reclaim inactive developer caches safely on NEXOLAB Raspberry SSD",
+      "branch": "chore/1553-safe-cache-reclamation",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "scope": "One-time verified deletion of generated ignored node_modules and .next outside the active site runtimes; protect production/rollback databases, images, archives and release packages.",
+      "permitted_paths": [
+        "docs/operations/nexolab-1553-safe-dev-cache-reclamation-2026-11-10.md",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1553,
+        "base_main_sha": "182777186092cc1e3968182f2239bc6ce6c377e3",
+        "host": "nexolab-edge-01",
+        "device": "/dev/sda2",
+        "before_avail_bytes": 37260357632,
+        "after_avail_bytes": 45684551680,
+        "actual_reclaimed_bytes": 8424194048,
+        "active_containers": 13,
+        "removed_directories": 23,
+        "permission_denied": 2,
+        "symlink_skipped": 1,
+        "external_frontend_and_nginx": "active",
+        "telemetry_max_id_before": 13482333,
+        "telemetry_max_id_after": 13482381,
+        "all_production_database_rows_deleted": 0,
+        "git_tracked_files_deleted": 0,
+        "docker_images_or_volumes_deleted": 0,
+        "backups_or_rollback_deleted": 0,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_ci": "pending",
+        "site_release": "not_requested",
+        "separate_telemetry_issue": 1551,
+        "recovery_blocker_issue": 1428
+      }
     }
   ],
   "maintenance_actions": [
@@ -10182,6 +10221,13 @@
       "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
+    },
+    {
+      "id": "nexolab-1553-safe-cache-cleanup-20261110",
+      "description": "Removed 23 ignored generated dependency/build cache directories only; verified 8424194048 bytes increase in available SSD space, 13 active containers, telemetry progress, active external frontend/nginx. Protected recovery assets untouched.",
+      "status": "completed",
+      "issue": 1553,
+      "timestamp": "2026-11-10T09:01:05Z"
     }
   ],
   "observations": [
