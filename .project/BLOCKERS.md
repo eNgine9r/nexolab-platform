@@ -1,3 +1,7 @@
+## 2026-11-10 — #1555 old microSD rollback preserved; further deletion gated by DR
+
+Legacy microSD root `/dev/mmcblk0p2` is an explicit SSD-migration #968 **bootable fallback**, not spare user storage. Cache-only one-time cleaning recovered **836,288,512 bytes on microSD**, verified clean ext4 unmount. **Original root OS, Docker, source, audit and backups were deliberately preserved**, despite being old. The cleanup does not affect the SSD capacity baseline (81% used / ~43 GiB available). #1428 still lacks an independently recovered complete eight-store offline encrypted copy; full microSD wipe, data/rollback/archive pruning and reuse as backup target are NOT authorized by this cache-only request. Keep current site boot identity and all disks' PARTUUIDs unchanged. No Modbus or industrial hardware writes performed.
+
 ## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
 
 Safe NEXOLAB ignored build/dependency removal reclaimed +8424194048 bytes of actual filesystem capacity (available 42.55 GiB, 81% used); no running site release, backup, Docker volume or history was pruned. Active host frontend path `.../quick-1490` and active standalone 1520 release were excluded. Two historical, permission-protected `nexolab-compat-1019` artifacts remain. Current storage figures supersede the historical 97%-full preflight below.

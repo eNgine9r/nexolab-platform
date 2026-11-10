@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T09:01:05Z",
+  "timestamp": "2026-11-10T10:07:27Z",
   "actor": "ChatGPT",
-  "event": "1553_dev_build_cache_reclaim_8424194048_bytes_postverification",
+  "event": "1555_inactive_microsd_regenerated_cache_cleanup_verified_836288512_bytes",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3163,6 +3163,22 @@
       "protected_cutover": false,
       "source_ci": "pending",
       "manual_rollout": "not_performed"
+    },
+    "sd1555_20261110": {
+      "issue": 1555,
+      "feature_branch": "docs/1555-microsd-safe-cache-cleanup",
+      "sd_reclaimed_bytes": 836288512,
+      "sd_free_before_bytes": 4522987520,
+      "sd_free_after_bytes": 5359276032,
+      "clean_unmount_and_ext4": true,
+      "legacy_os_and_boot_kept": true,
+      "legacy_docker_and_backups_kept": true,
+      "ssd_reclaimed_bytes": 0,
+      "live_containers": 13,
+      "telemetry_latest_id": 13484021,
+      "site_cutover": false,
+      "modbus_write": false,
+      "ci": "pending"
     }
   },
   "observations": [
