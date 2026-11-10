@@ -3182,7 +3182,13 @@
       "authenticated_browser": "pending",
       "site_installed": false,
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "browser_target_viewports": [
+        375,
+        768,
+        1440,
+        1920
+      ]
     }
   },
   "observations": [

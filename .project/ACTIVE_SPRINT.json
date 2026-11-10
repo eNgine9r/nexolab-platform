@@ -10168,6 +10168,7 @@
       "permitted_paths": [
         "src/components/sessions/sessions-list-screen.tsx",
         "src/components/sessions/sessions-list-screen.test.tsx",
+        "e2e/test-sessions.production.e2e.ts",
         ".project/"
       ],
       "evidence": {
@@ -10182,7 +10183,13 @@
         "protected_site_installed": false,
         "hardware_verification": "not_applicable_UI_only",
         "modbus_write": false,
-        "hardware_write": false
+        "hardware_write": false,
+        "browser_target_viewports": [
+          375,
+          768,
+          1440,
+          1920
+        ]
       }
     }
   ],
