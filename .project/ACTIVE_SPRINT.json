@@ -10147,6 +10147,45 @@
         "separate_telemetry_issue": 1551,
         "recovery_blocker_issue": 1428
       }
+    },
+    {
+      "issue": 1460,
+      "title": "Fail-closed offline complete-backup inventory and capacity preflight",
+      "branch": "feature/1460-offline-backup-preflight",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1428,
+        1431
+      ],
+      "scope": "Read-only eight-store policy/staging/backup-restore authority preflight with isolated tests and offline CI registration. No production backup/restore, deletion, cutover or secret handling.",
+      "permitted_paths": [
+        "scripts/nexolab-offline-backup-preflight.py",
+        "scripts/tests/test_nexolab_offline_backup_preflight.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/telemetry-service.yml",
+        "docs/operations/offline-backup-preflight-1460.md",
+        ".project/"
+      ],
+      "evidence": {
+        "site_baseline_source": "main_5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+        "project_source_reconciliation": "latest_main_merged_state_conflicts_resolved",
+        "site_staging_available_bytes": 45679169536,
+        "site_preflight_exit": 78,
+        "site_preflight_status": "BLOCKED",
+        "site_old_policy_missing_complete_inventory": true,
+        "site_off_device_copy_verified": false,
+        "site_independent_restore_verified": false,
+        "site_backup_timer_present": false,
+        "synthetic_eight_store_fixture": "SYNTHETIC_ONLY_PASS",
+        "synthetic_tamper_wrong_key_rejected": true,
+        "site_database_writes": false,
+        "backup_or_restore_performed": false,
+        "modbus_write": false,
+        "ci": "pending_after_reconciliation"
+      }
     }
   ],
   "maintenance_actions": [

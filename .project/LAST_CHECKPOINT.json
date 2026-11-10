@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T09:01:05Z",
+  "timestamp": "2026-11-10T09:23:07Z",
   "actor": "ChatGPT",
-  "event": "1553_dev_build_cache_reclaim_8424194048_bytes_postverification",
+  "event": "1460_source_main_reconciled_site_readonly_backup_gate_blocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3163,6 +3163,20 @@
       "protected_cutover": false,
       "source_ci": "pending",
       "manual_rollout": "not_performed"
+    },
+    "dr1460_20261110": {
+      "issue": 1460,
+      "branch": "feature/1460-offline-backup-preflight",
+      "main_baseline": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+      "site_readonly_preflight": "BLOCKED_exit_78",
+      "site_health": "BLOCKED_exit_78",
+      "synthetic_fixture": "SYNTHETIC_ONLY_PASS",
+      "site_backup": false,
+      "site_restore": false,
+      "off_device_copy": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "ci": "pending"
     }
   },
   "observations": [

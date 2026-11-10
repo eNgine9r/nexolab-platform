@@ -1,3 +1,9 @@
+## 2026-11-10 — #1428/#1460 verified backup capability missing (read-only checks)
+
+Physical SSD now ~43 GiB available/81% used after verified developer-cache cleanup, so the 20 GiB reserve plus 4 GiB staging _capacity_ gate is not the blocker. Read-only `nexolab-offline-backup-preflight.py --check` returned exit 78: missing mandatory asset inventory (edge SQLite/outbox), unreconciled legacy MinIO vs live VersityGW source, staging directory group-writable, no protected independent encrypted off-device destination/key custody, no isolated fresh-volume restore or site approval. `nexolab-dr-readonly-health.py` returned exit 78: no complete eight-store receipt and no active backup timer. `nexolab-site-dr-fixture-harness.py --self-test` passed **synthetic-only**, not production recovery.
+
+Do not delete PostgreSQL rows, site databases, image/volume/rollback archives, /var/backups or old test-session evidence; no production startup/restart or secret access. Source-only #1460 is an isolated capability PR, not authority to enable backups or retention. Independent encrypted off-device storage and real restore proof are required by #1428; network CIDR and offline release gates remain unresolved.
+
 ## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
 
 Safe NEXOLAB ignored build/dependency removal reclaimed +8424194048 bytes of actual filesystem capacity (available 42.55 GiB, 81% used); no running site release, backup, Docker volume or history was pruned. Active host frontend path `.../quick-1490` and active standalone 1520 release were excluded. Two historical, permission-protected `nexolab-compat-1019` artifacts remain. Current storage figures supersede the historical 97%-full preflight below.
