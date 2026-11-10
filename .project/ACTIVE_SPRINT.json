@@ -10147,6 +10147,46 @@
         "separate_telemetry_issue": 1551,
         "recovery_blocker_issue": 1428
       }
+    },
+    {
+      "issue": 1555,
+      "title": "Safely remove regenerated caches from legacy fallback microSD only",
+      "branch": "docs/1555-microsd-safe-cache-cleanup",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "scope": "One-time restricted old SD (not SSD) cleanup of three download caches and apt downloaded .deb archives with old emergency boot, NEXOLAB, all databases and backups fully preserved.",
+      "permitted_paths": [
+        "docs/operations/nexolab-microsd-cache-cleanup-1555.md",
+        ".project/"
+      ],
+      "evidence": {
+        "host": "nexolab-edge-01",
+        "live_root": "/dev/sda2",
+        "live_root_partuuid": "4299a96f-02",
+        "inactive_sd_root": "/dev/mmcblk0p2",
+        "sd_root_partuuid": "71ded8bc-02",
+        "sd_root_uuid": "8abab6b9-ef90-4fee-ae3d-91079bfae7c1",
+        "sd_free_before_bytes": 4522987520,
+        "sd_free_after_bytes": 5359276032,
+        "sd_reclaimed_bytes": 836288512,
+        "sd_cache_trees_cleared": 3,
+        "sd_apt_deb_files_deleted": 10,
+        "sd_root_clean_unmounted": true,
+        "sd_legacy_boot_preserved": true,
+        "sd_legacy_docker_and_backups_preserved": true,
+        "live_ssd_df_status": "81pct_used_43GiB_available",
+        "live_ssd_reclaimed_bytes": 0,
+        "site_containers_running": 13,
+        "site_telemetry_max_id": 13484021,
+        "site_external_frontend": "active",
+        "site_nginx": "active",
+        "modbus_write": false,
+        "industrial_hardware_write": false,
+        "production_data_deleted": false,
+        "site_update": "not_performed",
+        "ci": "pending"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10228,6 +10268,13 @@
       "status": "completed",
       "issue": 1553,
       "timestamp": "2026-11-10T09:01:05Z"
+    },
+    {
+      "id": "nexolab-1555-microsd-cache-only-20261110",
+      "description": "Clean offline old SD only (not SSD): npm and pip cached packages, npx temp packages, ten APT downloads; ext4 free-block delta +836288512 bytes, clean unmount, emergency-boot and backup preserved.",
+      "status": "completed",
+      "issue": 1555,
+      "timestamp": "2026-11-10T10:07:27Z"
     }
   ],
   "observations": [
