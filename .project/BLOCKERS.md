@@ -1,3 +1,11 @@
+## 2026-11-10 — HARD BLOCKER: protected Raspberry deployment capacity and overlapping LAN route
+
+Actual read-only edge preflight: /dev/sda2 234G, 215G used, only 7.2G available (97%). Existing Docker images 21.44 GB (11.91 GB nominal reclaimable), build cache 16.99 GB (10.28 GB nominal reclaimable), 103 local volumes 27.79 GB (only 2.584 GB nominal reclaimable), workspaces 59 GB. **No cleanup/prune has been performed**: previous releases, rollback materials and persistent volumes must be inventoried before any deletion. Docker Edge 172.18.0.0/16 overlaps site LAN 172.18.48.0/21; default gateway 172.18.48.1 via eth0. Last systemd service state shows active containers but protected source still ffdefc4550d7. /opt/nexolab/current is absent. Required gates: establish a safe free-space budget and inventory retained backups/images, prove isolated recoverable backup/restore, resolve/guard CIDR conflict without moving active network, build and verify source-bound offline package/rollback, obtain explicit protected-site authorization. **No production update or green user update signal allowed.**
+
+## 2026-11-10 — #1548 Refrigeration catalog source acceptance pending
+
+Issue #1548 adds presentation-only refrigerated catalog card compression and clarifies persisted Embraco summaries. Verified 13/13 focused tests, Prettier, ESLint and TS noEmit on SHA-verified source/test/browser files; full GitHub exact-head CI/build and authenticated four-viewport browser acceptance not yet completed. No backend/Modbus/device/runtime change. Open access #1531 and onboarding #1519 may later require regression integration and .project state reconciliation.
+
 ## 2026-11-09 — #1546 Energy parameters UI source acceptance pending
 
 Issue #1546 / feature branch feat/1546-energy-parameter-picker is display-only. Ten targeted Energy Vitest cases and Prettier/ESLint/TypeScript noEmit passed on exact three matched source/test/E2E blobs. Required GitHub exact-head CI, production build, authenticated Energy browser at 375/390/768/1440/1920 px, offline and permissions review, and source-merge are not yet verified. No meter integration, runtime modification or hardware proof. Draft integration #1519 and permission grants #1531 remain open; reconcile when merged. Do not deploy protected Pi without offline matching release, verified backup/rollback and explicit site boundary.
