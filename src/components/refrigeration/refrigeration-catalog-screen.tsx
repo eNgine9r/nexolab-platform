@@ -53,7 +53,7 @@ const statusLabels: Record<EquipmentStatus, string> = {
   normal: "Норма",
   warning: "Увага",
   alarm: "Тривога",
-  offline: "Offline",
+  offline: "Офлайн",
 };
 
 const lifecycleStyles: Record<EquipmentLifecycleStatus, string> = {
@@ -552,7 +552,7 @@ function EquipmentCard({
 }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1b33]/85 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/20">
-      <div className="relative h-48 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
+      <div className="relative h-24 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
         <div className="absolute inset-x-[12%] top-[16%] bottom-0 rounded-t-2xl border border-slate-500/30 bg-[linear-gradient(90deg,#101b26_0_3%,#23384a_3%_49%,#0f1a25_49%_52%,#23384a_52%_97%,#101b26_97%)] shadow-[0_0_40px_rgba(34,211,238,.06)]">
           {[22, 43, 64, 85].map((top) => (
             <div
@@ -562,12 +562,12 @@ function EquipmentCard({
             />
           ))}
         </div>
-        <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/65 px-3 py-1.5 text-[10px] text-cyan-200 backdrop-blur">
+        <div className="absolute top-3 left-3 flex max-w-[60%] items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/65 px-3 py-1.5 text-[11px] leading-4 break-words text-cyan-200 backdrop-blur">
           <Snowflake className="h-3.5 w-3.5" />
           {item.type}
         </div>
         <span
-          className={`absolute top-4 right-4 rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}
+          className={`absolute top-3 right-3 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}
         >
           {lifecycleLabels[item.lifecycleStatus]}
         </span>
@@ -576,18 +576,18 @@ function EquipmentCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-white">{item.name}</h2>
-            <p className="mt-1 truncate text-xs text-slate-500">{item.location}</p>
-            <p className="mt-1 truncate text-[10px] text-cyan-200/70">{chamberName ?? "Камеру не вибрано"}</p>
+            <h2 className="text-base leading-6 font-semibold break-words text-white">{item.name}</h2>
+            <p className="mt-1 text-xs leading-5 break-words text-slate-300">{item.location}</p>
+            <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">{chamberName ?? "Камеру не вибрано"}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[item.status]}`}
           >
             {statusLabels[item.status]}
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
           <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
           <Metric icon={Wifi} label="Датчики" value={`${item.onlineSensors}/${item.totalSensors}`} />
           <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
@@ -598,14 +598,14 @@ function EquipmentCard({
         ) : controllerSummaryState !== "ready" ? (
           <div
             role={controllerSummaryState === "error" ? "alert" : "status"}
-            className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px] text-slate-400"
+            className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-xs leading-5 text-slate-300"
           >
             {controllerSummaryState === "loading"
               ? "Завантаження стану контролера…"
               : "Стан контролера недоступний"}
           </div>
         ) : (
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]">
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-xs leading-5">
             <span className="text-slate-500">○</span>
             <span className="font-medium text-slate-300">Контролер не підключено</span>
             {canManage && item.lifecycleStatus !== "retired" ? (
@@ -619,8 +619,8 @@ function EquipmentCard({
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
-          <div className="text-[11px] text-slate-500">
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
+          <div className="min-w-0 text-xs leading-5 break-words text-slate-400">
             <span className="text-slate-300">
               {item.manufacturer} {item.model}
             </span>
@@ -667,26 +667,47 @@ function ControllerStatusLine({ summary }: { summary: RefrigerationControllerSum
     4: "Post-defrost",
     5: "Pulldown",
   };
-  const hasObservedTelemetry = summary.lastSeenAt !== null;
+  const capturedMs = summary.lastSeenAt === null ? NaN : Date.parse(summary.lastSeenAt);
+  const hasObservedTelemetry = Number.isFinite(capturedMs);
   const state =
-    summary.controlState === null
+    !hasObservedTelemetry || summary.controlState === null
       ? "—"
       : (stateLabels[summary.controlState] ?? `State ${summary.controlState}`);
-  const speed = summary.compressorSpeedRpm === null ? "—" : `${Math.round(summary.compressorSpeedRpm)} rpm`;
+  const speed =
+    !hasObservedTelemetry || summary.compressorSpeedRpm === null
+      ? "—"
+      : `${Math.round(summary.compressorSpeedRpm)} rpm`;
+  const recordedAt = hasObservedTelemetry
+    ? new Intl.DateTimeFormat("uk-UA", {
+        timeZone: "Europe/Kyiv",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(capturedMs)
+    : null;
+
   return (
     <div
       data-testid={`controller-summary-${summary.equipmentId}`}
-      className="mt-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]"
+      className="mt-3 min-w-0 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2.5"
     >
-      <span
-        className={hasObservedTelemetry ? "text-emerald-300" : "text-slate-500"}
-        title={hasObservedTelemetry ? "Є persisted telemetry" : "Persisted telemetry відсутня"}
-      >
-        {hasObservedTelemetry ? "●" : "○"}
-      </span>
-      <span className="font-medium text-slate-300">Embraco</span>
-      <span className="min-w-0 truncate text-cyan-200/80">{state}</span>
-      <span className="ml-auto shrink-0 text-slate-400 tabular-nums">{speed}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5">
+        <span className="font-semibold text-slate-200">Збережений стан Embraco</span>
+        <span className="break-words text-cyan-200">{state}</span>
+        <span className="ml-auto text-slate-200 tabular-nums">{speed}</span>
+      </div>
+      {recordedAt ? (
+        <p className="mt-1 text-[11px] leading-4 text-slate-400">
+          Останній збережений запис:{" "}
+          <time dateTime={summary.lastSeenAt ?? undefined}>{recordedAt} (Київ)</time>
+        </p>
+      ) : (
+        <p className="mt-1 text-[11px] leading-4 text-slate-400">
+          Збережені показники контролера відсутні
+        </p>
+      )}
     </div>
   );
 }
@@ -746,10 +767,10 @@ function EmptyState({
 
 function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
+    <div className="min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.025] p-2.5 sm:p-3">
       <Icon className="h-4 w-4 text-cyan-300" />
-      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+      <p className="mt-2 text-[11px] leading-4 font-medium text-slate-300">{label}</p>
+      <p className="mt-1 text-sm font-semibold break-words text-slate-100 tabular-nums">{value}</p>
     </div>
   );
 }
