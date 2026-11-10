@@ -582,19 +582,36 @@ class Database:
         raw_payload_cutoff = now - timedelta(days=raw_payload_retention_days)
         dead_letter_cutoff = now - timedelta(days=dead_letter_retention_days)
 
+        # A laboratory session's attributed readings are evidence, not disposable
+        # monitoring history. Import here to avoid the attribution -> db cycle.
+        from app.sessions.telemetry_attribution import TelemetrySessionContext
+
+        unlinked = ~(
+            select(TelemetrySessionContext.telemetry_event_id)
+            .where(
+                TelemetrySessionContext.telemetry_event_id == TelemetrySample.event_id
+            )
+            .exists()
+        )
+
         with self.engine.begin() as connection:
             telemetry_ids = list(
                 connection.scalars(
                     select(TelemetrySample.id)
-                    .where(TelemetrySample.captured_at < telemetry_cutoff)
+                    .where(
+                        TelemetrySample.captured_at < telemetry_cutoff,
+                        unlinked,
+                    )
                     .order_by(TelemetrySample.id)
                     .limit(batch_size)
+                    .with_for_update(skip_locked=True)
                 )
             )
             if telemetry_ids:
                 connection.execute(
                     delete(TelemetrySample).where(
-                        TelemetrySample.id.in_(telemetry_ids)
+                        TelemetrySample.id.in_(telemetry_ids),
+                        unlinked,
                     )
                 )
 
@@ -604,15 +621,17 @@ class Database:
                     .where(
                         TelemetrySample.received_at < raw_payload_cutoff,
                         TelemetrySample.raw_payload_retained.is_(True),
+                        unlinked,
                     )
                     .order_by(TelemetrySample.id)
                     .limit(batch_size)
+                    .with_for_update(skip_locked=True)
                 )
             )
             if raw_payload_ids:
                 connection.execute(
                     update(TelemetrySample)
-                    .where(TelemetrySample.id.in_(raw_payload_ids))
+                    .where(TelemetrySample.id.in_(raw_payload_ids), unlinked)
                     .values(raw_payload={}, raw_payload_retained=False)
                 )
 

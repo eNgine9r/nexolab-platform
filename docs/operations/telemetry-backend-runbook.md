@@ -58,13 +58,13 @@ Terminal records remain in capacity accounting until a separate approved operato
 
 ## Default PostgreSQL retention policy
 
-| Data class                | Default retention | Action                                                          |
-| ------------------------- | ----------------: | --------------------------------------------------------------- |
-| Normalized telemetry      |          365 days | Delete rows in bounded batches                                  |
-| Original raw JSON payload |           30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
-| Dead-letter payload       |           30 days | Delete rows in bounded batches                                  |
+| Data class                    | Default retention | Action                                                                          |
+| ----------------------------- | ----------------: | ------------------------------------------------------------------------------- |
+| Ordinary normalized telemetry |           30 days | Delete only readings without laboratory session attribution, in bounded batches |
+| Original raw JSON payload     |           30 days | Redact only unlinked rows; retain session-attributed source evidence            |
+| Dead-letter payload           |           30 days | Delete rows in bounded batches                                                  |
 
-Each scheduled cleanup processes at most `RETENTION_BATCH_SIZE` rows per data class. The default interval is one hour.
+Each scheduled cleanup processes at most `RETENTION_BATCH_SIZE` rows per data class. The default interval is one hour. Session-attributed measurements and their original payload are excluded even when older than 30 days. **Do not change the deployed retention setting or bulk-delete historical samples on a protected Raspberry Pi until a complete, recent, independently restored local recovery point and a separately approved, space-bounded deletion/reclaim plan exist.** Standard PostgreSQL `DELETE` does not immediately return relation space to the filesystem; do not run `VACUUM FULL` on the live database without an approved space, downtime, and WAL plan.
 
 Run cleanup once manually:
 

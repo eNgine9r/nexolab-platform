@@ -10108,6 +10108,45 @@
         "modbus_write": false,
         "hardware_write": false
       }
+    },
+    {
+      "issue": 1551,
+      "title": "Evidence-safe 30-day telemetry retention and Raspberry storage reclamation",
+      "branch": "fix/1551-evidence-safe-retention",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428
+      ],
+      "scope": "Safely reclaim regeneration-only workspace/cache bytes; protect session-linked lab evidence from 30-day ordinary telemetry retention. Site DB deletion/reclaim is blocked pending independently restored backup and bounded operational gate.",
+      "permitted_paths": [
+        "services/telemetry-service/app/db.py",
+        "services/telemetry-service/app/config.py",
+        "services/telemetry-service/tests/test_retention.py",
+        "services/telemetry-service/tests/test_retention_linked.py",
+        "services/telemetry-service/README.md",
+        "docs/operations/telemetry-backend-runbook.md",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "182777186092cc1e3968182f2239bc6ce6c377e3",
+        "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1551-evidence-safe-retention",
+        "initial_ssd_free_gb": 7.2,
+        "current_ssd_free_gb_approx": 35,
+        "docker_container_count": 13,
+        "eligible_old_unlinked_rows": 6931587,
+        "protected_old_linked_rows": 3662920,
+        "focused_retention_tests": "3_passed",
+        "session_attribution_tests": "4_passed",
+        "production_retention_setting_days": 365,
+        "production_database_rows_deleted": 0,
+        "live_backup_restore_verified": false,
+        "exact_head_ci": "pending",
+        "source_pr": "pending",
+        "hardware_write": false,
+        "production_cutover": false,
+        "site_cleaned_nonproduction_caches_only": true
+      }
     }
   ],
   "maintenance_actions": [

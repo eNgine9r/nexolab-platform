@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T06:16:54.688Z",
+  "timestamp": "2026-11-10T08:21:41Z",
   "actor": "ChatGPT",
-  "event": "1548_refrigeration_source_candidate_13_tests_pass_site_update_hard_blocked",
+  "event": "1551_nonproduction_storage_reclaim_retention_source_tests_site_restore_blocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3147,6 +3147,19 @@
       "production_install": "blocked",
       "hardware_write": false,
       "modbus_write": false
+    },
+    "storage_1551": {
+      "issue": 1551,
+      "branch": "fix/1551-evidence-safe-retention",
+      "base_main_sha": "182777186092cc1e3968182f2239bc6ce6c377e3",
+      "free_gb_approx": 35,
+      "eligible_old_unlinked_rows": 6931587,
+      "protected_old_linked_rows": 3662920,
+      "source_retention_tests": "3_passed",
+      "session_attribution_tests": "4_passed",
+      "site_database_writes": "none",
+      "blocker": "No independently verified complete restore; requires #1428",
+      "ci": "pending"
     }
   },
   "observations": [

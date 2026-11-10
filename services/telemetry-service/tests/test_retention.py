@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from app.contracts import TelemetryEvent
 from app.db import Database
+from app.model_registry import register_models
 
 
 def event(event_id: str, captured_at: datetime) -> TelemetryEvent:
@@ -32,6 +33,7 @@ def event(event_id: str, captured_at: datetime) -> TelemetryEvent:
 def test_retention_deletes_and_redacts_in_bounded_batches(tmp_path: Path) -> None:
     now = datetime.now(UTC)
     database = Database(f"sqlite:///{tmp_path / 'telemetry.db'}")
+    register_models()
     database.create_schema()
 
     old = event(

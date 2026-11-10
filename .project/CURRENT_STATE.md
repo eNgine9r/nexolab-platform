@@ -796,6 +796,12 @@ activation, database restore or controller write. Prior entries are historical.
 
 # NEXOLAB Current State
 
+## 2026-11-10 — #1551 storage recovery: 35 GB free, retention source candidate (site blocked)
+
+Actual `nexolab-edge-01` SSD `/dev/sda2` moved from 97% used (7.2 GB available) to 85% used (~35 GB available) through non-production Docker build/cache, browser/package cache, and regenerable old workspace Next.js build/dependency cleanup. All 13 Docker containers remained up (12 reporting healthy; MinIO has no health check); live telemetry continued. No production volume, running frontend release, Docker rollback image, protected deployment evidence, database row, or backup was deleted. This supersedes the earlier same-day claim that no cleanup had been performed.
+
+Read-only PostgreSQL exact 30-day cutoff join counted **6,931,587 unlinked eligible** telemetry rows and **3,662,920 laboratory-attributed protected** rows; `telemetry_samples` is ~17 GB and `telemetry_session_contexts` ~2.6 GB. Installed backend still has 365-day normalized retention, 1000 rows/hour. Current source-only #1551 branch `fix/1551-evidence-safe-retention` changes ordinary retention default to 30 days and guards linked historical rows and raw payloads against deletion. Focused tests 3/3 and session-attribution tests 4/4 passed on isolated branch; exact-head CI/review not yet accepted. This is NOT installed at the site. Bulk delete/reclaim cannot proceed until #1428 provides a recent independently restored local backup, bounded WAL/space/deletion plan and explicit protected site acceptance. No green update signal.
+
 <!-- PROTECTED_TRAVERSAL_1339_BEGIN -->
 
 ## #1339: private umask blocks protected package candidate; traversal fix prepared — 2026-10-11
