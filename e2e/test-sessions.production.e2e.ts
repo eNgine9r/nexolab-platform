@@ -385,6 +385,18 @@ test("enforces organization-scoped authenticated production session workflow", a
   try {
     await page.goto("/sessions", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("NXL-SESSION-GATE-001", { exact: true })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Пошук лабораторних сесій" })).toBeVisible();
+    await expect(page.getByText(/Лічильники стосуються лише поточної завантаженої вибірки/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Скасовані", exact: true })).toBeVisible();
+    for (const width of [375, 768, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByText("NXL-SESSION-GATE-001", { exact: true })).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1),
+        )
+        .toBe(true);
+    }
     await page.getByText("NXL-SESSION-GATE-001", { exact: true }).click();
     await expect(page.getByText("Незмінний перегляд", { exact: true })).toBeVisible();
     await expect(
