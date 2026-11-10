@@ -193,7 +193,7 @@ class Settings(BaseSettings):
     websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)
 
     retention_enabled: bool = True
-    telemetry_retention_days: int = Field(default=365, ge=1, le=3650)
+    telemetry_retention_days: int = Field(default=30, ge=1, le=3650)
     raw_payload_retention_days: int = Field(default=30, ge=1, le=3650)
     dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)

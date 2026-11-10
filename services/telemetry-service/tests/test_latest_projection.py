@@ -8,6 +8,7 @@ from sqlalchemy import event as sqlalchemy_event
 
 from app.contracts import TelemetryEvent
 from app.db import Database, TelemetryQuery
+from app.model_registry import register_models
 
 
 def telemetry_event(
@@ -36,6 +37,7 @@ def telemetry_event(
 
 def database_for(tmp_path: Path) -> Database:
     database = Database(f"sqlite:///{tmp_path / 'latest-projection.db'}")
+    register_models()
     database.create_schema()
     return database
 

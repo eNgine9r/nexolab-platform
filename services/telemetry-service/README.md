@@ -137,7 +137,7 @@ The persistence worker keeps the active telemetry or dead-letter item during a t
 
 Default policy:
 
-- normalized telemetry: 365 days;
+- ordinary normalized telemetry: 30 days; session-attributed readings are retained as laboratory evidence;
 - raw JSON: 30 days, then redacted while normalized columns remain;
 - dead-letter payloads: 30 days;
 - maximum cleanup batch per data class: 1000 rows;
