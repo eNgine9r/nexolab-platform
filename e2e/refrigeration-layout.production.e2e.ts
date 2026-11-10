@@ -395,7 +395,7 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(controllerSummary).toContainText("4500 rpm");
   await expect(controllerSummary).toContainText("Збережений стан Embraco");
   await expect(controllerSummary).toContainText("Останній збережений запис:");
-  await expect(controllerSummary.locator("time")).toHaveAttribute("datetime", /\\d{4}-\\d{2}-\\d{2}T/);
+  await expect(controllerSummary.locator("time")).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}T/);
 
   const originalCatalogViewport = page.viewportSize();
   for (const width of [375, 768, 1440, 1920]) {
