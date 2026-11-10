@@ -1,3 +1,7 @@
+## 2026-11-10 — #1562 exact-head browser acceptance correction
+
+First PR #1563 exact-head production build, quality and unit jobs succeeded; authenticated dashboard browser suite returned 41/42 PASS with a single **presentation-only heading regression**: existing acceptance and operator flow expect \`Активні лабораторні сесії\`, while the new Overview used shorter \`Лабораторні сесії\`. Restored original operator-facing heading without other scope or behavioral changes, preserving the new card/layout/styling. New source exact-head CI and browser acceptance pending.
+
 ## 2026-11-10 — #1562 Overview V2 refreshed, visual browser candidate (source only)
 
 Priority Product Owner request: a beautiful modern and **minimal** actual NEXOLAB Overview, without needless process/audits. Isolated feature \`feat/1562-overview-modern-command-center\` based on merged main c55dc54. Redesigned only operator Overview: calm dark modern header with role-checked shortcuts, 6 compact readable KPIs, clear live/stale/demo status without duplicate per-card demo/live pills, responsive 8/12 temperature+4/12 alerts/infrastructure desktop command grid, existing session/layout/camera modules below, consistent local scoped panel treatment. Preserves actual telemetry/auth/permission/data/quality/runtime contracts and refrigeration default KPI styling. No new runtime dependencies, CDN or remote fonts.

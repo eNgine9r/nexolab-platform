@@ -10318,11 +10318,13 @@
         "horizontal_overflow": "NONE",
         "page_errors": "NONE",
         "visual_data": "EXPLICIT_DEMO_NOT_PRODUCTION",
-        "full_exact_head_github_ci": "PENDING",
+        "full_exact_head_github_ci": "PENDING_NEW_SHA",
         "protected_site_installed": false,
         "api_or_auth_modified": false,
         "modbus_write": false,
-        "hardware_write": false
+        "hardware_write": false,
+        "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
+        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING"
       }
     }
   ],

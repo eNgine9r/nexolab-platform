@@ -265,7 +265,7 @@ export function DashboardShell() {
               cameraAction={<PanelAction label="Всі камери" href="/cameras" />}
               sessions={
                 <Panel
-                  title="Лабораторні сесії"
+                  title="Активні лабораторні сесії"
                   action={
                     canSeePlatformDestination(security, "/sessions") ? (
                       <PanelAction label="Всі сесії" href="/sessions" />
