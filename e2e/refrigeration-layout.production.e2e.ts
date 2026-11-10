@@ -393,6 +393,22 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(controllerSummary).toContainText("Embraco");
   await expect(controllerSummary).toContainText("Pulldown");
   await expect(controllerSummary).toContainText("4500 rpm");
+  await expect(controllerSummary).toContainText("Збережений стан Embraco");
+  await expect(controllerSummary).toContainText("Останній збережений запис:");
+  await expect(controllerSummary.locator("time")).toHaveAttribute("datetime", /\\d{4}-\\d{2}-\\d{2}T/);
+
+  const originalCatalogViewport = page.viewportSize();
+  for (const width of [375, 768, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(controllerSummary).toBeVisible();
+    await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1),
+      )
+      .toBe(true);
+  }
+  if (originalCatalogViewport) await page.setViewportSize(originalCatalogViewport);
 
   await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
