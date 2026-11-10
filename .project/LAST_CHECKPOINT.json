@@ -4691,9 +4691,9 @@
       }
     },
     {
-      "source": "raspberry_read_only_preflight",
+      "source": "github",
       "observed_at": "2026-11-10T06:16:54.688Z",
-      "kind": "protected_site_deployment_capacity_network_blockers",
+      "kind": "read_only_pi_preflight_observed_via_remote_connector",
       "data": {
         "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
         "ssd_used_percent": 97,
@@ -4701,7 +4701,8 @@
         "docker_subnet": "172.18.0.0/16",
         "physical_lan_subnet": "172.18.48.0/21",
         "risk": "hard_blocker",
-        "site_mutation": false
+        "site_mutation": false,
+        "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
       }
     }
   ],
