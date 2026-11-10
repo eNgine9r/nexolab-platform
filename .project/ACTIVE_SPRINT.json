@@ -10304,7 +10304,8 @@
         "src/components/dashboard/overview-workspace-layout.test.tsx",
         "src/components/dashboard/overview-secondary-workspace.tsx",
         "src/components/dashboard/telemetry-status-bar.tsx",
-        ".project/"
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
       ],
       "evidence": {
         "base_main_sha": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
@@ -10324,7 +10325,8 @@
         "modbus_write": false,
         "hardware_write": false,
         "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
-        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING"
+        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING",
+        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY"
       }
     }
   ],

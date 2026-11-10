@@ -1,3 +1,7 @@
+## 2026-11-10 — #1562 authenticated Overview V2 geometry assertion alignment
+
+Read the required authenticated browser acceptance **before another integration run**. Its prior geometry assertions explicitly require the old chart-full-width / alerts-below layout even though the current product scope requires desktop 8/12 + 4/12 with mobile stacking. Updated only the browser layout assertions and evidence flags in \`e2e/authenticated-dashboard.production.e2e.ts\` to verify the new desktop/mobile shape; retained org authorization, REST/WebSocket/history, chart cursor stability, zero Modbus/acquisition writes and no horizontal overflow. The retained original Sessions header is unchanged. Exact-head browser + CI acceptance pending.
+
 ## 2026-11-10 — #1562 exact-head browser acceptance correction
 
 First PR #1563 exact-head production build, quality and unit jobs succeeded; authenticated dashboard browser suite returned 41/42 PASS with a single **presentation-only heading regression**: existing acceptance and operator flow expect \`Активні лабораторні сесії\`, while the new Overview used shorter \`Лабораторні сесії\`. Restored original operator-facing heading without other scope or behavioral changes, preserving the new card/layout/styling. New source exact-head CI and browser acceptance pending.
