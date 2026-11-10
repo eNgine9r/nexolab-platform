@@ -60,7 +60,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": 1550,
+    "active_work_package": {
+      "issue": 1550
+    },
     "next_work_package": null
   },
   "work_packages": [
