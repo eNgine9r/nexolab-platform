@@ -279,3 +279,31 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Overview-only visual style: preserve shared dashboard/refrigeration surfaces. */
+.overview-shell .panel {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 1.25rem;
+  background: linear-gradient(160deg, rgba(13, 30, 51, 0.97), rgba(8, 23, 41, 0.98));
+  box-shadow: 0 16px 40px rgba(1, 8, 20, 0.19);
+}
+
+.overview-shell .panel::before {
+  display: none;
+}
+
+.overview-shell .panel > div:first-child {
+  border-bottom-color: rgba(148, 163, 184, 0.085);
+}
+
+.overview-shell .panel h2 {
+  letter-spacing: -0.015em;
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-shell .panel,
+  .overview-shell article {
+    transition: none;
+  }
+}

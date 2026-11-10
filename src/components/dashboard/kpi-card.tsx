@@ -38,12 +38,49 @@ export interface KpiCardItem {
 
 interface KpiCardProps {
   item: KpiCardItem;
+  variant?: "default" | "overview";
 }
 
-export function KpiCard({ item }: KpiCardProps) {
+export function KpiCard({ item, variant = "default" }: KpiCardProps) {
   const Icon = icons[item.icon];
   const tone = toneStyles[item.tone];
   const badgeTone = item.badgeTone ?? "demo";
+
+  if (variant === "overview") {
+    const showQualityBadge = badgeTone !== "live" && badgeTone !== "demo";
+    return (
+      <article className="group relative flex min-w-0 flex-col rounded-[18px] border border-white/[0.075] bg-[#0d2037]/85 px-3.5 py-3.5 shadow-[0_10px_28px_rgba(0,0,0,0.10)] transition-colors duration-200 hover:border-cyan-300/25 sm:px-4">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <p className="min-w-0 pt-0.5 text-xs leading-[1.35rem] font-medium text-slate-400">{item.label}</p>
+          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-[10px] ${tone.bg}`}>
+            <Icon className={`h-4 w-4 ${tone.icon}`} strokeWidth={1.8} aria-hidden="true" />
+          </span>
+        </div>
+        <p className="mt-2.5 text-[1.55rem] leading-none font-semibold tracking-[-0.045em] break-words text-white tabular-nums sm:text-[1.7rem]">
+          {item.value}
+        </p>
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+          {item.detail ? (
+            <p className="min-w-0 text-[11px] leading-4 break-words text-slate-400" title={item.detail}>
+              {item.detail}
+            </p>
+          ) : null}
+          {showQualityBadge ? (
+            <span
+              className={`inline-flex shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${badgeStyles[badgeTone]}`}
+            >
+              {item.badge ?? badgeTone}
+            </span>
+          ) : null}
+        </div>
+        {item.trend ? (
+          <p className="mt-auto pt-1.5 text-[11px] leading-4 text-slate-500" title={item.trend}>
+            {item.trend}
+          </p>
+        ) : null}
+      </article>
+    );
+  }
 
   const isLiveBadge = badgeTone === "live";
 
