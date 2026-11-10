@@ -1,3 +1,7 @@
+## 2026-11-10 — #1558 Reports operator UI source acceptance pending
+
+Targeted 9/9 component tests pass in isolated source. Required exact-head GitHub quality/build and authenticated reports browser acceptance at 375/768/1440/1920 remain pending; production installation is not part of this Work Package. Protected Raspberry site gate remains #1428 complete isolated restore/rollback and #1409 physical LAN/Docker CIDR overlap, with source-bound offline package and explicit operator approval required.
+
 ## 2026-11-10 — #1550 Sessions operator UI source review
 
 Scoped source candidate passed 7/7 focused tests, ESLint and TypeScript. GitHub exact-head CI/build and authenticated 375/768/1440/1920 browser acceptance remain required before source merge. This is not a production site deployment. Existing hard blockers #1428 protected offline restore/rollback and #1409 physical LAN/Docker CIDR overlap remain. Source update must not be interpreted as a green operator update signal.

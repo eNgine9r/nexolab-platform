@@ -1,3 +1,11 @@
+## 2026-11-10 — #1550 GREEN source-merged; #1558 Reports operator UI source candidate
+
+Sessions list #1550 / PR #1557 merged into main at 3bafb041f8ae8a8eca78200727ff67ed4ba9973d after exact-head CI #42800767840 and authenticated Sessions Browser #42800767847 both GREEN. No protected site installation.
+
+Next UX slice #1558 (feat/1558-reports-operator-ui) improves the existing Reports workspace without modifying immutable report generation or approval. The report list is searchable by persisted frozen session number/title/test object, shows Ukrainian completed/archived states, clearer selected item and keyboard focus, responsive 375/768/1440/1920 operator layout, and labels summary counts as at most 200 loaded report versions rather than organization totals. Loading and API failures no longer render previous report cards or numeric counts as current. Missing frozen summaries remain explicit and never replaced by IDs or demo data. Original API/permission and artifact download paths unchanged.
+
+Isolated Raspberry targeted report Vitest 9/9 passed (existing identity tests and new list UI tests). Changed-file formatting, lint and TypeScript noEmit all passed; GitHub exact-head CI/build/browser evidence pending. No site runtime, network, persistent database, telemetry or Modbus write. Protected update remains gated by full offline restore/rollback and safe network boundary; developer SSD cleanup to 81% used does not independently authorize cutover.
+
 ## 2026-11-10 — #1550 Sessions operator UI source candidate; protected site unchanged
 
 Following source merge #1548 / PR #1549 (182777186092cc1e3968182f2239bc6ce6c377e3), the operator-facing Sessions list #1550 now has an isolated Raspberry feature branch feat/1550-sessions-list-clarity based on main 5dae2981477a8c31a4d2aba0d03575b2439b02d7. The page retains real scoped session REST and existing routes/permissions; it adds 12px-readable status/filter labels, responsive non-truncating session/object/customer/standard identity, ready/cancelled filters and reset, truthful capped loaded-selection counters and explicit loading/error. A response is shown only for the current organization/filter/request key; prior tenant rows/counters are hidden synchronously, including during switches and failures. No demo fallback, new API write or acquisition change.

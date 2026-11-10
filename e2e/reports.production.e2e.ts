@@ -431,7 +431,7 @@ test("read-only operator can keyboard-open eligible session reports and return t
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method())) writes += 1;
   });
   try {
-    for (const width of [360, 390, 430, 1440]) {
+    for (const width of [360, 375, 390, 430, 768, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`/sessions/${completedSessionId}`, { waitUntil: "domcontentloaded" });
       const reportLink = page.getByRole("link", { name: "Переглянути звіти", exact: true });
@@ -441,6 +441,7 @@ test("read-only operator can keyboard-open eligible session reports and return t
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
       await expect(page.getByTestId("reports-workspace")).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "Пошук звітів" })).toBeVisible();
       await expect(page.getByTestId("report-generation-panel")).toHaveCount(0);
 
       const returnLink = page.getByRole("link", { name: "Назад до випробування" });

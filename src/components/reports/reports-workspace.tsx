@@ -15,12 +15,14 @@ import {
   FileSpreadsheet,
   LoaderCircle,
   RefreshCw,
+  Search,
   ShieldCheck,
   WifiOff,
 } from "lucide-react";
 
 import { ReportObject, ReportTechnicalDetails } from "./report-identity";
-import { reportTitle } from "@/lib/reports/presentation";
+import { reportSessionSummary, reportTitle } from "@/lib/reports/presentation";
+import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 import { ReportTelemetrySelector } from "@/components/reports/report-telemetry-selector";
 import {
@@ -39,7 +41,6 @@ import {
 } from "@/lib/reports/session-navigation";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession } from "@/lib/sessions/types";
-import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 function formatDate(value: string, displayTimeZone: string): string {
   return formatOperationalTimestamp(new Date(value), displayTimeZone, {
@@ -77,6 +78,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
   const [selectionSessionId, setSelectionSessionId] = useState<string | null>(null);
   const [selectionReady, setSelectionReady] = useState(false);
   const [reason, setReason] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -87,10 +89,26 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
   const [lastSuccessfulAt, setLastSuccessfulAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
+  const filteredReports = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase("uk-UA");
+    if (!query) return reports;
+    return reports.filter((report) => {
+      const summary = reportSessionSummary(report);
+      return summary
+        ? [summary.session_number, summary.title, summary.test_object].some((field) =>
+            field.toLocaleLowerCase("uk-UA").includes(query),
+          )
+        : false;
+    });
+  }, [reports, searchQuery]);
   const selectedReport = useMemo(
-    () => reports.find((item) => item.id === selectedReportId) ?? null,
-    [reports, selectedReportId],
+    () => filteredReports.find((item) => item.id === selectedReportId) ?? filteredReports[0] ?? null,
+    [filteredReports, selectedReportId],
   );
+  const available = !loading && error === null;
+  const reportedCount = available ? reports.length : null;
+  const availableReports = available ? filteredReports : [];
+
   const selectedSession = useMemo(
     () => sessions.find((item) => item.id === selectedSessionId) ?? null,
     [selectedSessionId, sessions],
@@ -278,22 +296,29 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
       <section className="panel p-5 sm:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+            <p className="text-xs font-semibold tracking-[0.12em] text-cyan-300 uppercase">
               Звіти · Незмінні докази
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Звіти випробувань</h1>
-            <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
-              Відтворювані версії звітів, детерміновані CSV/JSON, SHA-256 і ізольоване за організаціями
-              завантаження доказових матеріалів.
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              Оберіть випробування та версію звіту, перегляньте протокол або завантажте доказові файли.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:min-w-[460px]">
-            <Summary label="Версій" value={reports.length} />
-            <Summary label="Сесій" value={new Set(reports.map((item) => item.session_id)).size} />
-            <Summary
-              label="Артефактів"
-              value={reports.reduce((sum, item) => sum + item.artifacts.length, 0)}
-            />
+          <div className="w-full min-w-0 xl:max-w-[460px]">
+            <p className="mb-2 text-xs text-slate-400">
+              Завантажена вибірка · до 200 версій, не загальна статистика
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <Summary label="Версій" value={reportedCount} />
+              <Summary
+                label="Сесій"
+                value={available ? new Set(reports.map((item) => item.session_id)).size : null}
+              />
+              <Summary
+                label="Файлів"
+                value={available ? reports.reduce((sum, item) => sum + item.artifacts.length, 0) : null}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -379,32 +404,45 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
       ) : null}
 
       <section className="panel overflow-hidden">
-        <div className="flex items-center justify-between border-b border-white/[0.055] p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Версії звітів</h2>
-            <p className="mt-1 text-[10px] text-slate-500">
+        <div className="flex flex-col gap-3 border-b border-white/[0.055] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-white">Версії звітів</h2>
+            <p className="mt-1 text-xs text-slate-400">
               {stale ? "Дані можуть бути застарілими" : "Незмінні знімки вихідних даних"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={loading}
-            className="icon-button"
-            aria-label="Оновити звіти"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
+          <div className="flex w-full min-w-0 gap-2 sm:w-auto">
+            <label className="relative min-w-0 flex-1 sm:w-64">
+              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="search"
+                aria-label="Пошук звітів"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Номер, випробування, об’єкт…"
+                className="form-input pl-10"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={loading}
+              className="icon-button shrink-0"
+              aria-label="Оновити звіти"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
         </div>
 
-        {loading && reports.length === 0 ? (
+        {loading ? (
           <Status
             icon={LoaderCircle}
             title="Завантаження звітів"
             detail="Завантаження метаданих незмінних версій звітів…"
             spin
           />
-        ) : error && reports.length === 0 ? (
+        ) : error ? (
           <Status icon={WifiOff} title="API звітів недоступний" detail={error.message} />
         ) : reports.length === 0 ? (
           <Status
@@ -412,16 +450,30 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
             title="Звітів ще немає"
             detail="Сформуйте першу версію для завершеної сесії."
           />
+        ) : availableReports.length === 0 ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center">
+            <p className="text-sm font-semibold text-white">За запитом звітів не знайдено</p>
+            <p className="text-xs text-slate-400">Спробуйте інший номер, назву або об’єкт випробування.</p>
+            <button type="button" onClick={() => setSearchQuery("")} className="secondary-button">
+              Скинути пошук
+            </button>
+          </div>
         ) : (
-          <div className="grid min-h-[560px] xl:grid-cols-[380px_minmax(0,1fr)]">
-            <div className="border-b border-white/[0.055] xl:border-r xl:border-b-0">
-              {reports.map((report) => (
+          <div className="grid min-h-[560px] min-w-0 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+            <div className="min-w-0 border-b border-white/[0.055] xl:border-r xl:border-b-0">
+              <p className="px-4 pt-3 text-xs text-slate-400">
+                Показано {availableReports.length} із {reports.length} завантажених версій
+              </p>
+              {availableReports.map((report) => (
                 <button
                   type="button"
                   key={report.id}
                   onClick={() => setSelectedReportId(report.id)}
-                  className={`block w-full border-b border-white/[0.045] p-4 text-left transition ${
-                    selectedReportId === report.id ? "bg-cyan-400/[0.06]" : "hover:bg-white/[0.025]"
+                  aria-pressed={selectedReport?.id === report.id}
+                  className={`block w-full border-b border-white/[0.045] p-4 text-left transition focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan-300 ${
+                    selectedReport?.id === report.id
+                      ? "border-l-2 border-l-cyan-300 bg-cyan-400/[0.09]"
+                      : "hover:bg-white/[0.04] focus-visible:bg-white/[0.05]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -429,12 +481,18 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                       <p className="text-[12px] font-semibold break-words text-slate-100">
                         {reportTitle(report)}
                       </p>
-                      <p className="mt-1 text-[10px] text-slate-500">
+                      <p className="mt-1 text-xs leading-5 text-slate-400">
                         Версія {report.version} · {formatDate(report.generated_at, displayTimeZone)}
                       </p>
                     </div>
-                    <span className="rounded-lg border border-emerald-300/20 bg-emerald-400/[0.06] px-2 py-1 text-[9px] font-semibold text-emerald-200">
-                      {report.session_state}
+                    <span
+                      className={
+                        report.session_state === "completed"
+                          ? "shrink-0 rounded-lg border border-emerald-300/20 bg-emerald-400/[0.06] px-2 py-1 text-xs font-semibold text-emerald-200"
+                          : "shrink-0 rounded-lg border border-slate-300/20 bg-white/[0.04] px-2 py-1 text-xs font-semibold text-slate-300"
+                      }
+                    >
+                      {SESSION_STATE_LABELS[report.session_state]}
                     </span>
                   </div>
                   <ReportObject report={report} />
@@ -442,7 +500,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
               ))}
             </div>
 
-            <div className="p-4 sm:p-5" data-testid="report-detail">
+            <div className="min-w-0 p-4 sm:p-5" data-testid="report-detail">
               {selectedReport ? (
                 <ReportDetail
                   report={selectedReport}
@@ -558,11 +616,13 @@ function ReportDetail({
   );
 }
 
-function Summary({ label, value }: { label: string; value: number }) {
+function Summary({ label, value }: { label: string; value: number | null }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
-      <p className="text-lg font-semibold text-white">{value}</p>
-      <p className="mt-1 text-[9px] text-slate-500">{label}</p>
+    <div className="min-w-0 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-center">
+      <p className="text-2xl font-semibold text-white" aria-label={label + ": " + (value ?? "недоступно")}>
+        {value ?? "—"}
+      </p>
+      <p className="mt-1 text-xs text-slate-400">{label}</p>
     </div>
   );
 }
