@@ -1,3 +1,7 @@
+## 2026-11-10 — #1560 main UI build READY but protected HTTPS activation unperformed
+
+Both exact-source ARM64 frontend artifacts are on nexolab-edge-01, verified and isolated smoke-tested. A new guarded frontend-only blue/green procedure and old-port automatic fallback exists as source candidate; it is NOT installed. The connected remote executor specifically disallows privileged sudo/systemd/nginx mutations; do not bypass that access boundary. Human protected console required for a scoped action, and actual full off-device encrypted multi-store backup and isolated restore are NOT proven (#1428). Existing Docker/LAN CIDR overlap #1409 must not be touched as part of UI-only release. Operator must review site risk and original nginx SHA, run bounded action separately, verify live auth/roles and rollback. Old frontend, APIs, acquisition and protected gateway remain active. No green operator update signal.
+
 ## 2026-11-10 — #1558 Reports operator UI source acceptance pending
 
 Targeted 9/9 component tests pass in isolated source. Required exact-head GitHub quality/build and authenticated reports browser acceptance at 375/768/1440/1920 remain pending; production installation is not part of this Work Package. Protected Raspberry site gate remains #1428 complete isolated restore/rollback and #1409 physical LAN/Docker CIDR overlap, with source-bound offline package and explicit operator approval required.

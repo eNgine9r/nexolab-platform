@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T10:52:10Z",
+  "timestamp": "2026-11-10T12:06:46Z",
   "actor": "ChatGPT",
-  "event": "1558_reports_searchable_trustworthy_ui_candidate",
+  "event": "1560_verified_bluegreen_frontend_handoff_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1558,
-    "branch": "feat/1558-reports-operator-ui",
+    "issue": 1560,
+    "branch": "feat/1560-frontend-bluegreen-handoff",
     "status": "review",
-    "source_only": true
+    "site_cutover": false
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -3201,6 +3201,18 @@
       "site_installed": false,
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "protected_ui_release_1560": {
+      "source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+      "artifact_run": 42805566839,
+      "arm64_profiles": "LAN_and_HTTPS_sha256_PASS",
+      "nginx_bluegreen_syntax": "PASS_isolated",
+      "hand_off_preflight": "PASS_READONLY",
+      "smoke": "HTTP200_login_sessions_reports_testfixtures_only",
+      "new_root_service_installed": false,
+      "nginx_config_switched": false,
+      "real_full_site_restore": false,
+      "hardware_write": false
     }
   },
   "observations": [
@@ -4760,7 +4772,7 @@
       }
     }
   ],
-  "next_action": "Complete exact-head CI/browser review on #1558 source PR and merge only on GREEN; protected Raspberry rollout remains blocked by independent offline restore/rollback and overlapping LAN/Docker CIDR until separately approved.",
+  "next_action": "Review and merge #1560 guarded frontend-only operator handoff after exact-head required CI; root/service mutation unavailable via connected remote policy. Operator must use supported privileged local console only after reviewing separate full-site backup risk and exact nginx SHA pin. Do not mark live installation or full DR complete.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4769,7 +4781,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; isolated source-only #1558 reports UI and regression tests",
+  "runtime_mutation": "none; source-only guarded release tool and isolated candidate artifact; no systemd/nginx/Docker/DB/Modbus write",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
