@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T12:33:30Z",
+  "timestamp": "2026-11-10T13:12:19Z",
   "actor": "ChatGPT",
-  "event": "1560_failed_closed_operator_rollout_recovered_and_promotion_candidate_fixed",
+  "event": "1562_modern_overview_visual_candidate_verified_in_isolated_demo_browser",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1560,
-    "branch": "feat/1560-frontend-bluegreen-handoff",
+    "issue": 1562,
+    "branch": "feat/1562-overview-modern-command-center",
     "status": "review",
     "site_cutover": false
   },
@@ -3222,6 +3222,21 @@
       "old_service_3100": "ACTIVE_HTTP200",
       "resume_operator_action": "promote_after_source_ci_and_root_journal_verification",
       "targeted_resume_tests": "8_PASS"
+    },
+    "overview_v2_1562": {
+      "base_main": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+      "dev_preview": "http://127.0.0.1:3192/",
+      "browser": "real Next.js dev mode, demo sample data, Chromium desktop/tablet/mobile",
+      "desktop": "HTTP200_1440x900",
+      "tablet": "HTTP200_768x1000",
+      "mobile": "HTTP200_390x844",
+      "horizontal_overflow": false,
+      "js_page_errors": 0,
+      "targeted_tests": "15_PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "production_site_changed": false,
+      "hardware_write": false
     }
   },
   "observations": [
@@ -4781,7 +4796,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head CI for #1561 guard and resume fix; no re-execute. Product Owner may run one root-scoped promote from authorized Pi terminal after all checks GREEN and risk review. Then confirm gateway OAuth, actual authenticated reports/sessions and telemetry. Full DR still unverified.",
+  "next_action": "Source PR #1562 exact-head CI/review/merge; stop isolated demo dev server after visual capture. Release preview in source, protected HTTPS site still at old source and frontend handoff blocked on Nginx runuser authorization, no site cutover without bounded verified recovery.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4790,7 +4805,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "only operator-created separate 3104 systemd service and non-sensitive runtime identity metadata correction in candidate+installed files; protected Nginx rolled back, no Docker/IPAM/DB/Modbus write",
+  "runtime_mutation": "none on protected runtime; only isolated loopback 3192 dev demo process, no Docker/DB/nginx/agent/Modbus writes",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

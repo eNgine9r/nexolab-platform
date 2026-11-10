@@ -61,7 +61,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1560
+      "issue": 1562
     },
     "next_work_package": null
   },
@@ -10282,6 +10282,47 @@
         "protected_https_activation": false,
         "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
         "no_hardware_or_modbus_write": true
+      }
+    },
+    {
+      "issue": 1562,
+      "title": "Modern compact and responsive NEXOLAB Overview command center",
+      "branch": "feat/1562-overview-modern-command-center",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "Presentation-only Ukrainian Overview polish with clear heading, quick role-scoped shortcuts, compact truthful KPI row, temperature primary 8/12 and alerts/infrastructure 4/12 at desktop, lower sessions/layouts/cameras unchanged in meaning. No API/permissions/acquisition/site changes.",
+      "permitted_paths": [
+        "src/app/globals.css",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/kpi-card.test.tsx",
+        "src/components/dashboard/overview-workspace-layout.tsx",
+        "src/components/dashboard/overview-workspace-layout.test.tsx",
+        "src/components/dashboard/overview-secondary-workspace.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+        "worktree": "/home/nexolab/commander-workspaces/nexolab-1562-overview-v2-20261110",
+        "targeted_vitest": "15_of_15_PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "visual_browser_desktop": "1440x900_READONLY_DEMO_HTTP200",
+        "visual_browser_tablet": "768x1000_READONLY_DEMO_HTTP200",
+        "visual_browser_mobile": "390x844_READONLY_DEMO_HTTP200",
+        "horizontal_overflow": "NONE",
+        "page_errors": "NONE",
+        "visual_data": "EXPLICIT_DEMO_NOT_PRODUCTION",
+        "full_exact_head_github_ci": "PENDING",
+        "protected_site_installed": false,
+        "api_or_auth_modified": false,
+        "modbus_write": false,
+        "hardware_write": false
       }
     }
   ],
