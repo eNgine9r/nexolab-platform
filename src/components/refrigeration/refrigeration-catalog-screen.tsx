@@ -578,7 +578,9 @@ function EquipmentCard({
           <div className="min-w-0">
             <h2 className="text-base leading-6 font-semibold break-words text-white">{item.name}</h2>
             <p className="mt-1 text-xs leading-5 break-words text-slate-300">{item.location}</p>
-            <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">{chamberName ?? "Камеру не вибрано"}</p>
+            <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">
+              {chamberName ?? "Камеру не вибрано"}
+            </p>
           </div>
           <span
             className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[item.status]}`}
@@ -704,9 +706,7 @@ function ControllerStatusLine({ summary }: { summary: RefrigerationControllerSum
           <time dateTime={summary.lastSeenAt ?? undefined}>{recordedAt} (Київ)</time>
         </p>
       ) : (
-        <p className="mt-1 text-[11px] leading-4 text-slate-400">
-          Збережені показники контролера відсутні
-        </p>
+        <p className="mt-1 text-[11px] leading-4 text-slate-400">Збережені показники контролера відсутні</p>
       )}
     </div>
   );
