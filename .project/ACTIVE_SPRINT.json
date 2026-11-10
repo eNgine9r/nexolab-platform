@@ -10247,7 +10247,10 @@
         "scripts/nexolab-1560-bluegreen-handoff.py",
         "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
         "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
-        ".project/"
+        ".project/",
+        ".github/workflows/authenticated-dashboard-acceptance.yml",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
       ],
       "evidence": {
         "github_offdevice_artifact_run": 42805566839,
@@ -10263,7 +10266,9 @@
         "protected_root_connector": "DENIED",
         "full_site_dr_restore": "UNVERIFIED",
         "docker_lan_cidr_overlap": "UNRESOLVED",
-        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES"
+        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
+        "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
+        "ci_followup": "required path filters added; exact-head CI pending"
       }
     }
   ],

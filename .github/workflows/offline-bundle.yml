@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/offline-bundle.yml"
       - "scripts/classify-ci-impact.py"
+      - "scripts/nexolab-1560-bluegreen-handoff.py"
+      - "scripts/tests/test_nexolab_1560_bluegreen_handoff.py"
       - "scripts/prepare-version-update-lock.py"
       - "scripts/tests/test_prepare_version_update_lock.py"
       - "scripts/deploy-complete-partial-frontends.py"

@@ -1,3 +1,7 @@
+## 2026-11-10 — #1560 CI integration correction
+
+First exact-head CI quality/build/unit + Telemetry Service tests passed but Merge Gate rejected the PR because required Authenticated Dashboard Acceptance, Offline Bundle and Refrigeration Browser Acceptance workflows did not register for the new operations script path. Their three workflow path filters now explicitly include the scoped handoff script and test; this is a verification-only correction, no runtime/site mutation. Exact-head full required checks will be re-run before source merge.
+
 ## 2026-11-10 — #1560 guarded HTTPS frontend blue/green release candidate; protected site NOT switched
 
 Owner approved UI update. Product source main **08f1c8a4ed9212c25697d338583845bed5218ee5** includes #1550/#1558, both source PRs source-merged exact CI GREEN. Off-device GitHub Actions 42805566839 built matching verified linux/arm64 LAN and protected HTTPS profiles; both SHA-256 artifact manifests checked on Pi. Separate candidate HTTP /login, /sessions, /reports returned 200. Chromium fixtures explicitly marked TEST DATA for operator visual review, NOT live/hardware acceptance. Old/active protected HTTPS source remains 4be678f6aa2581ad7fc79bcc22c26cd520c94272; central Docker dashboard source remains ffdefc4550d7. Actual Pi API/auth/session/reports routes exist, 13 containers healthy; /login, telemetry /health/ready and device-agent /health returned HTTP 200.
