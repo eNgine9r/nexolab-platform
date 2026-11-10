@@ -94,6 +94,10 @@ def verify_runtime(root: Path) -> None:
     identity = json.loads((root / ".nexolab-runtime-identity.json").read_text())
     if identity.get("source_commit") != SOURCE or identity.get("build_id") != (STAGE / "frontend-build-id.txt").read_text().strip():
         raise RuntimeError("Runtime identity mismatch")
+    if (identity.get("schema_version") != "nexolab-runtime-identity-v1"
+        or identity.get("service") != "dashboard"
+        or identity.get("identity_source") not in ("offline_image_manifest", "raspberry_activation", "raspberry_rollback")):
+        raise RuntimeError("Unsupported runtime identity origin/schema; protected app would reject it")
     result = subprocess.run(
         ["sha256sum", "--check", "--status", str(STAGE / "frontend-runtime-files-sha256.txt")],
         cwd=root, timeout=180, capture_output=True
@@ -206,6 +210,75 @@ def recover() -> None:
     assert_http(f"http://127.0.0.1:{OLD_PORT}/login")
     print("EXTERNAL_NGINX_ROLLBACK_VERIFIED", flush=True)
 
+def validate_resume_config(
+    original: bytes, updated: bytes, current: bytes, preflight: dict, expected_hash: str,
+) -> None:
+    """Confirm exact protected rollback evidence and no unexpected gateway changes."""
+    actual_hash = hashlib.sha256(original).hexdigest()
+    if actual_hash != expected_hash or preflight.get("nginx_sha256") != actual_hash:
+        raise RuntimeError("Original Nginx SHA no longer matches the approved baseline")
+    if preflight.get("target_source") != SOURCE or preflight.get("target_build") != (STAGE / "frontend-build-id.txt").read_text().strip():
+        raise RuntimeError("Root journal is for a different release")
+    if current != original:
+        raise RuntimeError("Current Nginx is not the original protected config")
+    if updated != generate_nginx(original.decode("utf-8")).encode("utf-8"):
+        raise RuntimeError("Saved Nginx promotion differs from the approved two-location change")
+
+
+def promote(expected_hash: str) -> None:
+    """Resume a previously staged root-owned operation; never rerun install."""
+    if not JOURNAL_DIR.is_dir() or JOURNAL_DIR.is_symlink():
+        raise RuntimeError("Protected root handoff journal is missing")
+    journal_stat = JOURNAL_DIR.stat()
+    if journal_stat.st_uid != 0 or journal_stat.st_mode & 0o077:
+        raise RuntimeError("Protected handoff journal permissions changed")
+    files = (ORIGINAL, UPDATED, JOURNAL_DIR / "preflight.json")
+    for f in files:
+        if not f.is_file() or f.is_symlink() or f.stat().st_uid != 0 or f.stat().st_mode & 0o077:
+            raise RuntimeError("Untrusted root rollback evidence")
+    original = ORIGINAL.read_bytes()
+    updated = UPDATED.read_bytes()
+    validate_resume_config(
+        original, updated, NGINX.read_bytes(),
+        json.loads((JOURNAL_DIR / "preflight.json").read_text()), expected_hash,
+    )
+    verify_manifest(STAGE)
+    verify_runtime(RELEASE)
+    if SERVICE.is_symlink() or not SERVICE.is_file():
+        raise RuntimeError("New isolated frontend systemd unit unavailable")
+    if SERVICE.read_text() != generate_service(BASE_SERVICE.read_text()):
+        raise RuntimeError("New systemd service changed; refuse promotion")
+    for unit in (SERVICE.name, "nexolab-external-frontend.service", NGINX_UNIT):
+        run("systemctl", "is-active", "--quiet", unit)
+    old_identity = read_json(f"http://127.0.0.1:{OLD_PORT}/api/runtime-identity")
+    if old_identity.get("source_commit") != OLD_SOURCE:
+        raise RuntimeError("Old rollback frontend changed")
+    new_identity = read_json(f"http://127.0.0.1:{NEW_PORT}/api/runtime-identity")
+    if new_identity.get("source_commit") != SOURCE or new_identity.get("build_id") != (STAGE / "frontend-build-id.txt").read_text().strip():
+        raise RuntimeError("New frontend is not source-bound and healthy")
+    for url in (f"http://127.0.0.1:{OLD_PORT}/login", f"http://127.0.0.1:{NEW_PORT}/login",
+                "http://172.18.48.66:8082/health/ready", "http://127.0.0.1:8081/health"):
+        assert_http(url)
+    # Nginx's candidate primary and old backup are both alive; no Docker changes.
+    try:
+        atomic_bytes(NGINX, updated, 0o644)
+        validate_nginx()
+        reload_nginx()
+        run("systemctl", "is-active", "--quiet", NGINX_UNIT)
+        for url in (f"http://127.0.0.1:{NEW_PORT}/login", f"http://127.0.0.1:{OLD_PORT}/login",
+                    "http://172.18.48.66:8082/health/ready", "http://127.0.0.1:8081/health"):
+            assert_http(url)
+    except BaseException:
+        try:
+            recover()
+        except Exception:
+            print("CRITICAL: Nginx restore requires physical operator", file=sys.stderr)
+        raise
+    print("EXTERNAL_BLUEGREEN_PROMOTED", SOURCE, flush=True)
+    print("HTTPS_AUTHENTICATED_BROWSER_ACCEPTANCE_STILL_REQUIRED", flush=True)
+    print("SITE_FULL_DR_UNVERIFIED; DO_NOT_CLAIM_HARDWARE_ACCEPTANCE", flush=True)
+
+
 def install() -> None:
     if os.geteuid() != 0:
         raise RuntimeError("Root required for actual site handoff")
@@ -257,7 +330,7 @@ def install() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["check", "execute", "rollback"])
+    parser.add_argument("mode", choices=["check", "execute", "promote", "rollback"])
     parser.add_argument("--expected-nginx-sha256", default="")
     parser.add_argument("--approved-frontend-only", action="store_true")
     args = parser.parse_args()
@@ -277,7 +350,10 @@ def main() -> int:
         raise RuntimeError("Current nginx SHA pin required from check")
     if digest(NGINX) != args.expected_nginx_sha256:
         raise RuntimeError("Live nginx config no longer matches reviewed SHA")
-    install()
+    if args.mode == "promote":
+        promote(args.expected_nginx_sha256)
+    else:
+        install()
     return 0
 
 if __name__ == "__main__":

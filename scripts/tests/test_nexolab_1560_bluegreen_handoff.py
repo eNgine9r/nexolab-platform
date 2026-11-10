@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import hashlib
+import json
+import tempfile
+import types
 import unittest
+from unittest import mock
 
 HERE = Path(__file__).resolve().parents[1]
 MODULE_PATH = HERE / "nexolab-1560-bluegreen-handoff.py"
@@ -76,6 +81,74 @@ class BluegreenHandoffContracts(unittest.TestCase):
             module.generate_service(ORIGINAL_SERVICE.replace("ProtectSystem=strict", "ProtectSystem=no"))
         with self.assertRaises(ValueError):
             module.generate_service(ORIGINAL_SERVICE.replace("ExecStart=", "ExecAnother=", 1))
+
+    def test_resume_reuses_exact_original_gateway_and_saved_two_location_update(self):
+        original = ORIGINAL_NGINX.encode()
+        updated = module.generate_nginx(ORIGINAL_NGINX).encode()
+        original_hash = hashlib.sha256(original).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "frontend-build-id.txt").write_text("TEST-BUILD")
+            report = {
+                "nginx_sha256": original_hash,
+                "target_source": module.SOURCE,
+                "target_build": "TEST-BUILD",
+            }
+            with mock.patch.object(module, "STAGE", root):
+                module.validate_resume_config(original, updated, original, report, original_hash)
+
+    def test_resume_rejects_altered_nginx_journal_or_active_gateway(self):
+        original = ORIGINAL_NGINX.encode()
+        updated = module.generate_nginx(ORIGINAL_NGINX).encode()
+        original_hash = hashlib.sha256(original).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "frontend-build-id.txt").write_text("TEST-BUILD")
+            report = {
+                "nginx_sha256": original_hash,
+                "target_source": module.SOURCE,
+                "target_build": "TEST-BUILD",
+            }
+            cases = [
+                (original, updated, b"unexpected proxy", report, original_hash),
+                (original, b"malicious update", original, report, original_hash),
+                (original, updated, original, {**report, "target_source": "f" * 40}, original_hash),
+                (original, updated, original, {**report, "target_build": "wrong-build"}, original_hash),
+                (original, updated, original, report, "0" * 64),
+            ]
+            with mock.patch.object(module, "STAGE", root):
+                for case in cases:
+                    with self.subTest(case=case[2][:20]), self.assertRaises(RuntimeError):
+                        module.validate_resume_config(*case)
+
+    def test_identity_schema_rejects_unrecognized_provenance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            stage = base / "staging"
+            runtime = base / "release"
+            stage.mkdir()
+            (runtime / ".next").mkdir(parents=True)
+            (stage / "frontend-build-id.txt").write_text("TEST-BUILD")
+            (runtime / ".next" / "BUILD_ID").write_text("TEST-BUILD")
+            identity_file = runtime / ".nexolab-runtime-identity.json"
+            identity = {
+                "schema_version": "nexolab-runtime-identity-v1",
+                "service": "dashboard",
+                "source_commit": module.SOURCE,
+                "build_id": "TEST-BUILD",
+                "identity_source": "invalid_offdevice_provenance",
+            }
+            with mock.patch.object(module, "STAGE", stage):
+                identity_file.write_text(json.dumps(identity))
+                with self.assertRaisesRegex(RuntimeError, "Unsupported runtime identity"):
+                    module.verify_runtime(runtime)
+                identity["identity_source"] = "offline_image_manifest"
+                identity_file.write_text(json.dumps(identity))
+                with mock.patch.object(
+                    module.subprocess, "run", return_value=types.SimpleNamespace(returncode=0)
+                ) as fake_hash_check:
+                    module.verify_runtime(runtime)
+                    fake_hash_check.assert_called_once()
 
     def test_paths_are_fixed_and_no_acquisition_mutation(self):
         self.assertEqual(module.NEW_PORT, 3104)

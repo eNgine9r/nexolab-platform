@@ -1,6 +1,6 @@
 # NEXOLAB #1560 — HTTPS frontend-only blue/green handoff
 
-**Status (2026-11-10): source candidate / operator activation NOT completed.**
+**Status (2026-11-10): first operator execution failed closed, root rollback verified, old Nginx restored; new isolated service remains running and is ready for a guarded promotion. Production HTTPS has NOT switched.**
 
 ## Outcome and boundary
 
@@ -29,18 +29,30 @@ python3 scripts/nexolab-1560-bluegreen-handoff.py check
 
 Checks pinned main SHA, ARM64 artifact checksums, all 19,004 extracted runtime-file hashes, identity/build ID, exact existing production HTTPS contract, prior runtime source, old frontend HTTP, Telemetry readiness, Device Agent health and protected Nginx topology. The output includes the current SHA256 of Nginx config: **it must be reviewed again immediately before execution**.
 
-## Protected operator handoff — NOT RUN
+## Failed first attempt — root cause and verified recovery (2026-11-10)
 
-Do not execute from an unattended job. The Product Owner must separately accept the current lack of complete off-device DR, and have physical Pi/console access for recovery. Only then, after checking current preflight output and CI, run:
+The Product Owner executed `execute` with the observed exact Nginx config SHA. The script reported `New loopback frontend did not become healthy` and `EXTERNAL_NGINX_ROLLBACK_VERIFIED`; no protected proxy change persisted. Read-only direct inspection confirmed that the **new** isolated `nexolab-external-ui-1560.service` was in fact healthy on port `3104` with HTTP 200, but `/api/runtime-identity` returned `source_commit: null`. The packaging helper had set `identity_source=verified_offdevice_arm64_release_1560`, which the existing identity reader **rejects**. Both the staging and installed manifest were corrected to its supported `offline_image_manifest` provenance with exact source/build ID preserved. After correction, the running `3104` identity API returned source `08f1c8a4ed9212c25697d338583845bed5218ee5`, build `MCPKmYsrQCxN9zwMwDDnV`, identity source `offline_image_manifest`. **No service restart or hardware/DB change** was required.
+
+The failed attempt left a root-protected rescue journal, the installed new service, and the original running `3100` service. **Never rerun `execute` after this incident:** it intentionally fails closed when those resources exist. The new script has a separate, state-aware `promote` path that compares the original and saved candidate Nginx configs byte-for-byte, validates the root journal, verifies both running frontend identities and the existing hardened unit, and only then applies the Nginx proxy switch with automatic rollback on failure.
+
+## Resume existing protected handoff — NOT YET RUN
+
+Before attempting a new root action, require required exact-head GitHub CI GREEN, physical/console rollback access, and owner acceptance that #1428 full independent off-device DR proof is still unavailable. Verify the preflight again:
 
 ```bash
 cd /home/nexolab/commander-workspaces/nexolab-1560-bluegreen-release-20261110
-sudo /usr/bin/python3 -I -B scripts/nexolab-1560-bluegreen-handoff.py execute \
+python3 scripts/nexolab-1560-bluegreen-handoff.py check
+```
+
+Confirm the reported Nginx SHA still matches the reviewed value. Then, **only for the already-installed and verified dual-service state**, run:
+
+```bash
+sudo /usr/bin/python3 -I -B scripts/nexolab-1560-bluegreen-handoff.py promote \
   --expected-nginx-sha256 b76c1120ae9e0981a8f1ba49caf9c6091d754df4b2649cf32cc36650d4e97f02 \
   --approved-frontend-only
 ```
 
-The SHA is an observed 2026-11-10 pin; if changed, stop and use the new reviewed `check` output rather than blindly retrying. The script fails closed if services/assets/proxy topology change. It creates a root-protected original Nginx backup, installs a separate hardened systemd unit, validates the new HTTP runtime identity, updates only two OAuth-protected proxy targets, syntax-checks Nginx and reloads gracefully. On error it attempts automatic Nginx rollback; on interrupted execution stop and inspect evidence before resuming.
+Expected indicator after success: `EXTERNAL_BLUEGREEN_PROMOTED 08f1c8a4...` plus warning that full site DR and authenticated operator browsing remain unverified. On failure, do **not** delete root journal, edit Nginx manually, clear service state or try `execute` again; preserve output and inspect actual service status. The script restores the original Nginx automatically if a change fails.
 
 ## Recovery/rollback (operator only)
 
@@ -61,4 +73,4 @@ The rollback compares current Nginx bytes against its protected original and the
 
 ## Developer verification already run
 
-Source-only preview via real ARM64 Next.js candidate at a temporary loopback port: `/login`, `/sessions`, `/reports` HTTP 200; browser preview for Sessions/Reports used explicitly labeled test fixtures and therefore is **not** live hardware/role acceptance. Generated Nginx blue/green config passed Nginx `-t` with redirected temporary pid/cache directories. Five pure handoff contract tests passed; active protected site was not switched.
+Source-only preview via real ARM64 Next.js candidate at a temporary loopback port: `/login`, `/sessions`, `/reports` HTTP 200; browser preview for Sessions/Reports used explicitly labeled test fixtures and therefore is **not** live hardware/role acceptance. Generated Nginx blue/green config passed Nginx `-t` with redirected temporary pid/cache directories. Eight focused handoff/resume contract tests passed, including altered journal/config rejection. The first operator execution rolled back before protected proxy activation; new service is healthy and identity-corrected, but active HTTPS Nginx still uses the old UI.

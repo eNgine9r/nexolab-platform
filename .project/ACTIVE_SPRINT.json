@@ -10268,7 +10268,20 @@
         "docker_lan_cidr_overlap": "UNRESOLVED",
         "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
         "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
-        "ci_followup": "required path filters added; exact-head CI pending"
+        "ci_followup": "required path filters added; exact-head CI pending",
+        "operator_first_execute": "FAILED_CLOSED_NEW_IDENTITY_PROVENANCE_UNSUPPORTED",
+        "nginx_rollback_after_failure": "VERIFIED_ORIGINAL_SHA_b76c1120ae9e0981",
+        "new_systemd_is_active": true,
+        "new_loopback_http_3104": 200,
+        "new_runtime_identity_source": "offline_image_manifest",
+        "new_runtime_identity_source_commit": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "new_build_id": "MCPKmYsrQCxN9zwMwDDnV",
+        "staging_and_installed_identity_metadata_corrected": true,
+        "second_stage_resume_command": "promote_NOT_execute",
+        "resume_hermetic_tests": "8_passed",
+        "protected_https_activation": false,
+        "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
+        "no_hardware_or_modbus_write": true
       }
     }
   ],
