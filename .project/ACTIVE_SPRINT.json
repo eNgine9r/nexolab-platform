@@ -61,7 +61,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1558
+      "issue": 1560
     },
     "next_work_package": null
   },
@@ -10193,7 +10193,10 @@
         "merged_source_pr": 1557,
         "merged_source_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
         "github_exact_head_ci": "PASS_42800767840",
-        "site_installed": false
+        "site_installed": false,
+        "source_merged_pr": 1557,
+        "merged_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "exact_head_ci": "PASS"
       }
     },
     {
@@ -10201,7 +10204,7 @@
       "title": "Reports: readable searchable versions and truthful loaded-selection status",
       "branch": "feat/1558-reports-operator-ui",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1550
       ],
@@ -10223,7 +10226,62 @@
         "authenticated_browser": "pending",
         "site_installed": false,
         "modbus_write": false,
-        "hardware_write": false
+        "hardware_write": false,
+        "source_merged_pr": 1559,
+        "merged_sha": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1560,
+      "title": "Source-bound NEXOLAB Raspberry Pi HTTPS frontend blue/green operator handoff",
+      "priority": "critical",
+      "lifecycle": "review",
+      "branch": "feat/1560-frontend-bluegreen-handoff",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "A fail-closed operator-run HTTPS-only blue/green cutover preserves original 3100 and read-only security, OAuth and API proxy; staged 08f1c8a4 ARM64 artifacts, separate 3104 service, old upstream fallback, exact-identity rollback. Does not change LAN Dashboard, Docker/IPAM, DB, Modbus or hardware.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/",
+        ".github/workflows/authenticated-dashboard-acceptance.yml",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "github_offdevice_artifact_run": 42805566839,
+        "github_offdevice_artifact": "SUCCESS_both_profiles",
+        "arm64_lan_sha256": "PASS",
+        "arm64_https_sha256": "PASS",
+        "target_source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "old_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "rpi_candidate_browser_login_sessions_reports": "HTTP_200_fixture_only",
+        "nginx_bluegreen_generated_syntax": "PASS_isolated",
+        "new_handoff_contract_tests": "5_passed",
+        "site_frontend_handoff": "NOT_PERFORMED",
+        "protected_root_connector": "DENIED",
+        "full_site_dr_restore": "UNVERIFIED",
+        "docker_lan_cidr_overlap": "UNRESOLVED",
+        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
+        "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
+        "ci_followup": "required path filters added; exact-head CI pending",
+        "operator_first_execute": "FAILED_CLOSED_NEW_IDENTITY_PROVENANCE_UNSUPPORTED",
+        "nginx_rollback_after_failure": "VERIFIED_ORIGINAL_SHA_b76c1120ae9e0981",
+        "new_systemd_is_active": true,
+        "new_loopback_http_3104": 200,
+        "new_runtime_identity_source": "offline_image_manifest",
+        "new_runtime_identity_source_commit": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "new_build_id": "MCPKmYsrQCxN9zwMwDDnV",
+        "staging_and_installed_identity_metadata_corrected": true,
+        "second_stage_resume_command": "promote_NOT_execute",
+        "resume_hermetic_tests": "8_passed",
+        "protected_https_activation": false,
+        "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
+        "no_hardware_or_modbus_write": true
       }
     }
   ],
