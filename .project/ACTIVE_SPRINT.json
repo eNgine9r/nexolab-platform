@@ -60,7 +60,7 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": 1550,
     "next_work_package": null
   },
   "work_packages": [
@@ -10081,7 +10081,7 @@
       "title": "Refrigeration catalog: compact equipment cards and trustworthy controller summaries",
       "branch": "feat/1548-refrigeration-catalog-density",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1546
       ],
@@ -10106,7 +10106,10 @@
         "authenticated_browser": "pending",
         "site_installed": false,
         "modbus_write": false,
-        "hardware_write": false
+        "hardware_write": false,
+        "source_only": true,
+        "merged_source_pr": 1549,
+        "merged_source_sha": "182777186092cc1e3968182f2239bc6ce6c377e3"
       }
     },
     {
@@ -10114,7 +10117,7 @@
       "title": "Reclaim inactive developer caches safely on NEXOLAB Raspberry SSD",
       "branch": "chore/1553-safe-cache-reclamation",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "One-time verified deletion of generated ignored node_modules and .next outside the active site runtimes; protect production/rollback databases, images, archives and release packages.",
       "permitted_paths": [
@@ -10145,7 +10148,39 @@
         "source_ci": "pending",
         "site_release": "not_requested",
         "separate_telemetry_issue": 1551,
-        "recovery_blocker_issue": 1428
+        "recovery_blocker_issue": 1428,
+        "source_only": true,
+        "merged_source_pr": 1554
+      }
+    },
+    {
+      "issue": 1550,
+      "title": "Sessions list: readable operator identity and truthful organization-scoped status",
+      "branch": "feat/1550-sessions-list-clarity",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1548
+      ],
+      "scope": "Readable compact read-only session list, explicit selection-scoped counts, requested state filters, organization-safe loading/error, responsive identity and focus. No backend/device/permission changes or site deployment.",
+      "permitted_paths": [
+        "src/components/sessions/sessions-list-screen.tsx",
+        "src/components/sessions/sessions-list-screen.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+        "targeted_vitest": "7_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "pending",
+        "protected_site_installed": false,
+        "hardware_verification": "not_applicable_UI_only",
+        "modbus_write": false,
+        "hardware_write": false
       }
     }
   ],
