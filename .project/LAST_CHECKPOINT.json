@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-09T10:38:06.071Z",
+  "timestamp": "2026-11-10T06:16:54.688Z",
   "actor": "ChatGPT",
-  "event": "1544_equipment_source_merged_1546_energy_ui_targeted_checks_green",
+  "event": "1548_refrigeration_source_candidate_13_tests_pass_site_update_hard_blocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3127,7 +3127,26 @@
       "production_build": "pending",
       "site_installed": false,
       "modbus_write": false,
-      "hardware_write": false
+      "hardware_write": false,
+      "source_merged": true,
+      "source_merge_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "main_ci": "PASS_42603616206"
+    },
+    "issue_1548_refrigeration_catalog": {
+      "issue": 1548,
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "source_base": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+      "focused_vitest": "PASS_13_of_13",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "sha_matched_files": 3,
+      "ci": "pending",
+      "authenticated_browser": "pending",
+      "production_install": "blocked",
+      "hardware_write": false,
+      "modbus_write": false
     }
   },
   "observations": [
@@ -4669,6 +4688,21 @@
         "tests_passed": 10,
         "blob_count": 3,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "read_only_pi_preflight_observed_via_remote_connector",
+      "data": {
+        "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "ssd_used_percent": 97,
+        "available_gb": 7.2,
+        "docker_subnet": "172.18.0.0/16",
+        "physical_lan_subnet": "172.18.48.0/21",
+        "risk": "hard_blocker",
+        "site_mutation": false,
+        "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
       }
     }
   ],

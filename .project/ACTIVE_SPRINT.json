@@ -10044,7 +10044,7 @@
       "title": "Energy Monitoring: compact searchable multi-meter metric selector",
       "branch": "feat/1546-energy-parameter-picker",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1544
       ],
@@ -10069,7 +10069,44 @@
         "authenticated_energy_browser": "pending",
         "modbus_write": false,
         "hardware_write": false,
-        "site_mutation": false
+        "site_mutation": false,
+        "source_merged_pr": 1547,
+        "source_merged_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "main_ci": "PASS_42603616206",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1548,
+      "title": "Refrigeration catalog: compact equipment cards and trustworthy controller summaries",
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1546
+      ],
+      "scope": "Read-only refrigeration catalog presentation: compact equipment cards, long identity labels, persisted controller observations/timestamps and accessible status; no backend, source collection, hardware or production cutover.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-catalog-screen.tsx",
+        "src/components/refrigeration/refrigeration-catalog-screen.test.tsx",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1548,
+        "branch": "feat/1548-refrigeration-catalog-density",
+        "base_main_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "verified_workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+        "focused_vitest": "13_passed_1_file",
+        "prettier": "PASS",
+        "eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_blobs_sha_match": 3,
+        "github_exact_head_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false
       }
     }
   ],
@@ -12029,6 +12066,24 @@
         "pr": 1545,
         "merge_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
         "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "1546_merged_1548_ui_source_and_site_readiness_blocker",
+      "data": {
+        "source_merged_issue": 1546,
+        "source_merge_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "source_candidate_issue": 1548,
+        "verified_targeted_tests": 13,
+        "ssd_percent_used": 97,
+        "ssd_avail_gb": 7.2,
+        "docker_cidr": "172.18.0.0/16",
+        "lan_cidr": "172.18.48.0/21",
+        "protected_runtime_revision": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "site_update_blocked": true,
         "site_mutation": false
       }
     }
