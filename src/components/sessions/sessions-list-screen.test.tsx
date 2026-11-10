@@ -123,17 +123,20 @@ describe("SessionsListScreen scoped and readable presentation", () => {
     await act(async () => requests[0]!.resolve(page([forA])));
     expect(await screen.findByRole("heading", { name: forA.title })).toBeVisible();
 
+    fireEvent.click(screen.getByRole("button", { name: "Оновити список" }));
+    await waitFor(() => expect(requests).toHaveLength(2));
     mock.organizationId = "org-b";
     rerender(<SessionsListScreen />);
     expect(screen.queryByText(forA.title)).not.toBeInTheDocument();
     expect(screen.getByText("Завантаження реальних сесій…")).toBeVisible();
     expect(screen.getAllByText("—")).toHaveLength(3);
-    await waitFor(() => expect(requests).toHaveLength(2));
+    await waitFor(() => expect(requests).toHaveLength(3));
+    expect(requests[1]!.signal.aborted).toBe(true);
 
-    await act(async () => requests[0]!.resolve(page([forA])));
+    await act(async () => requests[1]!.resolve(page([forA])));
     expect(screen.queryByText(forA.title)).not.toBeInTheDocument();
     const forB = { ...session("completed", "b"), organization_id: "org-b", title: "Випробування org-b" };
-    await act(async () => requests[1]!.resolve(page([forB])));
+    await act(async () => requests[2]!.resolve(page([forB])));
     expect(await screen.findByRole("heading", { name: forB.title })).toBeVisible();
     expect(screen.queryByText(forA.title)).not.toBeInTheDocument();
     expect(mock.createClient).toHaveBeenLastCalledWith({ organizationId: "org-b" });
