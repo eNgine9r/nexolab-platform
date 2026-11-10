@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T06:16:54.688Z",
+  "timestamp": "2026-11-10T09:01:05Z",
   "actor": "ChatGPT",
-  "event": "1548_refrigeration_source_candidate_13_tests_pass_site_update_hard_blocked",
+  "event": "1553_dev_build_cache_reclaim_8424194048_bytes_postverification",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3147,6 +3147,22 @@
       "production_install": "blocked",
       "hardware_write": false,
       "modbus_write": false
+    },
+    "storage_1553": {
+      "issue": 1553,
+      "branch": "chore/1553-safe-cache-reclamation",
+      "before_avail_bytes": 37260357632,
+      "after_avail_bytes": 45684551680,
+      "actual_reclaimed_bytes": 8424194048,
+      "runtime_containers": 13,
+      "telemetry_latest_id_progress": "13482333_to_13482381",
+      "external_frontend": "active",
+      "external_nginx": "active",
+      "production_data_delete": false,
+      "backup_delete": false,
+      "protected_cutover": false,
+      "source_ci": "pending",
+      "manual_rollout": "not_performed"
     }
   },
   "observations": [
