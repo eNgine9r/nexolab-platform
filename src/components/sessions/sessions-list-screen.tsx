@@ -23,6 +23,8 @@ import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession, SessionState } from "@/lib/sessions/types";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
+const EMPTY_SESSIONS: LaboratorySession[] = [];
+
 const FILTERS: Array<{ value: "all" | SessionState; label: string }> = [
   { value: "all", label: "Усі" },
   { value: "running", label: "Виконуються" },
@@ -109,7 +111,7 @@ export function SessionsListScreen() {
   // Unscoped results are never visible during organization/filter/retry transitions.
   const loading = requestState?.scope !== scopeKey;
   const error = loading ? null : requestState?.error ?? null;
-  const sessions = !loading && !error ? requestState?.items ?? [] : [];
+  const sessions = !loading && !error && requestState ? requestState.items : EMPTY_SESSIONS;
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("uk-UA");
