@@ -61,7 +61,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1550
+      "issue": 1558
     },
     "next_work_package": null
   },
@@ -10160,7 +10160,7 @@
       "title": "Sessions list: readable operator identity and truthful organization-scoped status",
       "branch": "feat/1550-sessions-list-clarity",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1548
       ],
@@ -10179,7 +10179,7 @@
         "changed_file_eslint": "PASS",
         "typescript_noemit": "PASS",
         "source_ci": "pending",
-        "authenticated_browser": "pending",
+        "authenticated_browser": "PASS_42800767847",
         "protected_site_installed": false,
         "hardware_verification": "not_applicable_UI_only",
         "modbus_write": false,
@@ -10189,7 +10189,41 @@
           768,
           1440,
           1920
-        ]
+        ],
+        "merged_source_pr": 1557,
+        "merged_source_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "github_exact_head_ci": "PASS_42800767840",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1558,
+      "title": "Reports: readable searchable versions and truthful loaded-selection status",
+      "branch": "feat/1558-reports-operator-ui",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1550
+      ],
+      "scope": "Display-only reports list readability, searchable frozen session identity, localized report state, accurate selection-scoped counters and loading/error handling, focus and responsive behavior; no report generation/approval/download changes.",
+      "permitted_paths": [
+        "src/components/reports/reports-workspace.tsx",
+        "src/components/reports/reports-workspace.test.tsx",
+        "e2e/reports.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1558-reports-ui-20261110",
+        "targeted_vitest": "9_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false
       }
     }
   ],

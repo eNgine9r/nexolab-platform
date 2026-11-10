@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T10:28:32Z",
+  "timestamp": "2026-11-10T10:52:10Z",
   "actor": "ChatGPT",
-  "event": "1550_sessions_operator_list_scoped_ui_candidate_verified",
+  "event": "1558_reports_searchable_trustworthy_ui_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1550,
-    "branch": "feat/1550-sessions-list-clarity",
+    "issue": 1558,
+    "branch": "feat/1558-reports-operator-ui",
     "status": "review",
     "source_only": true
   },
@@ -3189,6 +3189,18 @@
         1440,
         1920
       ]
+    },
+    "reports_operator_ui_1558": {
+      "issue": 1558,
+      "branch": "feat/1558-reports-operator-ui",
+      "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+      "targeted_tests": "9_passed_2_files",
+      "format_eslint_typecheck": "PASS",
+      "source_ci": "pending",
+      "browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -4748,7 +4760,7 @@
       }
     }
   ],
-  "next_action": "Review #1550 source PR exact-head CI and authenticated session browser; merge source on GREEN. Protected Raspberry installation remains separate and blocked until independent offline backup/restore, bounded package/rollback, CIDR-safe cutover and explicit Product Owner release authorization.",
+  "next_action": "Complete exact-head CI/browser review on #1558 source PR and merge only on GREEN; protected Raspberry rollout remains blocked by independent offline restore/rollback and overlapping LAN/Docker CIDR until separately approved.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4757,7 +4769,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; isolated source-only #1550 UI/test edits and local checks, no production deployment",
+  "runtime_mutation": "none; isolated source-only #1558 reports UI and regression tests",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
