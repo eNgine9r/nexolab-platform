@@ -1,0 +1,10 @@
+# NEXOLAB #1464 — source-only, opt-in Edge Docker IPAM migration overlay.
+# No default subnet: independently verify site LAN/VPN/routes/reservations
+# with inspect-edge-docker-ipam-readiness.py before owner-approved cutover.
+# Compose config alone NEVER authorizes creating/recreating the site network.
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NEXOLAB_EDGE_DOCKER_SUBNET:?Specify separately site-approved nonoverlapping IPv4 CIDR}

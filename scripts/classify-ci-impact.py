@@ -214,6 +214,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/verify-host-container-runtime-package-policy.py",
     "scripts/tests/test_host_container_runtime_package_policy.py",
     "scripts/nexolab-dr-readonly-health.py",
+    "scripts/serve-prometheus-textfile.py",
+    "scripts/tests/test_lan_monitor_offline_payload.py",
     "tests/test_ci_dr_readonly_health.py",
     "tests/test_ci_site_dr_capture_handoff.py",
     "tests/test_ci_site_dr_fixture_harness.py",
@@ -601,6 +603,19 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
         if path in OBJECT_STORAGE_RUNTIME_PATHS:
             classes.add("deployment_runtime")
             matched = True
+
+        if path == "scripts/tests/test_lan_monitor_offline_payload.py":
+            # Exact opt-in sealed offline bundle asset contract test.
+            # Keep all other unclassified scripts fail-closed.
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path == "scripts/serve-prometheus-textfile.py":
+            # Exact pre-existing local metrics exporter: offline runtime,
+            # not a generic exception for new scripts.
+            classes.add("deployment_runtime")
+            matched = True
+
 
         if (
             path.startswith("infrastructure/")

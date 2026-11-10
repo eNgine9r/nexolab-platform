@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T20:17:44Z",
+  "timestamp": "2026-11-10T09:23:07Z",
   "actor": "ChatGPT",
-  "event": "1460_ci_route_unknown_dr_files_fixed_preserving_exact_workflow_gate",
+  "event": "1460_source_main_reconciled_site_readonly_backup_gate_blocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,12 +30,7 @@
     "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
-  "active_work": {
-    "issue": 1460,
-    "branch": "feature/1460-offline-backup-preflight",
-    "status": "source_only_ci_routing_fix_pending_exact_head_full_green",
-    "production_mutation": false
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2801,32 +2796,387 @@
       "site_runtime": "not_modified",
       "hardware": "unverified"
     },
-    "issue_1460_offline_backup_preflight": {
-      "parent_issue": 1428,
-      "unit_tests": 15,
-      "staging_available_bytes": 27934715904,
-      "expected_exit_code": 78,
-      "policy_missing_edge_sqlite": true,
-      "minio_versitygw_authority": "unreconciled",
-      "actual_backup": "not_performed",
-      "isolated_restore": "not_performed",
-      "encrypted_off_device_copy": "unverified",
-      "site_timer": "not_installed",
-      "site_mutation": false,
+    "issue_1462_guarded_central_network_recovery": {
+      "source_only": true,
+      "parent_issue": 1399,
+      "site_cidr_guard": "blocked_172_18_0_0_16_vs_172_18_48_0_21",
+      "local_lan_dashboard": "http_200",
+      "local_lan_api": "http_200",
+      "fixed_reconnect_roles": "mqtt telemetry-service dashboard minio",
+      "unit_tests": 14,
+      "systemd_service": "not_installed",
+      "site_cidr_migration": "not_performed",
+      "production_mutation": false,
       "hardware": "unverified",
-      "github_exact_head": "pending_new_commit",
-      "broader_dr_tests": 40,
-      "ci_contract_tests": 384,
-      "ci_contract_tests_skipped": 1,
-      "same_disk_pytest_fixture": "passed",
-      "initial_github_telemetry_service": "green",
-      "initial_core_merge_gate": "failed_missing_three_external",
-      "classifier_known_dr_source_paths": "added",
-      "offline_bundle_trigger": "added",
-      "routing_tests": 80,
-      "dr_tests": 40,
-      "offline_bundle_required": true,
-      "full_external_matrix_required_due_to_classifier": true
+      "source_unit_tests": 16,
+      "existing_observer_tests": 23,
+      "existing_cidr_tests": 16,
+      "offline_contract_ci_registration": true,
+      "auth_key_bind_mounts": "required_nonwritable",
+      "update_locks": "exclusive_during_recovery",
+      "offline_contract": "passed",
+      "real_linux_flock_reentrancy": "positive_fixture_test_pass",
+      "full_offline_contract": "PASS",
+      "exact_head_checks": "3_of_3_GREEN",
+      "source_only_merged": true,
+      "site_auto_recovery_enabled": false,
+      "source_only_merge": "observed_complete"
+    },
+    "issue_1464_edge_ipam_approval_overlay": {
+      "unit_tests": 14,
+      "source_only": true,
+      "positive_compose_config": "PASS",
+      "missing_explicit_subnet": "FAIL_CLOSED",
+      "site_cidr_conflict": "172.18.48.0/21_vs_172.18.0.0/16",
+      "proposed_candidate": "not_site_approved",
+      "live_migration": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "edge_ipam_source_guard_tests": 18,
+      "ci_policy_contract_tests": 383,
+      "ci_policy_skipped": 1,
+      "standalone_offline_contract": "PASS",
+      "site_readonly_exit": 1,
+      "site_readonly_status": "candidate_unapproved"
+    },
+    "issue_1466_lan_auth_access_smoke": {
+      "source_only": true,
+      "unit_tests": 18,
+      "site_dashboard": "HTTP200",
+      "site_login": "HTTP200_form",
+      "site_api_ready": "HTTP200_database_mqtt_ready",
+      "site_session": "HTTP401_without_credentials",
+      "exact_cors": "PASS",
+      "user_login": "unverified",
+      "hardware": "unverified",
+      "offline_contract": "PASS",
+      "site_automatic_monitor": "not_installed",
+      "site_mutation": false,
+      "github_exact_head": "pending",
+      "ci_contracts": 383,
+      "ci_expected_skips": 1,
+      "actual_pi_readonly": "LOCAL_LAN_AUTH_PATH_REACHABLE"
+    },
+    "issue_1469_edge_site_migration_readiness": {
+      "source_only": true,
+      "source_unit_tests": 17,
+      "existing_lan_cidr": "172.18.48.0/21",
+      "existing_edge_bridge_cidr": "172.18.0.0/16",
+      "candidate": "172.26.0.0/24",
+      "candidate_status": "locally_disjoint_not_site_approved",
+      "pi_protected_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "pi_exact_edge_mqtt_agent_container_images": "verified",
+      "pi_existing_sqlite_mqtt_volume_names": "verified_not_recoverability",
+      "site_cutover": "blocked_missing_reservation_rollback_hardware_acceptance",
+      "actual_reboot": "not_performed",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending",
+      "existing_ipam_tests": 18,
+      "existing_overlay_tests": 14,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 383,
+      "ci_expected_skips": 1,
+      "state_model_v2": "PASS",
+      "pi_site_readonly_exit": 78,
+      "source_only_merged": "3_of_3_GREEN",
+      "live_cutover": false
+    },
+    "issue_1468_local_lan_access_alerts": {
+      "source_only": true,
+      "unit_tests": 18,
+      "ci_impact_tests": 80,
+      "source_numeric_metrics": "verified_no_credentials",
+      "native_arm64_promtool_rules": "5_of_5_PASS",
+      "native_arm64_promtool_alert_firing_and_resolution": "PASS",
+      "live_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+      "test_output_only": "owner_private_temporary_directory",
+      "existing_dr_textfile_single_file_compatible": true,
+      "optional_alert_rule_loaded": false,
+      "site_systemd_unit_installed": false,
+      "site_timer_enabled": false,
+      "production_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "ci_policy_contract_tests": 384,
+      "expected_ci_skips": 1,
+      "offline_contract": "PASS",
+      "native_promtool_alert_fixture": "committed_pass",
+      "site_monitor_activation": false
+    },
+    "issue_1472_lan_monitor_install_gate": {
+      "source_only": true,
+      "source_unit_tests": 18,
+      "site_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "requested_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+      "actual_host_exporter_bind": "home_nexolab_nexolab_platform_runtime_observability",
+      "host_dir_owner_mode": "nexolab_0700",
+      "legacy_dr_file": "present_nexolab_0600",
+      "source_unit_mapping": "corrected_exact_host_path",
+      "real_pi_preflight": "blocked_exit78_old_accepted_source",
+      "site_systemd_timer": "not_installed",
+      "prometheus_optional_rules": "not_loaded",
+      "site_activation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "new_tests": 18,
+      "prior_collector_tests": 18,
+      "prior_lan_probe_tests": 18,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 384,
+      "ci_expected_skips": 1,
+      "systemd_analyze_verify": "PASS",
+      "state_model_v2": "PASS"
+    },
+    "issue_1474_offline_lan_monitor_payload": {
+      "source_only": true,
+      "assets_allowlisted": 5,
+      "default_bundle_behavior": "unchanged",
+      "opt_in_provenance": "lan-access-monitor-source-only",
+      "hermetic_new_tests": 16,
+      "actual_builder_copy_loop_in_isolated_tmp": "PASS",
+      "real_pi_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "real_pi_systemd_monitor": "not_installed",
+      "source_release_path": "unavailable",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending_revised_commit",
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 385,
+      "ci_expected_skip": 1,
+      "preexisting_version_manager_test_fixture_limits": "14_site_external_frontend_topology_guards_64_PASS",
+      "site_activation": false,
+      "ci_impact_tests": 81,
+      "offline_workflow_trigger": "exact_filename",
+      "source_change_impact": "no_unknown_paths",
+      "ci_expected_skips": 1,
+      "change_impact_tests": 81,
+      "sealed_assets_tests": 16
+    },
+    "issue_1511_ci_fixture": {
+      "pr": 1512,
+      "status": "merged",
+      "focused_tests": 9,
+      "telemetry_ci": "42022667354_success",
+      "offline_bundle": "42022667360_success",
+      "merge_gate": "42022667638_success",
+      "production_mutation": false
+    },
+    "issue_1513_obsolete_buses": {
+      "registry_revision": 34,
+      "owner_decision": "two_old_CP2104_adapters_no_longer_required",
+      "old_active_instruments": 12,
+      "old_active_targets": 53,
+      "device_disposition": "not_confirmed",
+      "protected_adapter": "A10Q34QC",
+      "protected_devices": "two_XJP60D_6_and_2_eligible_targets",
+      "runtime_mutation": false
+    },
+    "issue_1514_dashboard_test": {
+      "pr": 1515,
+      "head": "4813e422128ca01ceb28930b9ab81360cb8f89a4",
+      "browser_run": "42024913691_in_progress",
+      "prior_failure": "42023138252_old_wizard_field_hidden_by_quick_add",
+      "hardware_acceptance": "unverified"
+    },
+    "issue_1525_permission_navigation": {
+      "issue": 1525,
+      "branch": "feat/1525-permission-aware-navigation",
+      "state": "source_candidate",
+      "independent_page_grants": "unimplemented_issue_1526",
+      "site_deployed": false,
+      "runtime_user_acceptance": "pending"
+    },
+    "issue_1532_overview_readability": {
+      "issue": 1532,
+      "pull_request": 1533,
+      "branch": "feat/1532-overview-readability",
+      "base_main_sha": "8ba483b6edb3adca75c23923ee74657cc96929c6",
+      "verified_isolated_workspace": "/home/nexolab/commander-workspaces/overview-1532-validation-20261106",
+      "source_file_blob_match": 6,
+      "focused_vitest": "7_passed_3_files",
+      "changed_file_prettier": "passed",
+      "changed_file_eslint": "passed",
+      "typescript_noemit": "passed",
+      "target_node_version": "22.23.1",
+      "tests_vitest_version": "4.1.10",
+      "exact_head_required_ci": "PASS_42233327149_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_verified": true,
+      "production_build_verified": true,
+      "permission_pr_dependency": 1531,
+      "prod_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "runtime_mutation": false,
+      "update_signal": "withheld",
+      "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_viewport_verified_overview": [
+        360,
+        1440,
+        1920
+      ],
+      "browser_viewport_verified_header": [
+        320,
+        375,
+        768,
+        1280
+      ],
+      "browser_evidence_artifact": 13510498719,
+      "manual_pixel_review": "not_recorded",
+      "needs_new_exact_head_ci_after_state_change": true,
+      "merged_pr": 1533,
+      "final_ci": "PASS_42234941179",
+      "final_browser": "PASS_42234941253",
+      "production_installed": false
+    },
+    "issue_1534_overview_device_first": {
+      "issue": 1534,
+      "branch": "feat/1534-overview-sensor-picker",
+      "base_main_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+      "source_blobs_verified": 7,
+      "targeted_tests": "28_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "github_ci": "PASS_42238642725",
+      "browser_acceptance": "PASS_42_of_42_42238642310",
+      "release": "not_installed",
+      "modbus_write": false,
+      "hardware_write": false,
+      "site_mutation": false,
+      "pull_request": 1535,
+      "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+      "responsive_viewport_widths": [
+        320,
+        375,
+        390,
+        768,
+        1280,
+        1440,
+        1920
+      ],
+      "source_completion": "verified_candidate",
+      "final_documentation_ci": "pending"
+    },
+    "issue_1537_live_retry_flake": {
+      "issue": 1537,
+      "pull_request": 1538,
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "source_base_main": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+      "targeted_prettier": "PASS",
+      "targeted_eslint": "PASS",
+      "targeted_tsc": "PASS",
+      "previous_42_browser_rerun": "PASS_42240068804_attempt2",
+      "new_exact_head_ci": "PASS_42283567771",
+      "new_exact_head_browser": "PASS_13_of_13_42283567775",
+      "site_installed": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "source_merged": true,
+      "source_merge_commit_observation_only": "recorded_in_observations"
+    },
+    "issue_1536_live_progressive_filters": {
+      "issue": 1536,
+      "branch": "feat/1536-live-progressive-filters",
+      "base_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+      "vitest": "12_pass",
+      "changed_file_prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "source_blobs_verified": 2,
+      "github_ci": "PASS_42285423569",
+      "browser_acceptance": "PASS_42_of_42_42285423714",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1544_equipment_connections": {
+      "issue": 1544,
+      "related_discovery_issue": 1478,
+      "branch": "feat/1544-equipment-connections-readability",
+      "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+      "targeted_vitest": "8_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "verified_blobs": 3,
+      "github_ci": "PASS_42600416268",
+      "authenticated_browser_acceptance": "PASS_6_of_6_42600416103",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1546_energy_parameter_picker": {
+      "issue": 1546,
+      "branch": "feat/1546-energy-parameter-picker",
+      "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+      "focused_vitest": "10_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "source_blobs_verified": 3,
+      "github_ci": "pending",
+      "authenticated_energy_browser": "pending",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true,
+      "source_merge_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "main_ci": "PASS_42603616206"
+    },
+    "issue_1548_refrigeration_catalog": {
+      "issue": 1548,
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "source_base": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+      "focused_vitest": "PASS_13_of_13",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "sha_matched_files": 3,
+      "ci": "pending",
+      "authenticated_browser": "pending",
+      "production_install": "blocked",
+      "hardware_write": false,
+      "modbus_write": false
+    },
+    "storage_1553": {
+      "issue": 1553,
+      "branch": "chore/1553-safe-cache-reclamation",
+      "before_avail_bytes": 37260357632,
+      "after_avail_bytes": 45684551680,
+      "actual_reclaimed_bytes": 8424194048,
+      "runtime_containers": 13,
+      "telemetry_latest_id_progress": "13482333_to_13482381",
+      "external_frontend": "active",
+      "external_nginx": "active",
+      "production_data_delete": false,
+      "backup_delete": false,
+      "protected_cutover": false,
+      "source_ci": "pending",
+      "manual_rollout": "not_performed"
+    },
+    "dr1460_20261110": {
+      "issue": 1460,
+      "branch": "feature/1460-offline-backup-preflight",
+      "main_baseline": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+      "site_readonly_preflight": "BLOCKED_exit_78",
+      "site_health": "BLOCKED_exit_78",
+      "synthetic_fixture": "SYNTHETIC_ONLY_PASS",
+      "site_backup": false,
+      "site_restore": false,
+      "off_device_copy": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "ci": "pending"
     }
   },
   "observations": [
@@ -4056,33 +4406,337 @@
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T19:59:07Z",
-      "kind": "1460_readonly_dr_policy_space_preflight",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_central_network_source_only",
       "data": {
-        "issue": 1460,
-        "parent": 1428,
-        "unit_tests": 15,
-        "exit_code": 78,
-        "available_bytes": 27934715904,
-        "backup_performed": false,
+        "issue": 1462,
+        "tests": 14,
+        "site_cidr_guard": "blocked",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression",
+      "data": {
+        "issue": 1462,
+        "source_tests": 16,
+        "external_ci": "pending",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_explicit_edge_ipam_source_only",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "site_cutover": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
         "site_mutation": false
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T20:17:44Z",
-      "kind": "1460_ci_routing_fixed_with_real_required_full_workflows",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_merged_green",
       "data": {
-        "issue": 1460,
-        "pr": 1461,
-        "ci_contracts": 384,
-        "routing_tests": 80,
-        "offline_bundle_required": true,
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "ci": "3/3_GREEN",
+        "site_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_local_unauthenticated_access_path",
+      "data": {
+        "issue": 1466,
+        "script": "read_only",
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "tests": 18,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_lan_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "offline_contract": "PASS",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_merged_3_of_3_ci_green",
+      "data": {
+        "issue": 1466,
+        "pr": 1467,
+        "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
+        "site_auto_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_source_only_site_network_gates",
+      "data": {
+        "issue": 1469,
+        "unit_tests": 17,
+        "site_cutover": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_metrics_and_alerts",
+      "data": {
+        "issue": 1468,
+        "tests": 18,
+        "promtool_rules": "PASS",
+        "promtool_firing_resolved": "PASS",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "live_network_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_observability_merged",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_ci": "7_of_7_GREEN",
+        "site_activated": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_lan_monitor_source_gate",
+      "data": {
+        "issue": 1472,
+        "source_tests": 18,
+        "pi_readonly_site": "BLOCKED",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_merged_green",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_immutable_optional_lan_monitor_bundle",
+      "data": {
+        "issue": 1474,
+        "new_tests": 14,
+        "allowlisted_assets": 5,
+        "site_activation": false,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_ci_exact_route_source",
+      "data": {
+        "issue": 1474,
+        "route_tests": 81,
+        "unknown_files": 0,
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-05T12:14:14.443448+00:00",
+      "kind": "obsolete_cp2104_decision_and_active_device_inventory",
+      "data": {
+        "issue": 1513,
+        "registry_revision": 34,
+        "old_active_devices": 12,
+        "old_active_targets": 53,
+        "protected_adapter": "A10Q34QC",
+        "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:20:15.309Z",
+      "kind": "1532_overview_isolated_source_check",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "focused_tests_passed": 7,
+        "source_blobs_match": 6,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:33:06.620Z",
+      "kind": "1532_source_ci_green_before_checkpoint_commit",
+      "data": {
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "browser_run": 42233327115,
+        "browser_passed": 42,
+        "release_gate": "pending_protected_installer",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_ui_checkpoint",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "verified_sha_files": 7,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:57:35.922Z",
+      "kind": "1532_merge_commit_recorded_as_observation",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "source_only": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_ci_acceptance_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "checks_green": true,
+        "browser_passed": 42,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1534_merged_and_1537_test_candidate",
+      "data": {
+        "merged_issue": 1534,
+        "merge_commit": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "new_issue": 1537,
+        "new_pr": 1538,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merge_and_1536_ui_checkpoint",
+      "data": {
+        "source_merged_pr": 1538,
+        "source_merge_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "issue": 1536,
+        "checks_isolated": 12,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1544_ui_checkpoint",
+      "data": {
+        "issue": 1544,
+        "source_merge_previous": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "verified_test_count": 8,
+        "verified_blobs": 3,
+        "read_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1546_energy_source_checkpoint",
+      "data": {
+        "issue": 1546,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "tests_passed": 10,
+        "blob_count": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "read_only_pi_preflight_observed_via_remote_connector",
+      "data": {
+        "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "ssd_used_percent": 97,
+        "available_gb": 7.2,
+        "docker_subnet": "172.18.0.0/16",
+        "physical_lan_subnet": "172.18.48.0/21",
+        "risk": "hard_blocker",
+        "site_mutation": false,
+        "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
       }
     }
   ],
-  "next_action": "Publish exact source-only CI routing fix preserving full external Merge Gate. Require Authenticated Dashboard, Offline Bundle, Refrigeration Browser, Telemetry service and Core CI GREEN at identical HEAD before Draft PR merge. Site backup and isolated restore unverified.",
+  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

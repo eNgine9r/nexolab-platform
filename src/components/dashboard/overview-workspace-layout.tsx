@@ -17,17 +17,21 @@ export function OverviewWorkspaceLayout({ primary, attention, supporting }: Over
         <div className="min-w-0" data-testid="overview-primary-workspace">
           {primary}
         </div>
-        <aside className="min-w-0" data-testid="overview-attention-workspace" aria-label="Потребує уваги">
-          {attention}
-        </aside>
+        {attention ? (
+          <aside className="min-w-0" data-testid="overview-attention-workspace" aria-label="Потребує уваги">
+            {attention}
+          </aside>
+        ) : null}
       </section>
-      <section
-        className="mt-3 min-w-0"
-        data-testid="overview-secondary-grid"
-        aria-label="Стан інфраструктури"
-      >
-        {supporting}
-      </section>
+      {supporting ? (
+        <section
+          className="mt-3 min-w-0"
+          data-testid="overview-secondary-grid"
+          aria-label="Стан інфраструктури"
+        >
+          {supporting}
+        </section>
+      ) : null}
     </>
   );
 }

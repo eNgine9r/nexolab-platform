@@ -1,10 +1,86 @@
-## 2026-11-02 — #1460 exact-head Merge Gate initially blocked by missing workflow registration
+## 2026-11-10 — #1428/#1460 verified backup capability missing (read-only checks)
 
-On HEAD 8276efb, Telemetry service GREEN, Core internal quality GREEN, final Merge Gate FAILED due missing required Authenticated Dashboard, Offline Bundle, Refrigeration Browser workflows. This is an actual fail-closed finding; source-only classifier + offline path registration in the current feature branch addresses it without disabling gates. The new exact-head GitHub workflows MUST all complete GREEN before any merge. Independent full backup/off-device/encryption and site issue #1428 remain unverified.
+Physical SSD now ~43 GiB available/81% used after verified developer-cache cleanup, so the 20 GiB reserve plus 4 GiB staging *capacity* gate is not the blocker. Read-only `nexolab-offline-backup-preflight.py --check` returned exit 78: missing mandatory asset inventory (edge SQLite/outbox), unreconciled legacy MinIO vs live VersityGW source, staging directory group-writable, no protected independent encrypted off-device destination/key custody, no isolated fresh-volume restore or site approval. `nexolab-dr-readonly-health.py` returned exit 78: no complete eight-store receipt and no active backup timer. `nexolab-site-dr-fixture-harness.py --self-test` passed **synthetic-only**, not production recovery.
 
-## 2026-11-02 — #1460 preflight BLOCKED until full-store inventory and backup acceptance
+Do not delete PostgreSQL rows, site databases, image/volume/rollback archives, /var/backups or old test-session evidence; no production startup/restart or secret access. Source-only #1460 is an isolated capability PR, not authority to enable backups or retention. Independent encrypted off-device storage and real restore proof are required by #1428; network CIDR and offline release gates remain unresolved.
 
-Actual read-only Pi preflight expects exit 78. The source DR v1 policy omits Edge SQLite/outbox and still names legacy MinIO source, whose VersityGW physical authority is not verified. Free staging space alone does not establish independent encrypted off-device capacity, complete multi-store consistency, key custody or isolated restore. No backup was created. Parent #1428 complete offline backup scheduling remains pending; #1399 live network and #1447 security approval remain separate blockers. Do not select old microSD as backup or mutate containers.
+## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
+
+Safe NEXOLAB ignored build/dependency removal reclaimed +8424194048 bytes of actual filesystem capacity (available 42.55 GiB, 81% used); no running site release, backup, Docker volume or history was pruned. Active host frontend path `.../quick-1490` and active standalone 1520 release were excluded. Two historical, permission-protected `nexolab-compat-1019` artifacts remain. Current storage figures supersede the historical 97%-full preflight below.
+
+Hard blocker remains #1428 independent full offline restore and rollback validation. Therefore do NOT prune the 11.93 GB nominally reclaimable Docker images, 2.58 GB nominally reclaimable Docker volumes, /var/backups, 13 GB version-management catalog, live frontend or audit records. #1551 retention remains source-only until recovery and controlled WAL/reclaim acceptance. Other protected site blockers (LAN CIDR overlap, offline package) unchanged.
+
+## 2026-11-10 — HARD BLOCKER: protected Raspberry deployment capacity and overlapping LAN route
+
+Actual read-only edge preflight: /dev/sda2 234G, 215G used, only 7.2G available (97%). Existing Docker images 21.44 GB (11.91 GB nominal reclaimable), build cache 16.99 GB (10.28 GB nominal reclaimable), 103 local volumes 27.79 GB (only 2.584 GB nominal reclaimable), workspaces 59 GB. **No cleanup/prune has been performed**: previous releases, rollback materials and persistent volumes must be inventoried before any deletion. Docker Edge 172.18.0.0/16 overlaps site LAN 172.18.48.0/21; default gateway 172.18.48.1 via eth0. Last systemd service state shows active containers but protected source still ffdefc4550d7. /opt/nexolab/current is absent. Required gates: establish a safe free-space budget and inventory retained backups/images, prove isolated recoverable backup/restore, resolve/guard CIDR conflict without moving active network, build and verify source-bound offline package/rollback, obtain explicit protected-site authorization. **No production update or green user update signal allowed.**
+
+## 2026-11-10 — #1548 Refrigeration catalog source acceptance pending
+
+Issue #1548 adds presentation-only refrigerated catalog card compression and clarifies persisted Embraco summaries. Verified 13/13 focused tests, Prettier, ESLint and TS noEmit on SHA-verified source/test/browser files; full GitHub exact-head CI/build and authenticated four-viewport browser acceptance not yet completed. No backend/Modbus/device/runtime change. Open access #1531 and onboarding #1519 may later require regression integration and .project state reconciliation.
+
+## 2026-11-09 — #1546 Energy parameters UI source acceptance pending
+
+Issue #1546 / feature branch feat/1546-energy-parameter-picker is display-only. Ten targeted Energy Vitest cases and Prettier/ESLint/TypeScript noEmit passed on exact three matched source/test/E2E blobs. Required GitHub exact-head CI, production build, authenticated Energy browser at 375/390/768/1440/1920 px, offline and permissions review, and source-merge are not yet verified. No meter integration, runtime modification or hardware proof. Draft integration #1519 and permission grants #1531 remain open; reconcile when merged. Do not deploy protected Pi without offline matching release, verified backup/rollback and explicit site boundary.
+
+## 2026-11-09 — #1544 Equipment source accepted, runtime update separate
+
+Equipment Connections PR #1545 passed exact-head CI #42600416268 and authenticated Equipment acceptance #42600416103 GREEN (6/6) before source merge 9caffc8f0a106f2b151ce12a15ee0e26a974bc53. No production installation, Modbus write or hardware acceptance followed.
+
+## 2026-11-09 — #1536 source-only merge complete, site release separate
+
+Live Data PR #1539 passed exact-head CI #42285423569 and Authenticated Dashboard Acceptance #42285423714 (42/42) and merged into main as b854590323e3213ad2ef32a8828de502324a4b98. Raspberry deployed release not updated; guarded package and rollback required.
+
+## 2026-11-06 — #1537 source-merged; ongoing production release gates
+
+#1537 / PR #1538 passed exact-head CI #42283567771 and selected authenticated browser acceptance #42283567775 (13/13) before source merge 767fa6f3b82790dba52219cc389103c6c5806797. Previously observed 41/42 intermittent test failure led to waiting for connected UI before publishing both live/retry MQTT samples; the test retains actual delivery assertions and exactly-one retry. No Raspberry protected runtime update, hardware acceptance or source-bound installer follows automatically.
+
+## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
+
+#1534 / PR #1535 completed candidate 693d983cd280fbb453b588303d4048b67bc879fb CI #42238642725 and Authenticated Dashboard Acceptance #42238642310 GREEN (42/42). Newly adapted device-first E2E checks seven responsive widths and retains no acquisition writes. Await exact-head CI after final documentation-only state commits before merge. Permission PR #1531 has an overlapping E2E file at separate scenario lines and shared .project state; review integration on merge order. The protected Raspberry runtime has NOT been deployed. Exact matching offline package, backups/rollback, and explicit production release authorization remain required. No Modbus/hardware writes or protected data mutation.
+
+## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
+
+PR #1533 source candidate dd660a49... passed exact-head CI #42233327149 and 42/42 authenticated browser cases #42233327115 (Overview responsive at 360/1440/1920; shared header at 320/375/768/1280; no acquisition writes). Captured browser evidence artifact 13510498719. No independent manual visual pixel review was recorded, but required automated browser/API and build checks have succeeded. The open stacked permission PRs #1529/#1531 share four .project state files but not the three modified dashboard UI components; reconcile state changes if their merge order changes. Runtime/offline installation and backup/rollback, exact accepted package, protected Pi release, and explicit production/site authorization remain separate blockers. No hardware or Modbus write.
+
+## 2026-11-06 — per-page access is not yet independently enforced (#1526)
+
+Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.
+
+## 2026-11-05 — obsolete adapters and onboarding acceptance
+
+Owner does not need the two absent CP2104 adapters. Their 12 active instrument records and 53 active targets still require a device-by-device disposition; do not silently disable, rebind or delete them. Protect the two live XJP60D section devices on FTDI A10Q34QC and retain history. #1513 tracks reversible preparation; site cutover is separately gated. #1508 browser acceptance failed on an outdated onboarding step; #1514 / PR #1515 is under exact-head browser verification. New SDM/Waveshare source remains draft and not hardware-accepted. PR #1512 fixed the unrelated backup fixture and merged; no runtime mutation.
+
+## 2026-11-03 — #1474 optional assets cannot be mistaken for active site monitoring
+
+The current NEXOLAB Pi runtime still uses accepted ffdefc... source. The existing offline release builder omitted new LAN monitoring files despite earlier source-only merges. The #1474 opt-in hashed source asset payload corrects packaging but does not create /opt/nexolab/current, install a safe source path, enable an alert timer, or verify actual alert delivery. Protected offline package source mapping and rollback must be independently reviewed with owner consent before live activation; original local Dashboard/API remain accessible. Site Docker Edge 172.18.0.0/16 overlaps LAN 172.18.48.0/21 (#1409), so post-reboot automatic repair #1399 is prohibited pending site CIDR allocation/physical acceptance. Unverified hardware/RS485 cannot be presented as healthy.
+
+## 2026-11-03 — #1472 monitor source not in accepted installed package
+
+Actual NEXOLAB Pi exporter host directory /home/nexolab/nexolab-platform/runtime/observability is private 0700 owner nexolab; its original DR metric file exists (0600). Docker exporter bind is read-only, and current container uses single disaster-recovery.prom, not directory mode. The prior #1468 timer output path incorrectly targeted /var/lib/... on the host. Corrected source-only #1472 unit and added fail-closed installed-source/host-mount/permissions gate; site accepted source ffdefc... differs from requested source 4f0923..., so no site install is authorized. Existing timer and optional alert rules not loaded. A future protected offline package, installation/rollback evidence and separate owner approval are required before enabling scheduled local alerting. #1409 Edge Docker / physical LAN overlap still blocks #1399 protected automatic network recovery. Hardware unverified.
+
+## 2026-11-03 — #1468 automatic local alerts not yet active; avoid false confidence
+
+New LAN availability gauges, safe read-only textfile directory-mode source and opt-in Prometheus alerts are software-verified only. No systemd unit, timer, site metrics directory, exporter directory setting or optional alert rule activation has been installed in the protected Pi release. A source-only GREEN build or a test-metric file outside production does not mean a recurring monitor exists. Live activation requires exact protected package source/mount/owner/permissions, verified missing/failed/recovered alert deliveries, and separate operator approval. Physical Edge Docker 172.18.0.0/16 still overlaps eth0 LAN 172.18.48.0/21; #1409/ #1399 actual IPAM cutover and boot auto-recovery blocked, CP2104 hardware evidence #1429 incomplete.
+
+## 2026-11-03 — #1469 protected Edge subnet migration still lacks human site allocation and rollback
+
+Real Pi read-only root-level inspection validates existing protected bundle identities, running Edge MQTT+Device Agent image/labels/network identity and named persistent SQLite/MQTT volume mounts. Host Edge Docker 172.18.0.0/16 overlaps actual physical LAN 172.18.48.0/21. Provisional 172.26.0.0/24 is locally disjoint but **not reserved** against upstream/LAN/VPN networks. Full data recoverability, independent rollback, physical USB identities/read-only acquisition and actual reboot acceptance are not proven. Therefore live IPAM migration is a hard blocker; no cutover/daemon restart/network removal. Until #1409 resolved and approved, source-only #1399 auto-healing must remain disabled. This follows owner priority of keeping the existing LAN monitoring running rather than undertaking unrelated backup work.
+
+## 2026-11-03 — #1466 access smoke must not be mistaken for full hardware/site acceptance
+
+The source-only local login probe detects a closed Dashboard port, unusable login HTML, unready API dependencies, unexpected session authorization result or incorrect CORS. A positive run proves only **unauthenticated** path reachability from the probing Raspberry; it is not an owner login, independent LAN client, fresh telemetry/hardware acceptance or automatic recovery. No timer, alert rule, or site package installation was executed. Original site still has Edge Docker CIDR overlap #1409, real hardware faults #1429, no reboot acceptance #1399; #1464 source-only Compose overlay was merged GREEN but the live Docker Edge network was not migrated.
+
+## 2026-11-03 — #1462 source-only merge does not remove site boot blocker
+
+PR #1463 source recovery code is merged GREEN; it is not installed as a Raspberry systemd auto-repair agent. The real site still has physical LAN versus Edge Docker bridge overlap and cannot execute the fail-closed network recovery. Parent #1399 and #1409 physical site acceptance remain blocked.
+
+## 2026-11-03 — #1464 source-only edge subnet override not production IPAM approval
+
+The new source-only Edge IPAM overlay requires an explicit subnet, not a guessed/default 10.x or 172.x range. An operator-nominated 172.26.0.0/24 is only locally disjoint in existing Pi route inventory and remains candidate_unapproved; no site reservation evidence exists. #1409 live network cutover must protect bound Device Agent, MQTT queue, Edge SQLite and real RS485 buses with actual rollback and separate owner approval. Inherited eth0/Edge Docker CIDR collision still blocks #1462 guarded automatic network recovery. Live Docker daemon changes, APT holds, service reloads and hardware writes not authorized by this source-only WP.
+
+## 2026-11-03 — #1462 cannot auto-recover while LAN and Docker routes overlap
+
+Manual November 3 reconnect restored original LAN monitoring after Docker attachment loss; it did not fix Docker sandbox behavior across reboot. The follow-on source-only #1462 reconnect tool is blocked on read-only live site by physical LAN 172.18.48.0/21 versus edge Docker 172.18.0.0/16 (#1409). Device Agent remains unhealthy and must never be auto-fixed via hardware write or silently marked healthy. Root service activation, network/IPAM migration, independent data rollback and real reboot acceptance are not performed/verified. Do not install or run --execute on the conflicted production site. Parent #1399 remains open.
 
 ## 2026-11-02 — main governance corrected, deployment still blocked
 

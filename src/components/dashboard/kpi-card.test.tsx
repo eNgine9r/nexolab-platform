@@ -21,6 +21,31 @@ describe("KpiCard", () => {
     expect(screen.getByText("6 / 6")).toBeInTheDocument();
     expect(screen.getByText("100% доступності")).toBeInTheDocument();
   });
+  it("retains complete secondary labels with readable text sizes", () => {
+    render(
+      <KpiCard
+        item={{
+          label: "Довгий підпис лабораторного показника",
+          value: "—",
+          detail: "Немає актуальних даних",
+          trend: "З'єднання втрачено",
+          tone: "amber",
+          icon: "temperature",
+          badge: "offline",
+          badgeTone: "offline",
+        }}
+      />,
+    );
+
+    const label = screen.getByText("Довгий підпис лабораторного показника");
+    expect(label).toHaveClass("text-[11px]");
+    expect(label).not.toHaveClass("truncate");
+    expect(screen.getByText("Немає актуальних даних")).toBeVisible();
+    expect(screen.getByText("З'єднання втрачено")).toBeVisible();
+    expect(screen.getByText("offline")).toBeVisible();
+    expect(screen.queryByText("LIVE")).not.toBeInTheDocument();
+  });
+
   it("keeps live freshness visible without relying on color alone", () => {
     render(
       <KpiCard

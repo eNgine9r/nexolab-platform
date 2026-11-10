@@ -305,6 +305,7 @@ export function UsersScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Налаштування"
         onClose={() => setSidebarOpen(false)}

@@ -160,14 +160,16 @@ export function TelemetryStatusBar({
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-semibold text-current">{copy.title}</p>
+            <p className="text-xs leading-4 font-semibold text-current">{copy.title}</p>
             {!compactHealthy ? (
-              <span className="rounded-full border border-current/15 bg-black/10 px-2 py-0.5 text-[8px] font-semibold tracking-[0.12em] uppercase">
+              <span className="rounded-full border border-current/15 bg-black/10 px-2 py-0.5 text-[10px] leading-4 font-semibold uppercase">
                 {mode}
               </span>
             ) : null}
           </div>
-          <p className={`${compactHealthy ? "mt-0 text-[8px]" : "mt-0.5 text-[9px]"} text-slate-400`}>
+          <p
+            className={`${compactHealthy ? "mt-0" : "mt-0.5"} text-[11px] leading-4 break-words text-slate-300`}
+          >
             {error?.message ?? copy.detail}
           </p>
         </div>
@@ -175,7 +177,7 @@ export function TelemetryStatusBar({
 
       <div
         className={`ml-auto flex flex-wrap items-center gap-y-1 text-slate-400 ${
-          compactHealthy ? "gap-x-3 text-[8px]" : "gap-x-4 text-[9px]"
+          compactHealthy ? "gap-x-3 text-[11px]" : "gap-x-4 text-xs"
         }`}
       >
         <span>
@@ -187,16 +189,16 @@ export function TelemetryStatusBar({
           </strong>
         </span>
         <span>
-          Freshness: <strong className="font-medium text-slate-200">{ageLabel(ageMs)}</strong>
+          Актуальність: <strong className="font-medium text-slate-200">{ageLabel(ageMs)}</strong>
         </span>
         {rejectedFutureSamples > 0 && (
-          <span className="text-amber-300">Відхилено future timestamps: {rejectedFutureSamples}</span>
+          <span className="text-amber-300">Відхилено майбутніх часових міток: {rejectedFutureSamples}</span>
         )}
         {canRetry && (
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-current/15 bg-black/10 px-2.5 py-1.5 font-medium text-current transition hover:bg-black/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-current/15 bg-black/10 px-2.5 py-1.5 text-xs font-medium text-current transition hover:bg-black/20"
           >
             <RefreshCw className="h-3 w-3" />
             Повторити

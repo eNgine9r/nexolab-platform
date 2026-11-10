@@ -21,6 +21,8 @@ export function EnergyParameterDialog({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState(() => normalizeEnergySeriesSelection(selected));
+  const [search, setSearch] = useState("");
+  const [selectedOnly, setSelectedOnly] = useState(false);
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -29,11 +31,29 @@ export function EnergyParameterDialog({
   }, []);
   const selectedKeys = new Set(draft.map(energySeriesSelectionKey));
   const toggle = (pair: EnergySeriesSelection) =>
-    setDraft((current) =>
-      selectedKeys.has(energySeriesSelectionKey(pair))
-        ? current.filter((item) => energySeriesSelectionKey(item) !== energySeriesSelectionKey(pair))
-        : normalizeEnergySeriesSelection([...current, pair]),
-    );
+    setDraft((current) => {
+      const key = energySeriesSelectionKey(pair);
+      return current.some((item) => energySeriesSelectionKey(item) === key)
+        ? current.filter((item) => energySeriesSelectionKey(item) !== key)
+        : normalizeEnergySeriesSelection([...current, pair]);
+    });
+  const normalizedSearch = search.trim().toLocaleLowerCase("uk-UA");
+  const visibleMeters = ENERGY_METERS.map((meter) => {
+    const meterText = [meter.label, meter.equipmentId, meter.modelLabel, String(meter.unitId)]
+      .join(" ")
+      .toLocaleLowerCase("uk-UA");
+    const matchesMeter = meterText.includes(normalizedSearch);
+    const metrics = ENERGY_METRICS.filter((metric) => {
+      const key = energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id });
+      if (selectedOnly && !selectedKeys.has(key)) return false;
+      if (!normalizedSearch || matchesMeter) return true;
+      return [metric.label, metric.shortLabel, metric.id, metric.expectedUnit]
+        .join(" ")
+        .toLocaleLowerCase("uk-UA")
+        .includes(normalizedSearch);
+    });
+    return { meter, metrics };
+  }).filter((group) => group.metrics.length > 0);
 
   return (
     <dialog
@@ -62,7 +82,7 @@ export function EnergyParameterDialog({
       }}
     >
       <section className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-cyan-300/15 bg-[#081a34] text-slate-100 shadow-2xl shadow-black/50">
-        <header className="flex items-start justify-between gap-4 border-b border-white/[0.06] p-5">
+        <header className="flex items-start justify-between gap-3 border-b border-white/[0.06] p-4 sm:p-5">
           <div>
             <h2 id="energy-parameters-title" className="text-base font-semibold text-white">
               Параметри на графіку
@@ -80,14 +100,57 @@ export function EnergyParameterDialog({
             <X className="h-4 w-4" />
           </button>
         </header>
-        <div className="min-h-0 space-y-4 overflow-y-auto p-5">
-          {ENERGY_METERS.map((meter) => (
-            <fieldset key={meter.unitId} className="min-w-0 rounded-2xl border border-white/[0.08] p-3">
-              <legend className="px-2 text-sm font-semibold text-cyan-200">
+        <div className="space-y-3 border-b border-white/[0.06] p-3 sm:p-4">
+          <label className="block text-xs font-medium text-slate-200">
+            Пошук лічильника або показника
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="W1, напруга, струм, kWh…"
+              className="mt-1.5 h-11 w-full rounded-xl border border-white/10 bg-[#06142a] px-3 text-sm text-white outline-none placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-cyan-300"
+            />
+          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              aria-pressed={selectedOnly}
+              onClick={() => setSelectedOnly((current) => !current)}
+              className={`min-h-10 rounded-xl border px-3 text-xs font-medium focus-visible:ring-2 focus-visible:ring-cyan-300 ${selectedOnly ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-slate-300 hover:text-white"}`}
+            >
+              Лише вибрані
+            </button>
+            <p role="status" className="text-xs text-slate-300">
+              {visibleMeters.length} із {ENERGY_METERS.length} лічильників · {draft.length} серій обрано
+            </p>
+          </div>
+        </div>
+        <div className="min-h-0 space-y-3 overflow-y-auto p-3 sm:p-4">
+          {visibleMeters.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/10 p-5 text-center">
+              <p className="text-sm text-slate-300">За цими умовами показників немає</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedOnly(false);
+                }}
+                className="mt-2 min-h-10 rounded-lg border border-white/10 px-3 text-xs font-medium text-cyan-200 hover:border-cyan-300/30"
+              >
+                Показати всі параметри
+              </button>
+            </div>
+          ) : null}
+          {visibleMeters.map(({ meter, metrics }) => (
+            <fieldset key={meter.unitId} className="min-w-0 rounded-xl border border-white/[0.08] p-3">
+              <legend className="px-2 text-xs font-semibold text-cyan-200">
                 {meter.label} · {meter.equipmentId}
+                <span className="ml-2 text-[11px] font-normal text-slate-400">
+                  {draft.filter((pair) => pair.unitId === meter.unitId).length} обрано
+                </span>
               </legend>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {ENERGY_METRICS.map((metric) => {
+                {metrics.map((metric) => {
                   const pair = { unitId: meter.unitId, metric: metric.id };
                   const supported = energyMeterSupportsMetric(meter, metric.id);
                   return (
@@ -111,7 +174,7 @@ export function EnergyParameterDialog({
                         {!supported ? (
                           <span
                             id={`unsupported-energy-${meter.unitId}-${metric.shortLabel}`}
-                            className="mt-1 block text-[10px]"
+                            className="mt-1 block text-[11px] leading-4"
                           >
                             Не підтримується цим лічильником
                           </span>
@@ -124,7 +187,7 @@ export function EnergyParameterDialog({
             </fieldset>
           ))}
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] p-5">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] p-3 sm:p-4">
           <button
             type="button"
             onClick={() => setDraft([])}

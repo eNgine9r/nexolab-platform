@@ -106,22 +106,22 @@ function TemperatureVisibilityDialogContent({
       aria-labelledby="temperature-visibility-title"
     >
       <section className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-cyan-300/15 bg-[#081a34] shadow-2xl shadow-black/50">
-        <header className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+        <header className="flex items-start justify-between gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
           <div>
-            <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">Overview presentation</p>
+            <p className="text-[11px] font-semibold text-cyan-300 uppercase">Відображення</p>
             <h2 id="temperature-visibility-title" className="mt-1 text-base font-semibold text-white">
               Датчики на графіку Огляду
             </h2>
-            <p className="mt-1 max-w-xl text-[10px] leading-5 text-slate-400">
-              Вибір змінює лише відображення в цьому браузері. Збір RS-485, monitoring enrollment, Live,
-              історія та прив’язки до обладнання не змінюються.
+            <p className="mt-1 max-w-xl text-xs leading-5 text-slate-400">
+              Вибір змінює лише відображення в цьому браузері. Збір RS-485, безперервний моніторинг, історія
+              та прив’язки приладів залишаються без змін.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрити вибір датчиків Огляду"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/[0.07] text-slate-400 hover:border-cyan-300/25 hover:text-white"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/[0.07] text-slate-300 hover:border-cyan-300/25 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -129,7 +129,7 @@ function TemperatureVisibilityDialogContent({
 
         {monitoringError ? (
           <div
-            className="mx-5 mt-4 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-400/[0.05] p-3 text-[10px] text-amber-100"
+            className="mx-4 mt-3 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-400/[0.05] p-3 text-xs text-amber-100 sm:mx-5"
             role="alert"
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -137,31 +137,42 @@ function TemperatureVisibilityDialogContent({
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.05] px-5 py-3">
-          <span className="text-[10px] text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.05] px-4 py-2.5 sm:px-5">
+          <span className="text-xs text-slate-300">
             {selected.length} показано · {monitored.length} у безперервному моніторингу
           </span>
-          <button
-            type="button"
-            onClick={() => setSelected(monitored)}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-[10px] text-slate-300 hover:border-cyan-300/25 hover:text-white"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Показати всі
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelected(monitored)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-200 hover:border-cyan-300/25 hover:text-white"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              Показати всі
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              disabled={selected.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-200 hover:border-cyan-300/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+              Приховати всі
+            </button>
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
           {monitored.length === 0 ? (
             <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-white/[0.08] text-center">
               <div>
                 <EyeOff className="mx-auto h-6 w-6 text-slate-600" />
-                <p className="mt-3 text-[11px] text-slate-300">
+                <p className="mt-3 text-xs text-slate-300">
                   {monitoringError
                     ? "Monitoring set недоступний через помилку Device Agent"
                     : "Немає каналів у безперервному моніторингу"}
                 </p>
-                <p className="mt-1 text-[9px] text-slate-500">
+                <p className="mt-1 text-[11px] text-slate-400">
                   Monitoring enrollment виконується окремо в Налаштуваннях.
                 </p>
               </div>
@@ -184,7 +195,7 @@ function TemperatureVisibilityDialogContent({
                 return (
                   <label
                     key={channelId}
-                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition ${
+                    className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 transition ${
                       checked
                         ? "border-cyan-300/25 bg-cyan-400/[0.07]"
                         : "border-white/[0.06] bg-[#07162d]/70 hover:border-cyan-300/15"
@@ -198,9 +209,9 @@ function TemperatureVisibilityDialogContent({
                       className="h-4 w-4 accent-cyan-400"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold break-words text-white">{label}</p>
-                      {label !== channelId ? <p className="text-[9px] text-slate-400">{channelId}</p> : null}
-                      <p className="mt-1 text-[8px] text-slate-500">
+                      <p className="text-xs font-semibold break-words text-white">{label}</p>
+                      {label !== channelId ? <p className="text-[11px] text-slate-400">{channelId}</p> : null}
+                      <p className="mt-1 text-[11px] leading-4 text-slate-400">
                         {diagnosticLabel(diagnostics.get(channelId))}
                       </p>
                     </div>
@@ -216,15 +227,15 @@ function TemperatureVisibilityDialogContent({
           )}
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">
-          <p className="text-[9px] text-slate-500">Display-only · жодних Device Agent mutations</p>
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 sm:px-5">
+          <p className="text-[11px] text-slate-400">Лише відображення · жодних Device Agent mutations</p>
           <button
             type="button"
             onClick={() => {
               onApply(selected);
               onClose();
             }}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-blue-500"
+            className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-500"
           >
             Застосувати відображення
           </button>
