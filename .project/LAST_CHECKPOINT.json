@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T09:01:05Z",
+  "timestamp": "2026-11-10T10:28:32Z",
   "actor": "ChatGPT",
-  "event": "1553_dev_build_cache_reclaim_8424194048_bytes_postverification",
+  "event": "1550_sessions_operator_list_scoped_ui_candidate_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,7 +30,12 @@
     "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1550,
+    "branch": "feat/1550-sessions-list-clarity",
+    "status": "review",
+    "source_only": true
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -3163,6 +3168,27 @@
       "protected_cutover": false,
       "source_ci": "pending",
       "manual_rollout": "not_performed"
+    },
+    "sessions_operator_list_1550": {
+      "issue": 1550,
+      "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+      "source_branch": "feat/1550-sessions-list-clarity",
+      "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+      "targeted_tests": "7_passed_2_files",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "github_exact_head_ci": "pending",
+      "authenticated_browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "browser_target_viewports": [
+        375,
+        768,
+        1440,
+        1920
+      ]
     }
   },
   "observations": [
@@ -4722,7 +4748,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
+  "next_action": "Review #1550 source PR exact-head CI and authenticated session browser; merge source on GREEN. Protected Raspberry installation remains separate and blocked until independent offline backup/restore, bounded package/rollback, CIDR-safe cutover and explicit Product Owner release authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4731,7 +4757,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
+  "runtime_mutation": "none; isolated source-only #1550 UI/test edits and local checks, no production deployment",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

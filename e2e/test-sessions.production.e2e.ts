@@ -192,7 +192,11 @@ test("enforces organization-scoped authenticated production session workflow", a
     await expect(runningFilter).toBeVisible();
     await runningFilter.focus();
     await draftPage.keyboard.press("Tab");
+    await expect(draftPage.getByRole("button", { name: "Готові", exact: true })).toBeFocused();
+    await draftPage.keyboard.press("Tab");
     await expect(draftPage.getByRole("button", { name: "Призупинені", exact: true })).toBeFocused();
+    await draftPage.keyboard.press("Shift+Tab");
+    await expect(draftPage.getByRole("button", { name: "Готові", exact: true })).toBeFocused();
     await draftPage.keyboard.press("Shift+Tab");
     await expect(runningFilter).toBeFocused();
     await draftPage.keyboard.press("Escape");
@@ -527,7 +531,7 @@ test("anonymous users cannot mount Sessions or Lockers domain content", async ({
 test("operator keyboard navigation preserves topbar focus across mobile and desktop Sessions", async ({
   browser,
 }) => {
-  for (const width of [360, 390, 430, 1440]) {
+  for (const width of [360, 375, 390, 430, 768, 1440, 1920]) {
     const context = await authenticatedContext(browser, viewerToken, organizationA);
     const page = await context.newPage();
     try {
