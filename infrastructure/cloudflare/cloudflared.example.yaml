@@ -1,0 +1,16 @@
+# TEMPLATE ONLY. Not used by the production Raspberry Pi.
+# Create and verify Cloudflare Access BEFORE attaching DNS or starting this tunnel.
+# Cloudflare-managed tokens, credentials and user identities must not be committed.
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  - hostname: nexolab.example.com
+    service: http://127.0.0.1:17878
+    originRequest:
+      access:
+        required: true
+        teamName: REPLACE_WITH_TEAM_NAME
+        audTag:
+          - REPLACE_WITH_ACCESS_APPLICATION_AUD
+  - service: http_status:404
