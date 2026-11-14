@@ -23,6 +23,20 @@ TEST_EMAIL = "lab-operator@example.test"
 
 
 class PrivateGoogleOAuthProvisioningTests(unittest.TestCase):
+    def test_existing_multiuser_allowlist_is_checked_without_leaking_identities(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            target = Path(scratch) / "private"
+            MOD.provision(target, client_id=TEST_CLIENT, client_secret=TEST_SECRET, email=TEST_EMAIL)
+            allowlist = target / MOD.ALLOWLIST_NAME
+            allowlist.write_text(TEST_EMAIL + "\nother@example.test\n")
+            MOD.check_local_files(target)
+            allowlist.write_text(TEST_EMAIL + "\n" + TEST_EMAIL + "\n")
+            with self.assertRaises(MOD.ProvisioningError):
+                MOD.check_local_files(target)
+            allowlist.write_text(TEST_EMAIL + "\nOther@example.test\n")
+            with self.assertRaises(MOD.ProvisioningError):
+                MOD.check_local_files(target)
+
     def test_synthetic_credentials_have_correct_permissions_and_no_logging(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
             target = Path(scratch) / "private"

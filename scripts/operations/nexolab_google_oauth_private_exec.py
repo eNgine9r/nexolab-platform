@@ -101,14 +101,18 @@ def prepare_arguments(
     client_id, client_secret, cookie_secret = read_private_credentials(legacy_env)
     # The identity list and actual user email never enter argv or stdout.
     try:
-        # The gateway must authorize exactly one specific operator; a wildcard
-        # or multiple entries could silently broaden access to lab telemetry.
+        # Permit only a bounded set of explicitly named identities; this is
+        # independent of the local application's own authentication and RBAC.
         content = allowlist.read_bytes()
-        if len(content) > 320:
+        if len(content) > 25500:
             raise CredentialError("unexpected allowlist size")
         emails = content.decode("ascii").splitlines()
-        if len(emails) != 1 or not EMAIL_RE.fullmatch(emails[0]) or "*" in emails[0]:
-            raise CredentialError("allowlist must contain exactly one named Google user")
+        if (
+            not 1 <= len(emails) <= 100
+            or len(set(emails)) != len(emails)
+            or any(len(email) > 254 or not EMAIL_RE.fullmatch(email) for email in emails)
+        ):
+            raise CredentialError("allowlist must contain unique named Google users")
     except (OSError, UnicodeError):
         raise CredentialError("allowlist cannot be read safely") from None
     secret_path = _write_private_file(runtime_directory, "google-client-secret", client_secret.encode("ascii"))

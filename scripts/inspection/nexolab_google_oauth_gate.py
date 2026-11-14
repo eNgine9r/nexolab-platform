@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import tomllib
 from urllib.parse import urlparse
 
@@ -71,12 +72,20 @@ def verify(config: dict[str, object], *, expected_origin: str) -> None:
 
 
 def verify_allowlist(content: str, *, expected_email: str) -> None:
-    """Operator-only gate; both actual email and allowlist stay off GitHub."""
-    if not isinstance(expected_email, str) or not expected_email or "\n" in expected_email:
-        raise GoogleOAuthGateError("expected email is missing or malformed")
-    lines = [part.strip() for part in content.splitlines() if part.strip()]
-    if len(lines) != 1 or lines[0] != expected_email or "*" in lines[0]:
-        raise GoogleOAuthGateError("allowlist must contain exactly one approved email")
+    """Require exact equality with the independently approved identity list."""
+    def parse(value: str) -> set[str]:
+        if not isinstance(value, str) or len(value.encode("utf-8")) > 25500:
+            raise GoogleOAuthGateError("identity list is missing or malformed")
+        lines = value.splitlines()
+        if (
+            not 1 <= len(lines) <= 100
+            or len(set(lines)) != len(lines)
+            or any(len(line) > 254 or not re.fullmatch(r"[a-z0-9_.+%-]+@[a-z0-9.-]+\.[a-z]{2,}", line) for line in lines)
+        ):
+            raise GoogleOAuthGateError("identity list must contain unique named Google users")
+        return set(lines)
+    if parse(content) != parse(expected_email):
+        raise GoogleOAuthGateError("allowlist does not match approved identities")
 
 
 def main() -> int:
