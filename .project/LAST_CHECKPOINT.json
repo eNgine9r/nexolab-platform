@@ -3346,7 +3346,6 @@
       "approval_evidence_head": "b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb",
       "approval_evidence_run": 43859841072,
       "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253",
-      "merged_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
       "offline_acceptance_run": 43862880148
     }
   },
@@ -4904,6 +4903,17 @@
         "risk": "hard_blocker",
         "site_mutation": false,
         "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
       }
     }
   ],

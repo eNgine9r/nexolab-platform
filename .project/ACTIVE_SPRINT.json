@@ -90,8 +90,8 @@
         "pending_checks": "fresh required exact-head CI after synchronizing approved security baseline",
         "site_cutover": false,
         "prior_verified_head": "181bf421a8e2c264c611f2be10401788481a67e5",
-        "security_baseline_merge": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
-        "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source"
+        "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source",
+        "security_baseline_issue": 1447
       }
     },
     {
@@ -10574,7 +10574,13 @@
         "site_activation": false,
         "hardware": "unverified",
         "review_evidence": "docs/architecture/security-container-review-20261104.json",
-        "full_updated_head_ci": "pending"
+        "full_updated_head_ci": "pending",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086",
+        "checks": {
+          "github_workflows": "22/22 green",
+          "container_supply_chain": 43862880533,
+          "offline_bundle": 43862880148
+        }
       },
       "result_2026_11_16": {
         "baseline_supply_chain_run": 43851624610,
@@ -10588,8 +10594,7 @@
         "retired_registry_entries": 33,
         "approved_registry_entries": 18,
         "approval_expires_on": "2026-11-23",
-        "offline_evidence_run": 43862880148,
-        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df"
+        "offline_evidence_run": 43862880148
       }
     }
   ],
@@ -12589,6 +12594,17 @@
         "pending_core_pr": 1483,
         "separate_monitor_pr": 1477,
         "deployment_unchanged": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
       }
     }
   ],
