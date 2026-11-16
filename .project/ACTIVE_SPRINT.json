@@ -86,7 +86,8 @@
         "src/components/dashboard/temperature-visibility-dialog.tsx",
         "src/components/settings/acquisition-cadence-panel*",
         "src/app/api/device-agent/xjp60d/route*",
-        "scripts/acquisition-invariant-fixture.py"
+        "scripts/acquisition-invariant-fixture.py",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
       ],
       "evidence": {
         "root_cause": "Parent devices were discovery_only; frontend private API origin absent; source Overview uses legacy numeric enrollment; cadence omits supported waveshare_8ai.",
@@ -95,7 +96,8 @@
         "offline": "No new dependency or external runtime requirement. Hardware data and configuration remain local.",
         "pending": "New exact-head CI/review; matching frontend-only artifact and separately approved activation; Overview and Unit7 persisted-history acceptance; future seven modules hardware-unverified.",
         "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
-        "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes."
+        "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
+        "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
       }
     },
     {
