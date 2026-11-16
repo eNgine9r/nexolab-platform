@@ -1,3 +1,7 @@
+## 2026-11-16 — container security #1447
+
+Product Owner approved the 18 version-bound Telemetry findings through 2026-11-23 inclusive. Container Supply Chain must still verify the fresh images. Live data editor PR #1574 needs the approved #1448 baseline, a fresh exact-head gate and separate site authorization.
+
 ## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
 
 The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.

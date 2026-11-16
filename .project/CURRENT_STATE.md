@@ -1,3 +1,7 @@
+## 2026-11-16 — container security #1447
+
+Product Owner approved 18 exact version-bound Telemetry HIGH findings through 2026-11-23 inclusive for source CI and merge. Prior image scan b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb reported 18 HIGH and zero CRITICAL across all controlled images. The register records 15 retained and three new SQLite decisions. The new exact-head CI and Raspberry Pi runtime evidence remain pending.
+
 ## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
 
 The prior promotion failed because the wrapper passed the gateway's systemd `DynamicUser` to `runuser`. The root-gated helper now invokes the pinned Nginx binary directly in syntax-check mode. Two regression tests failed with the old wrapper. All ten handoff tests pass after the change, including byte-exact rollback and a no-reload recovery when the original is already present. Isolated Nginx accepted the original and generated blue/green configurations and rejected invalid syntax. An unsigned request to the protected URL returned HTTP 302.
