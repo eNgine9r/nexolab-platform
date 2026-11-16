@@ -1,3 +1,9 @@
+## 2026-11-16 — #1569 Users & Access after local session loss
+
+Raspberry API logs show token refresh HTTP 401 immediately before the failed user creation HTTP 401. The open protected HTTPS page still displayed administrator controls, and an on-page refresh reproduced the missing bearer error on admin reads. Reloading the page displayed the local sign-in link. The running gateway forwards Authorization to Telemetry after Google authorization. The live frontend reported source `08f1c8a4ed9212c25697d338583845bed5218ee5`.
+
+The source change invalidates the initiating tab when local refresh is rejected, requires a live bearer for Users & Access requests, and offers the existing local sign-in return flow on an admin API 401. The regression failed on the original source. 42 targeted tests, the full 1267-test frontend suite and lint-staged checks, ESLint, TypeScript and the LOCAL_LAN production build passed. The local Chromium process was blocked by its sandbox at startup. GitHub browser acceptance and protected-site verification follow separately. The change adds no external runtime dependency.
+
 ## 2026-11-16 — #1567 private lab HTTP/DNS recovery
 
 Raspberry Pi LAN dashboard, local telemetry readiness and Device Agent returned 200. An independent tailnet host reached `lab.nexolab/login` with 200 and the public OAuth entry redirected with 302. Private HTTPS `8443` returned 502 from both hosts. Its root handler uses vacant staging port `3102`. The older frontend also loops with `226/NAMESPACE` due to a missing cache in an inherited workspace drop-in. Its inactive Nginx service conflicts with the active Funnel gateway's listener.

@@ -1,3 +1,7 @@
+## 2026-11-16 — #1569 protected frontend acceptance pending
+
+The existing protected site showed a local sign-in link after a reload. The source candidate still needs exact-head CI and authorized installation of a verified frontend artifact. Live verification requires an administrator sign-in and an owner-approved account creation after the update. Only read-only checks were performed against the protected site.
+
 ## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
 
 The lifecycle change needs the Raspberry Pi root console. Run the approved procedure in `docs/operations/private-lab-tunnel-recovery.md`, then verify the affected tailnet client across a separately approved interruption or reboot. The legacy private HTTPS `8443` frontend policy and its stable upstream require separate verification. #1399 and #1409 remain independent LAN/Docker recovery work.

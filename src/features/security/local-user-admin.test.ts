@@ -4,11 +4,36 @@ import { LocalUserAdminApiError, LocalUserAdminClient } from "./local-user-admin
 
 const API_BASE_URL = "http://127.0.0.1:8082";
 
-function createClient(fetchImpl: typeof fetch): LocalUserAdminClient {
-  return new LocalUserAdminClient({ apiBaseUrl: API_BASE_URL, fetchImpl });
+function createClient(
+  fetchImpl: typeof fetch,
+  accessToken: string | null = "test-token",
+): LocalUserAdminClient {
+  return new LocalUserAdminClient({
+    apiBaseUrl: API_BASE_URL,
+    fetchImpl,
+    credentials: () => ({ accessToken, organizationId: "test-organization" }),
+  });
 }
 
 describe("LocalUserAdminClient", () => {
+  it("keeps the create payload in the browser when current credentials have no bearer token", async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    const client = createClient(fetchImpl, null);
+
+    await expect(
+      client.createUser({
+        username: "fixture-operator",
+        password: "fixture-password",
+        role: "laboratory_technician",
+        permissions: [],
+      }),
+    ).rejects.toMatchObject({
+      status: 401,
+      code: "local_user_admin_authentication_required",
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("classifies an unmounted admin route as a LOCAL_LAN profile mismatch", async () => {
     const fetchImpl = vi.fn(
       async () =>
