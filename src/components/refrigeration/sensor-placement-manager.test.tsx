@@ -132,12 +132,6 @@ function chooseQuickPoint(selector: HTMLElement, channelId: string) {
   fireEvent.click(within(selector).getByRole("button", { name: new RegExp(`канал ${channelId}`) }));
 }
 
-function chooseReplacementPoint(selector: HTMLElement, channelId: string) {
-  const search = within(selector).getByRole("searchbox", { name: "Пошук" });
-  fireEvent.change(search, { target: { value: channelId } });
-  fireEvent.click(within(selector).getByRole("treeitem", { name: new RegExp(channelId) }));
-}
-
 describe("SensorPlacementManager", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -199,13 +193,13 @@ describe("SensorPlacementManager", () => {
     expect(onPendingChannelChange).toHaveBeenLastCalledWith("106-04");
 
     fireEvent.click(screen.getByText("Додаткові параметри"));
-    expect(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Замінити датчик" })).toBeDisabled();
     expect(screen.getByText(/Контекст організації недоступний/)).toBeInTheDocument();
   });
 
   it("recovers a legacy zero-capacity passport as a 48-slot layout", () => {
     const { onPendingChannelChange } = renderManager({ totalSlots: 0 });
-    expect(screen.getByText("0/48")).toBeInTheDocument();
+    expect(screen.getByText("0", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/місткість датчиків була задана як 0/)).toBeInTheDocument();
     chooseQuickPoint(openAddSelector(), "106-03");
     expect(onPendingChannelChange).toHaveBeenLastCalledWith("106-03");
@@ -231,27 +225,33 @@ describe("SensorPlacementManager", () => {
     fireEvent.click(within(addSelector).getByRole("button", { name: "Закрити" }));
 
     fireEvent.click(screen.getByText("Додаткові параметри"));
-    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
+    fireEvent.click(screen.getByRole("button", { name: "Замінити датчик" }));
     const selector = screen.getByTestId("equipment-map-replace-telemetry-selector");
-    chooseReplacementPoint(selector, "106-04");
-    expect(onConfigurationChange).not.toHaveBeenCalled();
-    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
+    chooseQuickPoint(selector, "106-04");
     expect(onConfigurationChange).toHaveBeenCalledWith([
       expect.objectContaining({ id: "106-04", slotKey: "front-01", label: "01F" }),
     ]);
   });
-  it("treats confirming the current replacement channel as a no-op", () => {
-    const { onConfigurationChange } = renderManager({
-      configuration: [configured],
-      editingSensorId: configured.id,
+  it("groups commissioned inputs and omits entries that are retained only for an existing marker", () => {
+    const section = {
+      ...channels[0]!,
+      inventoryNumber: null,
+      channelId: "rs485-sdm120:7-S02",
+      controllerLabel: "Dixell №7 · rs485-sdm120",
+      inputNumber: 2,
+      latestValue: null,
+      quality: "no-data",
+    };
+    renderManager({
+      availableChannels: [
+        section,
+        { ...section, channelId: "rs485-sdm120:7-S03", inputNumber: 3, selectable: false },
+      ],
     });
-    fireEvent.click(screen.getByText("Додаткові параметри"));
-    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
-    const selector = screen.getByTestId("equipment-map-replace-telemetry-selector");
-    chooseReplacementPoint(selector, "106-03");
-    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
-    expect(onConfigurationChange).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("equipment-map-replace-telemetry-selector")).not.toBeInTheDocument();
+    const picker = openAddSelector();
+    const group = within(picker).getByRole("group", { name: /Dixell №7/ });
+    expect(within(group).getByRole("button", { name: /Вхід 2/ })).toHaveTextContent("Немає свіжих даних");
+    expect(within(group).queryByRole("button", { name: /Вхід 3/ })).not.toBeInTheDocument();
   });
 
   it("stages inline rename immediately and trims it on blur", () => {

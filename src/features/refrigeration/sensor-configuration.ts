@@ -103,17 +103,10 @@ export function replaceConfiguredChannel(
   return current
     .map((sensor) => {
       if (sensor.id !== sensorId) return sensor;
-      const keepsAutomaticLabel = sensor.automaticLabelSource !== undefined;
-      const automaticLabelSource: StagedSensorConfiguration["automaticLabelSource"] = keepsAutomaticLabel
-        ? channel.inventoryNumber?.trim()
-          ? "physical_inventory"
-          : "channel_id_fallback"
-        : undefined;
       return {
         ...sensor,
         id: channel.channelId,
-        label: keepsAutomaticLabel ? defaultMarkerLabel(channel) : sensor.label,
-        automaticLabelSource,
+        automaticLabelSource: undefined,
         name: sensorName(channel, channel.channelId),
         temperatureC: channel.latestValue,
         status: statusFromQuality(channel),

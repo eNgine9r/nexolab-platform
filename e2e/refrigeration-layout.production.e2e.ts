@@ -7,7 +7,6 @@ const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0
 const webBaseUrl = process.env.NEXOLAB_ACCEPTANCE_WEB_URL ?? "http://127.0.0.1:13000";
 const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "acceptance-evidence";
 const climateChamberCode = "KK2";
-const climateChamberName = "Кліматична камера №2";
 const channelIds = {
   replacement: "101-03",
   temperatureOne: "101-01",
@@ -107,20 +106,6 @@ async function resolveClimateChamber(
   return chamber as ClimateChamberPayload;
 }
 
-async function chooseClimateChamber(page: Page, chamber: ClimateChamberPayload): Promise<void> {
-  const selector = page.getByLabel(/^Кліматична камера/);
-  await expect(selector).toContainText(chamber.name);
-  await selector.selectOption(chamber.id);
-  const channelSummary = page.getByText(/Температурні канали:/);
-  await expect(channelSummary).toBeVisible();
-  await expect(channelSummary).toContainText("114");
-  await expect(page.getByText(/Dixell:/)).toContainText("19");
-  await expect(page.getByText(/Лічильники:/)).toContainText("0");
-  await expect(
-    page.getByText("До цієї кліматичної камери лічильники електроенергії ще не підключені.", { exact: true }),
-  ).toBeVisible();
-}
-
 async function createEquipmentViaApi(
   request: APIRequestContext,
   chamber: ClimateChamberPayload,
@@ -206,14 +191,6 @@ async function addChannel(page: Page, channelId: string, xRatio = 0.5, yRatio = 
   await placePendingSensor(page, xRatio, yRatio);
 }
 
-async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, channelId: string) {
-  const search = selector.getByRole("searchbox", { name: "Пошук" });
-  await search.fill(channelId);
-  const point = selector.getByRole("treeitem").filter({ hasText: channelId });
-  await expect(point).toHaveCount(1);
-  await point.click();
-}
-
 async function ensureAdvancedSensorParametersOpen(page: Page) {
   const summary = editor(page).getByText("Додаткові параметри", { exact: true });
   const details = summary.locator("..");
@@ -224,11 +201,10 @@ async function ensureAdvancedSensorParametersOpen(page: Page) {
 }
 
 async function replaceChannel(page: Page, channelId: string) {
-  await editor(page).getByRole("button", { name: "Вибрати інший канал вимірювання" }).click();
+  await editor(page).getByRole("button", { name: "Замінити датчик" }).click();
   const selector = editor(page).getByTestId("equipment-map-replace-telemetry-selector");
   await expect(selector).toBeVisible();
-  await chooseTelemetryPoint(selector, channelId);
-  await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+  await chooseQuickSensor(selector, channelId);
   await expect(selector).toHaveCount(0);
 }
 
@@ -250,9 +226,8 @@ async function readBindings(request: APIRequestContext, equipmentId: string): Pr
   return (await response.json()) as BindingListPayload;
 }
 
-test("requires a climate chamber before creating or copying refrigeration equipment", async ({ page }) => {
+test("creates and copies refrigeration equipment without a climate chamber", async ({ page }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
-  const chamber = await resolveClimateChamber(page.request);
   const name = "Вітрина acceptance №108-01";
   const code = "ACCEPTANCE-CS-108-01";
   const copyName = `${name} — копія`;
@@ -264,9 +239,6 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await expect(addButton).toHaveAttribute("title", "Додати холодильне обладнання");
   await addButton.click();
 
-  await expect(page.getByText(/Спочатку оберіть кліматичну камеру/)).toBeVisible();
-  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
-  await chooseClimateChamber(page, chamber);
   await expect(page.getByLabel(/^Назва/)).toBeEnabled();
 
   await page.getByLabel(/^Назва/).fill(name);
@@ -278,14 +250,12 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await page.getByLabel(/^Модель/).fill("NX-1250-A");
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
   await page.getByLabel(/^Температурний клас/).fill("3M1 (0…+5 °C)");
-  await page.getByLabel(/^Кількість слотів датчиків/).fill("4");
   const createButton = page.getByRole("button", { name: "Створити", exact: true });
   await expect(createButton).toBeEnabled();
   await createButton.click();
 
   await expect(page.getByRole("status")).toContainText(`${name} додано до каталогу.`);
   await expect(page.getByRole("heading", { name })).toBeVisible();
-  await expect(page.getByText(climateChamberName, { exact: true })).toBeVisible();
 
   const openLink = page.getByRole("link", { name: `Відкрити ${name}` });
   await expect(openLink).toHaveAttribute("title", "Відкрити");
@@ -299,10 +269,9 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await copyButton.click();
   await expect(page.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeVisible();
   await expect(page.getByLabel(/^Кліматична камера/)).toHaveValue("");
-  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
+  await expect(page.getByLabel(/^Назва/)).toBeEnabled();
   await expect(page.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeVisible();
 
-  await chooseClimateChamber(page, chamber);
   await expect(page.getByLabel(/^Назва/)).toHaveValue(copyName);
   await expect(page.getByLabel(/^Код обладнання/)).toHaveValue(copyCode);
   await expect(page.getByLabel(/^Серійний номер/)).toHaveValue("");

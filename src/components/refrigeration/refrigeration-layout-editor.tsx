@@ -775,7 +775,7 @@ function EditorToolbar({
           onChange={(event) => onSnapModeChange(event.target.value as SnapMode)}
           className="bg-transparent text-xs text-slate-300 outline-none"
         >
-          <option value="none">Без прив’язки</option>
+          <option value="none">Вільне розміщення</option>
           <option value="grid">Сітка 40 × 40</option>
           <option value="slots">Позиції датчиків</option>
         </select>

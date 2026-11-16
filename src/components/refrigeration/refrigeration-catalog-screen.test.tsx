@@ -81,18 +81,6 @@ function runtime(): RefrigerationEquipmentRuntime {
   };
 }
 
-async function selectClimateChamber() {
-  await waitFor(() =>
-    expect(screen.getByRole("option", { name: /Кліматична камера КК2/ })).toBeInTheDocument(),
-  );
-  fireEvent.change(screen.getByLabelText(/^Кліматична камера/), {
-    target: { value: "kk2" },
-  });
-  await screen.findByText(/Температурні канали:/);
-  expect(screen.getByText(/Dixell:/)).toBeInTheDocument();
-  expect(screen.getByText(/Лічильники:/)).toBeInTheDocument();
-}
-
 describe("RefrigerationCatalogScreen", () => {
   it("filters equipment by search text", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
@@ -189,7 +177,7 @@ describe("RefrigerationCatalogScreen", () => {
     const card = heading.closest("article");
     expect(card).not.toBeNull();
     expect(card?.querySelector(".h-24")).toBeInTheDocument();
-    expect(screen.getByText("Камеру не вибрано")).toBeVisible();
+    expect(screen.queryByText("Камеру не вибрано")).not.toBeInTheDocument();
     expect(screen.getByText(item.code)).toBeVisible();
     expect(screen.getByRole("link", { name: `Відкрити ${longName}` })).toBeVisible();
     expect(screen.getByText("Датчики")).toHaveClass("text-[11px]");
@@ -282,15 +270,13 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
   });
 
-  it("requires a climate chamber before creating equipment", async () => {
+  it("creates equipment with no climate chamber", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");
 
     fireEvent.click(screen.getByRole("button", { name: "Додати холодильне обладнання" }));
-    expect(screen.getByText(/Спочатку оберіть кліматичну камеру/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
-
-    await selectClimateChamber();
+    expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
+    expect(screen.queryByLabelText(/^Кількість слотів датчиків/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Назва/)).toBeEnabled();
 
     fireEvent.change(screen.getByLabelText(/^Назва/), {
@@ -314,9 +300,6 @@ describe("RefrigerationCatalogScreen", () => {
     fireEvent.change(screen.getByLabelText(/^Температурний клас/), {
       target: { value: "3M1 (0…+5 °C)" },
     });
-    fireEvent.change(screen.getByLabelText(/^Кількість слотів датчиків/), {
-      target: { value: "48" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Створити" }));
 
     expect(await screen.findByText("Вітрина №108-01")).toBeInTheDocument();
@@ -324,7 +307,7 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getByRole("link", { name: "Відкрити Вітрина №108-01" })).toBeInTheDocument();
   });
 
-  it("creates an independent copy only after selecting its climate chamber", async () => {
+  it("creates an independent copy without requiring a chamber", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     const source = refrigerationEquipment[0];
     await screen.findByText(source.name);
@@ -333,10 +316,9 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(screen.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
-    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
+    expect(screen.getByLabelText(/^Назва/)).toBeEnabled();
     expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
 
-    await selectClimateChamber();
     expect(screen.getByLabelText(/^Назва/)).toHaveValue(`${source.name} — копія`);
     expect(screen.getByLabelText(/^Код обладнання/)).toHaveValue(`${source.code}-COPY`);
     expect(screen.getByLabelText(/^Серійний номер/)).toHaveValue("");

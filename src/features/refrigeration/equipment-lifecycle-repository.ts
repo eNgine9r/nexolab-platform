@@ -30,6 +30,9 @@ export type SensorBinding = {
 export type AvailableSensor = {
   channelId: string;
   inventoryNumber?: string | null;
+  controllerLabel?: string | null;
+  inputNumber?: number | null;
+  selectable?: boolean;
   metric: string;
   unit: string;
   latestValue: number | null;

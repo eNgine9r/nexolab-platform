@@ -1,3 +1,7 @@
+## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
+
+The source candidate makes the climate chamber optional. The scheme uses a read-only commissioned temperature inventory for picking and server validation, retains existing bindings, and attaches a chamberless passport to the authorized measurement node at the first placement. Replacement preserves position and label. Required pull request checks and installed hardware acceptance are pending.
+
 ## 2026-11-16 — #1581 Saved Live Dashboard legend and controller chart source acceptance
 
 PR #1580 merged at b57f7dee4532ef23e9ff36e033340e511219233a. Four exact-head workflows passed, including Refrigeration Browser Acceptance with PostgreSQL. This closes #1579 in source; site and hardware acceptance are separate.

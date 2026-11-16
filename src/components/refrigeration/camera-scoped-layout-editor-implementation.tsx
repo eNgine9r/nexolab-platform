@@ -234,7 +234,7 @@ export function CameraScopedLayoutEditor({
   const placePendingChannel = (point: NormalizedPoint) => {
     if (!pendingChannelId) return;
     const channel = channels.find((candidate) => candidate.channelId === pendingChannelId);
-    if (!channel) {
+    if (!channel || channel.selectable === false) {
       setPendingChannelId(null);
       setError("Вибраний канал більше недоступний для розміщення.");
       return;
@@ -359,7 +359,7 @@ export function CameraScopedLayoutEditor({
                   onChange={(event) => setSnapMode(event.target.value as SnapMode)}
                   className="max-w-32 bg-transparent text-[10px] text-slate-300 outline-none"
                 >
-                  <option value="none">Без прив’язки</option>
+                  <option value="none">Вільне розміщення</option>
                   <option value="grid">Сітка 40 × 40</option>
                   <option value="slots">Позиції датчиків</option>
                 </select>

@@ -22,7 +22,6 @@ import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigera
 import {
   CreateEquipmentDialog,
   DeleteEquipmentDialog,
-  type ClimateChamberEquipmentSummary,
   type EquipmentNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
@@ -301,31 +300,6 @@ export function RefrigerationCatalogScreen({
     setCreateOpen(true);
   };
 
-  const loadClimateChamberEquipment = async (nodeId: string): Promise<ClimateChamberEquipmentSummary> => {
-    const catalogRepository = runtime.climateCatalogRepository;
-    const catalogChamber = chambers.find((item) => item.nodeId === nodeId);
-    if (catalogRepository && catalogChamber) {
-      const equipmentCatalog = await catalogRepository.getEquipment(catalogChamber.id);
-      return {
-        temperatureControllers: equipmentCatalog.temperatureControllers.length,
-        temperatureChannels: equipmentCatalog.temperatureChannels.length,
-        energyMeters: equipmentCatalog.energyMeters.length,
-        energyMeterEmptyMessage: equipmentCatalog.energyMeterEmptyMessage,
-      };
-    }
-    const repository = runtime.lifecycleRepository;
-    if (!repository) {
-      throw new Error("Сховище кліматичних камер і вимірювальних каналів недоступне.");
-    }
-    const channels = await repository.listClimateChamberChannels(nodeId);
-    return {
-      temperatureControllers: 0,
-      temperatureChannels: channels.length,
-      energyMeters: 0,
-      energyMeterEmptyMessage: null,
-    };
-  };
-
   const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
     if (!runtime.repository) return;
     setCreateBusy(true);
@@ -509,7 +483,6 @@ export function RefrigerationCatalogScreen({
           nodeOptions={nodeOptions}
           initialValue={createInitialValue}
           intent={createIntent}
-          onClimateChamberChange={loadClimateChamberEquipment}
           onClose={() => {
             if (!createBusy) {
               setCreateOpen(false);
@@ -550,6 +523,9 @@ function EquipmentCard({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const receivingSamples =
+    item.status === "offline" && item.assignedSensors !== undefined && item.onlineSensors > 0;
+  const status = receivingSamples ? "normal" : item.status;
   return (
     <article className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1b33]/85 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/20">
       <div className="relative h-24 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
@@ -578,20 +554,32 @@ function EquipmentCard({
           <div className="min-w-0">
             <h2 className="text-base leading-6 font-semibold break-words text-white">{item.name}</h2>
             <p className="mt-1 text-xs leading-5 break-words text-slate-300">{item.location}</p>
-            <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">
-              {chamberName ?? "Камеру не вибрано"}
-            </p>
+            {chamberName ? (
+              <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">{chamberName}</p>
+            ) : null}
           </div>
           <span
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[item.status]}`}
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[status]}`}
           >
-            {statusLabels[item.status]}
+            {receivingSamples ? "Онлайн" : statusLabels[status]}
           </span>
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
-          <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
-          <Metric icon={Wifi} label="Датчики" value={`${item.onlineSensors}/${item.totalSensors}`} />
+          <Metric
+            icon={Thermometer}
+            label="Середня"
+            value={
+              item.onlineSensors > 0
+                ? `${Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(item.averageTemperatureC)} °C`
+                : "—"
+            }
+          />
+          <Metric
+            icon={Wifi}
+            label="Датчики"
+            value={`${item.onlineSensors} із ${item.assignedSensors ?? item.sensors.length} онлайн`}
+          />
           <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
         </div>
 

@@ -66,12 +66,6 @@ class RefrigerationEquipmentCreate(BaseModel):
     def validate_location_hierarchy(self) -> "RefrigerationEquipmentCreate":
         if self.zone is not None and self.laboratory is None:
             raise ValueError("laboratory is required when zone is selected")
-        if (
-            self.lifecycle_status != "retired"
-            and self.climate_chamber_id is None
-            and self.node_id is None
-        ):
-            raise ValueError("climate chamber is required for active equipment")
         return self
 
 
@@ -103,6 +97,7 @@ class RefrigerationEquipmentResponse(BaseModel):
     min_temperature_c: float
     max_temperature_c: float
     online_sensors: int
+    assigned_sensors: int | None = None
     total_sensors: int
     active_alarms: int
     last_seen_at: datetime | None

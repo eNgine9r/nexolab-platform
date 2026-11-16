@@ -9,8 +9,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.db import Database, TelemetrySample
+from app.db import Database, TelemetryLatest, TelemetrySample
 from app.nodes.models import CentralNode
+from app.refrigeration.commissioned_channels import (
+    CommissionedTemperatureInventory,
+    parse_temperature_inventory,
+    section_temperature,
+)
+from app.refrigeration.lifecycle_repository import PostgresEquipmentLifecycleRepository
+from app.refrigeration.structural_api import create_refrigeration_structural_router
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
 from app.refrigeration.models import EquipmentSensorBinding
@@ -26,7 +33,7 @@ KK1 = "kk1"
 KK2 = "kk2"
 
 
-def build_client(tmp_path: Path) -> tuple[TestClient, Database, SecurityRepository]:
+def build_client(tmp_path: Path, read_commissioned=None) -> tuple[TestClient, Database, SecurityRepository]:
     database = Database(f"sqlite:///{tmp_path / 'sensor-configuration.db'}")
     database.create_schema()
     security = SecurityRepository(database)
@@ -84,7 +91,7 @@ def build_client(tmp_path: Path) -> tuple[TestClient, Database, SecurityReposito
 
     equipment = PostgresRefrigerationEquipmentRepository(database)
     layouts = PostgresRefrigerationLayoutRepository(database)
-    sensor_configuration = PostgresSensorConfigurationRepository(database)
+    sensor_configuration = PostgresSensorConfigurationRepository(database, read_commissioned=read_commissioned)
     storage = InMemoryObjectStorage()
     app = FastAPI()
     app.include_router(
@@ -100,6 +107,12 @@ def build_client(tmp_path: Path) -> tuple[TestClient, Database, SecurityReposito
             storage,
             signed_url_seconds=300,
             security_repository=security,
+        )
+    )
+    app.include_router(
+        create_refrigeration_structural_router(
+            equipment, PostgresEquipmentLifecycleRepository(database), sensor_configuration,
+            layouts, storage, signed_url_seconds=300,
         )
     )
     return TestClient(app), database, security
@@ -147,13 +160,114 @@ def configuration(
     }
 
 
-def test_active_equipment_requires_a_climate_chamber(tmp_path: Path) -> None:
+def test_active_equipment_can_be_created_without_a_climate_chamber(tmp_path: Path) -> None:
     api, _, _ = build_client(tmp_path)
 
     response = api.post("/api/v1/equipment", json=equipment_payload(node_id=None))
 
-    assert response.status_code == 422
-    assert "climate chamber is required" in response.text
+    assert response.status_code == 201
+    assert response.json()["climate_chamber_id"] is None
+    assert response.json()["node_id"] is None
+
+
+def test_commissioned_sections_can_be_placed_without_a_chamber(tmp_path: Path) -> None:
+    channels = ("rs485:1-S01", "rs485:7-S02")
+    registry = CommissionedTemperatureInventory(
+        KK2, tuple(section_temperature(channel) for channel in channels)
+    )
+    api, database, _ = build_client(tmp_path, lambda: registry)
+    created = api.post("/api/v1/equipment", json=equipment_payload(node_id=None))
+    equipment_id = created.json()["id"]
+    path = f"/api/v1/equipment/{equipment_id}"
+    options = api.get(path + "/structural-snapshot").json()["channels"]
+    assert [item["channel_id"] for item in options] == list(channels)
+    assert all(item["selectable"] and item["latest_value"] is None for item in options)
+    assert [item["input_number"] for item in options] == [1, 2]
+
+    first = api.put(
+        path + "/sensor-configuration",
+        headers={"If-Match": created.headers["etag"]},
+        json=configuration(("front-01", channels[0], 0.22, 0.31)),
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["equipment"]["node_id"] == KK2
+    assert first.json()["equipment"]["climate_chamber_id"] is None
+    reserve = api.put(
+        path + "/sensor-configuration",
+        headers={"If-Match": first.headers["etag"]},
+        json=configuration(("front-01", "rs485:7-S03", 0.22, 0.31), expected_draft_version=2),
+    )
+    assert reserve.status_code == 422
+    replacement = api.put(
+        path + "/sensor-configuration",
+        headers={"If-Match": first.headers["etag"]},
+        json=configuration(("front-01", channels[1], 0.22, 0.31), expected_draft_version=2),
+    )
+    assert replacement.status_code == 200, replacement.text
+    assert replacement.json()["draft"]["placements"] == [
+        {"sensor_id": channels[1], "x": 0.22, "y": 0.31}
+    ]
+    assert replacement.json()["bindings"][0]["label"] == first.json()["bindings"][0]["label"]
+    with Session(database.engine) as session, session.begin():
+        retired = session.scalar(select(EquipmentSensorBinding).where(
+            EquipmentSensorBinding.channel_id == channels[0],
+        ))
+        assert retired.unbound_at is not None
+        now = datetime.now(UTC)
+        session.add(TelemetryLatest(
+            sample_id=1, event_id=str(uuid4()), node_id=KK2, captured_at=now,
+            metric="temperature.probe", value=4.5, unit="degC", quality="valid",
+            source="dixell-xjp60d-sections", equipment_id="XJP60D-S:rs485:7",
+            channel_id=channels[1], received_at=now,
+        ))
+    reread = api.get(path + "/structural-snapshot").json()
+    option = next(item for item in reread["channels"] if item["channel_id"] == channels[1])
+    assert option["latest_value"] == 4.5
+    card = api.get("/api/v1/equipment").json()["items"][0]
+    assert (card["assigned_sensors"], card["online_sensors"], card["average_temperature_c"]) == (1, 1, 4.5)
+
+    registry = None
+    during_outage = api.get(path + "/structural-snapshot").json()["channels"]
+    retained = next(item for item in during_outage if item["channel_id"] == channels[1])
+    assert retained["latest_value"] == 4.5 and retained["selectable"] is False
+    assert all(item["channel_id"] != channels[0] for item in during_outage)
+
+
+def test_registry_channels_cannot_cross_measurement_nodes(tmp_path: Path) -> None:
+    channel_id = "rs485:7-S02"
+    registry = CommissionedTemperatureInventory(KK2, (section_temperature(channel_id),))
+    api, _, _ = build_client(tmp_path, lambda: registry)
+    created = api.post("/api/v1/equipment", json=equipment_payload(node_id=KK1))
+    equipment_id = created.json()["id"]
+    path = f"/api/v1/equipment/{equipment_id}"
+    options = api.get(path + "/structural-snapshot").json()["channels"]
+    assert channel_id not in [item["channel_id"] for item in options]
+    denied = api.put(
+        path + "/sensor-configuration", headers={"If-Match": created.headers["etag"]},
+        json=configuration(("front-01", channel_id, 0.22, 0.31)),
+    )
+    assert denied.status_code == 422
+
+
+def test_section_parser_requires_active_parent_and_target() -> None:
+    buses = [{"bus_id": "rs485", "protocol": "modbus_rtu", "read_only": True}]
+    devices = [{"device_id": f"xjp60d-sections:rs485:{unit}", "device_family": "xjp60d",
+                "bus_id": "rs485", "unit_id": unit,
+                "lifecycle": "active" if unit != 8 else "discovery_only"}
+               for unit in (1, 7, 8)]
+    targets = [{"target_id": f"xjp60d-sections:rs485:{unit}-S0{section}",
+                "device_id": f"xjp60d-sections:rs485:{unit}",
+                "telemetry_channel_id": f"rs485:{unit}-S0{section}",
+                "lifecycle": "reserve" if unit == 7 and section > 2 else "active",
+                "poll_eligible": True, "function": 3, "metric": "temperature.probe", "unit": "degC"}
+               for unit in (1, 7, 8) for section in range(1, 7)]
+    inventory = parse_temperature_inventory(
+        {"schema_version": 2, "revision": 46, "buses": buses, "devices": devices, "targets": targets},
+        {"node_id": KK2, "registry_revision": 46},
+    )
+    assert [item.channel_id for item in inventory.channels] == [
+        *(f"rs485:1-S0{i}" for i in range(1, 7)), "rs485:7-S01", "rs485:7-S02",
+    ]
 
 
 def test_channels_are_scoped_to_the_selected_climate_chamber(tmp_path: Path) -> None:

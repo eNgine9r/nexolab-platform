@@ -25,6 +25,9 @@ class StructuralChannelResponse(BaseModel):
     captured_at: datetime | None
     sample_state: StructuralSampleState
     is_bound: bool
+    controller_label: str | None = None
+    input_number: int | None = None
+    selectable: bool = True
     bound_equipment_id: str | None = None
     bound_slot_key: str | None = None
 

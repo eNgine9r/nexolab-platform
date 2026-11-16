@@ -279,12 +279,15 @@ export function RefrigerationDetailScreen({
   }, [account, runtime]);
 
   const refreshChannelSamples = useCallback(async () => {
+    const structural = runtime.structuralSnapshotRepository;
     const lifecycle = runtime.lifecycleRepository;
     const chamberId = equipmentRecord.climateChamberId;
-    if (!lifecycle || !chamberId) return;
+    if (!structural && (!lifecycle || !chamberId)) return;
 
     try {
-      const refreshed = await lifecycle.listClimateChamberChannels(chamberId);
+      const refreshed = structural
+        ? (await (structural.refresh?.(equipmentRecord.id) ?? structural.get(equipmentRecord.id))).channels
+        : await lifecycle!.listClimateChamberChannels(chamberId!);
       setChannels((current) => {
         const inventoryByChannel = new Map(
           current.map((channel) => [channel.channelId, channel.inventoryNumber ?? null]),
@@ -298,7 +301,7 @@ export function RefrigerationDetailScreen({
       // The structural request owns the visible error state. A background picker refresh
       // must not replace usable cached options with an intermittent API error.
     }
-  }, [equipmentRecord.climateChamberId, runtime]);
+  }, [equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
 
   useEffect(() => {
     const structural = runtime.structuralSnapshotRepository;

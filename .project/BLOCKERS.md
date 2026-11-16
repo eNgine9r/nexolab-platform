@@ -1,3 +1,7 @@
+## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
+
+Site acceptance requires the matching Dashboard and Telemetry Service release and access to the local Device Agent registry from the existing commissioning origin. Verify the two installed Dixell groups in the browser after a separately approved rollout. Seven additional controls have not been physically verified.
+
 ## 2026-11-16 — #1581 Saved Live Dashboard browser acceptance
 
 The #1579 required source and browser verification passed. #1581 needs its own exact-head GitHub gate. These read-only chart changes are source work packages. A Raspberry site activation requires a separately approved release.
