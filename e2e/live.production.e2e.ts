@@ -677,8 +677,9 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect(panel).toHaveCount(1);
     await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
     await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
-    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
-    await expect(panel.locator("svg")).toHaveCount(0);
+    const surface = panel.getByTestId("chart-renderer-surface");
+    await expect.poll(() => surface.locator("canvas").count()).toBeGreaterThan(0);
+    await expect(surface.locator("svg")).toHaveCount(0);
     for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
     await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
@@ -758,9 +759,15 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
       (item) => !["GET", "HEAD", "OPTIONS"].includes(item.method),
     ).length;
 
-    await panel.getByRole("button", { name: "Hide" }).first().click();
-    await expect(panel.getByRole("button", { name: "Show" })).toHaveCount(1);
-    await panel.getByRole("button", { name: "Solo" }).first().click();
+    await panel
+      .getByRole("button", { name: /^Приховати / })
+      .first()
+      .click();
+    await expect(panel.getByRole("button", { name: /^Показати / })).toHaveCount(1);
+    await panel
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
 
     const host = panel.getByTestId("chart-renderer-host");
     await host.scrollIntoViewIfNeeded();
@@ -791,6 +798,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     for (const width of [360, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(host).toBeVisible();
+      await expect(panel.getByTestId("saved-dashboard-legend")).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);
