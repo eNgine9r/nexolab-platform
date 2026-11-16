@@ -10,6 +10,7 @@ import pytest
 
 CURRENT_REVIEW_DATE = date(2026, 10, 13)
 CURRENT_EXPIRY = "2026-10-20"
+RETAINED_TELEMETRY_EXCEPTIONS = 15
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate-container-supply-chain.py"
@@ -171,8 +172,8 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         for entry in reviewed
     }
 
-    assert len(reviewed) == 48
-    assert len(keys) == 48
+    assert len(reviewed) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert {entry["image_id"] for entry in reviewed} == {
         "telemetry-service",
     }
@@ -250,7 +251,8 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         if entry["vulnerability"] == "CVE-2026-78409"
     ]
 
-    assert len(matches) == 9
+    assert {entry["package"] for entry in matches} == {"libuuid1"}
+    assert len(matches) == 1
     assert {entry["image_id"] for entry in matches} == {
         "telemetry-service",
     }
@@ -318,7 +320,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
 
     assert len(keys) == len(exceptions)
     assert keys.isdisjoint(stale)
-    assert len(prior_review) == 48
+    assert len(prior_review) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all("34826380930" in entry["reason"] for entry in prior_review)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in prior_review)
     assert len(current_python) == 0
@@ -555,8 +557,8 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
         for entry in exceptions
     }
 
-    assert len(exceptions) == 48
-    assert len(keys) == 48
+    assert len(exceptions) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("36123964257" in entry["reason"] for entry in exceptions)
@@ -583,8 +585,8 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
         for entry in exceptions
     }
 
-    assert len(exceptions) == 48
-    assert len(keys) == 48
+    assert len(exceptions) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("37294551286" in entry["reason"] for entry in exceptions)
@@ -617,7 +619,7 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     keys = {(entry["image_id"], entry["package"], entry["vulnerability"]) for entry in new}
     assert keys == expected
     assert len(new) == 0
-    assert len(payload["exceptions"]) == 48
+    assert len(payload["exceptions"]) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all(entry["owner"] == "platform-security" for entry in new)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in payload["exceptions"])
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
@@ -649,11 +651,15 @@ def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
 def test_current_review_is_exact_seven_days_and_does_not_except_fixed_go_findings() -> None:
     entries = json.loads((ROOT / "security/vulnerability-exceptions.json").read_text())["exceptions"]
     keys = sorted((item["image_id"], item["package"], item["vulnerability"]) for item in entries)
-    assert len(keys) == len(set(keys)) == 48
+    assert len(keys) == len(set(keys)) == RETAINED_TELEMETRY_EXCEPTIONS
     assert {item["image_id"] for item in entries} == {"telemetry-service"}
     assert {item["owner"] for item in entries} == {"platform-security"}
+    assert {item["package"] for item in entries} == {
+        "libacl1", "libcjson1", "libncursesw6", "libsystemd0",
+        "libtinfo6", "libudev1", "libuuid1", "ncurses-base",
+    }
     assert date.fromisoformat(CURRENT_EXPIRY) - CURRENT_REVIEW_DATE == timedelta(days=7)
-    assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "3a0f6834d30d647b97692b2cf016f1a8ecb2e30af8067a39505a33daa634765e"
+    assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "4fb3b53265a181d259da8b2c618c683ec92a77175994784cbe963c7fcc061607"
     assert all("run 38475307833" in item["reason"] for item in entries)
     assert all("cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29" in item["reason"] for item in entries)
     assert all(item["expires_on"] == CURRENT_EXPIRY for item in entries)

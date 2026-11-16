@@ -1,6 +1,6 @@
 ## 2026-11-16 — container security #1447
 
-Container remediation PR #1448 has been reconciled with current main. Dependency pins include Pillow 13.0.0, msgpack 1.2.3, Go 1.27.3 and x/net 0.62.0. Fresh exact-head builds/scans and runtime verification are pending.
+PR #1448 removes the broker daemon and unused system packages from the Telemetry image. Exact CI at bdcae8b445aac912299a0fa553a55b67b8456db2 reports 18 HIGH and 0 CRITICAL, down from 52 HIGH in the prior candidate. Broker Control Acceptance passed. The registry retires 33 entries for packages absent from the scanned image. ARM64 runtime and site evidence remain open.
 
 ## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
 

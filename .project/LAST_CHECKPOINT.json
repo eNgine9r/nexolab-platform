@@ -3329,8 +3329,14 @@
       "blocked_live_editor_pr": 1574,
       "prior_scan_run": 42219823187,
       "latest_baseline_scan_run": 43851624610,
-      "new_source_verification": "pending after publication",
-      "exception_registry": "unchanged; 48 expired entries"
+      "new_source_verification": "image scan and broker control verified on previous source candidate",
+      "verified_remediation_head": "bdcae8b445aac912299a0fa553a55b67b8456db2",
+      "telemetry_scan_run": 43858765272,
+      "telemetry_report_sha256": "a974885bfbcc3fddb2a1535c16d0499c4cbe16e25bd5390e2df430d28546cac2",
+      "broker_control_acceptance_run": 43858765210,
+      "telemetry_high": 18,
+      "telemetry_critical": 0,
+      "exception_registry": "33 retired after exact SBOM review; 15 expired entries retained; 3 SQLite HIGH unlisted"
     }
   },
   "observations": [

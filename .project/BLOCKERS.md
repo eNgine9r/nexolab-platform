@@ -1,6 +1,6 @@
 ## 2026-11-16 — container security #1447
 
-Container Supply Chain still blocks the Live data editor PR #1574. The previous reports contain 52 Debian telemetry HIGH tuples without a scanner-reported fixed version after accounting for the zlib update. The existing exception registry is unchanged; all 48 entries expired on 2026-10-20. Reconcile exact-head image evidence before any further decision.
+Container Supply Chain still blocks the Live data editor PR #1574. The reduced Telemetry image has 18 HIGH findings. Fifteen retained registry entries expired on 2026-10-20 and three SQLite findings have no registry entry. Debian Trixie and Trivy report no fixed versions for these remaining findings. Keep the merge gate fail-closed while verifying any remaining source patch or bounded risk decision.
 
 ## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
 

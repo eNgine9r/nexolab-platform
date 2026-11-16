@@ -8,7 +8,11 @@ In a local linux/amd64 root filesystem assembled from the official Python image 
 
 An isolated Mosquitto 2.0.22 broker accepted provisioning, repeat provisioning, password rotation, disable, enable and delete through the existing wrapper with the derived Debian client, over both plain MQTT and TLS. The test used a loopback broker and a temporary dynamic-security configuration.
 
-This root filesystem is local package evidence. Reconcile the exact GitHub image report before deleting registry entries for absent packages, then evaluate the remaining findings in Debian Trixie. No exception expiry has changed.
+[GitHub Container Supply Chain run 43858765272](https://github.com/eNgine9r/nexolab-platform/actions/runs/43858765272) at `bdcae8b445aac912299a0fa553a55b67b8456db2` confirmed **18 HIGH and 0 CRITICAL** in Telemetry. The image archive hash matched GitHub metadata and all three internal evidence hashes matched the manifest. Trivy report SHA-256 is `a974885bfbcc3fddb2a1535c16d0499c4cbe16e25bd5390e2df430d28546cac2`. The SBOM lists `nexolab-mosquitto-ctrl` 2.0.21-1 with Debian source name `mosquitto`. The existing [Broker Control Acceptance](https://github.com/eNgine9r/nexolab-platform/actions/runs/43858765210) passed on that commit.
+
+The registry removes only 33 entries for binary packages absent from both the exact SBOM and vulnerability report. The canonical sorted retired tuples hash to `6d68d1f1185d4c33b67788ff3b0349211b61056b1078b24559a765b2a1b67572`. The complete historical registry is available at `d260abe0722ce888c51c94813b0708e7ea2f20bf`. The remaining 15 entries retain their original 2026-10-20 expiry and rationale. The three unlisted SQLite findings remain open in the Trixie tracker.
+
+A separate local compatibility experiment installed the signed Debian testing SQLite package 3.54.1-2 on the same Debian base. Python loaded SQLite 3.54.1, while Trivy's Debian Trixie advisories still reported the same three HIGH findings for the newer version. The PR retains the Trixie-supported package. The remaining findings require a source-proven fix or an explicit bounded review under the existing policy.
 
 ## 2026-11-16 source reconciliation
 
