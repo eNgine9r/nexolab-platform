@@ -70,6 +70,8 @@ interface DataZoomEvent {
   batch?: DataZoomEvent[];
 }
 
+export const CHART_GRID_INSETS = { left: 64, right: 40 } as const;
+
 function axisPointerTimestamp(event: unknown): number | null {
   if (!event || typeof event !== "object") return null;
   const value = (event as AxisPointerEvent).axesInfo?.[0]?.value;
@@ -253,13 +255,13 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     },
     grid: {
       left:
-        64 +
+        CHART_GRID_INSETS.left +
         Math.max(
           0,
           ...axisModel.visibleAxes.filter((axis) => axis.position === "left").map((axis) => axis.offset),
         ),
       right:
-        40 +
+        CHART_GRID_INSETS.right +
         Math.max(
           0,
           ...axisModel.visibleAxes.filter((axis) => axis.position === "right").map((axis) => axis.offset),
@@ -416,7 +418,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
   }
 
-  private finishRangeSelection(): void {
+  private finishRangeSelection(cancelled = false): void {
     const startMs = this.rangeSelectionStartMs;
     const endMs = this.rangeSelectionLastMs;
     const startClientX = this.rangeSelectionStartClientX;
@@ -427,6 +429,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.rangeSelectionStartClientX = null;
     this.rangeSelectionLastClientX = null;
     if (
+      cancelled ||
       startMs === null ||
       endMs === null ||
       startClientX === null ||
@@ -492,6 +495,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     event.preventDefault();
     event.stopImmediatePropagation();
     this.finishRangeSelection();
+  };
+
+  private readonly handleWindowPointerCancel = () => {
+    if (this.rangeSelectionDragActive) this.finishRangeSelection(true);
   };
 
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
@@ -617,6 +624,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       true,
     );
     this.container.ownerDocument.defaultView?.addEventListener("pointerup", this.handleWindowPointerUp, true);
+    this.container.ownerDocument.defaultView?.addEventListener(
+      "pointercancel",
+      this.handleWindowPointerCancel,
+      true,
+    );
     this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
   }
 
@@ -718,6 +730,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container?.ownerDocument.defaultView?.removeEventListener(
       "pointerup",
       this.handleWindowPointerUp,
+      true,
+    );
+    this.container?.ownerDocument.defaultView?.removeEventListener(
+      "pointercancel",
+      this.handleWindowPointerCancel,
       true,
     );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);

@@ -1,3 +1,7 @@
+## 2026-11-16 — #1579 controller chart acceptance
+
+The source candidate requires exact-head checks and the existing Refrigeration Browser Acceptance workflow. Local Chromium cannot create the OS socket required to start. Production hardware and deployment remain separately unverified.
+
 ## 2026-11-16 — #1577 collection restored; Overview integration candidate
 
 Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.

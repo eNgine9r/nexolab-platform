@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { ChartShell } from "@/components/charts/chart-shell";
@@ -17,9 +17,11 @@ export function RefrigerationControllerChart({
   emptyMessage,
   sharedCursorMs,
   onSharedCursorChange,
-  rangeSelectionEnabled = false,
-  rangeSelection = null,
+  rangeSelection,
   onRangeSelectionChange,
+  viewportDomain,
+  onViewportChange,
+  afterPlot,
 }: {
   title: string;
   context: string;
@@ -28,38 +30,34 @@ export function RefrigerationControllerChart({
   emptyMessage: string;
   sharedCursorMs: number | null;
   onSharedCursorChange: (timestampMs: number | null) => void;
-  rangeSelectionEnabled?: boolean;
-  rangeSelection?: ChartXDomain | null;
-  onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
+  rangeSelection: ChartXDomain | null;
+  onRangeSelectionChange: (domain: ChartXDomain | null) => void;
+  viewportDomain: ChartXDomain;
+  onViewportChange: (domain: ChartXDomain | null) => void;
+  afterPlot?: ReactNode;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
-  const [viewportSelection, setViewportSelection] = useState<{
-    rangeKey: string;
-    domain: ChartXDomain | null;
-  }>({ rangeKey: "", domain: null });
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [solo, setSolo] = useState<string | null>(null);
-  const baseRangeKey = `${baseScene.xDomain.fromMs}:${baseScene.xDomain.toMs}`;
-  const viewportDomain = viewportSelection.rangeKey === baseRangeKey ? viewportSelection.domain : null;
-  const setViewportDomain = (domain: ChartXDomain | null) => {
-    setViewportSelection({ rangeKey: baseRangeKey, domain });
-  };
 
   const scene = useMemo(
     () => ({
       ...baseScene,
-      xDomain: viewportDomain ?? baseScene.xDomain,
-      rangeSelectionEnabled,
+      xDomain: viewportDomain,
+      rangeSelectionEnabled: true,
       rangeSelection,
       series: baseScene.series.map((series) => {
         const key = chartSeriesKey(series.identity);
         return { ...series, visible: solo ? key === solo : !hidden.has(key) };
       }),
     }),
-    [baseScene, hidden, rangeSelection, rangeSelectionEnabled, solo, viewportDomain],
+    [baseScene, hidden, rangeSelection, solo, viewportDomain],
   );
   const inspection = useMemo(
-    () => (sharedCursorMs === null ? null : inspectChartAtTimestamp(scene, sharedCursorMs)),
+    () =>
+      sharedCursorMs === null
+        ? null
+        : inspectChartAtTimestamp(scene, sharedCursorMs, { withinObservedSpan: true }),
     [scene, sharedCursorMs],
   );
 
@@ -75,6 +73,7 @@ export function RefrigerationControllerChart({
         <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-[#06142a]/70 p-8 text-center text-xs text-slate-500">
           {emptyMessage}
         </div>
+        {afterPlot}
       </section>
     );
   }
@@ -97,10 +96,7 @@ export function RefrigerationControllerChart({
           });
         }}
         onSoloSeries={(key) => setSolo((current) => (current === key ? null : key))}
-        onResetZoom={() => {
-          adapter.resetZoom();
-          setViewportDomain(null);
-        }}
+        onResetZoom={() => onViewportChange(null)}
       >
         <ChartRendererHost
           adapter={adapter}
@@ -109,9 +105,10 @@ export function RefrigerationControllerChart({
           sharedCursorMs={sharedCursorMs}
           interactionDomain={baseScene.xDomain}
           onCursor={(next) => onSharedCursorChange(next?.timestampMs ?? null)}
-          onXDomainChange={setViewportDomain}
+          onXDomainChange={onViewportChange}
           onRangeSelectionChange={onRangeSelectionChange}
         />
+        {afterPlot}
       </ChartShell>
     </div>
   );

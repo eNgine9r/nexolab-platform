@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T14:21:35Z",
+  "timestamp": "2026-11-16T15:15:32Z",
   "actor": "Codex",
-  "event": "1577_runtime_collection_restored_overview_integration_review",
+  "event": "1579_controller_analysis_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1577,
-    "branch": "fix/1577-dixell-telemetry",
+    "issue": 1579,
+    "branch": "feat/1579-shared-controller-cycle",
     "status": "review",
     "site_cutover": false
   },
@@ -3367,6 +3367,15 @@
       "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
       "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
       "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
+    },
+    "issue_1579_controller_cycle": {
+      "baseline": "d92350848fa67705bd74cbd75152495d82ff387e",
+      "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
+      "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
+      "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
+      "pending": "Required exact-head CI and browser workflow evidence. Separate approval for site activation.",
+      "hardware_verified": false,
+      "site_cutover": false
     }
   },
   "observations": [
@@ -4937,7 +4946,7 @@
       }
     }
   ],
-  "next_action": "Verify updated PR1578 exact-head CI, review canonical Overview and legacy enrollment guard, prepare a source-matched frontend-only release with rollback; preserve installed agent and request separate source-activation approval.",
+  "next_action": "Verify exact-head CI for #1579 and merge when green. The next XWEB-inspired feature is a compact equipment-grouped legend for saved Live Dashboards.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4946,7 +4955,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "No site cutover, production migration, hardware write or network change. The first candidate image was staged only.",
+  "runtime_mutation": "None for #1579. Local build and automated fixtures only.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

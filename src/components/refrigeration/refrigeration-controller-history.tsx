@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { RefrigerationControllerChart } from "@/components/refrigeration/refrigeration-controller-chart";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import type { ChartXDomain } from "@/features/charts/domain";
+import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
   buildEmbracoTemperatureScene,
@@ -24,8 +25,10 @@ import {
 } from "@/features/refrigeration/controller-monitoring";
 import {
   buildControlStateTimeline,
+  buildDefrostTimeline,
   buildRelayTimeline,
   buildRelayTransitions,
+  summarizeActiveTimeline,
   type RelayTransition,
   type TimelineInterval,
 } from "@/features/refrigeration/controller-timeline";
@@ -52,6 +55,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     rangeKey: string;
     domain: ChartXDomain | null;
   }>({ rangeKey: "", domain: null });
+  const [viewportSelection, setViewportSelection] = useState<{
+    rangeKey: string;
+    domain: ChartXDomain | null;
+  }>({ rangeKey: "", domain: null });
   const rangeLabel =
     controller.preset === "custom"
       ? formatCustomRange(controller.range, displayTimeZone)
@@ -60,9 +67,30 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     () => ({ fromMs: controller.range.from.getTime(), toMs: controller.range.to.getTime() }),
     [controller.range],
   );
-  const loadedAnalysisRangeKey = `${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const loadedAnalysisRangeKey = `${controller.binding?.id}:${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const viewportDomain = useMemo(
+    () =>
+      clampAnalysisDomain(
+        viewportSelection.rangeKey === loadedAnalysisRangeKey ? viewportSelection.domain : null,
+        loadedAnalysisDomain,
+      ),
+    [loadedAnalysisDomain, loadedAnalysisRangeKey, viewportSelection],
+  );
+  const setViewportDomain = (domain: ChartXDomain | null) => {
+    setViewportSelection({ rangeKey: loadedAnalysisRangeKey, domain });
+    setSharedCursorMs(null);
+  };
+  const viewportRange = useMemo(
+    () => ({ from: new Date(viewportDomain.fromMs), to: new Date(viewportDomain.toMs) }),
+    [viewportDomain],
+  );
   const sharedCursorMs =
-    cursorSelection.rangeKey === loadedAnalysisRangeKey ? cursorSelection.timestampMs : null;
+    cursorSelection.rangeKey === loadedAnalysisRangeKey &&
+    cursorSelection.timestampMs !== null &&
+    cursorSelection.timestampMs >= viewportDomain.fromMs &&
+    cursorSelection.timestampMs <= viewportDomain.toMs
+      ? cursorSelection.timestampMs
+      : null;
   const setSharedCursorMs = (timestampMs: number | null) => {
     setCursorSelection((current) =>
       current.rangeKey === loadedAnalysisRangeKey && current.timestampMs === timestampMs
@@ -84,6 +112,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [analysisDomain],
   );
   const analysisRangeLabel = formatAnalysisRange(analysisDomain, displayTimeZone);
+  const chartRangeLabel =
+    viewportDomain.fromMs === loadedAnalysisDomain.fromMs && viewportDomain.toMs === loadedAnalysisDomain.toMs
+      ? rangeLabel
+      : formatAnalysisRange(viewportDomain, displayTimeZone);
   const analysisUnavailableLabel = controller.historyLoading
     ? "Завантаження історії…"
     : controller.historyError
@@ -128,15 +160,23 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   );
   const stateTimeline = useMemo(
     () =>
-      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], analysisRange),
-    [analysisRange, controller.history],
+      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
+    [viewportRange, controller.history],
+  );
+  const defrostTimeline = useMemo(
+    () => buildDefrostTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
+    [controller.history, controller.range],
+  );
+  const defrost = useMemo(
+    () => summarizeActiveTimeline(defrostTimeline, analysisRange),
+    [defrostTimeline, analysisRange],
   );
   const relayTimelines = useMemo(
     () =>
       [0, 1, 2, 3].map((relay) =>
-        buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, analysisRange),
+        buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, viewportRange),
       ),
-    [analysisRange, controller.history],
+    [viewportRange, controller.history],
   );
   const relayTransitions = useMemo(
     () =>
@@ -148,6 +188,15 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [analysisRange, controller.history],
   );
 
+  const chartInteractions = {
+    sharedCursorMs,
+    onSharedCursorChange: setSharedCursorMs,
+    rangeSelection: selectedAnalysisDomain,
+    onRangeSelectionChange: setSelectedAnalysisDomain,
+    viewportDomain,
+    onViewportChange: setViewportDomain,
+  };
+
   const exportSelectedInterval = () => {
     if (!controller.binding || !analysisReady) return;
     const csv = buildControllerAnalysisCsv({
@@ -157,7 +206,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       compressorStarts,
       relayTransitions,
       equipmentId: controller.binding.controllerEquipmentId,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      timeZone: displayTimeZone,
     });
     triggerBrowserBlobDownload({
       blob: new Blob([csv], { type: "text/csv;charset=utf-8" }),
@@ -168,6 +217,47 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   if (!controller.binding) {
     return <EmptyHistory text="Для графіків спочатку потрібна прив’язка перевіреного контролера." />;
   }
+
+  const timelineLanes = (
+    <section className="mt-2 border-t border-white/[0.07] pt-3">
+      <h2 className="text-sm font-semibold text-white">Режими та реле</h2>
+      <p className="mt-1 text-xs text-slate-400">Позначка на доріжках відповідає часу курсора графіка.</p>
+      <div
+        className="mt-4 grid gap-2"
+        style={{ paddingRight: CHART_GRID_INSETS.right }}
+        data-testid="relay-analysis-lanes"
+        data-chart-x-domain-from-ms={viewportDomain.fromMs}
+        data-chart-x-domain-to-ms={viewportDomain.toMs}
+      >
+        <TimelineRow
+          label="Режим"
+          intervals={stateTimeline}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+        />
+        <TimelineRow
+          label="Відтайка"
+          intervals={defrostTimeline}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+          binary
+        />
+        {relayTimelines.map((intervals, index) => (
+          <TimelineRow
+            key={index}
+            label={`Relay ${index + 1}`}
+            intervals={intervals}
+            range={viewportRange}
+            cursorMs={sharedCursorMs}
+            selection={selectedAnalysisDomain}
+            binary
+          />
+        ))}
+      </div>
+    </section>
+  );
 
   return (
     <div className="grid gap-3 xl:gap-4" data-testid="refrigeration-controller-history">
@@ -241,7 +331,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           <p className="text-[9px] tracking-[0.14em] text-slate-500 uppercase">Інтервал розрахунку</p>
           <p className="mt-1 text-xs text-slate-200 tabular-nums">{analysisRangeLabel}</p>
           <p className="mt-1 text-[10px] text-slate-500">
-            На графіку компресора затисніть ліву кнопку миші та протягніть по потрібному відрізку.
+            На графіку температури або компресора затисніть ліву кнопку миші та протягніть по відрізку.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -261,7 +351,22 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           {selectedAnalysisDomain ? (
             <button
               type="button"
-              onClick={() => setSelectedAnalysisDomain(null)}
+              onClick={() => setViewportDomain(analysisDomain)}
+              disabled={
+                viewportDomain.fromMs === analysisDomain.fromMs && viewportDomain.toMs === analysisDomain.toMs
+              }
+              className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-40"
+            >
+              Наблизити відрізок
+            </button>
+          ) : null}
+          {selectedAnalysisDomain ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAnalysisDomain(null);
+                setViewportDomain(null);
+              }}
               className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Скинути вибір
@@ -270,7 +375,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         </div>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <DutyCard
           label="Коефіцієнт роботи"
           value={!analysisReady || duty.dutyPercent === null ? "—" : `${duty.dutyPercent.toFixed(1)} %`}
@@ -294,48 +399,38 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           value={analysisReady ? String(compressorStarts.length) : "—"}
           meta={analysisUnavailableLabel ?? "Підтверджені переходи RPM 0 → >0"}
         />
+        <DutyCard
+          label="Тривалість відтайки"
+          value={analysisReady && defrost.coveredMs > 0 ? formatDuration(defrost.activeMs, true) : "—"}
+          meta={
+            analysisUnavailableLabel ??
+            (defrost.coveredMs > 0
+              ? `Покриття стану ${((100 * defrost.coveredMs) / (analysisDomain.toMs - analysisDomain.fromMs)).toFixed(1)} %`
+              : "Немає спостережень стану")
+          }
+        />
       </div>
 
       <RefrigerationControllerChart
         title="Температури контролера"
         context="Cabinet · Evaporator · Condenser · Setpoint"
-        rangeLabel={rangeLabel}
+        rangeLabel={chartRangeLabel}
         scene={temperatureScene}
-        sharedCursorMs={sharedCursorMs}
-        onSharedCursorChange={setSharedCursorMs}
+        afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
+        {...chartInteractions}
         emptyMessage="Температурний scale ще не підтверджений або в обраному періоді немає valid °C даних. Raw регістри не візуалізуються як температура."
       />
       <RefrigerationControllerChart
         title="Швидкість компресора"
-        context="Embraco Sync · rpm · drag to select"
-        rangeLabel={analysisRangeLabel}
+        context="Embraco Sync · rpm"
+        rangeLabel={chartRangeLabel}
         scene={compressorScene}
-        sharedCursorMs={sharedCursorMs}
-        onSharedCursorChange={setSharedCursorMs}
+        afterPlot={temperatureScene.series.length ? undefined : timelineLanes}
+        {...chartInteractions}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
-        rangeSelectionEnabled
-        rangeSelection={selectedAnalysisDomain}
-        onRangeSelectionChange={setSelectedAnalysisDomain}
       />
 
-      <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4 sm:p-5">
-        <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">Operating timeline</p>
-        <h2 className="mt-1 text-lg font-semibold text-white">Режими та реле</h2>
-        <p className="mt-1 text-[10px] text-slate-500">
-          Усі digital lanes синхронізовані з поточним інтервалом розрахунку.
-        </p>
-        <div className="mt-4 grid gap-3" data-testid="relay-analysis-lanes">
-          <TimelineRow label="State" intervals={stateTimeline} range={analysisRange} />
-          {relayTimelines.map((intervals, index) => (
-            <TimelineRow
-              key={index}
-              label={`Relay ${index + 1}`}
-              intervals={intervals}
-              range={analysisRange}
-              binary
-            />
-          ))}
-        </div>
+      <section className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#081a32] px-4 pb-4">
         <RelayTransitionJournal transitions={relayTransitions} />
       </section>
 
@@ -348,52 +443,100 @@ function TimelineRow({
   label,
   intervals,
   range,
+  cursorMs,
+  selection,
   binary = false,
 }: {
   label: string;
   intervals: readonly TimelineInterval[];
   range: { from: Date; to: Date };
+  cursorMs: number | null;
+  selection: ChartXDomain | null;
   binary?: boolean;
 }) {
   const displayTimeZone = useDisplayTimeZone();
-  const span = Math.max(1, range.to.getTime() - range.from.getTime());
+  const fromMs = range.from.getTime();
+  const toMs = range.to.getTime();
+  const span = toMs - fromMs;
+  const percentage = (timestampMs: number) => `${((timestampMs - fromMs) / span) * 100}%`;
+  const visibleIntervals = useMemo(() => {
+    const result: TimelineInterval[] = [];
+    for (const item of intervals) {
+      const from = Math.max(item.fromMs, fromMs);
+      const to = Math.min(item.toMs, toMs);
+      if (to <= from) continue;
+      const previous = result.at(-1);
+      if (previous?.toMs === from && previous.label === item.label && previous.active === item.active) {
+        previous.toMs = to;
+      } else {
+        result.push({ ...item, fromMs: from, toMs: to });
+      }
+    }
+    return result;
+  }, [intervals, fromMs, toMs]);
+  const selectedFrom = Math.max(selection?.fromMs ?? toMs, fromMs);
+  const selectedTo = Math.min(selection?.toMs ?? fromMs, toMs);
+  const observed =
+    cursorMs === null
+      ? null
+      : visibleIntervals.find((item) => cursorMs >= item.fromMs && cursorMs < item.toMs);
   return (
-    <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">
-      <span className="text-[10px] text-slate-500">{label}</span>
-      <div className="relative h-8 overflow-hidden rounded-lg border border-white/[0.07] bg-[#06142a]">
-        {intervals.map((item, index) => {
-          const left = ((item.fromMs - range.from.getTime()) / span) * 100;
-          const width = ((item.toMs - item.fromMs) / span) * 100;
-          return (
-            <span
-              key={`${item.fromMs}-${index}`}
-              title={`${item.label} · ${formatObservedTime(item.fromMs, displayTimeZone)} → ${formatObservedTime(item.toMs, displayTimeZone)}`}
-              aria-label={binary ? `${label} ${item.active ? "ON" : "OFF"}` : undefined}
-              tabIndex={binary ? 0 : undefined}
-              className={clsx(
-                "absolute top-1 bottom-1 min-w-px rounded",
-                item.active ? "bg-cyan-400/55" : "bg-slate-500/25",
-                binary &&
-                  "flex items-center justify-center overflow-hidden text-[8px] font-semibold tracking-[0.08em] text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
-              )}
-              style={{
-                left: `${Math.max(0, left)}%`,
-                width: `${Math.max(0.15, width)}%`,
-                backgroundImage: binary
-                  ? item.active
-                    ? "repeating-linear-gradient(135deg, rgba(255,255,255,0.24) 0 3px, transparent 3px 7px)"
-                    : "repeating-linear-gradient(90deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 5px)"
-                  : undefined,
-              }}
-            >
-              {binary ? <span className="truncate px-1">{item.active ? "ON" : "OFF"}</span> : null}
-            </span>
-          );
-        })}
-        {intervals.length === 0 ? (
-          <span className="absolute inset-0 grid place-items-center text-[9px] text-slate-700">
-            No observed intervals
+    <div
+      className="grid items-center"
+      style={{ gridTemplateColumns: `${CHART_GRID_INSETS.left}px minmax(0,1fr)` }}
+      data-timeline-label={label}
+    >
+      <div className="min-w-0 pr-1 text-[10px] text-slate-400">
+        <span>{label}</span>
+        {cursorMs !== null ? (
+          <span
+            className="block truncate text-slate-200"
+            data-testid="timeline-cursor-state"
+            title={observed?.label ?? "Немає даних"}
+          >
+            {observed?.label ?? "Немає даних"}
           </span>
+        ) : null}
+      </div>
+      <div className="relative h-7 overflow-hidden rounded-md bg-[#06142a] ring-1 ring-white/[0.07] ring-inset">
+        {selectedTo > selectedFrom ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 border-x border-cyan-300/30 bg-cyan-400/10"
+            style={{ left: percentage(selectedFrom), right: percentage(fromMs + toMs - selectedTo) }}
+          />
+        ) : null}
+        {visibleIntervals.map((item) => (
+          <span
+            key={item.fromMs}
+            title={`${item.label} · ${formatObservedTime(item.fromMs, displayTimeZone)} → ${formatObservedTime(item.toMs, displayTimeZone)}`}
+            aria-label={binary ? `${label} ${item.label}` : undefined}
+            tabIndex={binary ? 0 : undefined}
+            className={clsx(
+              "absolute inset-y-1 min-w-px rounded",
+              item.active ? "bg-cyan-400/55" : "bg-slate-500/25",
+              binary &&
+                "flex items-center justify-center overflow-hidden text-[8px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
+            )}
+            style={{
+              left: percentage(item.fromMs),
+              right: percentage(fromMs + toMs - item.toMs),
+            }}
+          >
+            <span className="truncate px-1 text-[9px] text-slate-100">{item.label}</span>
+          </span>
+        ))}
+        {visibleIntervals.length === 0 ? (
+          <span className="absolute inset-0 grid place-items-center text-[9px] text-slate-400">
+            Немає даних
+          </span>
+        ) : null}
+        {cursorMs !== null ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-slate-100/75"
+            style={{ left: percentage(cursorMs) }}
+            aria-hidden="true"
+          />
         ) : null}
       </div>
     </div>
@@ -577,12 +720,15 @@ function formatAnalysisRange(domain: ChartXDomain, displayTimeZone: string): str
   return `${formatOperationalTimestamp(new Date(domain.fromMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })} → ${formatOperationalTimestamp(new Date(domain.toMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
 }
 
-function formatDuration(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return "0 хв";
+function formatDuration(milliseconds: number, includeSeconds = false): string {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "—";
+  if (includeSeconds && milliseconds < 60_000) return `${Math.floor(milliseconds / 1_000)} с`;
   const totalMinutes = Math.floor(milliseconds / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return hours > 0 ? `${hours} год ${minutes} хв` : `${minutes} хв`;
+  const label = hours > 0 ? `${hours} год ${minutes} хв` : `${minutes} хв`;
+  const seconds = Math.floor(milliseconds / 1000) % 60;
+  return includeSeconds && seconds > 0 ? `${label} ${seconds} с` : label;
 }
 
 function formatCustomRange(range: { from: Date; to: Date }, displayTimeZone: string): string {
