@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T08:08:26Z",
+  "timestamp": "2026-11-16T09:32:04Z",
   "actor": "Codex",
-  "event": "1569_user_admin_session_recovery_source_verified",
+  "event": "1564_nginx_validator_source_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,21 +31,35 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1569,
-    "branch": "fix/1569-user-admin-session-recovery",
+    "issue": 1564,
+    "branch": "fix/1564-nginx-dynamic-user-validator",
     "status": "review",
     "site_cutover": false
   },
   "evidence_snapshot": {
+    "issue_1564_nginx_validator": {
+      "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+      "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+      "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+      "offline_runtime_dependency_change": "none",
+      "github_ci": "verify the published #1564 PR head",
+      "protected_site_change": "none in this work package",
+      "protected_https_unsigned_status": 302,
+      "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+    },
     "issue_1569_user_admin_session_recovery": {
       "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
       "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
       "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
       "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
       "local_chromium": "not run past browser startup; environment denied browser socket",
-      "github_ci": "pending",
-      "protected_site_acceptance": "pending approved frontend installation",
-      "runtime_dependency_change": "none"
+      "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+      "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+      "runtime_dependency_change": "none",
+      "source_merged_pr": 1570,
+      "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "arm64_release_run": 43830341904
     },
     "issue_1567_private_lab_lifecycle": {
       "pi_systemd_baseline": "confirmed inactive DNS and HTTP after daemon stop/start",
@@ -4816,7 +4830,7 @@
       }
     }
   ],
-  "next_action": "Publish and verify #1569 exact-head CI, then complete separately approved protected frontend installation and administrator acceptance. #1567 live tunnel lifecycle acceptance remains pending.",
+  "next_action": "Verify and merge the #1564 source PR after required GitHub checks. Read the active protected gateway and prepare the separately approved source-bound #1569 handoff from the verified ARM64 artifact. Retain exact Nginx rollback and verify authenticated Overview, telemetry and administrator access after activation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

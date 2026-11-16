@@ -61,17 +61,42 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1569
+      "issue": 1564
     },
     "next_work_package": null
   },
   "work_packages": [
     {
+      "issue": 1564,
+      "title": "Use the pinned Nginx validator for protected frontend handoff",
+      "branch": "fix/1564-nginx-dynamic-user-validator",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Correct the root-gated Nginx syntax check and verify the existing byte-exact rollback. Keep the protected site untouched.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/"
+      ],
+      "evidence": {
+        "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+        "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+        "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+        "offline_runtime_dependency_change": "none",
+        "github_ci": "verify the published #1564 PR head",
+        "protected_site_change": "none in this work package",
+        "protected_https_unsigned_status": 302,
+        "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+      }
+    },
+    {
       "issue": 1569,
       "title": "Reauthenticate when the Users & Access session is lost",
       "branch": "fix/1569-user-admin-session-recovery",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "needs_validation",
       "scope": "Local refresh invalidation and authenticated user administration recovery.",
       "permitted_paths": [
         "src/components/settings/users-screen.tsx",
@@ -88,9 +113,12 @@
         "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
         "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
         "local_chromium": "not run past browser startup; environment denied browser socket",
-        "github_ci": "pending",
-        "protected_site_acceptance": "pending approved frontend installation",
-        "runtime_dependency_change": "none"
+        "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+        "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+        "runtime_dependency_change": "none",
+        "source_merged_pr": 1570,
+        "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "arm64_release_run": 43830341904
       }
     },
     {

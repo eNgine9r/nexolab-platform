@@ -191,8 +191,9 @@ def atomic_bytes(path: Path, data: bytes, mode: int) -> None:
     os.replace(temp, path)
 
 def validate_nginx() -> None:
-    run("runuser", "-u", "nexolab-external-nginx", "--", NGINX_BIN,
-        "-t", "-c", str(NGINX))
+    # The handoff is root-gated. systemd assigns the service's dynamic UID
+    # when starting Nginx, but runuser cannot resolve it as a static account.
+    run(NGINX_BIN, "-t", "-c", str(NGINX))
 
 def reload_nginx() -> None:
     run("systemctl", "kill", "--kill-who=main", "--signal=HUP", NGINX_UNIT)

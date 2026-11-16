@@ -55,6 +55,53 @@ class BluegreenHandoffContracts(unittest.TestCase):
         self.assertIn("server 127.0.0.1:3104 max_fails=1 fail_timeout=5s;", value)
         self.assertIn("proxy_pass http://172.18.48.66:8082;", value)
 
+    def test_nginx_validator_uses_pinned_binary_without_dynamic_user_lookup(self):
+        with mock.patch.object(module, "run") as run:
+            module.validate_nginx()
+
+        run.assert_called_once_with(module.NGINX_BIN, "-t", "-c", str(module.NGINX))
+
+    def test_recovery_checks_original_bytes_before_reloading_nginx(self):
+        original = ORIGINAL_NGINX.encode()
+        updated = module.generate_nginx(ORIGINAL_NGINX).encode()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            nginx, before, after = (root / name for name in ("live", "before", "after"))
+            before.write_bytes(original)
+            after.write_bytes(updated)
+
+            def assert_original_config(*_command):
+                self.assertEqual(nginx.read_bytes(), original)
+
+            with (
+                mock.patch.multiple(module, NGINX=nginx, ORIGINAL=before, UPDATED=after),
+                mock.patch.object(module, "run", side_effect=assert_original_config) as commands,
+                mock.patch.object(module, "assert_http") as assert_http,
+                mock.patch.object(module, "atomic_bytes", wraps=module.atomic_bytes) as write,
+            ):
+                nginx.write_bytes(updated)
+                module.recover()
+                self.assertEqual(nginx.read_bytes(), original)
+                self.assertEqual(
+                    commands.call_args_list,
+                    [
+                        mock.call(module.NGINX_BIN, "-t", "-c", str(nginx)),
+                        mock.call(
+                            "systemctl", "kill", "--kill-who=main", "--signal=HUP", module.NGINX_UNIT
+                        ),
+                    ],
+                )
+                assert_http.assert_called_once_with(f"http://127.0.0.1:{module.OLD_PORT}/login")
+                write.assert_called_once_with(nginx, original, 0o644)
+
+                commands.reset_mock()
+                write.reset_mock()
+                assert_http.reset_mock()
+                module.recover()
+                commands.assert_not_called()
+                write.assert_not_called()
+                assert_http.assert_called_once_with(f"http://127.0.0.1:{module.OLD_PORT}/login")
+
     def test_nginx_fails_closed_on_existing_or_unknown_topology(self):
         for value in (
             ORIGINAL_NGINX.replace("auth_request /_nexolab_external_auth;", "", 1),

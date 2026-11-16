@@ -35,7 +35,11 @@ The Product Owner executed `execute` with the observed exact Nginx config SHA. T
 
 The failed attempt left a root-protected rescue journal, the installed new service, and the original running `3100` service. **Never rerun `execute` after this incident:** it intentionally fails closed when those resources exist. The new script has a separate, state-aware `promote` path that compares the original and saved candidate Nginx configs byte-for-byte, validates the root journal, verifies both running frontend identities and the existing hardened unit, and only then applies the Nginx proxy switch with automatic rollback on failure.
 
-## Resume existing protected handoff — NOT YET RUN
+## Resume the stage for release `08f1c8a4`
+
+The first `promote` attempt failed before Nginx could validate its configuration. The wrapper called `runuser` for the gateway's systemd `DynamicUser`, which is absent from the static user database. The original Nginx configuration was restored byte-for-byte. Use the helper with the #1564 fix for any subsequent promotion or rollback. Its root-gated validation invokes the pinned Nginx binary directly with `-t -c`. The gateway still runs under its existing systemd identity.
+
+The paths, journal and approved source in this runbook refer to the original `08f1c8a4` candidate. For the later #1569 package, review the actual running source and use a separately verified handoff bound to that package and its build ID before scheduling activation.
 
 Before attempting a new root action, require required exact-head GitHub CI GREEN, physical/console rollback access, and owner acceptance that #1428 full independent off-device DR proof is still unavailable. Verify the preflight again:
 
@@ -61,7 +65,7 @@ sudo /usr/bin/python3 -I -B \
   /home/nexolab/commander-workspaces/nexolab-1560-bluegreen-release-20261110/scripts/nexolab-1560-bluegreen-handoff.py rollback
 ```
 
-The rollback compares current Nginx bytes against its protected original and the exact installed candidate; any independently modified config fails closed. No database rollback, image restoration or Modbus write occurs. Do not delete old systemd drop-ins, old frontend release, candidate release, root rescue journal or application data.
+The rollback compares the current Nginx bytes with the protected original and the exact saved candidate. It refuses an independently modified config. When the candidate is active, it restores the original bytes, validates them with the pinned Nginx binary and reloads the gateway. When the original is already present, it checks the old frontend without rewriting the configuration or reloading Nginx. Preserve both releases, the old systemd drop-ins, the root rescue journal and all application data.
 
 ## Acceptance evidence required AFTER actual activation
 
