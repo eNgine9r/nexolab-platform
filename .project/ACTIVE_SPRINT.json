@@ -61,11 +61,38 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1567
+      "issue": 1569
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1569,
+      "title": "Reauthenticate when the Users & Access session is lost",
+      "branch": "fix/1569-user-admin-session-recovery",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Local refresh invalidation and authenticated user administration recovery.",
+      "permitted_paths": [
+        "src/components/settings/users-screen.tsx",
+        "src/components/settings/users-screen.test.tsx",
+        "src/features/security/local-auth.ts",
+        "src/features/security/local-auth.test.ts",
+        "src/features/security/local-user-admin.ts",
+        "src/features/security/local-user-admin.test.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+        "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+        "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+        "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+        "local_chromium": "not run past browser startup; environment denied browser socket",
+        "github_ci": "pending",
+        "protected_site_acceptance": "pending approved frontend installation",
+        "runtime_dependency_change": "none"
+      }
+    },
     {
       "issue": 1567,
       "title": "Restore private lab access after Tailscale stop/start",
