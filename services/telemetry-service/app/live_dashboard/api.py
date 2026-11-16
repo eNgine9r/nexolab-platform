@@ -53,7 +53,12 @@ from app.live_dashboard.schemas import (
     MAX_INVENTORY_OFFSET,
     MAX_INVENTORY_PAGE_SIZE,
 )
-from app.security.authorization import (AuthenticatedPrincipal, Permission, Role, effective_permissions_for_principal)
+from app.security.authorization import (
+    AuthenticatedPrincipal,
+    Permission,
+    Role,
+    effective_permissions_for_principal,
+)
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository
 

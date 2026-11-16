@@ -897,7 +897,8 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "Збережені панелі", exact: true })).toBeVisible();
     expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
-    await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 64 точок");
+    await expect(page.getByTestId("live-workspace-guidance")).toHaveCount(0);
+    await expect(page.getByText("До 64 точок вимірювання на одній панелі")).toBeVisible();
     await page.getByRole("button", { name: "Live Data", exact: true }).click();
     await expect(compare).toBeChecked();
     expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);

@@ -65,9 +65,12 @@ export function DashboardEditor({
   onUseServerVersion: () => void;
   onSaveAsCopy: () => void;
 }) {
-  const availableKeys = useMemo(() => new Set(inventory.items.map(dashboardItemIdentity)), [inventory.items]);
+  const inventoryByKey = useMemo(
+    () => new Map(inventory.items.map((item) => [dashboardItemIdentity(item), item])),
+    [inventory.items],
+  );
   const selected = useMemo(() => new Set(draft.items.map(dashboardItemIdentity)), [draft.items]);
-  const unavailableItems = draft.items.filter((item) => !availableKeys.has(dashboardItemIdentity(item)));
+  const unavailableItems = draft.items.filter((item) => !inventoryByKey.has(dashboardItemIdentity(item)));
 
   return (
     <section className="space-y-5" aria-labelledby="live-dashboard-editor-title">
@@ -250,7 +253,7 @@ export function DashboardEditor({
 
           <ol className="mt-4 space-y-3">
             {draft.items.map((item, index) => {
-              const available = availableKeys.has(dashboardItemIdentity(item));
+              const available = inventoryByKey.get(dashboardItemIdentity(item));
               return (
                 <li
                   key={`${dashboardItemIdentity(item)}-${index}`}
@@ -258,11 +261,11 @@ export function DashboardEditor({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium break-all text-slate-100">
-                        {item.channel_id} · {item.metric}
+                      <p className="text-sm font-medium [overflow-wrap:anywhere] break-words text-slate-100">
+                        {available?.channel_name ?? item.channel_id}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {[item.equipment_id, item.native_unit].filter(Boolean).join(" · ")}
+                      <p className="mt-1 text-xs break-words text-slate-400">
+                        {[item.metric, item.native_unit].filter(Boolean).join(" · ")}
                       </p>
                       <p className={`mt-1 text-[11px] ${available ? "text-emerald-300" : "text-amber-300"}`}>
                         {available ? "Доступний" : "Потребує серверної перевірки"}
