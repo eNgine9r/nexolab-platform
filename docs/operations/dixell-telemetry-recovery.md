@@ -79,3 +79,36 @@ or bypass read/privilege policies.
 
 Any site activation requires a matching artifact, rollback and separate scoped
 owner authorization. No green update signal is justified by the source fix alone.
+
+## Owner recovery and current acceptance (2026-11-16)
+
+The owner read confirms revision 45 had two `discovery_only` parents with eight
+active section targets and four reserve targets. Parent activation through the
+canonical registry produced revision 46 with six/two eligible inputs. Do not rerun
+the revision-45 command. The previous state and guarded inverse payload were
+saved on the owner host before the change.
+
+Telemetry listens on `172.18.48.66:8082`; loopback 8082 refuses connections. With
+explicit owner approval, a new user-service drop-in sets only
+`NEXOLAB_SERVER_API_BASE_URL` to that actual private origin. Only
+`nexolab-external-ui-1569.service` restarted. Preflight checked API401, original
+frontend503 and current source/build identity. The post-check returned the expected
+unauthenticated frontend401 and identical build. Journal:
+`/home/nexolab/nexolab-1577-ui-e86e61no`; result `FRONTEND_API_FIXED`.
+This is not installation of PR1578 or permission for another source deployment.
+
+After the owner signed in again, all eight live timestamps advanced by ten seconds;
+a saved Dashboard displayed six persisted Unit1 lines in its one-hour chart.
+The earlier history fetch failure disappeared after login. Full Unit7 persisted
+history and Overview acceptance remain open. The future seven devices are not
+hardware-accepted by any software fixture.
+
+The source candidate projects Overview eligibility from canonical registry GET:
+active XJP60D parent, active target, explicit eligibility, read-only bus/FC03,
+matching bus/unit/section or legacy identity. It neither activates targets nor
+falls back to all historical temperatures. The legacy GET remains for node/diagnostic
+metadata only. Legacy POST/PUT is refused when section modules are registered,
+because replacement of numeric `active_points` cannot safely express that enrollment.
+The canonical registry and commissioning interfaces retain their existing permissions.
+Cadence also recognizes the already-supported `waveshare_8ai` family; unknown
+families remain rejected. These source changes still need a matched approved rollout.

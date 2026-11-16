@@ -10,6 +10,7 @@ import { hasPermission } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
 import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
+import { useMonitoredTemperatureChannels } from "@/hooks/use-monitored-temperature-channels";
 
 import { AlarmsPanel } from "./alarms-panel";
 import { KpiCard } from "./kpi-card";
@@ -54,10 +55,14 @@ export function DashboardShell() {
     enabled: security.mode === "live" && securityReady,
     organizationId,
   });
+  const monitored = useMonitoredTemperatureChannels({
+    enabled: security.mode === "live" && securityReady,
+    organizationId,
+  });
   const temperatureVisibility = useOverviewTemperatureVisibility({
     enabled: security.mode === "live" && securityReady,
     organizationId,
-    monitoredChannelIds: monitoring.monitoredChannelIds,
+    monitoredChannelIds: monitored.channelIds,
   });
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
@@ -185,7 +190,7 @@ export function DashboardShell() {
                       <button
                         type="button"
                         onClick={() => setTemperatureVisibilityOpen(true)}
-                        disabled={monitoring.isLoading}
+                        disabled={monitored.isLoading || monitoring.isLoading}
                         aria-label="Налаштувати датчики на графіку Огляду"
                         title="Налаштувати відображення на Огляді"
                         className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-300/30 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:cursor-wait disabled:opacity-45"
@@ -213,7 +218,7 @@ export function DashboardShell() {
                     )}
                     allMonitoredChannelsHidden={
                       temperatureVisibility.loaded &&
-                      monitoring.monitoredChannelIds.length > 0 &&
+                      monitored.channelIds.length > 0 &&
                       temperatureVisibility.visibleChannelIds.length === 0
                     }
                   />
@@ -297,10 +302,10 @@ export function DashboardShell() {
         organizationId={security.mode === "live" && securityReady ? organizationId : null}
         nodeId={monitoring.configuration?.node_id ?? null}
         open={temperatureVisibilityOpen}
-        monitoredChannelIds={monitoring.monitoredChannelIds}
+        monitoredChannelIds={monitored.channelIds}
         visibleChannelIds={temperatureVisibility.visibleChannelIds}
         targetDiagnostics={monitoring.configuration?.target_diagnostics ?? []}
-        monitoringError={monitoring.error}
+        monitoringError={monitored.error}
         onApply={temperatureVisibility.setVisibleChannelIds}
         onClose={() => setTemperatureVisibilityOpen(false)}
       />
