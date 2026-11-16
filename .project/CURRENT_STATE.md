@@ -1,3 +1,9 @@
+## 2026-11-16 — #1573 connected sensors in Live Dashboards
+
+Read-only counts on nexolab-edge-01 identified 24 recent authorized-node series missing from the climate-only selector, eight each for XJP60D, SDM120M and Waveshare. The production report is tracked in #1573. The editor now searches compact device groups, changes the draft in one click, and keeps existing display and selection controls. The opt-in inventory includes exact observed series from the latest projection. Save, fetch, subscribe, history and CSV retain standalone node and equipment scope. Existing climate-catalog references remain valid. Migration 0038 adds an alternative scoped reference without rewriting existing selections. Downgrade requires the database to contain no standalone dashboard references.
+
+The #1573 source is in review. PostgreSQL and authenticated browser acceptance apply to the exact PR head. The latest activated protected frontend remains the previously verified #1569 build on loopback 3105. #1573 has no production change or hardware write evidence.
+
 ## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
 
 The prior promotion failed because the wrapper passed the gateway's systemd `DynamicUser` to `runuser`. The root-gated helper now invokes the pinned Nginx binary directly in syntax-check mode. Two regression tests failed with the old wrapper. All ten handoff tests pass after the change, including byte-exact rollback and a no-reload recovery when the original is already present. Isolated Nginx accepted the original and generated blue/green configurations and rejected invalid syntax. An unsigned request to the protected URL returned HTTP 302.

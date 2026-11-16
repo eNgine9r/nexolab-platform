@@ -62,7 +62,6 @@ function EditorHarness({
 
   return (
     <DashboardEditor
-      organizationId="organization-1"
       draft={draft}
       setDraft={setDraft}
       inventory={{
@@ -84,6 +83,33 @@ function EditorHarness({
 }
 
 describe("DashboardEditor Raspberry Pi-sized inventory", () => {
+  it("shows a standalone device and selects its channel immediately", () => {
+    const item = {
+      ...createInventoryItem(0),
+      channel_ref_id: null,
+      equipment_id: "WAVESHARE-8AI:bus-test:1",
+      climate_chamber_id: null,
+      climate_chamber_code: null,
+      climate_chamber_name: null,
+      source: "waveshare-analog-input-8ch-b-v3",
+      channel_name: "Вхід 1",
+    };
+    const onSave = vi.fn();
+    render(<EditorHarness inventory={[createInventoryItem(0), item]} onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: "Поза камерами" }));
+    expect(screen.getByRole("heading", { name: "Waveshare 8AI · 1" })).toBeVisible();
+    const button = screen.getByRole("button", { name: /Вхід 1/ });
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("telemetry-selection-count")).toHaveTextContent("1 / 64");
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ observed: true, equipment_id: item.equipment_id })],
+      }),
+    );
+  });
+
   it("renders, searches, selects, reorders and validates against 162 channels", () => {
     const inventory = Array.from({ length: INVENTORY_SIZE }, (_, index) => createInventoryItem(index));
     const onSave = vi.fn();
@@ -93,13 +119,11 @@ describe("DashboardEditor Raspberry Pi-sized inventory", () => {
 
     const search = screen.getByRole("searchbox", { name: "Пошук" });
     fireEvent.change(search, { target: { value: "126-04" } });
-    fireEvent.click(screen.getByRole("treeitem", { name: /Sensor 154/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Підтвердити вибір" }));
+    fireEvent.click(screen.getByRole("button", { name: /Sensor 154/ }));
     expect(screen.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
 
     fireEvent.change(search, { target: { value: "126-05" } });
-    fireEvent.click(screen.getByRole("treeitem", { name: /Sensor 155/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Підтвердити вибір" }));
+    fireEvent.click(screen.getByRole("button", { name: /Sensor 155/ }));
     expect(screen.getByText("2 / 64 вибрано", { exact: true })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Перемістити 126-05 вище" }));

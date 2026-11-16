@@ -22,8 +22,17 @@ const SERIES_COLORS = [
   "#F43F5E",
 ] as const;
 
-export function dashboardItemIdentity(item: Pick<LiveDashboardDraftItem, "channel_id" | "metric">): string {
-  return `${encodeURIComponent(item.channel_id)}|${encodeURIComponent(item.metric)}`;
+type DashboardIdentity = Pick<LiveDashboardDraftItem, "channel_id" | "metric"> &
+  Partial<Pick<LiveDashboardDraftItem, "node_id" | "equipment_id" | "observed">> & {
+    channel_ref_id?: string | null;
+  };
+
+export function dashboardItemIdentity(item: DashboardIdentity): string {
+  const keys = [item.channel_id, item.metric];
+  if (item.channel_ref_id === null || item.observed) {
+    keys.unshift(item.node_id ?? "", item.equipment_id ?? "");
+  }
+  return keys.map(encodeURIComponent).join("|");
 }
 
 export function liveDashboardEtag(version: number): string {
@@ -60,8 +69,9 @@ export function dashboardToDraft(
       color: item.color,
       display_unit: item.display_unit,
       native_unit: item.native_unit,
-      node_id: null,
-      equipment_id: null,
+      observed: item.channel_ref_id === null,
+      node_id: item.node_id ?? null,
+      equipment_id: item.equipment_id ?? null,
       source: null,
     })),
     version: dashboard.version,
@@ -87,6 +97,7 @@ export function draftToWrite(draft: LiveDashboardDraft): LiveDashboardWrite {
     refresh_seconds: draft.refresh_seconds,
     time_window: draft.time_window,
     items: draft.items.map((item) => ({
+      ...(item.observed ? { node_id: item.node_id, equipment_id: item.equipment_id } : {}),
       channel_id: item.channel_id,
       metric: item.metric,
       visualization: item.visualization,
@@ -138,6 +149,7 @@ export function addDashboardDraftItem(
   inventory: LiveDashboardInventoryItem,
 ): { draft: LiveDashboardDraft; added: boolean; reason: "added" | "duplicate" | "limit" } {
   const candidate: LiveDashboardDraftItem = {
+    observed: inventory.channel_ref_id === null,
     channel_id: inventory.channel_id,
     metric: inventory.metric,
     visualization: "line",

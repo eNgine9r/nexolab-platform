@@ -1,3 +1,7 @@
+## 2026-11-16 — #1573 connected sensors source acceptance pending
+
+The local execution environment denies Chromium and PostgreSQL Unix sockets. Isolated backend and frontend tests run locally; PostgreSQL migration and authenticated browser evidence will come from exact-head GitHub CI. A production release needs the matching frontend and Telemetry Service, a recovery plan for migration 0038 and separate site approval.
+
 ## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
 
 The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.

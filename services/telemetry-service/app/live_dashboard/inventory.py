@@ -12,7 +12,7 @@ from app.climate_catalog.models import (
     MeasurementChannel,
     MeasurementDevice,
 )
-from app.db import TelemetrySample
+from app.db import TelemetryLatest, TelemetrySample
 from app.live_dashboard.repository import LiveDashboardRepository
 from app.live_dashboard.telemetry_identity import (
     MAX_MODBUS_UNIT_ID,
@@ -36,13 +36,13 @@ class InventoryLatestRecord:
 
 @dataclass(frozen=True, slots=True)
 class InventoryChannelRecord:
-    channel_ref_id: str
+    channel_ref_id: str | None
     node_id: str
     equipment_id: str
     equipment_name: str
-    climate_chamber_id: str
-    climate_chamber_code: str
-    climate_chamber_name: str
+    climate_chamber_id: str | None
+    climate_chamber_code: str | None
+    climate_chamber_name: str | None
     equipment_type: str
     laboratory: str | None
     zone: str | None
@@ -68,6 +68,7 @@ def list_live_dashboard_inventory(
     organization_id: str,
     limit: int,
     offset: int,
+    include_observed: bool = False,
 ) -> InventoryPage:
     """Return the bounded canonical catalog used by Live Dashboard save validation.
 
@@ -137,7 +138,23 @@ def list_live_dashboard_inventory(
                     latest=latest,
                 )
             )
-        return InventoryPage(items=tuple(records), total=total)
+        if include_observed:
+            observed = _observed_channel_select(organization_id)
+            observed_total = session.scalar(
+                observed.with_only_columns(func.count(), maintain_column_froms=True)
+            ) or 0
+            if len(records) < limit:
+                records.extend(
+                    _observed_inventory_record(sample)
+                    for sample in session.scalars(
+                        observed.order_by(
+                            TelemetryLatest.node_id, TelemetryLatest.equipment_id,
+                            TelemetryLatest.channel_id, TelemetryLatest.metric,
+                        ).offset(max(0, offset - total)).limit(limit - len(records))
+                    )
+                )
+            total += observed_total
+    return InventoryPage(items=tuple(records), total=total)
 
 
 def inventory_query_plan_statement(
@@ -329,4 +346,56 @@ def _eligible_catalog_select(organization_id: str):
             ClimateChamber.status == "active",
             CentralNode.state != "revoked",
         )
+    )
+
+
+def _observed_channel_select(organization_id: str):
+    # The latest projection contains exactly one row per series; do not scan history.
+    catalog_match = _eligible_catalog_select(organization_id).where(
+        MeasurementBus.node_id == TelemetryLatest.node_id,
+        telemetry_equipment_id_expression() == TelemetryLatest.equipment_id,
+        MeasurementChannel.channel_id == TelemetryLatest.channel_id,
+        MeasurementChannel.metric_type == TelemetryLatest.metric,
+    ).correlate(TelemetryLatest).exists()
+    return (
+        select(TelemetryLatest)
+        .join(CentralNode, CentralNode.node_id == TelemetryLatest.node_id)
+        .where(
+            CentralNode.organization_id == organization_id,
+            CentralNode.state != "revoked",
+            func.length(TelemetryLatest.metric).between(1, 64),
+            ~catalog_match,
+        )
+    )
+
+
+def _observed_inventory_record(sample: TelemetryLatest) -> InventoryChannelRecord:
+    return InventoryChannelRecord(
+        channel_ref_id=None,
+        node_id=sample.node_id,
+        equipment_id=sample.equipment_id,
+        equipment_name=sample.equipment_id,
+        climate_chamber_id=None,
+        climate_chamber_code=None,
+        climate_chamber_name=None,
+        equipment_type=sample.source,
+        laboratory=None,
+        zone=None,
+        channel_id=sample.channel_id,
+        channel_name=sample.channel_id,
+        metric=sample.metric,
+        native_unit=sample.unit,
+        source=sample.source,
+        quality=sample.quality,
+        alarm=sample.alarm,
+        latest=InventoryLatestRecord(
+            event_id=sample.event_id,
+            captured_at=sample.captured_at,
+            value=sample.value,
+            unit=sample.unit,
+            quality=sample.quality,
+            source=sample.source,
+            alarm=sample.alarm,
+            received_at=sample.received_at,
+        ),
     )

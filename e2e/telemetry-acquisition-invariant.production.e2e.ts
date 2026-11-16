@@ -301,7 +301,7 @@ function observePage(
 
 async function openPersistedDashboard(page: Page, dashboardName: string): Promise<void> {
   await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Збережені панелі", exact: true })).toBeVisible();
   const card = page.locator("article").filter({ hasText: dashboardName });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Відкрити" }).click();
@@ -422,7 +422,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
       await new Promise((resolve) => setTimeout(resolve, 250));
       await primary.setOffline(false);
       await live.reload({ waitUntil: "domcontentloaded" });
-      await expect(live.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+      await expect(live.getByRole("heading", { name: "Збережені панелі", exact: true })).toBeVisible();
     }),
   );
 

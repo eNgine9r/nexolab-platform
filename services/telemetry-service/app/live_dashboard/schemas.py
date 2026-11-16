@@ -42,11 +42,19 @@ class DashboardStatus(StrEnum):
 class LiveDashboardItemWrite(BaseModel):
     channel_id: str = Field(min_length=1, max_length=128)
     metric: str = Field(min_length=1, max_length=64)
+    node_id: str | None = Field(default=None, min_length=1, max_length=128)
+    equipment_id: str | None = Field(default=None, min_length=1, max_length=128)
     visualization: VisualizationType = VisualizationType.LINE
     color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     display_unit: str | None = Field(default=None, max_length=32)
 
-    @field_validator("channel_id", "metric", "display_unit", mode="before")
+    @model_validator(mode="after")
+    def validate_observed_scope(self) -> "LiveDashboardItemWrite":
+        if (self.node_id is None) != (self.equipment_id is None):
+            raise ValueError("node_id and equipment_id must be supplied together")
+        return self
+
+    @field_validator("channel_id", "metric", "display_unit", "node_id", "equipment_id", mode="before")
     @classmethod
     def normalize_optional_text(cls, value: object) -> object:
         if value is None:
@@ -101,7 +109,7 @@ class LiveDashboardWrite(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_items(self) -> "LiveDashboardWrite":
-        identities = [(item.channel_id, item.metric) for item in self.items]
+        identities = [(item.node_id, item.equipment_id, item.channel_id, item.metric) for item in self.items]
         if len(identities) != len(set(identities)):
             raise ValueError("dashboard items must use unique channel and metric pairs")
         return self
@@ -110,7 +118,9 @@ class LiveDashboardWrite(BaseModel):
 class LiveDashboardItemResponse(BaseModel):
     id: str
     position: int
-    channel_ref_id: str
+    channel_ref_id: str | None
+    node_id: str | None = None
+    equipment_id: str | None = None
     channel_id: str
     metric: str
     native_unit: str
@@ -164,13 +174,13 @@ class LiveDashboardInventoryLatestResponse(BaseModel):
 
 
 class LiveDashboardInventoryItemResponse(BaseModel):
-    channel_ref_id: str
+    channel_ref_id: str | None
     node_id: str
     equipment_id: str
     equipment_name: str
-    climate_chamber_id: str
-    climate_chamber_code: str
-    climate_chamber_name: str
+    climate_chamber_id: str | None
+    climate_chamber_code: str | None
+    climate_chamber_name: str | None
     equipment_type: str
     laboratory: str | None
     zone: str | None

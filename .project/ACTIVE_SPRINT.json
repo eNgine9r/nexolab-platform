@@ -61,11 +61,36 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1564
+      "issue": 1573
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1573,
+      "title": "Create dashboards from connected sensors with direct channel selection",
+      "branch": "fix/1573-live-dashboard-connected-sensors",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Responsive connected-channel picker and tenant-scoped standalone dashboard series.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "src/features/live-dashboards/",
+        "src/hooks/use-live-dashboard-*",
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "e2e/Live Dashboard verification",
+        ".project/"
+      ],
+      "evidence": {
+        "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+        "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+        "pending_checks": "exact-head PostgreSQL and authenticated browser acceptance",
+        "site_cutover": false
+      }
+    },
     {
       "issue": 1564,
       "title": "Use the pinned Nginx validator for protected frontend handoff",
