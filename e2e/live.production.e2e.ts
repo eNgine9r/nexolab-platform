@@ -677,8 +677,9 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect(panel).toHaveCount(1);
     await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
     await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
-    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
-    await expect(panel.locator("svg")).toHaveCount(0);
+    const surface = panel.getByTestId("chart-renderer-surface");
+    await expect.poll(() => surface.locator("canvas").count()).toBeGreaterThan(0);
+    await expect(surface.locator("svg")).toHaveCount(0);
     for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
     await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
