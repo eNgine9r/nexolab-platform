@@ -61,11 +61,45 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1575
+      "issue": 1577
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1577,
+      "title": "Restore replacement Dixell collection and canonical Overview monitoring",
+      "branch": "fix/1577-dixell-telemetry",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only canonical temperature visibility, cadence contract alignment and legacy enrollment guard; owner runtime collection/API repair already verified.",
+      "permitted_paths": [
+        "src/lib/telemetry/temperature-channel*",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/temperature-chart.test.tsx",
+        "docs/operations/dixell-telemetry-recovery.md",
+        ".project/",
+        "src/features/acquisition/temperature-monitoring*",
+        "src/hooks/use-monitored-temperature-channels*",
+        "src/features/acquisition/cadence-client*",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/settings/acquisition-cadence-panel*",
+        "src/app/api/device-agent/xjp60d/route*",
+        "scripts/acquisition-invariant-fixture.py",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "root_cause": "Parent devices were discovery_only; frontend private API origin absent; source Overview uses legacy numeric enrollment; cadence omits supported waveshare_8ai.",
+        "browser": "All eight latest values advance by 10s; six Unit1 persisted 1h series visually rendered. Monitoring auth error cleared; installed Overview and cadence contract defects remain.",
+        "runtime": "Owner verified registry46 with6+2 eligible inputs. Approved frontend-only origin override completed with FRONTEND_API_FIXED, unchanged build; journal /home/nexolab/nexolab-1577-ui-e86e61no. No agent build replacement or hardware write.",
+        "offline": "No new dependency or external runtime requirement. Hardware data and configuration remain local.",
+        "pending": "New exact-head CI/review; matching frontend-only artifact and separately approved activation; Overview and Unit7 persisted-history acceptance; future seven modules hardware-unverified.",
+        "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
+        "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
+        "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
+      }
+    },
     {
       "issue": 1575,
       "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",

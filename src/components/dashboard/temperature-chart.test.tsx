@@ -91,6 +91,30 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("sensor_error")).toBeInTheDocument();
   });
 
+  it("renders current and persisted temperatures from replacement units 1 and 7", async () => {
+    const samples = [
+      { ...sample("rs485-sdm120:1-S01", 4.5), equipment_id: "XJP60D-S:rs485-sdm120:1" },
+      { ...sample("rs485-sdm120:7-S02", 5.5), equipment_id: "XJP60D-S:rs485-sdm120:7" },
+    ];
+    await act(async () => {
+      render(
+        <TemperatureChart
+          mode="live"
+          status="live"
+          samples={samples}
+          historySamples={samples}
+          historyStatus="ready"
+          onHistoryRangeChange={vi.fn()}
+          onHistoryRetry={vi.fn()}
+        />,
+      );
+    });
+    expect(screen.getByText("rs485-sdm120:1-S01")).toBeInTheDocument();
+    expect(screen.getByText("rs485-sdm120:7-S02")).toBeInTheDocument();
+    expect(screen.getByText("4,5 °C")).toBeInTheDocument();
+    expect(screen.getByTestId("overview-chart-panel")).toBeVisible();
+  });
+
   it("renders newly valid KK2 and KK1 channels without a source allowlist", () => {
     const samples = [
       sample("106-03", 4.5),

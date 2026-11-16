@@ -1,3 +1,13 @@
+## 2026-11-16 — #1577 collection restored; Overview integration candidate
+
+Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.
+
+After manual Google reauthentication, Chrome showed all eight valid Dixell timestamps advancing by 10 seconds (16:11:59–16:12:03 to 16:12:09–16:12:13 Europe/Kyiv). Saved Dashboard 1h history visually rendered six Unit 1 series since about 16:01. Unit 7 persisted history and full Overview acceptance still need explicit proof. The earlier history fetch error cleared after login. No history was deleted or synthetic hardware evidence used.
+
+Remaining installed UI defects: Overview relies on legacy numeric enrollment and excludes section IDs; cadence rejects the agent's supported `waveshare_8ai` family. Source candidate reads active, read-eligible temperatures from the canonical registry for Overview, supports Waveshare cadence, and guards legacy PUT/POST against section enrollment replacement. It preserves auth, display preferences, offline runtime, section identity and the installed custom agent. 44 additional targeted tests passed across seven files. Initial source PR head d3570e94 passed all four triggered workflows; verify new exact-head CI before merge. Only the earlier environment repair was approved/deployed; this new source is not installed.
+
+Commander execution remains unavailable. Preserve the installed section-profile agent: main does not contain that implementation. Next: finish source CI/review, prepare a matching frontend-only artifact with rollback and obtain separate approval for its activation. Further seven modules remain hardware-unverified until connected and commissioned.
+
 ## 2026-11-16 — #1575 Raspberry Live Dashboard activation pending
 
 PR #1576 preserves the deployed Telemetry commissioning/catalog paths and reconciles the database revision on the Pi. The earlier staged `eb6302b` Telemetry image lacks this compatibility. Paired rollout needs required exact-head CI, matching ARM64 artifacts, a local recovery point and the owner-only activation path. This scoped update uses the existing central network. The broader Edge subnet issue remains separate.
