@@ -1,3 +1,11 @@
+## 2026-11-16 — #1577 replacement Dixell telemetry: source fix, host recovery blocked
+
+Authenticated browser confirms Unit 1 (six sections) and Unit 7 (two sections), both using bus-qualified XJP60D section identities. Their eight latest samples are stale since approximately 11:40 Europe/Kyiv; other live traffic still advances. Overview excludes section IDs and single-digit legacy IDs. Monitoring/cadence fail while resolving or contacting the private Telemetry auth endpoint. The 24-hour Live history request remained loading during inspection.
+
+Source correction preserves exact bus/module identity and permits valid numeric addresses 1–247. Regression failures were reproduced before fixing; 44 focused tests, ESLint, TypeScript and LOCAL_LAN build passed. No runtime dependency was added. Required GitHub CI remains pending. No live service, database, polling or hardware mutation occurred.
+
+Commander health/file reads succeeded but execution returns EXECUTION_HANDLER_FAILED. Owner read-only diagnostic is in `docs/operations/dixell-telemetry-recovery.md`. Main lacks the live section-profile agent implementation: do not replace that agent with generic main. Legacy Overview active_points still needs actual section-enrollment reconciliation. Source classification alone does not restore acquisition. Verify advancing persisted samples and rendered history before claiming completion or emitting a green update signal. #1575 is merged as 4722f9bd; matching site rollout remains separately unverified.
+
 ## 2026-11-16 — #1575 Raspberry Live Dashboard activation pending
 
 PR #1576 preserves the deployed Telemetry commissioning/catalog paths and reconciles the database revision on the Pi. The earlier staged `eb6302b` Telemetry image lacks this compatibility. Paired rollout needs required exact-head CI, matching ARM64 artifacts, a local recovery point and the owner-only activation path. This scoped update uses the existing central network. The broader Edge subnet issue remains separate.

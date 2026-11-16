@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T13:10:10Z",
+  "timestamp": "2026-11-16T13:45:24Z",
   "actor": "Codex",
-  "event": "1575_raspberry_live_source_reconciled",
+  "event": "1577_replacement_dixell_source_fix_host_diagnosis_blocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1575,
-    "branch": "fix/1575-pi-alembic-bridge",
+    "issue": 1577,
+    "branch": "fix/1577-dixell-telemetry",
     "status": "review",
     "site_cutover": false
   },
@@ -3357,6 +3357,14 @@
       "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
       "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
       "site_cutover": false
+    },
+    "issue_1577_replacement_dixell": {
+      "root_cause": "Legacy classifier excludes single-digit IDs and commissioned bus/module section IDs.",
+      "browser": "Units 1/7, 6+2 sections; all eight latest rows stale since approximately 11:40 Europe/Kyiv; other live packets advance. Monitoring/cadence server session unavailable. 24h history request remained loading.",
+      "runtime": "No restart, database or acquisition mutation. Commander execution unavailable; actual scheduler/private API config still unverified.",
+      "offline": "No new dependency or external runtime call.",
+      "pending": "Exact-head GitHub CI; owner read-only diagnostic; section enrollment and actual acquisition/persistence recovery; separately approved matching site activation.",
+      "source_checks": "44 focused tests in five files passed; baseline regressions failed before fixes; full ESLint, TypeScript and LOCAL_LAN production build passed."
     }
   },
   "observations": [
@@ -4927,7 +4935,7 @@
       }
     }
   ],
-  "next_action": "Check #1576 exact-head CI and prepare matching ARM64 artifacts and protected frontend/Telemetry handoff for nexolab-edge-01.",
+  "next_action": "Review #1577 exact-head CI, obtain the read-only owner diagnostic in docs/operations/dixell-telemetry-recovery.md, preserve installed section-profile Device Agent and restore actual polling/persistence before site acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

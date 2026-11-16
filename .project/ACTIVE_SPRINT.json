@@ -61,11 +61,34 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1575
+      "issue": 1577
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1577,
+      "title": "Replacement Dixell telemetry classification and recovery diagnosis",
+      "branch": "fix/1577-dixell-telemetry",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Source classification and read-only diagnosis; actual host restoration remains blocked.",
+      "permitted_paths": [
+        "src/lib/telemetry/temperature-channel*",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/temperature-chart.test.tsx",
+        "docs/operations/dixell-telemetry-recovery.md",
+        ".project/"
+      ],
+      "evidence": {
+        "root_cause": "Legacy classifier excludes single-digit IDs and commissioned bus/module section IDs.",
+        "browser": "Units 1/7, 6+2 sections; all eight latest rows stale since approximately 11:40 Europe/Kyiv; other live packets advance. Monitoring/cadence server session unavailable. 24h history request remained loading.",
+        "runtime": "No restart, database or acquisition mutation. Commander execution unavailable; actual scheduler/private API config still unverified.",
+        "offline": "No new dependency or external runtime call.",
+        "pending": "Exact-head GitHub CI; owner read-only diagnostic; section enrollment and actual acquisition/persistence recovery; separately approved matching site activation.",
+        "source_checks": "44 focused tests in five files passed; baseline regressions failed before fixes; full ESLint, TypeScript and LOCAL_LAN production build passed."
+      }
+    },
     {
       "issue": 1575,
       "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",

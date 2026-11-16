@@ -1,3 +1,11 @@
+## 2026-11-16 — #1577 replacement Dixell telemetry: source fix, host recovery blocked
+
+Authenticated browser confirms Unit 1 (six sections) and Unit 7 (two sections), both using bus-qualified XJP60D section identities. Their eight latest samples are stale since approximately 11:40 Europe/Kyiv; other live traffic still advances. Overview excludes section IDs and single-digit legacy IDs. Monitoring/cadence fail while resolving or contacting the private Telemetry auth endpoint. The 24-hour Live history request remained loading during inspection.
+
+Source correction preserves exact bus/module identity and permits valid numeric addresses 1–247. Regression failures were reproduced before fixing; 44 focused tests, ESLint, TypeScript and LOCAL_LAN build passed. No runtime dependency was added. Required GitHub CI remains pending. No live service, database, polling or hardware mutation occurred.
+
+Commander health/file reads succeeded but execution returns EXECUTION_HANDLER_FAILED. Owner read-only diagnostic is in `docs/operations/dixell-telemetry-recovery.md`. Main lacks the live section-profile agent implementation: do not replace that agent with generic main. Legacy Overview active_points still needs actual section-enrollment reconciliation. Source classification alone does not restore acquisition. Verify advancing persisted samples and rendered history before claiming completion or emitting a green update signal. #1575 is merged as 4722f9bd; matching site rollout remains separately unverified.
+
 ## 2026-11-16 — #1575 Raspberry compatibility for Live Dashboards
 
 Live Dashboard source PR #1574 merged at eb6302b0ff1a4fefa399dd07dea15fb48f9d491c. The active Pi database has commissioning revision `20261104_0038`. All 229 tracked Telemetry Python app and migration files match the deployed source in `4be678f6aa2581ad7fc79bcc22c26cd520c94272`. PR #1576 carries forward those deployed commissioning and energy-export paths and joins the two schema revisions. Isolated PostgreSQL 16.16 upgrades from both revisions preserved the existing instrument name and created the dashboard columns. 52 targeted existing tests passed. The Pi is still serving its previous frontend and Telemetry versions.
