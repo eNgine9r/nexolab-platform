@@ -1,3 +1,7 @@
+## 2026-11-16 — #1575 Raspberry Live Dashboard activation pending
+
+PR #1576 preserves the deployed Telemetry commissioning/catalog paths and reconciles the database revision on the Pi. The earlier staged `eb6302b` Telemetry image lacks this compatibility. Paired rollout needs required exact-head CI, matching ARM64 artifacts, a local recovery point and the owner-only activation path. This scoped update uses the existing central network. The broader Edge subnet issue remains separate.
+
 ## 2026-11-16 — container security #1447
 
 Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.

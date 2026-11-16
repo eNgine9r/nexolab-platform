@@ -61,17 +61,40 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1573
+      "issue": 1575
     },
     "next_work_package": null
   },
   "work_packages": [
     {
+      "issue": 1575,
+      "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",
+      "branch": "fix/1575-pi-alembic-bridge",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Paired frontend and Telemetry release preserving the deployed standalone instruments, names and energy export.",
+      "permitted_paths": [
+        "services/telemetry-service/app/commissioning/",
+        "services/telemetry-service/app/energy_export/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "deployed_telemetry_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "source_match": "All 229 tracked Telemetry Python app and migration files match the running service.",
+        "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
+        "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
+        "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
+        "site_cutover": false
+      }
+    },
+    {
       "issue": 1573,
       "title": "Create dashboards from connected sensors with direct channel selection",
       "branch": "fix/1573-live-dashboard-connected-sensors",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Responsive connected-channel picker and tenant-scoped standalone dashboard series.",
       "permitted_paths": [
         "src/components/live/",
@@ -87,11 +110,13 @@
       "evidence": {
         "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
         "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
-        "pending_checks": "fresh required exact-head CI after synchronizing approved security baseline",
+        "pending_checks": "Site acceptance after #1575",
         "site_cutover": false,
         "prior_verified_head": "181bf421a8e2c264c611f2be10401788481a67e5",
         "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source",
-        "security_baseline_issue": 1447
+        "security_baseline_issue": 1447,
+        "source_merged_pr": 1574,
+        "source_revision": "eb6302b0ff1a4fefa399dd07dea15fb48f9d491c"
       }
     },
     {

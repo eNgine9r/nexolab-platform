@@ -67,7 +67,7 @@ class CommissioningActivationService:
                 prepared.attempt.id,
                 organization_id=organization_id,
                 state="recovery_required",
-                evidence={"activation": activation, **_safety_evidence()},
+                evidence={"activation": activation, **_safety_evidence(command)},
                 audit_event=completed_audit_event,
             )
         if activation["state"] == "rolled_back":
@@ -75,7 +75,7 @@ class CommissioningActivationService:
                 prepared.attempt.id,
                 organization_id=organization_id,
                 state="rolled_back",
-                evidence={"activation": activation, **_safety_evidence()},
+                evidence={"activation": activation, **_safety_evidence(command)},
                 audit_event=completed_audit_event,
             )
 
@@ -121,7 +121,7 @@ class CommissioningActivationService:
                 "health": health,
                 "telemetry": telemetry,
                 "binding": binding,
-                **_safety_evidence(),
+                **_safety_evidence(command),
             },
             audit_event=completed_audit_event,
         )
@@ -173,6 +173,12 @@ class CommissioningActivationService:
         audit_event: AuditEventInput,
     ) -> dict[str, object]:
         plan = attempt.plan
+        if plan.get("binding_kind") == "standalone_instrument":
+            return {
+                "kind": "standalone_instrument",
+                "session_id": attempt.session_id,
+                "telemetry_equipment_id": activation["telemetry_equipment_id"],
+            }
         if plan.get("binding_kind") != "refrigeration_controller":
             return {
                 "kind": "commissioning_target",
@@ -242,7 +248,7 @@ class CommissioningActivationService:
                 "activation": activation,
                 "failure": failure,
                 "rollback": rollback,
-                **_safety_evidence(),
+                **_safety_evidence(command),
             },
             audit_event=completed_audit_event,
         )
@@ -267,13 +273,14 @@ def _unknown_mutation_evidence(
             "message": error.message,
             "mutation_state": "unknown_recovery_required",
         },
-        **_safety_evidence(),
+        **_safety_evidence(command),
     }
 
 
-def _safety_evidence() -> dict[str, object]:
+def _safety_evidence(command: DeviceAgentActivationCommand) -> dict[str, object]:
+    from app.commissioning.activation_client import polling_mode
     return {
-        "polling_mode": "read_only_fc03",
+        "polling_mode": polling_mode(command.profile_id, command.profile_version),
         "modbus_writes": "none",
         "hardware_writes": "none",
         "controller_parameter_changes": "none",
