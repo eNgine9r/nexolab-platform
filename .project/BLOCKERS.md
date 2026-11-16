@@ -1,3 +1,7 @@
+## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
+
+The lifecycle change needs the Raspberry Pi root console. Run the approved procedure in `docs/operations/private-lab-tunnel-recovery.md`, then verify the affected tailnet client across a separately approved interruption or reboot. The legacy private HTTPS `8443` frontend policy and its stable upstream require separate verification. #1399 and #1409 remain independent LAN/Docker recovery work.
+
 ## 2026-11-10 — #1562 Overview visual source isolated from protected site blocker
 
 Overview redesign source work is independent and browser-visible in explicit demo mode; protected site installation still requires safe Nginx/frontend transition. Owner's latest #1560 \`promote\` returned \`Command runuser failed: exit=1\` and automatic Nginx validator also failed; subsequent read-only host checks show old original Nginx config/hash, both frontend services active, telemetry and device-agent HTTP200. A frontend visual task must not bypass root-command policy or add risky unrelated Nginx operations. Follow-up site handoff remains blocked pending a separate bounded root-cause fix; #1428 complete encrypted isolated restore and #1409 physical LAN/Docker overlap remain unresolved. Do not call the new Overview installed until real authenticated operator browser confirms it.
