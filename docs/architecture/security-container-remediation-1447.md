@@ -1,5 +1,15 @@
 # NEXOLAB #1447 — exact-image container security revalidation
 
+## 2026-11-16 Telemetry image reduction
+
+The Telemetry build now installs only the byte-identical Debian `mosquitto_ctrl` executable and its runtime dependencies. The derived package preserves the original Debian source name and version in `dpkg` and the CycloneDX report. APT resolves and verifies the official archive during the build. The broker image and broker-control wrapper stay on their existing entry points. The Telemetry image also purges unused system login, mount and terminal utilities from its Debian base. A network-disabled CI smoke test checks the non-root UID, package identity, SSL, SQLite, report fonts and native Python dependencies before scanning.
+
+In a local linux/amd64 root filesystem assembled from the official Python image and current signed Debian packages, Trivy counted **18 OS HIGH / 0 CRITICAL**. The prior CI image contained 52 OS HIGH. The same package/CVE comparison showed 34 removals and no added Debian findings. The smaller root retained cJSON, SQLite and several shared libraries; it no longer included the Mosquitto daemon or libwebsockets. The original and installed client binaries had SHA-256 `8229d9895f30537894a0ebf46bf89a84f7362f978e8c2ab856748b21376a16a4`.
+
+An isolated Mosquitto 2.0.22 broker accepted provisioning, repeat provisioning, password rotation, disable, enable and delete through the existing wrapper with the derived Debian client, over both plain MQTT and TLS. The test used a loopback broker and a temporary dynamic-security configuration.
+
+This root filesystem is local package evidence. Reconcile the exact GitHub image report before deleting registry entries for absent packages, then evaluate the remaining findings in Debian Trixie. No exception expiry has changed.
+
 ## 2026-11-16 source reconciliation
 
 PR #1448 incorporates the current `main` and keeps the fail-closed policy and the approval register. The 48 existing entries expired on 2026-10-20.
