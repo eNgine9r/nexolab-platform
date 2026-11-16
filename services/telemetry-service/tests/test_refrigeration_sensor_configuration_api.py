@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -232,10 +232,22 @@ def test_commissioned_sections_can_be_placed_without_a_chamber(tmp_path: Path) -
     retained = next(item for item in during_outage if item["channel_id"] == channels[1])
     assert retained["latest_value"] == 4.5 and retained["selectable"] is False
     assert all(item["channel_id"] != channels[0] for item in during_outage)
+    assert retained["sample_state"] == "known"
+    assert datetime.fromisoformat(retained["sample_valid_until"]) > now
+
+    with Session(database.engine) as session, session.begin():
+        sample = session.scalar(select(TelemetryLatest).where(TelemetryLatest.channel_id == channels[1]))
+        sample.captured_at = now - timedelta(hours=1)
+    aged_channels = api.get(path + "/structural-snapshot").json()["channels"]
+    aged = next(item for item in aged_channels if item["channel_id"] == channels[1])
+    assert aged["sample_state"] == "stale"
+    assert datetime.fromisoformat(aged["sample_valid_until"]) < now
 
     with Session(database.engine) as session, session.begin():
         node = session.scalar(select(CentralNode).where(CentralNode.node_id == KK2))
         node.state = "revoked"
+        sample = session.scalar(select(TelemetryLatest).where(TelemetryLatest.channel_id == channels[1]))
+        sample.captured_at = now
     card = api.get("/api/v1/equipment").json()["items"][0]
     assert (card["assigned_sensors"], card["online_sensors"]) == (1, 0)
     assert card["sensor_summary_valid_until"] is None

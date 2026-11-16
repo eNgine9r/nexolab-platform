@@ -38,6 +38,7 @@ export type AvailableSensor = {
   latestValue: number | null;
   quality: string;
   capturedAt: string;
+  sampleValidUntil?: string | null;
   isBound: boolean;
   boundEquipmentId: string | null;
   boundSlotKey: string | null;

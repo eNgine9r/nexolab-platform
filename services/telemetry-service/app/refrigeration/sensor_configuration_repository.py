@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import select, tuple_
@@ -77,6 +77,7 @@ class ClimateChamberChannel:
     controller_label: str | None = None
     input_number: int | None = None
     selectable: bool = True
+    sample_valid_until: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,21 +214,34 @@ class PostgresSensorConfigurationRepository:
                     )
                 )
             }
-        return {
-            channel_id: ClimateChamberChannel(
+        rows = {}
+        now = datetime.now(UTC)
+        for channel_id, item in candidates.items():
+            sample = latest.get(channel_id)
+            captured_at = (sample.captured_at if sample else equipment.updated_at)
+            if captured_at.tzinfo is None:
+                captured_at = captured_at.replace(tzinfo=UTC)
+            valid_until = (
+                captured_at + timedelta(seconds=min(30, sample.stale_after_seconds or 30))
+                if sample else None
+            )
+            quality = sample.quality if sample else "no-data"
+            if sample and sample.value is not None and (now >= valid_until or captured_at > now):
+                quality = "stale"
+            rows[channel_id] = ClimateChamberChannel(
                 channel_id=channel_id,
                 metric="temperature.probe",
                 unit="degC",
-                latest_value=latest[channel_id].value if channel_id in latest else None,
-                quality=latest[channel_id].quality if channel_id in latest else "no-data",
-                captured_at=latest[channel_id].captured_at if channel_id in latest else equipment.updated_at,
+                latest_value=sample.value if sample else None,
+                quality=quality,
+                captured_at=captured_at,
                 binding=by_channel.get(channel_id),
                 controller_label=item.controller_label,
                 input_number=item.input_number,
                 selectable=channel_id in active,
+                sample_valid_until=valid_until,
             )
-            for channel_id, item in candidates.items()
-        }
+        return rows
 
     def list_climate_chamber_channels(
         self,

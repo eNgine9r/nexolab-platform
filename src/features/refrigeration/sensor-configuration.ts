@@ -340,6 +340,7 @@ export function channelPlacementConflict(channel: AvailableSensor, equipmentId?:
 
 export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
   const quality = channel.quality.trim().toLowerCase();
+  if (quality === "stale") return "Stale";
   if (channel.latestValue === null) {
     if (quality.includes("offline") || quality.includes("communication")) {
       return "Offline";
@@ -358,6 +359,12 @@ export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()
     return "Stale";
   }
   return "Live";
+}
+
+export function channelWithCurrentReading(channel: AvailableSensor, now: number): AvailableSensor {
+  if (channel.latestValue === null || channel.sampleValidUntil == null) return channel;
+  if (channel.quality !== "stale" && Date.parse(channel.sampleValidUntil) > now) return channel;
+  return { ...channel, latestValue: null, quality: "stale" };
 }
 
 function firstAvailableSlot(

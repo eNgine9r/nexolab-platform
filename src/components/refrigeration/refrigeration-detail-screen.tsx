@@ -31,7 +31,10 @@ import type {
 } from "@/data/refrigeration";
 import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
-import { attachPhysicalSensorInventory } from "@/features/refrigeration/sensor-configuration";
+import {
+  attachPhysicalSensorInventory,
+  channelWithCurrentReading,
+} from "@/features/refrigeration/sensor-configuration";
 import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
@@ -145,9 +148,8 @@ export function RefrigerationDetailScreen({
   const [equipmentRecord, setEquipmentRecord] = useState(initialEquipment);
   const [bindings, setBindings] = useState<SensorBinding[]>(initialSnapshot?.bindings ?? []);
   const [channels, setChannels] = useState<AvailableSensor[]>(initialSnapshot?.channels ?? []);
-  const [bindingSensors, setBindingSensors] = useState<RefrigerationSensor[] | null>(() =>
-    initialSnapshot ? buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels) : null,
-  );
+  const [bindingsReady, setBindingsReady] = useState(Boolean(initialSnapshot));
+  const [sampleTime, setSampleTime] = useState(() => Date.now());
   const [channelError, setChannelError] = useState<string | null>(null);
   const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -182,7 +184,7 @@ export function RefrigerationDetailScreen({
     if (initialSnapshot) {
       setBindings(initialSnapshot.bindings);
       setChannels(initialSnapshot.channels);
-      setBindingSensors(buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels));
+      setBindingsReady(true);
     }
   }, [initialEquipment, initialSnapshot]);
 
@@ -303,12 +305,35 @@ export function RefrigerationDetailScreen({
     }
   }, [equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
 
+  const hasSectionChannels = channels.some((channel) => channel.inputNumber != null);
+  const nextSampleExpiry = channels.reduce((next, channel) => {
+    const deadline = Date.parse(channel.sampleValidUntil ?? "");
+    return channel.latestValue !== null && channel.quality !== "stale" && deadline > sampleTime
+      ? Math.min(next, deadline)
+      : next;
+  }, Infinity);
+  useEffect(() => {
+    if (!Number.isFinite(nextSampleExpiry)) return;
+    const deadline = window.setTimeout(
+      () => setSampleTime(Date.now()),
+      Math.max(0, nextSampleExpiry - Date.now()),
+    );
+    return () => window.clearTimeout(deadline);
+  }, [nextSampleExpiry]);
+
+  useEffect(() => {
+    if (!hasSectionChannels || !bindings.length || (activeTab !== "scheme" && activeTab !== "overview"))
+      return;
+    const refresh = window.setInterval(() => void refreshChannelSamples(), 10_000);
+    return () => window.clearInterval(refresh);
+  }, [activeTab, bindings.length, hasSectionChannels, refreshChannelSamples]);
+
   useEffect(() => {
     const structural = runtime.structuralSnapshotRepository;
     const lifecycle = runtime.lifecycleRepository;
     const chamberId = equipmentRecord.climateChamberId;
     if (!structural && (!lifecycle || !chamberId)) {
-      setBindingSensors((current) => current ?? (runtime.mode === "demo" ? null : []));
+      if (runtime.mode === "live") setBindingsReady(true);
       setChannelError(
         runtime.mode === "live" && !chamberId ? "Для обладнання не вибрано кліматичну камеру." : null,
       );
@@ -336,7 +361,7 @@ export function RefrigerationDetailScreen({
         if (loaded.equipment) setEquipmentRecord(loaded.equipment);
         setBindings(loaded.bindings);
         setChannels(loaded.channels);
-        setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
+        setBindingsReady(true);
 
         const catalog = runtime.climateCatalogRepository;
         if (!catalog || !chamberId) return;
@@ -352,7 +377,7 @@ export function RefrigerationDetailScreen({
       })
       .catch((cause) => {
         if (!active) return;
-        setBindingSensors((current) => current ?? []);
+        setBindingsReady(true);
         setChannelError(
           cause instanceof Error ? cause.message : "Не вдалося оновити структурний snapshot обладнання.",
         );
@@ -362,10 +387,14 @@ export function RefrigerationDetailScreen({
     };
   }, [bindingEpoch, equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
 
-  const equipment = useMemo(
-    () => (bindingSensors === null ? equipmentRecord : { ...equipmentRecord, sensors: bindingSensors }),
-    [bindingSensors, equipmentRecord],
+  const currentChannels = useMemo(
+    () => channels.map((channel) => channelWithCurrentReading(channel, sampleTime)),
+    [channels, sampleTime],
   );
+  const equipment = useMemo(() => {
+    if (!bindingsReady) return equipmentRecord;
+    return { ...equipmentRecord, sensors: buildBindingSensors(bindings, currentChannels) };
+  }, [bindings, bindingsReady, currentChannels, equipmentRecord]);
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
@@ -539,14 +568,14 @@ export function RefrigerationDetailScreen({
 
             {activeTab === "scheme" ? (
               <SecurityAwareRefrigerationLayoutWorkspace
-                equipment={equipment}
+                equipment={equipmentRecord}
                 visibleSensors={visibleSensors}
                 selectedId={activeSelectedId}
                 mode={layoutMode}
                 onModeChange={setLayoutMode}
                 onSelect={setSelectedId}
                 bindings={bindings}
-                availableSensors={channels}
+                availableSensors={currentChannels}
                 sensorConfigurationRepository={runtime.sensorConfigurationRepository}
                 onEquipmentChange={setEquipmentRecord}
                 onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
@@ -742,7 +771,7 @@ function defaultCoordinates(side: SensorSide, shelf: number, position: number): 
 }
 
 function sensorStatus(quality: string | undefined): SensorStatus {
-  if (quality === "good") return "normal";
+  if (quality === "good" || quality === "valid" || quality === "ok") return "normal";
   if (quality === "warning" || quality === "stale") return "warning";
   if (quality === "alarm" || quality === "critical") return "alarm";
   return "no-data";

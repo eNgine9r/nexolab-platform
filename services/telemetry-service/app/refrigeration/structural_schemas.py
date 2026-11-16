@@ -24,6 +24,7 @@ class StructuralChannelResponse(BaseModel):
     quality: str
     captured_at: datetime | None
     sample_state: StructuralSampleState
+    sample_valid_until: datetime | None = None
     is_bound: bool
     controller_label: str | None = None
     input_number: int | None = None

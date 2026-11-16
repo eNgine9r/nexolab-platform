@@ -329,6 +329,7 @@ function parseChannel(value: unknown, fallbackCapturedAt: string): StructuralCha
     quality,
     capturedAt: readString(record?.captured_at) ?? fallbackCapturedAt,
     sampleState,
+    sampleValidUntil: readOptionalString(record?.sample_valid_until),
     controllerLabel: readOptionalString(record?.controller_label),
     inputNumber: readInteger(record?.input_number),
     selectable: record?.selectable !== false,

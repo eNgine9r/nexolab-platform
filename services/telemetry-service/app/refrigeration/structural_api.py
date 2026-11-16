@@ -118,6 +118,7 @@ def create_refrigeration_structural_router(
                     quality=item.quality,
                     captured_at=item.captured_at,
                     sample_state=_sample_state(item.latest_value, item.quality),
+                    sample_valid_until=item.sample_valid_until,
                     is_bound=item.binding is not None,
                     controller_label=item.controller_label,
                     input_number=item.input_number,
