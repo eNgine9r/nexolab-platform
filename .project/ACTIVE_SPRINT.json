@@ -61,11 +61,36 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1577
+      "issue": 1579
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1579,
+      "title": "Synchronize controller graphs and analyze an observed refrigeration cycle",
+      "branch": "feat/1579-shared-controller-cycle",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only Embraco controller history chart selection, viewport, cursor, relay and defrost evidence.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-controller-{chart,history}*",
+        "src/features/refrigeration/controller-timeline*",
+        "src/components/charts/chart-renderer-host.tsx",
+        "src/features/charts/{echarts-adapter,inspection}*",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "d92350848fa67705bd74cbd75152495d82ff387e",
+        "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
+        "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
+        "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
+        "pending": "Required exact-head CI and browser workflow evidence. Separate approval for site activation.",
+        "hardware_verified": false,
+        "site_cutover": false
+      }
+    },
     {
       "issue": 1577,
       "title": "Restore replacement Dixell collection and canonical Overview monitoring",

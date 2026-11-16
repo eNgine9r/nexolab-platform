@@ -61,6 +61,7 @@ function nearestPoint(series: ChartSeries, timestampMs: number): ChartPoint | nu
 export function inspectChartAtTimestamp(
   scene: ChartRendererScene,
   timestampMs: number,
+  { withinObservedSpan = false }: { withinObservedSpan?: boolean } = {},
 ): ChartCursorInspection {
   if (
     scene.cursorToleranceMs !== undefined &&
@@ -73,7 +74,15 @@ export function inspectChartAtTimestamp(
     series: scene.series
       .filter((series) => series.visible)
       .map((series) => {
-        const nearest = nearestPoint(series, timestampMs);
+        const observed =
+          !withinObservedSpan ||
+          series.segments.some(
+            ({ points }) =>
+              points.length > 0 &&
+              timestampMs >= points[0].timestampMs &&
+              timestampMs <= points.at(-1)!.timestampMs,
+          );
+        const nearest = observed ? nearestPoint(series, timestampMs) : null;
         const toleranceMs = scene.cursorToleranceMs ?? seriesCursorToleranceMs(series);
         return {
           seriesKey: chartSeriesKey(series.identity),

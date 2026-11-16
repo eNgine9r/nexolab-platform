@@ -435,6 +435,8 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
   await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
   const relayLanes = history.getByTestId("relay-analysis-lanes");
+  await expect(relayLanes.getByText("Відтайка", { exact: true })).toBeVisible();
+  await expect(history.getByText("Тривалість відтайки", { exact: true })).toBeVisible();
   for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
     await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
   }
@@ -459,6 +461,15 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await page.mouse.up();
   await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
   await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
+
+  const selectedFrom = await compressorSurface.getAttribute("data-range-selection-from-ms");
+  const selectedTo = await compressorSurface.getAttribute("data-range-selection-to-ms");
+  if (!selectedFrom || !selectedTo) throw new Error("Selected interval is unavailable");
+  await history.getByRole("button", { name: "Наблизити відрізок", exact: true }).click();
+  for (const surface of [compressorHost, relayLanes]) {
+    await expect(surface).toHaveAttribute("data-chart-x-domain-from-ms", selectedFrom);
+    await expect(surface).toHaveAttribute("data-chart-x-domain-to-ms", selectedTo);
+  }
 
   const downloadPromise = page.waitForEvent("download");
   await history.getByRole("button", { name: "Export CSV", exact: true }).click();

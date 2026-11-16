@@ -1,3 +1,7 @@
+## 2026-11-16 — #1579 synchronized controller-cycle analysis
+
+The XWEB review identified a missing workflow in Refrigeration → Charts. Temperature and RPM now share the selection, zoom, and cursor with the previous state and relay history. The defrost lane follows Embraco state 3 and reports duration plus observed coverage. The alarm view, relay journal and existing CSV use the selected analysis interval. Source review and exact-head browser acceptance are pending. No site or hardware mutation was performed.
+
 ## 2026-11-16 — #1577 collection restored; Overview integration candidate
 
 Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.
