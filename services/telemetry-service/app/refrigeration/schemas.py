@@ -98,6 +98,7 @@ class RefrigerationEquipmentResponse(BaseModel):
     max_temperature_c: float
     online_sensors: int
     assigned_sensors: int | None = None
+    sensor_summary_valid_until: datetime | None = None
     total_sensors: int
     active_alarms: int
     last_seen_at: datetime | None

@@ -107,6 +107,7 @@ class PostgresRefrigerationEquipmentRepository:
         for binding in bindings:
             counts[binding.equipment_id] = counts.get(binding.equipment_id, 0) + 1
         values: dict[str, list[float]] = {}
+        valid_until: dict[str, datetime] = {}
         if bindings:
             now = datetime.now(UTC)
             unique_nodes = (
@@ -151,10 +152,15 @@ class PostgresRefrigerationEquipmentRepository:
                     and now - timedelta(seconds=freshness) <= captured_at <= now
                 ):
                     values.setdefault(binding.equipment_id, []).append(sample.value)
+                    expires_at = captured_at + timedelta(seconds=freshness)
+                    valid_until[binding.equipment_id] = min(
+                        expires_at, valid_until.get(binding.equipment_id, expires_at)
+                    )
         for item in items:
             temperatures = values.get(item.id, [])
             # Derived response fields: keep the persisted passport and its version untouched.
             item.assigned_sensors = counts.get(item.id, 0)
+            item.sensor_summary_valid_until = valid_until.get(item.id)
             item.scheme_online_sensors = len(temperatures)
             item.scheme_average_temperature_c = (
                 sum(temperatures) / len(temperatures) if temperatures else 0.0

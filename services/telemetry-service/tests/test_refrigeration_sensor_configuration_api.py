@@ -225,6 +225,7 @@ def test_commissioned_sections_can_be_placed_without_a_chamber(tmp_path: Path) -
     assert option["latest_value"] == 4.5
     card = api.get("/api/v1/equipment").json()["items"][0]
     assert (card["assigned_sensors"], card["online_sensors"], card["average_temperature_c"]) == (1, 1, 4.5)
+    assert datetime.fromisoformat(card["sensor_summary_valid_until"]) > now
 
     registry = None
     during_outage = api.get(path + "/structural-snapshot").json()["channels"]

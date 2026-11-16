@@ -60,6 +60,7 @@ export interface RefrigerationEquipment {
   maxTemperatureC: number;
   onlineSensors: number;
   assignedSensors?: number;
+  sensorSummaryValidUntil?: string | null;
   totalSensors: number;
   activeAlarms: number;
   lastSeenAt: string;

@@ -240,6 +240,7 @@ def equipment_response(
         max_temperature_c=item.max_temperature_c,
         online_sensors=getattr(item, "scheme_online_sensors", item.online_sensors),
         assigned_sensors=getattr(item, "assigned_sensors", None),
+        sensor_summary_valid_until=getattr(item, "sensor_summary_valid_until", None),
         total_sensors=item.total_sensors,
         active_alarms=item.active_alarms,
         last_seen_at=item.last_seen_at,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
@@ -107,6 +107,42 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(screen.getByText("Вітрина №107-02")).toBeInTheDocument();
     expect(screen.queryByText("Вітрина №106-01")).not.toBeInTheDocument();
+  });
+
+  it("uses fresh summaries for filtering and expires them if refresh fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const now = new Date("2026-11-16T18:00:00Z");
+      vi.setSystemTime(now);
+      const item = {
+        ...refrigerationEquipment[0]!,
+        status: "offline" as const,
+        assignedSensors: 2,
+        onlineSensors: 2,
+        averageTemperatureC: 4.5,
+        sensorSummaryValidUntil: new Date(now.getTime() + 11_000).toISOString(),
+      };
+      const repository = new InMemoryRefrigerationEquipmentRepository([]);
+      const load = vi.spyOn(repository, "list").mockResolvedValueOnce([item]);
+      load.mockRejectedValue(new Error("disconnected"));
+      render(<RefrigerationCatalogScreen runtime={{ ...runtime(), mode: "live", repository }} />);
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      const statusFilter = screen.getByLabelText("Фільтр за станом");
+      fireEvent.change(statusFilter, { target: { value: "normal" } });
+      expect(screen.getByText(item.name)).toBeVisible();
+      expect(screen.getByText("2 із 2 онлайн")).toBeVisible();
+      expect(screen.getByText("4,5 °C")).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(12_000));
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(item.name)).not.toBeInTheDocument();
+      fireEvent.change(statusFilter, { target: { value: "offline" } });
+      expect(screen.getByText(item.name)).toBeVisible();
+      expect(screen.getByText("0 із 2 онлайн")).toBeVisible();
+      expect(screen.queryByText("4,5 °C")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders an explicit empty state when no equipment matches", async () => {

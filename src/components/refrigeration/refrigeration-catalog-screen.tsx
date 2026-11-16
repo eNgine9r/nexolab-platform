@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -93,6 +93,8 @@ export function RefrigerationCatalogScreen({
   const [items, setItems] = useState<RefrigerationEquipment[]>(
     runtime.mode === "demo" ? refrigerationEquipment : [],
   );
+  const [summaryTime, setSummaryTime] = useState(() => Date.now());
+  const catalogMutation = useRef(0);
   const [chambers, setChambers] = useState<ClimateChamber[]>([]);
   const [controllerSummaryResult, setControllerSummaryResult] = useState<{
     repository: RefrigerationEquipmentRuntime["controllerBindingRepository"];
@@ -133,27 +135,47 @@ export function RefrigerationCatalogScreen({
     const repository = runtime.repository;
     if (!repository) return;
     let active = true;
-    void repository
-      .list()
-      .then((loaded) => {
-        if (!active) return;
-        setItems(loaded);
-        setNotice((current) => (current?.tone === "error" ? null : current));
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setNotice({
-          tone: "error",
-          message: error instanceof Error ? error.message : "Не вдалося завантажити каталог обладнання.",
-        });
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    let loadingList = false;
+    let initialError = false;
+    let firstRequest = true;
+    const load = async () => {
+      if (loadingList) return;
+      loadingList = true;
+      const mutationAtStart = catalogMutation.current;
+      try {
+        const loaded = await repository.list();
+        if (active && mutationAtStart === catalogMutation.current) {
+          setItems(loaded);
+          setSummaryTime(Date.now());
+          if (firstRequest || initialError) {
+            setNotice((current) => (current?.tone === "error" ? null : current));
+            initialError = false;
+          }
+        }
+      } catch (error) {
+        if (active && firstRequest) {
+          initialError = true;
+          setNotice({
+            tone: "error",
+            message: error instanceof Error ? error.message : "Не вдалося завантажити каталог обладнання.",
+          });
+        }
+      } finally {
+        if (firstRequest && active) setLoading(false);
+        firstRequest = false;
+        loadingList = false;
+      }
+    };
+    void load();
+    const refresh = runtime.mode === "live" ? window.setInterval(() => void load(), 10_000) : undefined;
+    const clock =
+      runtime.mode === "live" ? window.setInterval(() => setSummaryTime(Date.now()), 1_000) : undefined;
     return () => {
       active = false;
+      window.clearInterval(refresh);
+      window.clearInterval(clock);
     };
-  }, [runtime.repository]);
+  }, [runtime.mode, runtime.repository]);
 
   useEffect(() => {
     const repository = runtime.controllerBindingRepository;
@@ -271,20 +293,22 @@ export function RefrigerationCatalogScreen({
 
   const equipment = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
-    return items.filter((item) => {
-      const chamberItem = item.nodeId ? chamberByNodeId.get(item.nodeId) : undefined;
-      const searchText =
-        `${item.name} ${item.code} ${item.location} ${item.laboratory ?? ""} ${item.zone ?? ""} ${item.nodeId ?? ""} ${chamberItem?.code ?? ""} ${chamberItem?.name ?? ""} ${item.model}`.toLocaleLowerCase(
-          "uk-UA",
+    return items
+      .map((item) => equipmentAtTime(item, summaryTime))
+      .filter((item) => {
+        const chamberItem = item.nodeId ? chamberByNodeId.get(item.nodeId) : undefined;
+        const searchText =
+          `${item.name} ${item.code} ${item.location} ${item.laboratory ?? ""} ${item.zone ?? ""} ${item.nodeId ?? ""} ${chamberItem?.code ?? ""} ${chamberItem?.name ?? ""} ${item.model}`.toLocaleLowerCase(
+            "uk-UA",
+          );
+        return (
+          (normalizedQuery.length === 0 || searchText.includes(normalizedQuery)) &&
+          (status === "all" || item.status === status) &&
+          (lifecycle === "all" || item.lifecycleStatus === lifecycle) &&
+          (chamber === "all" || item.nodeId === chamber)
         );
-      return (
-        (normalizedQuery.length === 0 || searchText.includes(normalizedQuery)) &&
-        (status === "all" || item.status === status) &&
-        (lifecycle === "all" || item.lifecycleStatus === lifecycle) &&
-        (chamber === "all" || item.nodeId === chamber)
-      );
-    });
-  }, [chamber, chamberByNodeId, items, lifecycle, query, status]);
+      });
+  }, [chamber, chamberByNodeId, items, lifecycle, query, status, summaryTime]);
 
   const openCreate = () => {
     setCreateIntent("create");
@@ -306,7 +330,8 @@ export function RefrigerationCatalogScreen({
     setCreateError(null);
     try {
       const created = await runtime.repository.create(input);
-      setItems((current) => [...current, created]);
+      catalogMutation.current += 1;
+      setItems((current) => [...current.filter((item) => item.id !== created.id), created]);
       setCreateOpen(false);
       setCreateInitialValue(null);
       setNotice({
@@ -329,6 +354,7 @@ export function RefrigerationCatalogScreen({
     setDeleteError(null);
     try {
       await runtime.repository.remove(deleteTarget.id, deleteTarget.version);
+      catalogMutation.current += 1;
       setItems((current) => current.filter((item) => item.id !== deleteTarget.id));
       setNotice({ tone: "success", message: `${deleteTarget.name} видалено з каталогу.` });
       setDeleteTarget(null);
@@ -506,6 +532,15 @@ export function RefrigerationCatalogScreen({
   );
 }
 
+function equipmentAtTime(item: RefrigerationEquipment, now: number): RefrigerationEquipment {
+  if (item.assignedSensors === undefined || item.onlineSensors === 0) return item;
+  const validUntil = Date.parse(item.sensorSummaryValidUntil ?? "");
+  if (!Number.isFinite(validUntil) || now >= validUntil) {
+    return { ...item, onlineSensors: 0, averageTemperatureC: 0 };
+  }
+  return item.status === "offline" ? { ...item, status: "normal" } : item;
+}
+
 function EquipmentCard({
   item,
   chamberName,
@@ -523,9 +558,6 @@ function EquipmentCard({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const receivingSamples =
-    item.status === "offline" && item.assignedSensors !== undefined && item.onlineSensors > 0;
-  const status = receivingSamples ? "normal" : item.status;
   return (
     <article className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1b33]/85 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/20">
       <div className="relative h-24 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
@@ -559,9 +591,9 @@ function EquipmentCard({
             ) : null}
           </div>
           <span
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[status]}`}
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[item.status]}`}
           >
-            {receivingSamples ? "Онлайн" : statusLabels[status]}
+            {statusLabels[item.status]}
           </span>
         </div>
 
