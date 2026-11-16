@@ -1,5 +1,17 @@
 # NEXOLAB #1447 — exact-image container security revalidation
 
+## 2026-11-16 source reconciliation
+
+PR #1448 incorporates the current `main` and keeps the fail-closed policy and the approval register. The 48 existing entries expired on 2026-10-20.
+
+- The GitHub artifact SHA-256 digests matched for the five baseline images from run [43851624610](https://github.com/eNgine9r/nexolab-platform/actions/runs/43851624610) at `181bf421a8e2c264c611f2be10401788481a67e5`. The linux/amd64 Telemetry scan reported 5 CRITICAL and 77 HIGH package/CVE tuples. Object Storage had 2 HIGH. Device Agent, Telegram Gateway and MQTT had zero HIGH and CRITICAL. The Debian-based Device Agent, Telegram Gateway and Telemetry images include `zlib1g` `1:1.3.dfsg+really1.3.1-1+deb13u1`, the [Debian security update](https://lists.debian.org/debian-security-announce/2026/msg00532.html); the earlier zlib findings are absent.
+- The earlier #1448 Telemetry artifact at `d1f47a3a280ac3789dc0735b06022729fd292304` from run [42219823187](https://github.com/eNgine9r/nexolab-platform/actions/runs/42219823187) had zero CRITICAL after the Pillow and msgpack updates. Comparing the matched reports leaves 52 Debian Telemetry HIGH tuples with no scanner-reported fixed version at the baseline date. This comparison does not establish the new candidate's scan result.
+- Object Storage now builds the pinned VersityGW release with Go 1.27.3 and `golang.org/x/net` v0.62.0. The latter is the [Go project’s fixed version for CVE-2026-78661](https://pkg.go.dev/vuln/GO-2026-6860). The original pin drifted behind the available fix, and current baseline evidence reported the two HIGH Object Storage findings separately.
+- The remaining Telemetry tuples include Debian Trixie's open [util-linux](https://security-tracker.debian.org/tracker/source-package/util-linux), [cJSON](https://security-tracker.debian.org/tracker/source-package/cjson), [SQLite](https://security-tracker.debian.org/tracker/source-package/sqlite3), [libwebsockets](https://security-tracker.debian.org/tracker/source-package/libwebsockets), ACL, ncurses and systemd findings. Review fresh exact-head reports before selecting the next package-level remediation. The approval register and required merge checks still apply.
+
+Local focused verification passed 64 tests with the declared Pillow and msgpack pins. The standalone policy validator confirmed the current expiry failure. Exact-head image verification and ARM64 runtime acceptance are pending. All sections below retain historical evidence.
+
+
 > **2026-11-06 reconciliation:** All counts and proposed exceptions below describe historical image reviews. The current branch retains the main-branch registry unchanged: 48 entries, expired 2026-10-20; no new or renewed exception is approved. The latest separate #1529 candidate scan reports 5 CRITICAL and 83 HIGH amd64 image/package/CVE tuples before this remediation; it does not establish installed ARM64 exposure. Fresh builds and policy review are required. The owner requested an update; the bounded residual-risk decision described below remains a separate, as-yet-unmade decision.
 
 **Status:** source-only risk review. The seven-day exception registry is a narrow risk decision, **not** proof of vulnerability elimination or permission to merge/deploy. The production site, credentials, field buses and data volumes were not changed.

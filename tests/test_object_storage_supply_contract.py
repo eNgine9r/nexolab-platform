@@ -19,7 +19,7 @@ def test_versitygw_source_and_fixed_sdk_are_exact_for_both_architectures() -> No
     assert "sha256sum -c -" in DOCKERFILE
     assert "GOTOOLCHAIN=local" in DOCKERFILE
     assert "CGO_ENABLED=0" in DOCKERFILE
-    assert "golang.org/x/net@v0.60.0" in DOCKERFILE
+    assert "golang.org/x/net@v0.62.0" in DOCKERFILE
     assert "go mod verify" in DOCKERFILE
     assert "go mod download" in DOCKERFILE
     assert "-o /out/versitygw ./cmd/versitygw" in DOCKERFILE

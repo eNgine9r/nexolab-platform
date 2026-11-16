@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-05T12:14:14.443448+00:00",
+  "timestamp": "2026-11-16T09:32:04Z",
   "actor": "Codex",
-  "event": "1511_ci_repair_merged_1513_adapter_disposition_1514_browser_fix",
+  "event": "1564_nginx_validator_source_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,46 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1514,
-    "branch": "fix/1514-advanced-onboarding-e2e",
-    "status": "browser_ci_in_progress",
-    "production_mutation": false
+    "issue": 1564,
+    "branch": "fix/1564-nginx-dynamic-user-validator",
+    "status": "review",
+    "site_cutover": false
   },
   "evidence_snapshot": {
+    "issue_1564_nginx_validator": {
+      "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+      "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+      "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+      "offline_runtime_dependency_change": "none",
+      "github_ci": "verify the published #1564 PR head",
+      "protected_site_change": "none in this work package",
+      "protected_https_unsigned_status": 302,
+      "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+    },
+    "issue_1569_user_admin_session_recovery": {
+      "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+      "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+      "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+      "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+      "local_chromium": "not run past browser startup; environment denied browser socket",
+      "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+      "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+      "runtime_dependency_change": "none",
+      "source_merged_pr": 1570,
+      "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "arm64_release_run": 43830341904
+    },
+    "issue_1567_private_lab_lifecycle": {
+      "pi_systemd_baseline": "confirmed inactive DNS and HTTP after daemon stop/start",
+      "pi_systemd_candidate": "delayed bind, stop/start and restart pass on isolated user units",
+      "live_lan_dashboard": 200,
+      "live_telemetry_ready": 200,
+      "live_lab_login_from_tailnet": 200,
+      "live_legacy_inspection_login_from_tailnet": 502,
+      "owner_console_installation": "pending",
+      "affected_client_reboot_and_network_return": "unverified"
+    },
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
       "branch": "commander/1184-react-19-3",
@@ -2992,14 +3026,251 @@
       "site_deployed": false,
       "runtime_user_acceptance": "pending"
     },
-    "rs485_integration_1486": {
-      "source_only": true,
-      "hardware": "unverified",
-      "site_activation": false,
-      "core_pr": 1483,
-      "adapter_finder_merged_pr": 1480,
-      "ci_marker_fix_merged_pr": 1485,
-      "integration_checks": "342_agent_24_central_1233_frontend_lint_typecheck_build_PASS_CI_pending"
+    "issue_1532_overview_readability": {
+      "issue": 1532,
+      "pull_request": 1533,
+      "branch": "feat/1532-overview-readability",
+      "base_main_sha": "8ba483b6edb3adca75c23923ee74657cc96929c6",
+      "verified_isolated_workspace": "/home/nexolab/commander-workspaces/overview-1532-validation-20261106",
+      "source_file_blob_match": 6,
+      "focused_vitest": "7_passed_3_files",
+      "changed_file_prettier": "passed",
+      "changed_file_eslint": "passed",
+      "typescript_noemit": "passed",
+      "target_node_version": "22.23.1",
+      "tests_vitest_version": "4.1.10",
+      "exact_head_required_ci": "PASS_42233327149_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_verified": true,
+      "production_build_verified": true,
+      "permission_pr_dependency": 1531,
+      "prod_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "runtime_mutation": false,
+      "update_signal": "withheld",
+      "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_viewport_verified_overview": [
+        360,
+        1440,
+        1920
+      ],
+      "browser_viewport_verified_header": [
+        320,
+        375,
+        768,
+        1280
+      ],
+      "browser_evidence_artifact": 13510498719,
+      "manual_pixel_review": "not_recorded",
+      "needs_new_exact_head_ci_after_state_change": true,
+      "merged_pr": 1533,
+      "final_ci": "PASS_42234941179",
+      "final_browser": "PASS_42234941253",
+      "production_installed": false
+    },
+    "issue_1534_overview_device_first": {
+      "issue": 1534,
+      "branch": "feat/1534-overview-sensor-picker",
+      "base_main_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+      "source_blobs_verified": 7,
+      "targeted_tests": "28_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "github_ci": "PASS_42238642725",
+      "browser_acceptance": "PASS_42_of_42_42238642310",
+      "release": "not_installed",
+      "modbus_write": false,
+      "hardware_write": false,
+      "site_mutation": false,
+      "pull_request": 1535,
+      "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+      "responsive_viewport_widths": [
+        320,
+        375,
+        390,
+        768,
+        1280,
+        1440,
+        1920
+      ],
+      "source_completion": "verified_candidate",
+      "final_documentation_ci": "pending"
+    },
+    "issue_1537_live_retry_flake": {
+      "issue": 1537,
+      "pull_request": 1538,
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "source_base_main": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+      "targeted_prettier": "PASS",
+      "targeted_eslint": "PASS",
+      "targeted_tsc": "PASS",
+      "previous_42_browser_rerun": "PASS_42240068804_attempt2",
+      "new_exact_head_ci": "PASS_42283567771",
+      "new_exact_head_browser": "PASS_13_of_13_42283567775",
+      "site_installed": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "source_merged": true,
+      "source_merge_commit_observation_only": "recorded_in_observations"
+    },
+    "issue_1536_live_progressive_filters": {
+      "issue": 1536,
+      "branch": "feat/1536-live-progressive-filters",
+      "base_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+      "vitest": "12_pass",
+      "changed_file_prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "source_blobs_verified": 2,
+      "github_ci": "PASS_42285423569",
+      "browser_acceptance": "PASS_42_of_42_42285423714",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1544_equipment_connections": {
+      "issue": 1544,
+      "related_discovery_issue": 1478,
+      "branch": "feat/1544-equipment-connections-readability",
+      "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+      "targeted_vitest": "8_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "verified_blobs": 3,
+      "github_ci": "PASS_42600416268",
+      "authenticated_browser_acceptance": "PASS_6_of_6_42600416103",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1546_energy_parameter_picker": {
+      "issue": 1546,
+      "branch": "feat/1546-energy-parameter-picker",
+      "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+      "focused_vitest": "10_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "source_blobs_verified": 3,
+      "github_ci": "pending",
+      "authenticated_energy_browser": "pending",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true,
+      "source_merge_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "main_ci": "PASS_42603616206"
+    },
+    "issue_1548_refrigeration_catalog": {
+      "issue": 1548,
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "source_base": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+      "focused_vitest": "PASS_13_of_13",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "sha_matched_files": 3,
+      "ci": "pending",
+      "authenticated_browser": "pending",
+      "production_install": "blocked",
+      "hardware_write": false,
+      "modbus_write": false
+    },
+    "storage_1553": {
+      "issue": 1553,
+      "branch": "chore/1553-safe-cache-reclamation",
+      "before_avail_bytes": 37260357632,
+      "after_avail_bytes": 45684551680,
+      "actual_reclaimed_bytes": 8424194048,
+      "runtime_containers": 13,
+      "telemetry_latest_id_progress": "13482333_to_13482381",
+      "external_frontend": "active",
+      "external_nginx": "active",
+      "production_data_delete": false,
+      "backup_delete": false,
+      "protected_cutover": false,
+      "source_ci": "pending",
+      "manual_rollout": "not_performed"
+    },
+    "sessions_operator_list_1550": {
+      "issue": 1550,
+      "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+      "source_branch": "feat/1550-sessions-list-clarity",
+      "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+      "targeted_tests": "7_passed_2_files",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "github_exact_head_ci": "pending",
+      "authenticated_browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "browser_target_viewports": [
+        375,
+        768,
+        1440,
+        1920
+      ]
+    },
+    "reports_operator_ui_1558": {
+      "issue": 1558,
+      "branch": "feat/1558-reports-operator-ui",
+      "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+      "targeted_tests": "9_passed_2_files",
+      "format_eslint_typecheck": "PASS",
+      "source_ci": "pending",
+      "browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "protected_ui_release_1560": {
+      "source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+      "artifact_run": 42805566839,
+      "arm64_profiles": "LAN_and_HTTPS_sha256_PASS",
+      "nginx_bluegreen_syntax": "PASS_isolated",
+      "hand_off_preflight": "PASS_READONLY",
+      "smoke": "HTTP200_login_sessions_reports_testfixtures_only",
+      "new_root_service_installed": true,
+      "nginx_config_switched": false,
+      "real_full_site_restore": false,
+      "hardware_write": false,
+      "first_operator_execution": "FAILED_CLOSED",
+      "actual_failure": "unsupported_identity_source",
+      "new_service_3104": "ACTIVE_HTTP200",
+      "new_runtime_identity": "VERIFIED_CORRECT_AFTER_PROVENANCE_METADATA_REPAIR",
+      "nginx_sha256": "b76c1120ae9e0981a8f1ba49caf9c6091d754df4b2649cf32cc36650d4e97f02",
+      "nginx_restored": true,
+      "old_service_3100": "ACTIVE_HTTP200",
+      "resume_operator_action": "promote_after_source_ci_and_root_journal_verification",
+      "targeted_resume_tests": "8_PASS"
+    },
+    "overview_v2_1562": {
+      "base_main": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+      "dev_preview": "http://127.0.0.1:3192/",
+      "browser": "real Next.js dev mode, demo sample data, Chromium desktop/tablet/mobile",
+      "desktop": "HTTP200_1440x900",
+      "tablet": "HTTP200_768x1000",
+      "mobile": "HTTP200_390x844",
+      "horizontal_overflow": false,
+      "js_page_errors": 0,
+      "targeted_tests": "15_PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "production_site_changed": false,
+      "hardware_write": false
     },
     "ci_trivy_1487": {
       "installer_negative_tests": 4,
@@ -3020,6 +3291,15 @@
       "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
       "ci_routing_tests": 82,
       "final_source_ci": "pending"
+    },
+    "rs485_integration_1486": {
+      "source_only": true,
+      "hardware": "unverified",
+      "site_activation": false,
+      "core_pr": 1483,
+      "adapter_finder_merged_pr": 1480,
+      "ci_marker_fix_merged_pr": 1485,
+      "integration_checks": "342_agent_24_central_1233_frontend_lint_typecheck_build_PASS_CI_pending"
     },
     "security_review_20261104": {
       "pull_request": 1448,
@@ -3042,6 +3322,15 @@
       "hardware": "unverified",
       "review_evidence": "docs/architecture/security-container-review-20261104.json",
       "full_updated_head_ci": "pending"
+    },
+    "security_reconciliation_20261116": {
+      "issue": 1447,
+      "pr": 1448,
+      "blocked_live_editor_pr": 1574,
+      "prior_scan_run": 42219823187,
+      "latest_baseline_scan_run": 43851624610,
+      "new_source_verification": "pending after publication",
+      "exception_registry": "unchanged; 48 expired entries"
     }
   },
   "observations": [
@@ -4465,9 +4754,143 @@
         "protected_adapter": "A10Q34QC",
         "runtime_mutation": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:20:15.309Z",
+      "kind": "1532_overview_isolated_source_check",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "focused_tests_passed": 7,
+        "source_blobs_match": 6,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:33:06.620Z",
+      "kind": "1532_source_ci_green_before_checkpoint_commit",
+      "data": {
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "browser_run": 42233327115,
+        "browser_passed": 42,
+        "release_gate": "pending_protected_installer",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_ui_checkpoint",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "verified_sha_files": 7,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:57:35.922Z",
+      "kind": "1532_merge_commit_recorded_as_observation",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "source_only": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_ci_acceptance_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "checks_green": true,
+        "browser_passed": 42,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1534_merged_and_1537_test_candidate",
+      "data": {
+        "merged_issue": 1534,
+        "merge_commit": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "new_issue": 1537,
+        "new_pr": 1538,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merge_and_1536_ui_checkpoint",
+      "data": {
+        "source_merged_pr": 1538,
+        "source_merge_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "issue": 1536,
+        "checks_isolated": 12,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1544_ui_checkpoint",
+      "data": {
+        "issue": 1544,
+        "source_merge_previous": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "verified_test_count": 8,
+        "verified_blobs": 3,
+        "read_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1546_energy_source_checkpoint",
+      "data": {
+        "issue": 1546,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "tests_passed": 10,
+        "blob_count": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "read_only_pi_preflight_observed_via_remote_connector",
+      "data": {
+        "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "ssd_used_percent": 97,
+        "available_gb": 7.2,
+        "docker_subnet": "172.18.0.0/16",
+        "physical_lan_subnet": "172.18.48.0/21",
+        "risk": "hard_blocker",
+        "site_mutation": false,
+        "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
+      }
     }
   ],
-  "next_action": "Finish exact-head browser acceptance #1514 and stacked source review; obtain instrument disposition for #1513, then prepare a reversible revision-checked retirement without touching live FTDI bus or history. Site cutover and hardware acceptance require separate authorization. Also finish #1525 exact-head review/CI and actual-user acceptance; then #1526 per-page server-enforced grants.",
+  "next_action": "Verify and merge the #1564 source PR after required GitHub checks. Read the active protected gateway and prepare the separately approved source-bound #1569 handoff from the verified ARM64 artifact. Retain exact Nginx rollback and verify authenticated Overview, telemetry and administrator access after activation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4476,7 +4899,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
+  "runtime_mutation": "none on the production gateway or lab services; isolated temporary systemd user fixtures only",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

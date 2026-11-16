@@ -29,7 +29,7 @@ WORKDIR /src
 # Rebuild the same release with fixed Go HTTP/TLS and x/net. No SDK, Git,
 # module downloader or network dependency enters the finished local runtime.
 RUN set -eux; \
-    go get golang.org/x/net@v0.60.0; \
+    go get golang.org/x/net@v0.62.0; \
     go mod download; \
     go mod verify; \
     mkdir /out; \
@@ -37,7 +37,7 @@ RUN set -eux; \
       -ldflags="-s -w -X=main.Version=${VERSITYGW_VERSION} -X=main.Build=${VERSITYGW_COMMIT}" \
       -o /out/versitygw ./cmd/versitygw; \
     go version -m /out/versitygw | grep -F "go${GO_VERSION}"; \
-    go version -m /out/versitygw | grep -E 'golang.org/x/net[[:space:]]+v0\.60\.0[[:space:]]'; \
+    go version -m /out/versitygw | grep -E 'golang.org/x/net[[:space:]]+v0\.62\.0[[:space:]]'; \
     go version -m /out/versitygw | grep -F "GOARCH=${TARGETARCH}"; \
     if [ "$TARGETARCH" = "$BUILDARCH" ]; then /out/versitygw --version | grep -F "${VERSITYGW_VERSION}"; fi; \
     case "$TARGETARCH" in amd64) other_arch=arm64 ;; arm64) other_arch=amd64 ;; esac; \

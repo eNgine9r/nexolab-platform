@@ -61,12 +61,87 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1514,
-      "branch": "fix/1514-advanced-onboarding-e2e"
+      "issue": 1564
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1564,
+      "title": "Use the pinned Nginx validator for protected frontend handoff",
+      "branch": "fix/1564-nginx-dynamic-user-validator",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Correct the root-gated Nginx syntax check and verify the existing byte-exact rollback. Keep the protected site untouched.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/"
+      ],
+      "evidence": {
+        "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+        "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+        "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+        "offline_runtime_dependency_change": "none",
+        "github_ci": "verify the published #1564 PR head",
+        "protected_site_change": "none in this work package",
+        "protected_https_unsigned_status": 302,
+        "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+      }
+    },
+    {
+      "issue": 1569,
+      "title": "Reauthenticate when the Users & Access session is lost",
+      "branch": "fix/1569-user-admin-session-recovery",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "scope": "Local refresh invalidation and authenticated user administration recovery.",
+      "permitted_paths": [
+        "src/components/settings/users-screen.tsx",
+        "src/components/settings/users-screen.test.tsx",
+        "src/features/security/local-auth.ts",
+        "src/features/security/local-auth.test.ts",
+        "src/features/security/local-user-admin.ts",
+        "src/features/security/local-user-admin.test.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+        "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+        "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+        "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+        "local_chromium": "not run past browser startup; environment denied browser socket",
+        "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+        "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+        "runtime_dependency_change": "none",
+        "source_merged_pr": 1570,
+        "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "arm64_release_run": 43830341904
+      }
+    },
+    {
+      "issue": 1567,
+      "title": "Restore private lab access after Tailscale stop/start",
+      "branch": "fix/1567-private-lab-tunnel-recovery",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Private lab DNS and HTTP systemd lifecycle, reversible console installation and live acceptance. Legacy private HTTPS topology assessed separately.",
+      "permitted_paths": [
+        "infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf",
+        "scripts/verify-raspberry-pi-private-lab-tailscale-lifecycle.sh",
+        "docs/operations/private-lab-tunnel-recovery.md",
+        ".project/"
+      ],
+      "evidence": {
+        "isolated_pi_systemd_fixture": "baseline reproduced; delayed readiness, stop/start and restart passed",
+        "live_lab_login_independent_tailnet_client": 200,
+        "live_legacy_inspection_login": 502,
+        "live_installation": "pending_owner_console",
+        "affected_client_reboot_and_network_return": "unverified"
+      }
+    },
     {
       "issue": 1343,
       "title": "Repair offline package storage authority and image identity before native handoff",
@@ -9776,9 +9851,12 @@
       "issue": 1514,
       "title": "Update advanced onboarding browser acceptance",
       "branch": "fix/1514-advanced-onboarding-e2e",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [],
-      "evidence": {}
+      "evidence": {
+        "priority_interruption": "Product Owner requested sequential Overview UI optimization; #1515 is a draft stacked on unmerged feature/1508-energy-scoped-sdm",
+        "source_change": "preserved_no_modification"
+      }
     },
     {
       "issue": 1516,
@@ -9808,6 +9886,524 @@
         1525
       ],
       "evidence": {}
+    },
+    {
+      "issue": 1532,
+      "title": "Overview readable compact KPI and infrastructure status",
+      "branch": "feat/1532-overview-readability",
+      "priority": "normal",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Overview UI typography/labels/freshness only; source candidate in draft PR #1533. Merge depends on independent per-page grant UI integration, exact-head CI, authenticated browser acceptance; no production deployment.",
+      "permitted_paths": [
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/live-inventory-panel.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        "src/components/dashboard/*.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1532,
+        "pull_request": 1533,
+        "touched_file_tests": "7_passed_3_files_isolated_pi",
+        "touched_file_format": "passed",
+        "touched_file_eslint": "passed",
+        "source_matched_six_github_blobs": true,
+        "typescript_noemit": "passed",
+        "github_exact_head_ci": "PASS_42233327149_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "production_build": "PASS_42233327149",
+        "runtime_offline_release": "not_installed",
+        "hardware_evidence": "not_applicable_no_hardware_change",
+        "modbus_write": "none",
+        "site_mutation": false,
+        "integration_gate": "Unmerged #1531/#1529 navigation work reviewed before merge; not a sprint-machine dependency",
+        "browser_responsive_overview_px": [
+          360,
+          1440,
+          1920
+        ],
+        "browser_responsive_header_px": [
+          320,
+          375,
+          768,
+          1280
+        ],
+        "browser_screenshot_artifact": 13510498719,
+        "human_visual_acceptance": "not_independently_recorded",
+        "github_exact_head_ci_update_note": "State-only recording commit after exact-head code acceptance; rerun required on new head.",
+        "merged_source_pr": 1533,
+        "merged_source_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "final_exact_head_sha": "90dcde6d550656acd54460b42301a6e7b5bb787d",
+        "final_ci": "PASS_42234941179",
+        "final_browser": "PASS_42234941253",
+        "site_installed": false,
+        "source_only": true
+      }
+    },
+    {
+      "issue": 1534,
+      "title": "Overview device-first sensor picker and scalable history controls",
+      "branch": "feat/1534-overview-sensor-picker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1532
+      ],
+      "scope": "Display-only Overview channel selector and chart controls; device-first hierarchy with explicit unknown fallback; no chamber assignment requirement, RS485 writes or telemetry backend changes.",
+      "permitted_paths": [
+        "src/components/dashboard/overview-sensor-groups.tsx",
+        "src/components/dashboard/overview-sensor-hierarchy.ts",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/dashboard/temperature-chart.tsx",
+        "src/components/dashboard/overview-chart-panel.tsx",
+        "src/components/dashboard/*.test.tsx",
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue": 1534,
+        "source_branch_base": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue_1514_review_preserved": true,
+        "tests": "not_run",
+        "ci": "not_run",
+        "hardware_write": false,
+        "modbus_write": false,
+        "site_mutation": false,
+        "changed_ui_files": 4,
+        "changed_test_files": 3,
+        "targeted_tests": "28_passed_4_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 7,
+        "verified_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+        "source_ci": "not_run",
+        "browser_acceptance": "not_run",
+        "production_build": "PASS_42238642725",
+        "release": "not_installed",
+        "browser_test_update": "replace obsolete chamber bulk checkbox with optional context assertion; no weakened negative safety assertions",
+        "pull_request": 1535,
+        "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "github_exact_head_ci": "PASS_42238642725",
+        "authenticated_dashboard": "PASS_42_of_42_42238642310",
+        "frontend_browser_test_viewports": [
+          320,
+          375,
+          390,
+          768,
+          1280,
+          1440,
+          1920
+        ],
+        "source_only": true,
+        "site_installed": false,
+        "exact_head_ci_after_state_evidence": "pending"
+      }
+    },
+    {
+      "issue": 1537,
+      "title": "Live retry acceptance must wait for authenticated WebSocket before MQTT sample publication",
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1534
+      ],
+      "scope": "Test-only stabilization: after socket retry wait for connected UI before publishing MQTT samples; preserve actual delivery and exactly-one-retry assertions.",
+      "permitted_paths": [
+        "e2e/live-terminal-offline-retry.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1537,
+        "pull_request": 1538,
+        "baseline_main_sha": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "browser_initial_failed_attempt": "41_of_42_42240068804_attempt1",
+        "browser_same_source_rerun": "42_of_42_42240068804_attempt2",
+        "isolated_pi_prettier": "PASS",
+        "isolated_pi_eslint": "PASS",
+        "isolated_pi_typescript": "PASS",
+        "exact_head_ci": "pending",
+        "authenticated_browser_acceptance": "pending",
+        "modbus_write": false,
+        "hardware_write": false,
+        "production_mutation": false,
+        "github_ci": "PASS_42283567771",
+        "selected_auth_browser": "PASS_13_of_13_42283567775",
+        "merged_source_pr": 1538,
+        "merged_source_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1536,
+      "title": "Live Data progressive advanced-filter disclosure and compact search",
+      "branch": "feat/1536-live-progressive-filters",
+      "priority": "normal",
+      "lifecycle": "completed",
+      "depends_on": [
+        1534,
+        1537
+      ],
+      "scope": "Frontend-only Live Data filtering UX: visible search; optional collapsible advanced Node/Equipment/Channel/Metric/Quality/Alarm selectors; active count and deep-link preservation; unchanged telemetry acquisition.",
+      "permitted_paths": [
+        "src/components/live/live-telemetry-explorer.tsx",
+        "src/components/live/live-telemetry-explorer.test.tsx",
+        "e2e/live.production.e2e.ts",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue": 1536,
+        "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+        "focused_vitest": "12_passed_1_file",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_code_test_blobs": 2,
+        "integrated_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "site_mutation": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts",
+        "github_exact_head_ci": "PASS_42285423569",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42285423714",
+        "merged_source_pr": 1539,
+        "merged_source_commit": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1544,
+      "title": "Equipment connections: compact, searchable persisted read-only sessions",
+      "branch": "feat/1544-equipment-connections-readability",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1536
+      ],
+      "scope": "Equipment Connections read-only UI: accurate counters while loading/error; local-only session search, status filtering, readable saved bus/Unit identities; unchanged commissioning activation, LAN discovery, permissions and Modbus.",
+      "permitted_paths": [
+        "src/components/equipment/equipment-connections-workspace.tsx",
+        "src/components/equipment/equipment-connections-workspace.test.tsx",
+        "e2e/equipment-registry.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1544,
+        "related_discovery_issue": 1478,
+        "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+        "focused_vitest": "PASS_8_of_8",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_source_blob_count": 3,
+        "authenticated_browser_acceptance": "not_observed_at_pr_creation",
+        "exact_head_ci": "not_run",
+        "production_build": "not_run",
+        "hardware_acceptance": "not_applicable_source_only",
+        "site_installed": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "pull_request": 1545,
+        "ready_for_review": true,
+        "github_ci": "not_observed_at_pr_creation",
+        "source_merged_pr": 1545,
+        "github_exact_head_ci": "PASS_42600416268",
+        "authenticated_equipment": "PASS_6_of_6_42600416103"
+      }
+    },
+    {
+      "issue": 1546,
+      "title": "Energy Monitoring: compact searchable multi-meter metric selector",
+      "branch": "feat/1546-energy-parameter-picker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1544
+      ],
+      "scope": "Display-only Energy parameter modal local search and selected-only review; preserve disabled unsupported metrics, multi-series/history/export, offline and all existing acquisition and permissions.",
+      "permitted_paths": [
+        "src/components/energy/energy-parameter-dialog.tsx",
+        "src/components/energy/energy-parameter-dialog.test.tsx",
+        "e2e/energy.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1546,
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+        "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "focused_vitest": "PASS_10_of_10_two_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 3,
+        "github_ci": "pending",
+        "production_build": "pending",
+        "authenticated_energy_browser": "pending",
+        "modbus_write": false,
+        "hardware_write": false,
+        "site_mutation": false,
+        "source_merged_pr": 1547,
+        "source_merged_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "main_ci": "PASS_42603616206",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1548,
+      "title": "Refrigeration catalog: compact equipment cards and trustworthy controller summaries",
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1546
+      ],
+      "scope": "Read-only refrigeration catalog presentation: compact equipment cards, long identity labels, persisted controller observations/timestamps and accessible status; no backend, source collection, hardware or production cutover.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-catalog-screen.tsx",
+        "src/components/refrigeration/refrigeration-catalog-screen.test.tsx",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1548,
+        "branch": "feat/1548-refrigeration-catalog-density",
+        "base_main_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "verified_workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+        "focused_vitest": "13_passed_1_file",
+        "prettier": "PASS",
+        "eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_blobs_sha_match": 3,
+        "github_exact_head_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_only": true,
+        "merged_source_pr": 1549,
+        "merged_source_sha": "182777186092cc1e3968182f2239bc6ce6c377e3"
+      }
+    },
+    {
+      "issue": 1553,
+      "title": "Reclaim inactive developer caches safely on NEXOLAB Raspberry SSD",
+      "branch": "chore/1553-safe-cache-reclamation",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "One-time verified deletion of generated ignored node_modules and .next outside the active site runtimes; protect production/rollback databases, images, archives and release packages.",
+      "permitted_paths": [
+        "docs/operations/nexolab-1553-safe-dev-cache-reclamation-2026-11-10.md",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1553,
+        "base_main_sha": "182777186092cc1e3968182f2239bc6ce6c377e3",
+        "host": "nexolab-edge-01",
+        "device": "/dev/sda2",
+        "before_avail_bytes": 37260357632,
+        "after_avail_bytes": 45684551680,
+        "actual_reclaimed_bytes": 8424194048,
+        "active_containers": 13,
+        "removed_directories": 23,
+        "permission_denied": 2,
+        "symlink_skipped": 1,
+        "external_frontend_and_nginx": "active",
+        "telemetry_max_id_before": 13482333,
+        "telemetry_max_id_after": 13482381,
+        "all_production_database_rows_deleted": 0,
+        "git_tracked_files_deleted": 0,
+        "docker_images_or_volumes_deleted": 0,
+        "backups_or_rollback_deleted": 0,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_ci": "pending",
+        "site_release": "not_requested",
+        "separate_telemetry_issue": 1551,
+        "recovery_blocker_issue": 1428,
+        "source_only": true,
+        "merged_source_pr": 1554
+      }
+    },
+    {
+      "issue": 1550,
+      "title": "Sessions list: readable operator identity and truthful organization-scoped status",
+      "branch": "feat/1550-sessions-list-clarity",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1548
+      ],
+      "scope": "Readable compact read-only session list, explicit selection-scoped counts, requested state filters, organization-safe loading/error, responsive identity and focus. No backend/device/permission changes or site deployment.",
+      "permitted_paths": [
+        "src/components/sessions/sessions-list-screen.tsx",
+        "src/components/sessions/sessions-list-screen.test.tsx",
+        "e2e/test-sessions.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+        "targeted_vitest": "7_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "PASS_42800767847",
+        "protected_site_installed": false,
+        "hardware_verification": "not_applicable_UI_only",
+        "modbus_write": false,
+        "hardware_write": false,
+        "browser_target_viewports": [
+          375,
+          768,
+          1440,
+          1920
+        ],
+        "merged_source_pr": 1557,
+        "merged_source_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "github_exact_head_ci": "PASS_42800767840",
+        "site_installed": false,
+        "source_merged_pr": 1557,
+        "merged_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1558,
+      "title": "Reports: readable searchable versions and truthful loaded-selection status",
+      "branch": "feat/1558-reports-operator-ui",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1550
+      ],
+      "scope": "Display-only reports list readability, searchable frozen session identity, localized report state, accurate selection-scoped counters and loading/error handling, focus and responsive behavior; no report generation/approval/download changes.",
+      "permitted_paths": [
+        "src/components/reports/reports-workspace.tsx",
+        "src/components/reports/reports-workspace.test.tsx",
+        "e2e/reports.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1558-reports-ui-20261110",
+        "targeted_vitest": "9_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_merged_pr": 1559,
+        "merged_sha": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1560,
+      "title": "Source-bound NEXOLAB Raspberry Pi HTTPS frontend blue/green operator handoff",
+      "priority": "critical",
+      "lifecycle": "review",
+      "branch": "feat/1560-frontend-bluegreen-handoff",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "A fail-closed operator-run HTTPS-only blue/green cutover preserves original 3100 and read-only security, OAuth and API proxy; staged 08f1c8a4 ARM64 artifacts, separate 3104 service, old upstream fallback, exact-identity rollback. Does not change LAN Dashboard, Docker/IPAM, DB, Modbus or hardware.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/",
+        ".github/workflows/authenticated-dashboard-acceptance.yml",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "github_offdevice_artifact_run": 42805566839,
+        "github_offdevice_artifact": "SUCCESS_both_profiles",
+        "arm64_lan_sha256": "PASS",
+        "arm64_https_sha256": "PASS",
+        "target_source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "old_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "rpi_candidate_browser_login_sessions_reports": "HTTP_200_fixture_only",
+        "nginx_bluegreen_generated_syntax": "PASS_isolated",
+        "new_handoff_contract_tests": "5_passed",
+        "site_frontend_handoff": "NOT_PERFORMED",
+        "protected_root_connector": "DENIED",
+        "full_site_dr_restore": "UNVERIFIED",
+        "docker_lan_cidr_overlap": "UNRESOLVED",
+        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
+        "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
+        "ci_followup": "required path filters added; exact-head CI pending",
+        "operator_first_execute": "FAILED_CLOSED_NEW_IDENTITY_PROVENANCE_UNSUPPORTED",
+        "nginx_rollback_after_failure": "VERIFIED_ORIGINAL_SHA_b76c1120ae9e0981",
+        "new_systemd_is_active": true,
+        "new_loopback_http_3104": 200,
+        "new_runtime_identity_source": "offline_image_manifest",
+        "new_runtime_identity_source_commit": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "new_build_id": "MCPKmYsrQCxN9zwMwDDnV",
+        "staging_and_installed_identity_metadata_corrected": true,
+        "second_stage_resume_command": "promote_NOT_execute",
+        "resume_hermetic_tests": "8_passed",
+        "protected_https_activation": false,
+        "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
+        "no_hardware_or_modbus_write": true
+      }
+    },
+    {
+      "issue": 1562,
+      "title": "Modern compact and responsive NEXOLAB Overview command center",
+      "branch": "feat/1562-overview-modern-command-center",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "Presentation-only Ukrainian Overview polish with clear heading, quick role-scoped shortcuts, compact truthful KPI row, temperature primary 8/12 and alerts/infrastructure 4/12 at desktop, lower sessions/layouts/cameras unchanged in meaning. No API/permissions/acquisition/site changes.",
+      "permitted_paths": [
+        "src/app/globals.css",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/kpi-card.test.tsx",
+        "src/components/dashboard/overview-workspace-layout.tsx",
+        "src/components/dashboard/overview-workspace-layout.test.tsx",
+        "src/components/dashboard/overview-secondary-workspace.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
+      ],
+      "evidence": {
+        "base_main_sha": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+        "worktree": "/home/nexolab/commander-workspaces/nexolab-1562-overview-v2-20261110",
+        "targeted_vitest": "15_of_15_PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "visual_browser_desktop": "1440x900_READONLY_DEMO_HTTP200",
+        "visual_browser_tablet": "768x1000_READONLY_DEMO_HTTP200",
+        "visual_browser_mobile": "390x844_READONLY_DEMO_HTTP200",
+        "horizontal_overflow": "NONE",
+        "page_errors": "NONE",
+        "visual_data": "EXPLICIT_DEMO_NOT_PRODUCTION",
+        "full_exact_head_github_ci": "PENDING_NEW_SHA",
+        "protected_site_installed": false,
+        "api_or_auth_modified": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
+        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING",
+        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY"
+      }
     },
     {
       "issue": 1486,
@@ -9951,6 +10547,12 @@
         "hardware": "unverified",
         "review_evidence": "docs/architecture/security-container-review-20261104.json",
         "full_updated_head_ci": "pending"
+      },
+      "result_2026_11_16": {
+        "baseline_supply_chain_run": 43851624610,
+        "latest_remediation_head": "d1f47a3a280ac3789dc0735b06022729fd292304",
+        "status": "reconciled source candidate; fresh image/runtime verification pending",
+        "changes": "Go 1.27.3, x/net 0.62.0, Pillow 13.0.0, msgpack 1.2.3; retained fail-closed policy"
       }
     }
   ],
@@ -10026,6 +10628,13 @@
       "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
+    },
+    {
+      "id": "nexolab-1553-safe-cache-cleanup-20261110",
+      "description": "Removed 23 ignored generated dependency/build cache directories only; verified 8424194048 bytes increase in available SSD space, 13 active containers, telemetry progress, active external frontend/nginx. Protected recovery assets untouched.",
+      "status": "completed",
+      "issue": 1553,
+      "timestamp": "2026-11-10T09:01:05Z"
     }
   ],
   "observations": [
@@ -11748,6 +12357,187 @@
           2
         ],
         "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:19:31.956Z",
+      "kind": "1532_overview_source_candidate",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "branch": "feat/1532-overview-readability",
+        "targeted_tests": 7,
+        "files_checked": 6,
+        "blob_match": true,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "ci": "pending",
+        "browser_acceptance": "pending",
+        "site_mutation": false,
+        "hardware_write": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:32:52.833Z",
+      "kind": "1532_ci_browser_acceptance_green",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "authenticated_dashboard_run": 42233327115,
+        "browser_pass": 42,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:45:46.063Z",
+      "kind": "1532_source_merged_1534_selected",
+      "data": {
+        "merged_pr": 1533,
+        "merged_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue": 1534,
+        "branch": "feat/1534-overview-sensor-picker",
+        "source_only": true,
+        "previous_active_issue": 1514,
+        "previous_active_moved_to_review": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_device_first_source_isolated_pass",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "source_files": 7,
+        "source_blob_match": true,
+        "format": "PASS",
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_source_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "browser_passed": 42,
+        "targeted_tests": 28,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1537_flaky_browser_retry_isolated_source_candidate",
+      "data": {
+        "issue": 1537,
+        "pr": 1538,
+        "source_merged_issue": 1534,
+        "source_merge_sha": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "browser_one_failed_attempt": true,
+        "browser_rerun_passed": 42,
+        "test_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merged_1536_ui_source_candidate",
+      "data": {
+        "merged_issue": 1537,
+        "merged_pr": 1538,
+        "merged_main_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "new_issue": 1536,
+        "tests_passed": 12,
+        "blobs_matched": 2,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1536_merged_1544_equipment_candidate",
+      "data": {
+        "prior_issue": 1536,
+        "source_merged_pr": 1539,
+        "main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "issue": 1544,
+        "linked_discovery": 1478,
+        "focused_tests": 8,
+        "source_blobs_matched": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:18:58.056Z",
+      "kind": "1544_pr_open_checks_not_yet_observed",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "branch": "feat/1544-equipment-connections-readability",
+        "workflow_runs_count_at_creation": 0,
+        "release_not_authorized": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1544_merged_1546_energy_isolated_candidate",
+      "data": {
+        "previous_pr": 1545,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "issue": 1546,
+        "focused_tests": 10,
+        "verified_blobs": 3,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:40:52.840Z",
+      "kind": "1544_source_merged_observation",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "merge_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "1546_merged_1548_ui_source_and_site_readiness_blocker",
+      "data": {
+        "source_merged_issue": 1546,
+        "source_merge_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "source_candidate_issue": 1548,
+        "verified_targeted_tests": 13,
+        "ssd_percent_used": 97,
+        "ssd_avail_gb": 7.2,
+        "docker_cidr": "172.18.0.0/16",
+        "lan_cidr": "172.18.48.0/21",
+        "protected_runtime_revision": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "site_update_blocked": true,
+        "site_mutation": false
       }
     },
     {

@@ -9,6 +9,8 @@ on:
       - "src/hooks/use-settings-preferences*"
       - ".github/workflows/refrigeration-browser-acceptance.yml"
       - "scripts/classify-ci-impact.py"
+      - "scripts/nexolab-1560-bluegreen-handoff.py"
+      - "scripts/tests/test_nexolab_1560_bluegreen_handoff.py"
       - "docs/refrigeration-browser-central-acceptance.md"
       - "e2e/refrigeration*.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"

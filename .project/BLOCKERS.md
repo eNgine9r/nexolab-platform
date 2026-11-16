@@ -1,6 +1,76 @@
-## 2026-11-06 — container security #1447 source reconciliation
+## 2026-11-16 — container security #1447
 
-Draft PR #1448 is being reconciled with current main. Earlier 2026-11-04 image evidence is historical; fresh candidate amd64 scan reports five CRITICAL Pillow findings and expired exceptions. Dependency fixes and exact-head scans must be verified. No exception extension, site change or production acceptance is implied.
+Container Supply Chain still blocks the Live data editor PR #1574. The previous reports contain 52 Debian telemetry HIGH tuples without a scanner-reported fixed version after accounting for the zlib update. The existing exception registry is unchanged; all 48 entries expired on 2026-10-20. Reconcile exact-head image evidence before any further decision.
+
+## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
+
+The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.
+
+## 2026-11-16 — #1569 protected frontend acceptance pending
+
+PR #1570 passed nine exact-head workflows and merged. The ARM64 build is staged and passed isolated Chromium on the Pi. Its source and build differ from the original #1560 handoff pins. Reconcile the active gateway and rollback frontend, then prepare a verified handoff tied to #1569. After separate site approval, live verification requires an administrator sign-in and an owner-approved account creation.
+
+## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
+
+The lifecycle change needs the Raspberry Pi root console. Run the approved procedure in `docs/operations/private-lab-tunnel-recovery.md`, then verify the affected tailnet client across a separately approved interruption or reboot. The legacy private HTTPS `8443` frontend policy and its stable upstream require separate verification. #1399 and #1409 remain independent LAN/Docker recovery work.
+
+## 2026-11-10 — #1562 Overview visual source isolated from protected site blocker
+
+Overview redesign source work is independent and browser-visible in explicit demo mode; protected site installation still requires safe Nginx/frontend transition. Owner's latest #1560 \`promote\` returned \`Command runuser failed: exit=1\` and automatic Nginx validator also failed; subsequent read-only host checks show old original Nginx config/hash, both frontend services active, telemetry and device-agent HTTP200. A frontend visual task must not bypass root-command policy or add risky unrelated Nginx operations. Follow-up site handoff remains blocked pending a separate bounded root-cause fix; #1428 complete encrypted isolated restore and #1409 physical LAN/Docker overlap remain unresolved. Do not call the new Overview installed until real authenticated operator browser confirms it.
+
+## 2026-11-10 — #1560 frontend deployment failed-closed, corrected, awaiting guarded promotion
+
+First protected user-run `execute` failed before gateway cutover; `EXTERNAL_NGINX_ROLLBACK_VERIFIED`. New `3104` service was healthy but runtime identity source rejected unsupported `identity_source`. Non-secret manifest corrected; GET `3104/api/runtime-identity` now returns exact requested source and build. Old external frontend `3100` and Nginx remain active with original configuration. Root-protected handoff journal and new unit remain; rerunning `execute` is unsafe and intentionally rejected. Dedicated resume `promote` source-only candidate requires full exact-head GitHub CI and a separate authorized root operator action, with old service kept as fallback. Complete independent off-device DR (#1428) remains unproven and Docker/LAN overlap (#1409) remains unresolved; absolutely no full site/Docker migration approved.
+
+## 2026-11-10 — #1560 main UI build READY but protected HTTPS activation unperformed
+
+Both exact-source ARM64 frontend artifacts are on nexolab-edge-01, verified and isolated smoke-tested. A new guarded frontend-only blue/green procedure and old-port automatic fallback exists as source candidate; it is NOT installed. The connected remote executor specifically disallows privileged sudo/systemd/nginx mutations; do not bypass that access boundary. Human protected console required for a scoped action, and actual full off-device encrypted multi-store backup and isolated restore are NOT proven (#1428). Existing Docker/LAN CIDR overlap #1409 must not be touched as part of UI-only release. Operator must review site risk and original nginx SHA, run bounded action separately, verify live auth/roles and rollback. Old frontend, APIs, acquisition and protected gateway remain active. No green operator update signal.
+
+## 2026-11-10 — #1558 Reports operator UI source acceptance pending
+
+Targeted 9/9 component tests pass in isolated source. Required exact-head GitHub quality/build and authenticated reports browser acceptance at 375/768/1440/1920 remain pending; production installation is not part of this Work Package. Protected Raspberry site gate remains #1428 complete isolated restore/rollback and #1409 physical LAN/Docker CIDR overlap, with source-bound offline package and explicit operator approval required.
+
+## 2026-11-10 — #1550 Sessions operator UI source review
+
+Scoped source candidate passed 7/7 focused tests, ESLint and TypeScript. GitHub exact-head CI/build and authenticated 375/768/1440/1920 browser acceptance remain required before source merge. This is not a production site deployment. Existing hard blockers #1428 protected offline restore/rollback and #1409 physical LAN/Docker CIDR overlap remain. Source update must not be interpreted as a green operator update signal.
+
+## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
+
+Safe NEXOLAB ignored build/dependency removal reclaimed +8424194048 bytes of actual filesystem capacity (available 42.55 GiB, 81% used); no running site release, backup, Docker volume or history was pruned. Active host frontend path `.../quick-1490` and active standalone 1520 release were excluded. Two historical, permission-protected `nexolab-compat-1019` artifacts remain. Current storage figures supersede the historical 97%-full preflight below.
+
+Hard blocker remains #1428 independent full offline restore and rollback validation. Therefore do NOT prune the 11.93 GB nominally reclaimable Docker images, 2.58 GB nominally reclaimable Docker volumes, /var/backups, 13 GB version-management catalog, live frontend or audit records. #1551 retention remains source-only until recovery and controlled WAL/reclaim acceptance. Other protected site blockers (LAN CIDR overlap, offline package) unchanged.
+
+## 2026-11-10 — HARD BLOCKER: protected Raspberry deployment capacity and overlapping LAN route
+
+Actual read-only edge preflight: /dev/sda2 234G, 215G used, only 7.2G available (97%). Existing Docker images 21.44 GB (11.91 GB nominal reclaimable), build cache 16.99 GB (10.28 GB nominal reclaimable), 103 local volumes 27.79 GB (only 2.584 GB nominal reclaimable), workspaces 59 GB. **No cleanup/prune has been performed**: previous releases, rollback materials and persistent volumes must be inventoried before any deletion. Docker Edge 172.18.0.0/16 overlaps site LAN 172.18.48.0/21; default gateway 172.18.48.1 via eth0. Last systemd service state shows active containers but protected source still ffdefc4550d7. /opt/nexolab/current is absent. Required gates: establish a safe free-space budget and inventory retained backups/images, prove isolated recoverable backup/restore, resolve/guard CIDR conflict without moving active network, build and verify source-bound offline package/rollback, obtain explicit protected-site authorization. **No production update or green user update signal allowed.**
+
+## 2026-11-10 — #1548 Refrigeration catalog source acceptance pending
+
+Issue #1548 adds presentation-only refrigerated catalog card compression and clarifies persisted Embraco summaries. Verified 13/13 focused tests, Prettier, ESLint and TS noEmit on SHA-verified source/test/browser files; full GitHub exact-head CI/build and authenticated four-viewport browser acceptance not yet completed. No backend/Modbus/device/runtime change. Open access #1531 and onboarding #1519 may later require regression integration and .project state reconciliation.
+
+## 2026-11-09 — #1546 Energy parameters UI source acceptance pending
+
+Issue #1546 / feature branch feat/1546-energy-parameter-picker is display-only. Ten targeted Energy Vitest cases and Prettier/ESLint/TypeScript noEmit passed on exact three matched source/test/E2E blobs. Required GitHub exact-head CI, production build, authenticated Energy browser at 375/390/768/1440/1920 px, offline and permissions review, and source-merge are not yet verified. No meter integration, runtime modification or hardware proof. Draft integration #1519 and permission grants #1531 remain open; reconcile when merged. Do not deploy protected Pi without offline matching release, verified backup/rollback and explicit site boundary.
+
+## 2026-11-09 — #1544 Equipment source accepted, runtime update separate
+
+Equipment Connections PR #1545 passed exact-head CI #42600416268 and authenticated Equipment acceptance #42600416103 GREEN (6/6) before source merge 9caffc8f0a106f2b151ce12a15ee0e26a974bc53. No production installation, Modbus write or hardware acceptance followed.
+
+## 2026-11-09 — #1536 source-only merge complete, site release separate
+
+Live Data PR #1539 passed exact-head CI #42285423569 and Authenticated Dashboard Acceptance #42285423714 (42/42) and merged into main as b854590323e3213ad2ef32a8828de502324a4b98. Raspberry deployed release not updated; guarded package and rollback required.
+
+## 2026-11-06 — #1537 source-merged; ongoing production release gates
+
+#1537 / PR #1538 passed exact-head CI #42283567771 and selected authenticated browser acceptance #42283567775 (13/13) before source merge 767fa6f3b82790dba52219cc389103c6c5806797. Previously observed 41/42 intermittent test failure led to waiting for connected UI before publishing both live/retry MQTT samples; the test retains actual delivery assertions and exactly-one retry. No Raspberry protected runtime update, hardware acceptance or source-bound installer follows automatically.
+
+## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
+
+#1534 / PR #1535 completed candidate 693d983cd280fbb453b588303d4048b67bc879fb CI #42238642725 and Authenticated Dashboard Acceptance #42238642310 GREEN (42/42). Newly adapted device-first E2E checks seven responsive widths and retains no acquisition writes. Await exact-head CI after final documentation-only state commits before merge. Permission PR #1531 has an overlapping E2E file at separate scenario lines and shared .project state; review integration on merge order. The protected Raspberry runtime has NOT been deployed. Exact matching offline package, backups/rollback, and explicit production release authorization remain required. No Modbus/hardware writes or protected data mutation.
+
+## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
+
+PR #1533 source candidate dd660a49... passed exact-head CI #42233327149 and 42/42 authenticated browser cases #42233327115 (Overview responsive at 360/1440/1920; shared header at 320/375/768/1280; no acquisition writes). Captured browser evidence artifact 13510498719. No independent manual visual pixel review was recorded, but required automated browser/API and build checks have succeeded. The open stacked permission PRs #1529/#1531 share four .project state files but not the three modified dashboard UI components; reconcile state changes if their merge order changes. Runtime/offline installation and backup/rollback, exact accepted package, protected Pi release, and explicit production/site authorization remain separate blockers. No hardware or Modbus write.
 
 ## 2026-11-06 — per-page access is not yet independently enforced (#1526)
 

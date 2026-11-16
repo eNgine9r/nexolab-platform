@@ -29,6 +29,8 @@ on:
       - "playwright.dashboard.config.ts"
       - "scripts/acquisition-invariant-fixture.py"
       - "scripts/classify-ci-impact.py"
+      - "scripts/nexolab-1560-bluegreen-handoff.py"
+      - "scripts/tests/test_nexolab_1560_bluegreen_handoff.py"
       - "scripts/run-acquisition-invariant-browser-acceptance.sh"
       - "scripts/run-authenticated-dashboard-acceptance.sh"
       - "services/device-agent/**"

@@ -161,9 +161,69 @@ describe("RefrigerationCatalogScreen", () => {
     expect(summary).toHaveTextContent("Embraco");
     expect(summary).toHaveTextContent("Pulldown");
     expect(summary).toHaveTextContent("4500 rpm");
+    expect(summary).toHaveTextContent("Збережений стан Embraco");
+    expect(summary).toHaveTextContent("Останній збережений запис:");
+    expect(summary.querySelector("time")).toHaveAttribute("datetime");
     expect(screen.getAllByText("Середня").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Датчики").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Тривоги").length).toBeGreaterThan(0);
+  });
+
+  it("keeps long identity readable in compact cards without forcing a chamber", async () => {
+    const longName = "Вітрина лабораторна XL з двома зонами температурного контролю і довгою назвою";
+    const item = {
+      ...refrigerationEquipment[0],
+      name: longName,
+      location: "Лабораторія з особливо довгим описом розташування та лінією випробувань",
+      nodeId: null,
+      code: "NX-VERY-LONG-EQUIPMENT-IDENTITY-2026-001",
+    };
+    const configured = runtime();
+    const repository = new InMemoryRefrigerationEquipmentRepository([item]);
+    configured.repository = repository;
+    configured.equipmentRepository = repository;
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+    const heading = await screen.findByRole("heading", { name: longName });
+    expect(heading).not.toHaveClass("truncate");
+    const card = heading.closest("article");
+    expect(card).not.toBeNull();
+    expect(card?.querySelector(".h-24")).toBeInTheDocument();
+    expect(screen.getByText("Камеру не вибрано")).toBeVisible();
+    expect(screen.getByText(item.code)).toBeVisible();
+    expect(screen.getByRole("link", { name: `Відкрити ${longName}` })).toBeVisible();
+    expect(screen.getByText("Датчики")).toHaveClass("text-[11px]");
+  });
+
+  it("distinguishes missing or invalid stored controller readings from live telemetry", async () => {
+    const configured = runtime();
+    const item = refrigerationEquipment[0];
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      async listSummaries() {
+        return [
+          {
+            equipmentId: item.id,
+            controllerFamily: "embraco",
+            controllerEquipmentId: "EMBRACO-2",
+            unitId: 2,
+            profileVersion: "embraco-sync-fc03-v1.00.04",
+            controlState: 5,
+            compressorSpeedRpm: 4500,
+            lastSeenAt: null,
+          },
+        ];
+      },
+    };
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+    const summary = await screen.findByTestId(`controller-summary-${item.id}`);
+    expect(summary).toHaveTextContent("Збережені показники контролера відсутні");
+    expect(summary).not.toHaveTextContent("4500 rpm");
+    expect(summary).not.toHaveTextContent("Pulldown");
+    expect(summary.querySelector("time")).not.toBeInTheDocument();
+    expect(summary).not.toHaveTextContent("LIVE");
   });
 
   it("offers a preselected commissioning route when a controller is not bound", async () => {
