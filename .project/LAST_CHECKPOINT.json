@@ -3336,7 +3336,10 @@
       "broker_control_acceptance_run": 43858765210,
       "telemetry_high": 18,
       "telemetry_critical": 0,
-      "exception_registry": "33 retired after exact SBOM review; 15 expired entries retained; 3 SQLite HIGH unlisted"
+      "exception_registry": "33 retired; Product Owner approved 18 exact version-bound HIGH through 2026-11-23 inclusive",
+      "approval_evidence_head": "b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb",
+      "approval_evidence_run": 43859841072,
+      "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253"
     }
   },
   "observations": [

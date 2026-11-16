@@ -1,6 +1,6 @@
 ## 2026-11-16 — container security #1447
 
-Container Supply Chain still blocks the Live data editor PR #1574. The reduced Telemetry image has 18 HIGH findings. Fifteen retained registry entries expired on 2026-10-20 and three SQLite findings have no registry entry. Debian Trixie and Trivy report no fixed versions for these remaining findings. Keep the merge gate fail-closed while verifying any remaining source patch or bounded risk decision.
+Product Owner approved the 18 version-bound Telemetry findings through 2026-11-23 inclusive. Container Supply Chain must still verify the fresh images. Live data editor PR #1574 needs the approved #1448 baseline, a fresh exact-head gate and separate site authorization.
 
 ## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
 

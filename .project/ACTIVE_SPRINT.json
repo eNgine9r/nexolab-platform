@@ -10551,15 +10551,15 @@
       "result_2026_11_16": {
         "baseline_supply_chain_run": 43851624610,
         "latest_remediation_head": "bdcae8b445aac912299a0fa553a55b67b8456db2",
-        "status": "blocked on remaining Telemetry findings and expired registry entries",
+        "status": "Product Owner approved 18 exact version-bound exceptions through 2026-11-23; fresh exact-head CI pending",
         "changes": "Rebuilt dependencies, split MQTT client package and removed unused Debian packages",
         "supply_chain_evidence_run": 43858765272,
         "broker_control_acceptance_run": 43858765210,
         "telemetry_high": 18,
         "telemetry_critical": 0,
         "retired_registry_entries": 33,
-        "expired_registry_entries": 15,
-        "unlisted_sqlite_high": 3
+        "approved_registry_entries": 18,
+        "approval_expires_on": "2026-11-23"
       }
     }
   ],

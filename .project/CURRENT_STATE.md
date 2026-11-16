@@ -1,6 +1,6 @@
 ## 2026-11-16 — container security #1447
 
-PR #1448 removes the broker daemon and unused system packages from the Telemetry image. Exact CI at bdcae8b445aac912299a0fa553a55b67b8456db2 reports 18 HIGH and 0 CRITICAL, down from 52 HIGH in the prior candidate. Broker Control Acceptance passed. The registry retires 33 entries for packages absent from the scanned image. ARM64 runtime and site evidence remain open.
+Product Owner approved 18 exact version-bound Telemetry HIGH findings through 2026-11-23 inclusive for source CI and merge. Prior image scan b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb reported 18 HIGH and zero CRITICAL across all controlled images. The register records 15 retained and three new SQLite decisions. The new exact-head CI and Raspberry Pi runtime evidence remain pending.
 
 ## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
 

@@ -1,5 +1,13 @@
 # NEXOLAB #1447 — exact-image container security revalidation
 
+## Product Owner decision on 2026-11-16
+
+The Product Owner approved temporary exceptions through **2026-11-23 inclusive** for exactly the 18 Telemetry HIGH findings listed in [issue #1447](https://github.com/eNgine9r/nexolab-platform/issues/1447). The approval covers source CI and merge. Raspberry Pi activation requires its own decision.
+
+The approval is tied to exact image, binary package, CVE and installed package version from [run 43859841072](https://github.com/eNgine9r/nexolab-platform/actions/runs/43859841072), source `b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb`, Trivy report SHA-256 `163584bb22e1b51cf92f8cbd0a3acba806e6a905cb543578c051eaa349f9d297`. The sorted four-field approval tuples hash to `36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253`. The register preserves the 15 previous rationales and records separate assessments for the three SQLite findings. A different package version, a reported compatible fix, a stale entry, or a CRITICAL remains grounds to fail CI. Approval is a temporary risk decision for the unfixed findings.
+
+Exact-head scan and required CI must pass before merging. The following sections record earlier states of the register and evidence.
+
 ## 2026-11-16 Telemetry image reduction
 
 The Telemetry build now installs only the byte-identical Debian `mosquitto_ctrl` executable and its runtime dependencies. The derived package preserves the original Debian source name and version in `dpkg` and the CycloneDX report. APT resolves and verifies the official archive during the build. The broker image and broker-control wrapper stay on their existing entry points. The Telemetry image also purges unused system login, mount and terminal utilities from its Debian base. A network-disabled CI smoke test checks the non-root UID, package identity, SSL, SQLite, report fonts and native Python dependencies before scanning.

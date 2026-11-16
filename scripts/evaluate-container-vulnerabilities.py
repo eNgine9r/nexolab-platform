@@ -172,10 +172,13 @@ def evaluate(
             # An accepted HIGH must never hide a scanner-known compatible
             # fix. The owner must remediate or prove incompatibility before
             # changing a source-bound exception decision.
+            decision = exceptions.get(finding.key)
             if (
                 finding.vulnerability.startswith("CVE-")
-                and finding.key in exceptions
+                and decision is not None
                 and not finding.fixed_version
+                and decision.get("installed_version", finding.installed_version)
+                == finding.installed_version
             ):
                 accepted.append(finding)
             else:
