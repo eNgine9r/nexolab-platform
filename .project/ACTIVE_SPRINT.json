@@ -61,11 +61,32 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1562
+      "issue": 1567
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1567,
+      "title": "Restore private lab access after Tailscale stop/start",
+      "branch": "fix/1567-private-lab-tunnel-recovery",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Private lab DNS and HTTP systemd lifecycle, reversible console installation and live acceptance. Legacy private HTTPS topology assessed separately.",
+      "permitted_paths": [
+        "infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf",
+        "scripts/verify-raspberry-pi-private-lab-tailscale-lifecycle.sh",
+        "docs/operations/private-lab-tunnel-recovery.md",
+        ".project/"
+      ],
+      "evidence": {
+        "isolated_pi_systemd_fixture": "baseline reproduced; delayed readiness, stop/start and restart passed",
+        "live_lab_login_independent_tailnet_client": 200,
+        "live_legacy_inspection_login": 502,
+        "live_installation": "pending_owner_console",
+        "affected_client_reboot_and_network_return": "unverified"
+      }
+    },
     {
       "issue": 1343,
       "title": "Repair offline package storage authority and image identity before native handoff",

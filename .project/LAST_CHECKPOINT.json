@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-10T13:12:19Z",
-  "actor": "ChatGPT",
-  "event": "1562_modern_overview_visual_candidate_verified_in_isolated_demo_browser",
+  "timestamp": "2026-11-16T07:34:07Z",
+  "actor": "Codex",
+  "event": "1567_private_lab_tunnel_lifecycle_reproduced_and_candidate_verified_in_pi_fixture",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,22 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1562,
-    "branch": "feat/1562-overview-modern-command-center",
+    "issue": 1567,
+    "branch": "fix/1567-private-lab-tunnel-recovery",
     "status": "review",
     "site_cutover": false
   },
   "evidence_snapshot": {
+    "issue_1567_private_lab_lifecycle": {
+      "pi_systemd_baseline": "confirmed inactive DNS and HTTP after daemon stop/start",
+      "pi_systemd_candidate": "delayed bind, stop/start and restart pass on isolated user units",
+      "live_lan_dashboard": 200,
+      "live_telemetry_ready": 200,
+      "live_lab_login_from_tailnet": 200,
+      "live_legacy_inspection_login_from_tailnet": 502,
+      "owner_console_installation": "pending",
+      "affected_client_reboot_and_network_return": "unverified"
+    },
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
       "branch": "commander/1184-react-19-3",
@@ -4796,7 +4806,7 @@
       }
     }
   ],
-  "next_action": "Source PR #1562 exact-head CI/review/merge; stop isolated demo dev server after visual capture. Release preview in source, protected HTTPS site still at old source and frontend handoff blocked on Nginx runuser authorization, no site cutover without bounded verified recovery.",
+  "next_action": "Review #1567 and exact-head CI. Obtain owner approval for the root-console lifecycle installation and a separate live restart/network-return acceptance window. Confirm the affected client URL and retain the legacy 8443 finding for separate upstream/policy verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4805,7 +4815,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none on protected runtime; only isolated loopback 3192 dev demo process, no Docker/DB/nginx/agent/Modbus writes",
+  "runtime_mutation": "none on the production gateway or lab services; isolated temporary systemd user fixtures only",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

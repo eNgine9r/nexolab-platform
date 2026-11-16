@@ -1,3 +1,9 @@
+## 2026-11-16 — #1567 private lab HTTP/DNS recovery
+
+Raspberry Pi LAN dashboard, local telemetry readiness and Device Agent returned 200. An independent tailnet host reached `lab.nexolab/login` with 200 and the public OAuth entry redirected with 302. Private HTTPS `8443` returned 502 from both hosts. Its root handler uses vacant staging port `3102`. The older frontend also loops with `226/NAMESPACE` due to a missing cache in an inherited workspace drop-in. Its inactive Nginx service conflicts with the active Funnel gateway's listener.
+
+The Pi systemd fixture confirmed that a stop/start of the daemon strands both dependent services with the current topology. It verified the proposed `Wants` drop-in across delayed readiness, stop/start and restart. The source candidate targets the existing private lab HTTP/DNS units. Live host configuration and privileged tunnel restart await owner approval and acceptance from the affected client.
+
 ## 2026-11-10 — #1562 authenticated Overview V2 geometry assertion alignment
 
 Read the required authenticated browser acceptance **before another integration run**. Its prior geometry assertions explicitly require the old chart-full-width / alerts-below layout even though the current product scope requires desktop 8/12 + 4/12 with mobile stacking. Updated only the browser layout assertions and evidence flags in \`e2e/authenticated-dashboard.production.e2e.ts\` to verify the new desktop/mobile shape; retained org authorization, REST/WebSocket/history, chart cursor stability, zero Modbus/acquisition writes and no horizontal overflow. The retained original Sessions header is unchanged. Exact-head browser + CI acceptance pending.
