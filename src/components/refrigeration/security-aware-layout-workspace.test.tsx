@@ -149,6 +149,7 @@ describe("Scheme shares the verified selected membership", () => {
     const props = {
       equipment: { ...fixture(), climateChamberId: null, nodeId: null, transportNodeId: "edge-01" },
       sensorConfigurationRepository: {},
+      channels: [{ channelId: "rs485:1-S01", selectable: true }],
     };
     const { rerender } = render(workspace(props));
     expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
@@ -158,6 +159,12 @@ describe("Scheme shares the verified selected membership", () => {
     membership.permissions = ["layout.draft.edit", "equipment.manage"];
     rerender(workspace(props));
     expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+    rerender(workspace({ ...props, channels: [] }));
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+    rerender(workspace({ ...props, mode: "view" }));
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
+    rerender(workspace({ ...props, channels: [] }));
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
   });
 
   it("keeps a forged operator camera edit read-only until equipment management is granted", () => {

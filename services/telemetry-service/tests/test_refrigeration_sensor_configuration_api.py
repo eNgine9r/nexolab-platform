@@ -250,6 +250,29 @@ def test_registry_channels_cannot_cross_measurement_nodes(tmp_path: Path) -> Non
     assert denied.status_code == 422
 
 
+def test_sensor_configuration_expands_an_old_passport_with_a_small_slot_count(tmp_path: Path) -> None:
+    channels = ("rs485:1-S01", "rs485:7-S02")
+    registry = CommissionedTemperatureInventory(
+        KK2, tuple(section_temperature(channel) for channel in channels)
+    )
+    api, _, _ = build_client(tmp_path, lambda: registry)
+    created = api.post("/api/v1/equipment", json={**equipment_payload(node_id=None), "total_sensors": 1})
+    assert created.status_code == 201, created.text
+    assert created.json()["total_sensors"] == 1
+    path = f"/api/v1/equipment/{created.json()['id']}"
+
+    response = api.put(
+        path + "/sensor-configuration",
+        headers={"If-Match": created.headers["etag"]},
+        json=configuration(("front-01", channels[0], 0.22, 0.31), ("front-02", channels[1], 0.55, 0.48)),
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["equipment"]["total_sensors"] == 48
+    snapshot = api.get(path + "/structural-snapshot").json()
+    assert snapshot["equipment"]["total_sensors"] == 48
+    assert {binding["channel_id"] for binding in snapshot["bindings"]} == set(channels)
+
+
 def test_section_parser_requires_active_parent_and_target() -> None:
     buses = [{"bus_id": "rs485", "protocol": "modbus_rtu", "read_only": True}]
     devices = [{"device_id": f"xjp60d-sections:rs485:{unit}", "device_family": "xjp60d",

@@ -14,8 +14,7 @@ export type StagedSensorConfiguration = RefrigerationSensor & {
   automaticLabelSource?: "channel_id_fallback" | "physical_inventory";
 };
 
-const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
-const MAX_SENSOR_SLOT_CAPACITY = 48;
+export const MAX_SENSOR_SLOT_CAPACITY = 48;
 const GOOD_TELEMETRY_QUALITIES = new Set(["good", "ok", "valid"]);
 
 export function buildStagedSensorConfiguration(
@@ -289,7 +288,7 @@ export function refreshStagedSensorChannelMetadata(
 }
 
 export function sensorSlotCapacity(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
+  if (!Number.isFinite(value) || value <= 0) return MAX_SENSOR_SLOT_CAPACITY;
   return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
 }
 

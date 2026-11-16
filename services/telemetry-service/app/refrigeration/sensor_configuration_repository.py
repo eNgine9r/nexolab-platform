@@ -39,6 +39,7 @@ from app.refrigeration.models import (
     RefrigerationLayoutDraft,
 )
 from app.refrigeration.schemas import (
+    DEFAULT_SENSOR_SLOT_CAPACITY,
     SensorBindingConfigurationItem,
     SensorConfigurationWrite,
 )
@@ -301,7 +302,7 @@ class PostgresSensorConfigurationRepository:
                         current_bindings=current,
                         inventory=inventory,
                     )
-                    if len(payload.bindings) > equipment.total_sensors:
+                    if len(payload.bindings) > DEFAULT_SENSOR_SLOT_CAPACITY:
                         raise SensorConfigurationCapacityError(
                             "sensor configuration exceeds the equipment slot capacity"
                         )
@@ -434,6 +435,8 @@ class PostgresSensorConfigurationRepository:
                     if bindings_changed:
                         if payload.bindings and equipment.node_id is None:
                             equipment.node_id = scope.node_id
+                        if len(payload.bindings) > equipment.total_sensors:
+                            equipment.total_sensors = DEFAULT_SENSOR_SLOT_CAPACITY
                         equipment.version += 1
                         equipment.updated_at = now
                     session.flush()

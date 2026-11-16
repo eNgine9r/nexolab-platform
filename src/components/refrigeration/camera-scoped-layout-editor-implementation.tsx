@@ -31,7 +31,7 @@ import {
   configurationsEqual,
   moveConfiguredSensor,
   refreshStagedSensorChannelMetadata,
-  sensorSlotCapacity,
+  MAX_SENSOR_SLOT_CAPACITY,
   type StagedSensorConfiguration,
 } from "@/features/refrigeration/sensor-configuration";
 
@@ -136,8 +136,8 @@ export function CameraScopedLayoutEditor({
   );
   const snapSlots = useMemo(() => visibleConfiguration.map(({ x, y }) => ({ x, y })), [visibleConfiguration]);
   const placementSnapSlots = useMemo(
-    () => availableSensorSnapPoints(visibleConfiguration, equipment.totalSensors),
-    [equipment.totalSensors, visibleConfiguration],
+    () => availableSensorSnapPoints(visibleConfiguration, MAX_SENSOR_SLOT_CAPACITY),
+    [visibleConfiguration],
   );
   const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
@@ -240,12 +240,7 @@ export function CameraScopedLayoutEditor({
       return;
     }
     try {
-      const added = addChannelToConfiguration(
-        configuration,
-        channel,
-        sensorSlotCapacity(equipment.totalSensors),
-        equipment.id,
-      );
+      const added = addChannelToConfiguration(configuration, channel, MAX_SENSOR_SLOT_CAPACITY, equipment.id);
       const snapped = applySnap(point, snapMode, {
         gridDivisions: 40,
         slots: placementSnapSlots,
@@ -388,7 +383,7 @@ export function CameraScopedLayoutEditor({
           <SensorPlacementManager
             equipment={equipment}
             organizationId={organizationId}
-            totalSlots={equipment.totalSensors}
+            totalSlots={MAX_SENSOR_SLOT_CAPACITY}
             channels={channels}
             configuration={visibleConfiguration}
             editingSensorId={editingSensorId}
