@@ -114,16 +114,15 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 
   const effectiveLifecycleRepository = sensorConfigurationRepository ?? lifecycleRepository;
   const effectiveChannels = availableSensors ?? channels;
-  const cameraScoped = Boolean(
-    effectiveLifecycleRepository &&
-    (sensorConfigurationRepository ||
-      equipment.climateChamberId ||
-      equipment.nodeId ||
-      effectiveChannels.length),
-  );
   const canManageSensorConfiguration =
     runtime.mode === "demo" ||
     Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
+  const cameraScoped = Boolean(
+    effectiveLifecycleRepository &&
+    (equipment.climateChamberId ||
+      equipment.nodeId ||
+      (canManageSensorConfiguration && (sensorConfigurationRepository || effectiveChannels.length))),
+  );
   const externallyReadOnly = forceReadOnly || canManageEquipment === false;
 
   const capabilities = useMemo<LayoutCapabilities>(() => {

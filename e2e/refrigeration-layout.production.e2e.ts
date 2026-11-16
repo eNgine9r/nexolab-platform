@@ -636,10 +636,15 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(preSaveDraft.version).toBe(1);
     expect(preSaveDraft.placements).toEqual([]);
 
+    const markerBeforeReplacement = sensorMarker(pageA, "471");
+    const preservedX = await markerBeforeReplacement.getAttribute("data-x");
+    const preservedY = await markerBeforeReplacement.getAttribute("data-y");
     await pageA.getByRole("button", { name: "Редагувати датчик 471" }).click();
-    await ensureAdvancedSensorParametersOpen(pageA);
     await replaceChannel(pageA, channelIds.replacement);
-    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 473" }).click();
+    await expect(sensorMarker(pageA, "471")).toHaveAttribute("data-x", preservedX!);
+    await expect(sensorMarker(pageA, "471")).toHaveAttribute("data-y", preservedY!);
+    await ensureAdvancedSensorParametersOpen(pageA);
+    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 471" }).click();
     const renameInput = editor(pageA).getByRole("textbox", { name: "Нова назва маркера" });
     await renameInput.fill("T-03");
     await renameInput.press("Enter");
