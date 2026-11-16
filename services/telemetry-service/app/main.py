@@ -47,6 +47,7 @@ from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
 from app.refrigeration.derived_api import create_derived_read_router
 from app.refrigeration.derived_read import HistoricalDerivedReadService
 from app.refrigeration.controller_binding_api import create_refrigeration_controller_binding_router
+from app.refrigeration.commissioned_channels import LocalCommissionedTemperatureReader
 from app.refrigeration.controller_binding_repository import PostgresRefrigerationControllerBindingRepository
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
@@ -128,7 +129,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     refrigeration_circuit_repository = RefrigerationCircuitRepository(database)
     calculation_policy_repository = CalculationPolicyRepository(database)
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
-    sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
+    sensor_configuration_repository = PostgresSensorConfigurationRepository(
+        database,
+        read_commissioned=(
+            LocalCommissionedTemperatureReader(resolved.commissioning_device_agent_base_url)
+            if resolved.commissioning_device_agent_base_url else None
+        ),
+        commissioned_organization_id=resolved.auth_default_organization_id,
+    )
     live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
     instrumentation_repository = InstrumentationRepository(database)

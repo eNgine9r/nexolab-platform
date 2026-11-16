@@ -67,6 +67,32 @@
   },
   "work_packages": [
     {
+      "issue": 1583,
+      "branch": "feat/1583-refrigeration-scheme-channels",
+      "title": "Commissioned Dixell inputs in refrigeration schemes without a chamber requirement",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Make the climate chamber optional for refrigeration passports and use the local acquisition registry to add or replace commissioned Dixell temperature inputs in equipment schemes.",
+      "permitted_paths": [
+        "src/components/refrigeration/",
+        "src/features/refrigeration/",
+        "src/data/refrigeration.ts",
+        "services/telemetry-service/app/refrigeration/",
+        "services/telemetry-service/app/application.py",
+        "services/telemetry-service/app/main.py",
+        "services/telemetry-service/tests/test_refrigeration_sensor_configuration_api.py",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c",
+        "acceptance": "Create without a chamber, show active 6+2 section inputs, keep reserve/disabled out, preserve replacement label/coordinates/history and scope access by organization/node.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pending": "Required pull request checks and separately scoped site acceptance."
+      }
+    },
+    {
       "issue": 1581,
       "branch": "feat/1581-live-dashboard-legend",
       "title": "Synchronize and compact the Saved Live Dashboard legend",

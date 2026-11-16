@@ -212,7 +212,7 @@ describe("sensor configuration marker identity", () => {
     });
   });
 
-  it("updates an automatic marker label when its channel is deliberately replaced", () => {
+  it("preserves the label and coordinates when an automatically named marker gets a new channel", () => {
     const [configured] = addChannelToConfiguration([], available("101-01", "471"), 48, "showcase-kk2");
     if (!configured) throw new Error("Expected configured sensor");
 
@@ -225,8 +225,10 @@ describe("sensor configuration marker identity", () => {
 
     expect(replaced).toMatchObject({
       id: "101-03",
-      label: "473",
-      automaticLabelSource: "physical_inventory",
+      label: "471",
+      x: configured.x,
+      y: configured.y,
+      automaticLabelSource: undefined,
     });
   });
 
@@ -262,8 +264,8 @@ describe("sensor configuration marker identity", () => {
 
     expect(replaced).toMatchObject({
       id: "101-03",
-      label: "473",
-      automaticLabelSource: "physical_inventory",
+      label: "471",
+      automaticLabelSource: undefined,
     });
   });
 

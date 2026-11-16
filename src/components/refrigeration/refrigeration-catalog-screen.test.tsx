@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
@@ -8,6 +8,7 @@ import { InMemoryRefrigerationEquipmentRepository } from "@/features/refrigerati
 import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 
 import { RefrigerationCatalogScreen } from "./refrigeration-catalog-screen";
+import { CreateEquipmentDialog } from "./refrigeration-equipment-dialogs";
 
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
@@ -81,18 +82,6 @@ function runtime(): RefrigerationEquipmentRuntime {
   };
 }
 
-async function selectClimateChamber() {
-  await waitFor(() =>
-    expect(screen.getByRole("option", { name: /Кліматична камера КК2/ })).toBeInTheDocument(),
-  );
-  fireEvent.change(screen.getByLabelText(/^Кліматична камера/), {
-    target: { value: "kk2" },
-  });
-  await screen.findByText(/Температурні канали:/);
-  expect(screen.getByText(/Dixell:/)).toBeInTheDocument();
-  expect(screen.getByText(/Лічильники:/)).toBeInTheDocument();
-}
-
 describe("RefrigerationCatalogScreen", () => {
   it("filters equipment by search text", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
@@ -119,6 +108,42 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(screen.getByText("Вітрина №107-02")).toBeInTheDocument();
     expect(screen.queryByText("Вітрина №106-01")).not.toBeInTheDocument();
+  });
+
+  it("uses fresh summaries for filtering and expires them if refresh fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const now = new Date("2026-11-16T18:00:00Z");
+      vi.setSystemTime(now);
+      const item = {
+        ...refrigerationEquipment[0]!,
+        status: "offline" as const,
+        assignedSensors: 2,
+        onlineSensors: 2,
+        averageTemperatureC: 4.5,
+        sensorSummaryValidUntil: new Date(now.getTime() + 11_000).toISOString(),
+      };
+      const repository = new InMemoryRefrigerationEquipmentRepository([]);
+      const load = vi.spyOn(repository, "list").mockResolvedValueOnce([item]);
+      load.mockRejectedValue(new Error("disconnected"));
+      render(<RefrigerationCatalogScreen runtime={{ ...runtime(), mode: "live", repository }} />);
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      const statusFilter = screen.getByLabelText("Фільтр за станом");
+      fireEvent.change(statusFilter, { target: { value: "normal" } });
+      expect(screen.getByText(item.name)).toBeVisible();
+      expect(screen.getByText("2 із 2 онлайн")).toBeVisible();
+      expect(screen.getByText("4,5 °C")).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(12_000));
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(item.name)).not.toBeInTheDocument();
+      fireEvent.change(statusFilter, { target: { value: "offline" } });
+      expect(screen.getByText(item.name)).toBeVisible();
+      expect(screen.getByText("0 із 2 онлайн")).toBeVisible();
+      expect(screen.queryByText("4,5 °C")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders an explicit empty state when no equipment matches", async () => {
@@ -189,7 +214,7 @@ describe("RefrigerationCatalogScreen", () => {
     const card = heading.closest("article");
     expect(card).not.toBeNull();
     expect(card?.querySelector(".h-24")).toBeInTheDocument();
-    expect(screen.getByText("Камеру не вибрано")).toBeVisible();
+    expect(screen.queryByText("Камеру не вибрано")).not.toBeInTheDocument();
     expect(screen.getByText(item.code)).toBeVisible();
     expect(screen.getByRole("link", { name: `Відкрити ${longName}` })).toBeVisible();
     expect(screen.getByText("Датчики")).toHaveClass("text-[11px]");
@@ -282,15 +307,13 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
   });
 
-  it("requires a climate chamber before creating equipment", async () => {
+  it("creates equipment with no climate chamber", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");
 
     fireEvent.click(screen.getByRole("button", { name: "Додати холодильне обладнання" }));
-    expect(screen.getByText(/Спочатку оберіть кліматичну камеру/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
-
-    await selectClimateChamber();
+    expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
+    expect(screen.queryByLabelText(/^Кількість слотів датчиків/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Назва/)).toBeEnabled();
 
     fireEvent.change(screen.getByLabelText(/^Назва/), {
@@ -314,9 +337,6 @@ describe("RefrigerationCatalogScreen", () => {
     fireEvent.change(screen.getByLabelText(/^Температурний клас/), {
       target: { value: "3M1 (0…+5 °C)" },
     });
-    fireEvent.change(screen.getByLabelText(/^Кількість слотів датчиків/), {
-      target: { value: "48" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Створити" }));
 
     expect(await screen.findByText("Вітрина №108-01")).toBeInTheDocument();
@@ -324,7 +344,7 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getByRole("link", { name: "Відкрити Вітрина №108-01" })).toBeInTheDocument();
   });
 
-  it("creates an independent copy only after selecting its climate chamber", async () => {
+  it("creates an independent copy without requiring a chamber", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     const source = refrigerationEquipment[0];
     await screen.findByText(source.name);
@@ -333,10 +353,9 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(screen.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
-    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
+    expect(screen.getByLabelText(/^Назва/)).toBeEnabled();
     expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
 
-    await selectClimateChamber();
     expect(screen.getByLabelText(/^Назва/)).toHaveValue(`${source.name} — копія`);
     expect(screen.getByLabelText(/^Код обладнання/)).toHaveValue(`${source.code}-COPY`);
     expect(screen.getByLabelText(/^Серійний номер/)).toHaveValue("");
@@ -348,6 +367,28 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(await screen.findByText(`${source.name} — копія`)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("створено як незалежну копію");
+  });
+
+  it("keeps entered passport fields when the catalog rerenders or saving fails", () => {
+    const onSubmit = vi.fn(async () => undefined);
+    const { rerender } = render(
+      <CreateEquipmentDialog open busy={false} error={null} onClose={() => {}} onSubmit={onSubmit} />,
+    );
+    const name = screen.getByLabelText(/^Назва/);
+    fireEvent.change(name, { target: { value: "Вітрина №108-01" } });
+
+    rerender(<CreateEquipmentDialog open busy error={null} onClose={() => {}} onSubmit={onSubmit} />);
+    rerender(
+      <CreateEquipmentDialog
+        open
+        busy={false}
+        error="Помилка збереження"
+        onClose={() => {}}
+        onSubmit={onSubmit}
+      />,
+    );
+    expect(name).toHaveValue("Вітрина №108-01");
+    expect(screen.getByText("Помилка збереження")).toBeVisible();
   });
 
   it("deletes equipment through the destructive confirmation dialog", async () => {

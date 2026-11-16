@@ -14,8 +14,7 @@ export type StagedSensorConfiguration = RefrigerationSensor & {
   automaticLabelSource?: "channel_id_fallback" | "physical_inventory";
 };
 
-const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
-const MAX_SENSOR_SLOT_CAPACITY = 48;
+export const MAX_SENSOR_SLOT_CAPACITY = 48;
 const GOOD_TELEMETRY_QUALITIES = new Set(["good", "ok", "valid"]);
 
 export function buildStagedSensorConfiguration(
@@ -103,17 +102,10 @@ export function replaceConfiguredChannel(
   return current
     .map((sensor) => {
       if (sensor.id !== sensorId) return sensor;
-      const keepsAutomaticLabel = sensor.automaticLabelSource !== undefined;
-      const automaticLabelSource: StagedSensorConfiguration["automaticLabelSource"] = keepsAutomaticLabel
-        ? channel.inventoryNumber?.trim()
-          ? "physical_inventory"
-          : "channel_id_fallback"
-        : undefined;
       return {
         ...sensor,
         id: channel.channelId,
-        label: keepsAutomaticLabel ? defaultMarkerLabel(channel) : sensor.label,
-        automaticLabelSource,
+        automaticLabelSource: undefined,
         name: sensorName(channel, channel.channelId),
         temperatureC: channel.latestValue,
         status: statusFromQuality(channel),
@@ -296,7 +288,7 @@ export function refreshStagedSensorChannelMetadata(
 }
 
 export function sensorSlotCapacity(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
+  if (!Number.isFinite(value) || value <= 0) return MAX_SENSOR_SLOT_CAPACITY;
   return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
 }
 
@@ -348,6 +340,7 @@ export function channelPlacementConflict(channel: AvailableSensor, equipmentId?:
 
 export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
   const quality = channel.quality.trim().toLowerCase();
+  if (quality === "stale") return "Stale";
   if (channel.latestValue === null) {
     if (quality.includes("offline") || quality.includes("communication")) {
       return "Offline";
@@ -366,6 +359,12 @@ export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()
     return "Stale";
   }
   return "Live";
+}
+
+export function channelWithCurrentReading(channel: AvailableSensor, now: number): AvailableSensor {
+  if (channel.latestValue === null || channel.sampleValidUntil == null) return channel;
+  if (channel.quality !== "stale" && Date.parse(channel.sampleValidUntil) > now) return channel;
+  return { ...channel, latestValue: null, quality: "stale" };
 }
 
 function firstAvailableSlot(

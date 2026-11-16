@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.climate_catalog.models import ClimateChamber, MeasurementBus
-from app.db import Database
+from app.db import Database, TelemetryLatest
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
+from app.refrigeration.commissioned_channels import section_temperature
 from app.refrigeration.models import (
     EquipmentSensorBinding,
     RefrigerationEquipmentRecord,
@@ -82,8 +83,96 @@ class PostgresRefrigerationEquipmentRepository:
                     )
                 )
             )
+            self._attach_sensor_summaries(session, organization_id, items)
             session.expunge_all()
             return items
+
+    @staticmethod
+    def _attach_sensor_summaries(
+        session: Session,
+        organization_id: str,
+        items: list[RefrigerationEquipmentRecord],
+    ) -> None:
+        equipment_by_id = {item.id: item for item in items}
+        if not equipment_by_id:
+            return
+        bindings = list(session.scalars(
+            select(EquipmentSensorBinding).where(
+                EquipmentSensorBinding.organization_id == organization_id,
+                EquipmentSensorBinding.equipment_id.in_(equipment_by_id),
+                EquipmentSensorBinding.unbound_at.is_(None),
+            )
+        ))
+        counts: dict[str, int] = {}
+        for binding in bindings:
+            counts[binding.equipment_id] = counts.get(binding.equipment_id, 0) + 1
+        values: dict[str, list[float]] = {}
+        valid_until: dict[str, datetime] = {}
+        if bindings:
+            now = datetime.now(UTC)
+            unique_nodes = (
+                select(CentralNode.node_id)
+                .group_by(CentralNode.node_id).having(func.count() == 1)
+                .subquery()
+            )
+            readings = session.execute(
+                select(EquipmentSensorBinding, TelemetryLatest)
+                .join(
+                    TelemetryLatest,
+                    and_(
+                        TelemetryLatest.node_id == EquipmentSensorBinding.node_id,
+                        TelemetryLatest.channel_id == EquipmentSensorBinding.channel_id,
+                    ),
+                )
+                .join(unique_nodes, unique_nodes.c.node_id == EquipmentSensorBinding.node_id)
+                .join(
+                    CentralNode,
+                    and_(
+                        CentralNode.node_id == EquipmentSensorBinding.node_id,
+                        CentralNode.organization_id == organization_id,
+                        CentralNode.state == NodeState.ACTIVE.value,
+                    ),
+                )
+                .where(
+                    EquipmentSensorBinding.id.in_([binding.id for binding in bindings]),
+                    TelemetryLatest.unit.in_(("degC", "°C")),
+                    TelemetryLatest.metric.in_(("temperature", "temperature.probe")),
+                )
+                .order_by(TelemetryLatest.captured_at.desc(), TelemetryLatest.id.desc())
+            )
+            seen: set[str] = set()
+            for binding, sample in readings:
+                identity = section_temperature(binding.channel_id)
+                if identity and (
+                    sample.equipment_id != identity.equipment_id or sample.metric != "temperature.probe"
+                ):
+                    continue
+                if binding.id in seen:
+                    continue
+                seen.add(binding.id)
+                captured_at = sample.captured_at
+                if captured_at.tzinfo is None:
+                    captured_at = captured_at.replace(tzinfo=UTC)
+                freshness = min(30, sample.stale_after_seconds or 30)
+                if (
+                    sample.value is not None
+                    and sample.quality.strip().lower() in {"good", "ok", "valid"}
+                    and now - timedelta(seconds=freshness) <= captured_at <= now
+                ):
+                    values.setdefault(binding.equipment_id, []).append(sample.value)
+                    expires_at = captured_at + timedelta(seconds=freshness)
+                    valid_until[binding.equipment_id] = min(
+                        expires_at, valid_until.get(binding.equipment_id, expires_at)
+                    )
+        for item in items:
+            temperatures = values.get(item.id, [])
+            # Derived response fields: keep the persisted passport and its version untouched.
+            item.assigned_sensors = counts.get(item.id, 0)
+            item.sensor_summary_valid_until = valid_until.get(item.id)
+            item.scheme_online_sensors = len(temperatures)
+            item.scheme_average_temperature_c = (
+                sum(temperatures) / len(temperatures) if temperatures else 0.0
+            )
 
     def get_active(
         self,
@@ -233,20 +322,24 @@ class PostgresRefrigerationEquipmentRepository:
                         raise EquipmentBindingConflictError(
                             "total_sensors cannot be lower than the active sensor binding count"
                         )
-                    climate_chamber_id, node_id = self._validated_assignment(
-                        session,
-                        climate_chamber_id=payload.climate_chamber_id,
-                        legacy_node_id=payload.node_id,
-                        organization_id=organization_id,
-                    )
-                    if (
-                        active_bindings
-                        and climate_chamber_id != record.climate_chamber_id
-                        and payload.lifecycle_status != "retired"
-                    ):
-                        raise EquipmentBindingConflictError(
-                            "unbind active sensors before changing the climate chamber"
+                    if payload.climate_chamber_id == record.climate_chamber_id and payload.node_id is None:
+                        climate_chamber_id, node_id = record.climate_chamber_id, record.node_id
+                    else:
+                        climate_chamber_id, node_id = self._validated_assignment(
+                            session,
+                            climate_chamber_id=payload.climate_chamber_id,
+                            legacy_node_id=payload.node_id or record.node_id,
+                            organization_id=organization_id,
                         )
+                    if active_bindings and payload.lifecycle_status != "retired":
+                        if node_id != record.node_id or (
+                            climate_chamber_id is not None
+                            and climate_chamber_id != record.climate_chamber_id
+                            and any(section_temperature(binding.channel_id) is None for binding in active_bindings)
+                        ):
+                            raise EquipmentBindingConflictError(
+                                "unbind active sensors before changing their measurement scope"
+                            )
                     before = _equipment_snapshot(record)
                     retired_binding_ids: list[str] = []
                     if payload.lifecycle_status == "retired":

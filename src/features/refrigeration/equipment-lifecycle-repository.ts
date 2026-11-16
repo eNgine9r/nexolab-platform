@@ -30,11 +30,15 @@ export type SensorBinding = {
 export type AvailableSensor = {
   channelId: string;
   inventoryNumber?: string | null;
+  controllerLabel?: string | null;
+  inputNumber?: number | null;
+  selectable?: boolean;
   metric: string;
   unit: string;
   latestValue: number | null;
   quality: string;
   capturedAt: string;
+  sampleValidUntil?: string | null;
   isBound: boolean;
   boundEquipmentId: string | null;
   boundSlotKey: string | null;
