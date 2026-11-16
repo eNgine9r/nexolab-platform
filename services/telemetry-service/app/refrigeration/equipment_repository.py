@@ -125,6 +125,14 @@ class PostgresRefrigerationEquipmentRepository:
                     ),
                 )
                 .join(unique_nodes, unique_nodes.c.node_id == EquipmentSensorBinding.node_id)
+                .join(
+                    CentralNode,
+                    and_(
+                        CentralNode.node_id == EquipmentSensorBinding.node_id,
+                        CentralNode.organization_id == organization_id,
+                        CentralNode.state == NodeState.ACTIVE.value,
+                    ),
+                )
                 .where(
                     EquipmentSensorBinding.id.in_([binding.id for binding in bindings]),
                     TelemetryLatest.unit.in_(("degC", "°C")),

@@ -165,6 +165,14 @@ describe("Scheme shares the verified selected membership", () => {
     expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
     rerender(workspace({ ...props, channels: [] }));
     expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
+    rerender(
+      workspace({
+        ...props,
+        channels: [{ channelId: "rs485:1-S01", selectable: false }],
+        bindings: [{ channelId: "rs485:1-S01" }],
+      }),
+    );
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
   });
 
   it("keeps a forged operator camera edit read-only until equipment management is granted", () => {

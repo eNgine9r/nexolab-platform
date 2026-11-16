@@ -118,11 +118,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const canManageSensorConfiguration =
     runtime.mode === "demo" ||
     Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
-  const hasSelectableChannels = effectiveChannels.some((channel) => channel.selectable !== false);
+  const hasSensorsToEdit =
+    bindings.length > 0 || effectiveChannels.some((channel) => channel.selectable !== false);
   const nextSensorEditEquipmentId =
     mode === "view"
       ? null
-      : hasSelectableChannels && effectiveLifecycleRepository && canManageSensorConfiguration
+      : hasSensorsToEdit && effectiveLifecycleRepository && canManageSensorConfiguration
         ? equipment.id
         : sensorEditEquipmentId;
   if (nextSensorEditEquipmentId !== sensorEditEquipmentId) {

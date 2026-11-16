@@ -233,6 +233,13 @@ def test_commissioned_sections_can_be_placed_without_a_chamber(tmp_path: Path) -
     assert retained["latest_value"] == 4.5 and retained["selectable"] is False
     assert all(item["channel_id"] != channels[0] for item in during_outage)
 
+    with Session(database.engine) as session, session.begin():
+        node = session.scalar(select(CentralNode).where(CentralNode.node_id == KK2))
+        node.state = "revoked"
+    card = api.get("/api/v1/equipment").json()["items"][0]
+    assert (card["assigned_sensors"], card["online_sensors"]) == (1, 0)
+    assert card["sensor_summary_valid_until"] is None
+
 
 def test_registry_channels_cannot_cross_measurement_nodes(tmp_path: Path) -> None:
     channel_id = "rs485:7-S02"
