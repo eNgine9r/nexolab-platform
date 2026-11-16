@@ -11,17 +11,17 @@ prefix=${fixture##*/}
 tunnel="$prefix-tunnel.service"
 dns="$prefix-dns.service"
 http="$prefix-http.service"
-wants="$unit_dir/$tunnel.wants"
+dropin="$unit_dir/$tunnel.d"
 services=("$tunnel" "$dns" "$http")
 bus=(systemctl --user)
 
 cleanup() {
     "${bus[@]}" stop "${services[@]}" >/dev/null 2>&1 || true
     for unit in "${services[@]}"; do
-        rm -f -- "$unit_dir/$unit" "$unit_dir/$unit.d/40-tailscale-lifecycle.conf" "$wants/$unit"
-        rmdir -- "$unit_dir/$unit.d" 2>/dev/null || true
+        rm -f -- "$unit_dir/$unit"
     done
-    rmdir -- "$wants" 2>/dev/null || true
+    rm -f -- "$dropin/40-nexolab-lab.conf"
+    rmdir -- "$dropin" 2>/dev/null || true
     rm -f -- "$fixture/address-ready"
     rmdir -- "$fixture"
     "${bus[@]}" daemon-reload
@@ -67,14 +67,11 @@ test "$("${bus[@]}" is-active "$http" || true)" = inactive
 printf 'BASELINE_STOP_START_LEAVES_DNS_AND_HTTP_INACTIVE\n'
 "${bus[@]}" stop "$tunnel"
 
-mkdir -- "$wants"
-for unit in "$dns" "$http"; do
-    mkdir -- "$unit_dir/$unit.d"
-    sed "s/tailscaled\.service/$tunnel/g" \
-        "$repo/infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf" \
-        >"$unit_dir/$unit.d/40-tailscale-lifecycle.conf"
-    ln -s -- "../$unit" "$wants/$unit"
-done
+mkdir -- "$dropin"
+sed -e "s/nexolab-lab-dns\.service/$dns/g" \
+    -e "s/nexolab-lab-http\.service/$http/g" \
+    "$repo/infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf" \
+    >"$dropin/40-nexolab-lab.conf"
 "${bus[@]}" daemon-reload
 rm -- "$fixture/address-ready"
 "${bus[@]}" start "$tunnel"

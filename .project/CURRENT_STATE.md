@@ -2,7 +2,7 @@
 
 Raspberry Pi LAN dashboard, local telemetry readiness and Device Agent returned 200. An independent tailnet host reached `lab.nexolab/login` with 200 and the public OAuth entry redirected with 302. Private HTTPS `8443` returned 502 from both hosts. Its root handler uses vacant staging port `3102`. The older frontend also loops with `226/NAMESPACE` due to a missing cache in an inherited workspace drop-in. Its inactive Nginx service conflicts with the active Funnel gateway's listener.
 
-The Pi systemd fixture confirmed that a stop/start of the daemon strands both dependent services with the current topology. It verified the proposed reverse `Wants` and `PartOf` across delayed readiness, stop/start and restart. The source candidate targets the existing private lab HTTP/DNS units. Live host configuration and privileged tunnel restart await owner approval and acceptance from the affected client.
+The Pi systemd fixture confirmed that a stop/start of the daemon strands both dependent services with the current topology. It verified the proposed `Wants` drop-in across delayed readiness, stop/start and restart. The source candidate targets the existing private lab HTTP/DNS units. Live host configuration and privileged tunnel restart await owner approval and acceptance from the affected client.
 
 ## 2026-11-10 — #1562 authenticated Overview V2 geometry assertion alignment
 
