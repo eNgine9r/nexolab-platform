@@ -34,6 +34,7 @@ export function ChartShell({
   series,
   inspection,
   children,
+  legend,
   onToggleSeries,
   onSoloSeries,
   onResetZoom,
@@ -46,6 +47,7 @@ export function ChartShell({
   series: readonly ChartSeries[];
   inspection: ChartCursorInspection | null;
   children: ReactNode;
+  legend?: ReactNode;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
   onResetZoom: () => void;
@@ -144,51 +146,55 @@ export function ChartShell({
       <div className="min-w-0 p-3 sm:p-4">{children}</div>
 
       <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label={copy.legend}>
-          {series.map((item) => {
-            const key = chartSeriesKey(item.identity);
-            const latest = item.segments.at(-1)?.points.at(-1);
-            const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
-            const quality = latest?.quality ?? "unknown";
-            const itemFreshness = freshnessLabel(item.freshness, locale);
-            const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
-            return (
-              <div
-                key={key}
-                className="flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2"
-              >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full border border-white/40"
-                  style={{ backgroundColor: item.colorToken }}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
-                  <span>{item.name}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{latestValue}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{quality}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{itemFreshness}</span>
-                </span>
-                <button
-                  type="button"
-                  aria-pressed={item.visible}
-                  onClick={() => onToggleSeries(key)}
-                  className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        <div
+          className={legend ? "min-w-0" : "grid min-w-0 gap-2 sm:grid-cols-2"}
+          aria-label={legend ? undefined : copy.legend}
+        >
+          {legend ??
+            series.map((item) => {
+              const key = chartSeriesKey(item.identity);
+              const latest = item.segments.at(-1)?.points.at(-1);
+              const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
+              const quality = latest?.quality ?? "unknown";
+              const itemFreshness = freshnessLabel(item.freshness, locale);
+              const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
+              return (
+                <div
+                  key={key}
+                  className="flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2"
                 >
-                  {item.visible ? copy.hide : copy.show}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSoloSeries(key)}
-                  className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                >
-                  {copy.solo}
-                </button>
-              </div>
-            );
-          })}
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full border border-white/40"
+                    style={{ backgroundColor: item.colorToken }}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
+                    <span>{item.name}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{latestValue}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{quality}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{itemFreshness}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-pressed={item.visible}
+                    onClick={() => onToggleSeries(key)}
+                    className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    {item.visible ? copy.hide : copy.show}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSoloSeries(key)}
+                    className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    {copy.solo}
+                  </button>
+                </div>
+              );
+            })}
         </div>
         <aside
           className="min-h-44 min-w-0 rounded-xl border border-white/[0.07] bg-[#06142A] p-3 text-xs [overflow-anchor:none]"

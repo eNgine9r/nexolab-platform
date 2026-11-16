@@ -1,3 +1,7 @@
+## 2026-11-16 — #1581 Saved Live Dashboard browser acceptance
+
+The #1579 required source and browser verification passed. #1581 needs its own exact-head GitHub gate. These read-only chart changes are source work packages. A Raspberry site activation requires a separately approved release.
+
 ## 2026-11-16 — #1579 controller chart acceptance
 
 The source candidate requires exact-head checks and the existing Refrigeration Browser Acceptance workflow. Local Chromium cannot create the OS socket required to start. Production hardware and deployment remain separately unverified.

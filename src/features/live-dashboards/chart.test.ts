@@ -83,6 +83,9 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual(["T-1", "T-2"]);
     expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual(["#654321", "#123456"]);
+    const instrument = groups[0].instruments.get(chartSeriesKey(groups[0].scene.series[0].identity));
+    expect(instrument).toMatchObject({ label: "equipment-1", node: "edge-1" });
+    expect(groups[0].instruments.get(chartSeriesKey(groups[0].scene.series[1].identity))).toEqual(instrument);
     expect(groups[0].scene.series[0].areaFillOpacity).toBeUndefined();
     expect(groups[0].scene.series[1].areaFillOpacity).toBeGreaterThan(0);
   });

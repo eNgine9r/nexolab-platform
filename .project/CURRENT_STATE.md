@@ -1,3 +1,9 @@
+## 2026-11-16 — #1581 Saved Live Dashboard legend and controller chart source acceptance
+
+PR #1580 merged at b57f7dee4532ef23e9ff36e033340e511219233a. Four exact-head workflows passed, including Refrigeration Browser Acceptance with PostgreSQL. This closes #1579 in source; site and hardware acceptance are separate.
+
+The #1581 candidate adds an instrument-grouped, searchable legend to Saved Live Dashboards and derives each panel's readout from the shared cursor. Missing observations are explicit. Existing selected channels, colors, persistence, range and export controls remain compatible. Exact-head authenticated browser verification is pending.
+
 ## 2026-11-16 — #1579 synchronized controller-cycle analysis
 
 The XWEB review identified a missing workflow in Refrigeration → Charts. Temperature and RPM now share the selection, zoom, and cursor with the previous state and relay history. The defrost lane follows Embraco state 3 and reports duration plus observed coverage. The alarm view, relay journal and existing CSV use the selected analysis interval. Source review and exact-head browser acceptance are pending. No site or hardware mutation was performed.

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T15:15:32Z",
+  "timestamp": "2026-11-16T15:29:47Z",
   "actor": "Codex",
-  "event": "1579_controller_analysis_candidate",
+  "event": "1581_saved_dashboard_legend_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1579,
-    "branch": "feat/1579-shared-controller-cycle",
+    "issue": 1581,
+    "branch": "feat/1581-live-dashboard-legend",
     "status": "review",
     "site_cutover": false
   },
@@ -3373,7 +3373,19 @@
       "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
       "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
       "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
-      "pending": "Required exact-head CI and browser workflow evidence. Separate approval for site activation.",
+      "pending": "Separate Raspberry site acceptance",
+      "hardware_verified": false,
+      "site_cutover": false,
+      "source_merge": "b57f7dee4532ef23e9ff36e033340e511219233a",
+      "verified_head": "e3ac93a63871564a23e1d9ae9835839539d2a680",
+      "github_workflows": 4,
+      "browser_acceptance_run": 43894681745
+    },
+    "issue_1581_saved_dashboard_legend": {
+      "baseline": "b57f7dee4532ef23e9ff36e033340e511219233a",
+      "behavior": "Saved Live Dashboard legends are grouped by instrument and filter by instrument, node, channel, metric or unit. Every panel derives its readout from the shared cursor and preserves recorded zeros and missing observations.",
+      "local_verification": "Focused chart and legend tests, TypeScript, lint and LOCAL_LAN production build.",
+      "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
       "hardware_verified": false,
       "site_cutover": false
     }
@@ -4946,7 +4958,7 @@
       }
     }
   ],
-  "next_action": "Verify exact-head CI for #1579 and merge when green. The next XWEB-inspired feature is a compact equipment-grouped legend for saved Live Dashboards.",
+  "next_action": "Check exact-head authenticated browser CI for #1581. Continue the XWEB roadmap with interval extrema and export ergonomics after chart acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4955,7 +4967,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None for #1579. Local build and automated fixtures only.",
+  "runtime_mutation": "None for #1579 or #1581. Source, local builds and isolated fixture checks only.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
