@@ -61,11 +61,39 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1564
+      "issue": 1573
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1573,
+      "title": "Create dashboards from connected sensors with direct channel selection",
+      "branch": "fix/1573-live-dashboard-connected-sensors",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Responsive connected-channel picker and tenant-scoped standalone dashboard series.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "src/features/live-dashboards/",
+        "src/hooks/use-live-dashboard-*",
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "e2e/Live Dashboard verification",
+        ".project/"
+      ],
+      "evidence": {
+        "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+        "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+        "pending_checks": "fresh required exact-head CI after synchronizing approved security baseline",
+        "site_cutover": false,
+        "prior_verified_head": "181bf421a8e2c264c611f2be10401788481a67e5",
+        "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source",
+        "security_baseline_issue": 1447
+      }
+    },
     {
       "issue": 1564,
       "title": "Use the pinned Nginx validator for protected frontend handoff",
@@ -10522,7 +10550,7 @@
       "issue": 1447,
       "title": "Current source-bound container residual-risk technical review",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "branch": "security/1447-remediate-20261030-container-scan",
       "depends_on": [],
       "scope": "Review five immutable image SBOMs with fresh vulnerability DB, fix stale packaging tests and execute them in Telemetry CI, preserve exception registry and runtime versions.",
@@ -10546,20 +10574,27 @@
         "site_activation": false,
         "hardware": "unverified",
         "review_evidence": "docs/architecture/security-container-review-20261104.json",
-        "full_updated_head_ci": "pending"
+        "full_updated_head_ci": "pending",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086",
+        "checks": {
+          "github_workflows": "22/22 green",
+          "container_supply_chain": 43862880533,
+          "offline_bundle": 43862880148
+        }
       },
       "result_2026_11_16": {
         "baseline_supply_chain_run": 43851624610,
-        "latest_remediation_head": "bdcae8b445aac912299a0fa553a55b67b8456db2",
-        "status": "Product Owner approved 18 exact version-bound exceptions through 2026-11-23; fresh exact-head CI pending",
+        "latest_remediation_head": "67351d3d0717a20c88a149669f24ea499179b086",
+        "status": "merged after all 22 required and triggered exact-head workflows passed",
         "changes": "Rebuilt dependencies, split MQTT client package and removed unused Debian packages",
-        "supply_chain_evidence_run": 43858765272,
-        "broker_control_acceptance_run": 43858765210,
+        "supply_chain_evidence_run": 43862880533,
+        "broker_control_acceptance_run": 43862880406,
         "telemetry_high": 18,
         "telemetry_critical": 0,
         "retired_registry_entries": 33,
         "approved_registry_entries": 18,
-        "approval_expires_on": "2026-11-23"
+        "approval_expires_on": "2026-11-23",
+        "offline_evidence_run": 43862880148
       }
     }
   ],
@@ -12559,6 +12594,17 @@
         "pending_core_pr": 1483,
         "separate_monitor_pr": 1477,
         "deployment_unchanged": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
       }
     }
   ],

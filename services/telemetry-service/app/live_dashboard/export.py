@@ -18,6 +18,7 @@ from app.live_dashboard.telemetry_identity import (
     LiveDashboardTelemetryIdentityError,
     telemetry_equipment_id,
 )
+from app.nodes.models import CentralNode
 
 
 EXPORT_MEDIA_TYPE = "text/csv; charset=utf-8"
@@ -111,6 +112,18 @@ def _series_scope(
     dashboard: DashboardRecord,
     item: DashboardItemRecord,
 ) -> tuple[str, str]:
+    if item.node_id is not None and item.equipment_id is not None:
+        with Session(database.engine) as session:
+            allowed_node = session.scalar(
+                select(CentralNode.node_id).where(
+                    CentralNode.organization_id == dashboard.organization_id,
+                    CentralNode.node_id == item.node_id,
+                    CentralNode.state != "revoked",
+                )
+            )
+        if allowed_node is None:
+            raise LiveDashboardExportError("Saved dashboard node is unavailable in this organization")
+        return item.node_id, item.equipment_id
     with Session(database.engine) as session:
         row = session.execute(
             select(

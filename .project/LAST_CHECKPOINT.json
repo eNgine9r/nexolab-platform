@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T09:32:04Z",
+  "timestamp": "2026-11-16T12:13:57Z",
   "actor": "Codex",
-  "event": "1564_nginx_validator_source_verified",
+  "event": "1448_security_merged_and_1574_reconciled",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,18 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1564,
-    "branch": "fix/1564-nginx-dynamic-user-validator",
+    "issue": 1573,
+    "branch": "fix/1573-live-dashboard-connected-sensors",
     "status": "review",
     "site_cutover": false
   },
   "evidence_snapshot": {
+    "issue_1573_live_connected_channels": {
+      "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+      "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+      "pending_checks": "exact-head PostgreSQL and authenticated browser acceptance",
+      "site_cutover": false
+    },
     "issue_1564_nginx_validator": {
       "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
       "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
@@ -3329,17 +3335,18 @@
       "blocked_live_editor_pr": 1574,
       "prior_scan_run": 42219823187,
       "latest_baseline_scan_run": 43851624610,
-      "new_source_verification": "image scan and broker control verified on previous source candidate",
-      "verified_remediation_head": "bdcae8b445aac912299a0fa553a55b67b8456db2",
-      "telemetry_scan_run": 43858765272,
+      "new_source_verification": "22 exact-head workflows passed",
+      "verified_remediation_head": "67351d3d0717a20c88a149669f24ea499179b086",
+      "telemetry_scan_run": 43862880533,
       "telemetry_report_sha256": "a974885bfbcc3fddb2a1535c16d0499c4cbe16e25bd5390e2df430d28546cac2",
-      "broker_control_acceptance_run": 43858765210,
+      "broker_control_acceptance_run": 43862880406,
       "telemetry_high": 18,
       "telemetry_critical": 0,
       "exception_registry": "33 retired; Product Owner approved 18 exact version-bound HIGH through 2026-11-23 inclusive",
       "approval_evidence_head": "b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb",
       "approval_evidence_run": 43859841072,
-      "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253"
+      "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253",
+      "offline_acceptance_run": 43862880148
     }
   },
   "observations": [
@@ -4897,9 +4904,20 @@
         "site_mutation": false,
         "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
+      }
     }
   ],
-  "next_action": "Verify and merge the #1564 source PR after required GitHub checks. Read the active protected gateway and prepare the separately approved source-bound #1569 handoff from the verified ARM64 artifact. Retain exact Nginx rollback and verify authenticated Overview, telemetry and administrator access after activation.",
+  "next_action": "Verify all exact-head checks on #1574, merge after green, then prepare the separately authorized paired frontend and Telemetry activation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

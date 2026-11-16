@@ -1,6 +1,10 @@
 ## 2026-11-16 — container security #1447
 
-Product Owner approved the 18 version-bound Telemetry findings through 2026-11-23 inclusive. Container Supply Chain must still verify the fresh images. Live data editor PR #1574 needs the approved #1448 baseline, a fresh exact-head gate and separate site authorization.
+Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
+
+## 2026-11-16 — #1573 connected sensors source acceptance pending
+
+The local execution environment denies Chromium and PostgreSQL Unix sockets. Isolated backend and frontend tests run locally; PostgreSQL migration and authenticated browser evidence will come from exact-head GitHub CI. A production release needs the matching frontend and Telemetry Service, a recovery plan for migration 0038 and separate site approval.
 
 ## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
 

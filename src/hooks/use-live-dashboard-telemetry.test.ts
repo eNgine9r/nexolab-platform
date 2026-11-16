@@ -176,6 +176,39 @@ describe("useLiveDashboardTelemetry persisted history", () => {
     expect(state.latest).toHaveBeenCalledTimes(1);
   });
 
+  it("queries and subscribes to the exact selected standalone series", async () => {
+    const item = {
+      ...dashboard.items[0],
+      node_id: "edge-1",
+      equipment_id: "controller-106",
+      channel_ref_id: null,
+    };
+    const scope = {
+      node_id: item.node_id,
+      equipment_id: item.equipment_id,
+      channel_id: item.channel_id,
+      metric: item.metric,
+    };
+    const { result } = renderHook(() =>
+      useLiveDashboardTelemetry({
+        dashboard: { ...dashboard, items: [item] },
+        organizationId: "organization-1",
+        enabled: true,
+      }),
+    );
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    expect(state.latest).toHaveBeenCalledWith(expect.objectContaining(scope), expect.anything());
+    expect(state.history).toHaveBeenCalledWith(expect.objectContaining(scope), expect.anything());
+    expect(state.subscribe).toHaveBeenCalledWith(scope, expect.anything());
+
+    const tail = sample("standalone-tail", "2026-08-18T20:00:06.000Z", 7);
+    act(() => {
+      state.handlers!.onSample({ ...tail, equipment_id: "different-device", value: 99 });
+      state.handlers!.onSample(tail);
+    });
+    await waitFor(() => expect(result.current.series[0]?.latest?.value).toBe(7));
+  });
+
   it("reconciles a live tail after persisted bootstrap without replay duplicates", async () => {
     const { result } = renderHook(() =>
       useLiveDashboardTelemetry({

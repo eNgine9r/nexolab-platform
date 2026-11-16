@@ -65,8 +65,8 @@ export function savedDashboardChartIdentity(
   series: LiveDashboardSeries,
 ): ChartSeriesIdentity {
   return {
-    nodeId: `live-dashboard:${dashboardId}`,
-    equipmentId: series.item.channel_ref_id,
+    nodeId: series.item.node_id ?? `live-dashboard:${dashboardId}`,
+    equipmentId: series.item.equipment_id ?? series.item.channel_ref_id ?? series.item.id,
     channelId: series.item.channel_id,
     metric: series.item.metric,
     nativeUnit: series.item.native_unit,
@@ -74,7 +74,13 @@ export function savedDashboardChartIdentity(
 }
 
 function sourceEquipmentId(series: LiveDashboardSeries): string {
-  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
+  return (
+    series.latest?.equipment_id ??
+    series.history[0]?.equipment_id ??
+    series.item.equipment_id ??
+    series.item.channel_ref_id ??
+    series.item.id
+  );
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
