@@ -1,3 +1,7 @@
+## 2026-11-16 — container security #1447
+
+Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
+
 ## 2026-11-16 — #1573 connected sensors in Live Dashboards
 
 Read-only counts on nexolab-edge-01 identified 24 recent authorized-node series missing from the climate-only selector, eight each for XJP60D, SDM120M and Waveshare. The production report is tracked in #1573. The editor now searches compact device groups, changes the draft in one click, and keeps existing display and selection controls. The opt-in inventory includes exact observed series from the latest projection. Save, fetch, subscribe, history and CSV retain standalone node and equipment scope. Existing climate-catalog references remain valid. Migration 0038 adds an alternative scoped reference without rewriting existing selections. Downgrade requires the database to contain no standalone dashboard references.

@@ -217,6 +217,59 @@ jobs:
           docker run --rm --network none --entrypoint /usr/bin/python3 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
           docker run --rm --network none --entrypoint /usr/bin/python3.13 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
 
+      - name: Verify Telemetry runtime and package provenance offline
+        if: matrix.id == 'telemetry-service'
+        run: |
+          docker run --rm -i --network none --entrypoint /usr/local/bin/python "$LOCAL_IMAGE" - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          import sqlite3
+          import ssl
+          import subprocess
+          from tempfile import TemporaryDirectory
+
+          import msgpack
+          import numpy
+          import psycopg
+          from CoolProp.CoolProp import PropsSI
+          from PIL import Image
+          from reportlab.pdfbase import ttfonts
+
+          assert os.geteuid() == 10001
+          assert shutil.which("mosquitto_ctrl") == "/usr/bin/mosquitto_ctrl"
+          assert shutil.which("mosquitto") is None
+          assert shutil.which("mosquitto_pub") is None
+          assert shutil.which("alembic")
+          ssl.create_default_context()
+          assert msgpack.unpackb(msgpack.packb([1])) == [1]
+          assert Image.new("RGB", (1, 1)).size == (1, 1)
+          assert numpy.arange(3).sum() == 3
+          assert PropsSI("T", "P", 101325, "Q", 0, "Water") > 370
+          ttfonts.TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+
+          with TemporaryDirectory(dir="/app/data/telemetry-ingestion") as temporary:
+              with sqlite3.connect(Path(temporary) / "smoke.db") as database:
+                  assert database.execute("SELECT 1").fetchone() == (1,)
+
+          packages = subprocess.check_output(
+              ["dpkg-query", "-W", "-f=${source:Package} ${source:Version}\n",
+               "nexolab-mosquitto-ctrl", "libmosquitto1"],
+              text=True,
+          ).splitlines()
+          assert len(packages) == 2 and packages[0] == packages[1], packages
+          assert packages[0].startswith("mosquitto "), packages
+
+          for package in ("bsdutils", "login", "mount", "ncurses-bin", "util-linux",
+                          "mosquitto", "libwebsockets19t64"):
+              status = subprocess.run(
+                  ["dpkg-query", "-W", "-f=${db:Status-Status}", package],
+                  capture_output=True, text=True, check=False,
+              )
+              assert status.stdout != "installed", package
+          print("Telemetry dependencies, broker client provenance and SQLite: OK")
+          PY
+
       - name: Prepare evidence directory
         run: mkdir -p "$EVIDENCE_DIR"
 
