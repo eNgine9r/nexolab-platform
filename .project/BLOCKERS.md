@@ -1,6 +1,10 @@
+## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
+
+The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.
+
 ## 2026-11-16 — #1569 protected frontend acceptance pending
 
-The existing protected site showed a local sign-in link after a reload. The source candidate still needs exact-head CI and authorized installation of a verified frontend artifact. Live verification requires an administrator sign-in and an owner-approved account creation after the update. Only read-only checks were performed against the protected site.
+PR #1570 passed nine exact-head workflows and merged. The ARM64 build is staged and passed isolated Chromium on the Pi. Its source and build differ from the original #1560 handoff pins. Reconcile the active gateway and rollback frontend, then prepare a verified handoff tied to #1569. After separate site approval, live verification requires an administrator sign-in and an owner-approved account creation.
 
 ## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
 

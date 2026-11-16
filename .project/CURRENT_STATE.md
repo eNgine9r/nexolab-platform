@@ -1,3 +1,9 @@
+## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
+
+The prior promotion failed because the wrapper passed the gateway's systemd `DynamicUser` to `runuser`. The root-gated helper now invokes the pinned Nginx binary directly in syntax-check mode. Two regression tests failed with the old wrapper. All ten handoff tests pass after the change, including byte-exact rollback and a no-reload recovery when the original is already present. Isolated Nginx accepted the original and generated blue/green configurations and rejected invalid syntax. An unsigned request to the protected URL returned HTTP 302.
+
+Issue #1569 records nine successful exact-head workflows for the merged Users & Access fix and verified ARM64 staging of source `3e4c10f3` on the Pi. The #1560 script still targets its original `08f1c8a4` artifact. Before activation, verify the actual running gateway and prepare a handoff bound to the newer artifact and build ID. The #1564 source check did not change site routing or verify an authenticated operator session.
+
 ## 2026-11-16 — #1569 Users & Access after local session loss
 
 Raspberry API logs show token refresh HTTP 401 immediately before the failed user creation HTTP 401. The open protected HTTPS page still displayed administrator controls, and an on-page refresh reproduced the missing bearer error on admin reads. Reloading the page displayed the local sign-in link. The running gateway forwards Authorization to Telemetry after Google authorization. The live frontend reported source `08f1c8a4ed9212c25697d338583845bed5218ee5`.
