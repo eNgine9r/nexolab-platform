@@ -55,10 +55,11 @@ export function CreateEquipmentDialog({
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
 }) {
+  if (!open) return null;
   return (
     <EquipmentPassportDialog
+      key={intent}
       mode={intent}
-      open={open}
       busy={busy}
       error={error}
       initialValue={initialValue ?? initialForm}
@@ -87,8 +88,8 @@ export function EditEquipmentDialog({
   if (!equipment) return null;
   return (
     <EquipmentPassportDialog
+      key={equipment.id}
       mode="edit"
-      open
       busy={busy}
       error={error}
       initialValue={equipmentToInput(equipment)}
@@ -101,7 +102,6 @@ export function EditEquipmentDialog({
 
 function EquipmentPassportDialog({
   mode,
-  open,
   busy,
   error,
   initialValue,
@@ -110,7 +110,6 @@ function EquipmentPassportDialog({
   onSubmit,
 }: {
   mode: PassportDialogMode;
-  open: boolean;
   busy: boolean;
   error: string | null;
   initialValue: RefrigerationEquipmentCreateInput;
@@ -124,21 +123,17 @@ function EquipmentPassportDialog({
   const nameField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    setForm(initialValue);
-    setRetirementConfirmed(false);
     const frame = window.requestAnimationFrame(() => nameField.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [busy, initialValue, onClose, open]);
-
-  if (!open) return null;
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [busy, onClose]);
 
   const update = <K extends keyof RefrigerationEquipmentCreateInput>(
     key: K,

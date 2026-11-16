@@ -8,6 +8,7 @@ import { InMemoryRefrigerationEquipmentRepository } from "@/features/refrigerati
 import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 
 import { RefrigerationCatalogScreen } from "./refrigeration-catalog-screen";
+import { CreateEquipmentDialog } from "./refrigeration-equipment-dialogs";
 
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
@@ -366,6 +367,28 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(await screen.findByText(`${source.name} — копія`)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("створено як незалежну копію");
+  });
+
+  it("keeps entered passport fields when the catalog rerenders or saving fails", () => {
+    const onSubmit = vi.fn(async () => undefined);
+    const { rerender } = render(
+      <CreateEquipmentDialog open busy={false} error={null} onClose={() => {}} onSubmit={onSubmit} />,
+    );
+    const name = screen.getByLabelText(/^Назва/);
+    fireEvent.change(name, { target: { value: "Вітрина №108-01" } });
+
+    rerender(<CreateEquipmentDialog open busy error={null} onClose={() => {}} onSubmit={onSubmit} />);
+    rerender(
+      <CreateEquipmentDialog
+        open
+        busy={false}
+        error="Помилка збереження"
+        onClose={() => {}}
+        onSubmit={onSubmit}
+      />,
+    );
+    expect(name).toHaveValue("Вітрина №108-01");
+    expect(screen.getByText("Помилка збереження")).toBeVisible();
   });
 
   it("deletes equipment through the destructive confirmation dialog", async () => {
