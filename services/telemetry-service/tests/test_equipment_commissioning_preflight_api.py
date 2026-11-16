@@ -346,3 +346,23 @@ def test_device_agent_evidence_validation_rejects_write_or_identity_drift() -> N
     ):
         with pytest.raises(DeviceAgentPreflightError):
             validate_preflight_evidence({**valid, **change}, command)
+
+
+def test_named_standalone_preflight_needs_no_target_equipment(tmp_path: Path) -> None:
+    database, security = _database(tmp_path)
+    fake = FakePreflightClient()
+    api = _app(database, security, fake)
+    created = api.post("/api/v1/equipment/commissioning/sessions", json={
+        "display_name": "Dixell тест 2", "device_class": "temperature-controller",
+        "manufacturer": "Dixell", "model": "XJP60D", "profile_id": "dixell-xjp60d",
+        "node_id": "edge-01", "bus_id": "rs485-sdm120", "unit_id": 2,
+        "stable_transport_identifier": "/dev/serial/by-id/usb-test",
+    }, headers={"Idempotency-Key": "standalone-2"})
+    assert created.status_code == 201
+    row = created.json()
+    assert row["target_equipment_key"] is None
+    response = api.post(f"/api/v1/equipment/commissioning/sessions/{row['id']}/preflight",
+        headers={"Idempotency-Key": "preflight-standalone", "If-Match": created.headers["etag"]})
+    assert response.status_code == 200
+    assert response.json()["result"] == "passed"
+    assert len(fake.calls) == 1 and fake.calls[0].unit_id == 2

@@ -348,7 +348,7 @@ class CommissioningRepository:
             else set()
         )
         for row in rows:
-            if row.lifecycle == "ready_for_preflight" and (
+            if row.lifecycle == "ready_for_preflight" and row.target_equipment_key and (
                 row.target_equipment_key not in available_targets
                 or row.target_equipment_key in bound_targets
             ):
@@ -427,6 +427,7 @@ def _resolve_values(values: dict[str, Any]) -> dict[str, Any]:
         "device_class": device_class,
         "manufacturer": manufacturer,
         "model": model,
+        "display_name": values.get("display_name"),
         "profile_id": profile.id if profile is not None else requested_profile_id,
         "profile_version": profile.version if profile is not None else None,
         "transport_kind": profile.transport_kind if profile is not None else None,
@@ -465,7 +466,7 @@ def _resolve_values(values: dict[str, Any]) -> dict[str, Any]:
             resolved["bus_id"],
             resolved["stable_transport_identifier"],
             resolved["unit_id"],
-            resolved["target_equipment_key"],
+            resolved["target_equipment_key"] or resolved["display_name"],
         )
         resolved["lifecycle"] = "ready_for_preflight" if all(item is not None and item != "" for item in required) else "draft"
         return resolved
@@ -497,6 +498,7 @@ def _editable_values(row: EquipmentCommissioningSession) -> dict[str, Any]:
         "device_class": row.device_class,
         "manufacturer": row.manufacturer,
         "model": row.model,
+        "display_name": row.display_name,
         "profile_id": row.profile_id,
         "node_id": row.node_id,
         "bus_id": row.bus_id,
@@ -515,6 +517,7 @@ def _snapshot(row: EquipmentCommissioningSession) -> dict[str, Any]:
         "device_class": row.device_class,
         "manufacturer": row.manufacturer,
         "model": row.model,
+        "display_name": row.display_name,
         "profile_id": row.profile_id,
         "profile_version": row.profile_version,
         "transport_kind": row.transport_kind,
@@ -539,5 +542,7 @@ def _normalize_idempotency_key(value: str) -> str:
 
 
 def _fingerprint(values: dict[str, Any]) -> str:
+    # Omit absent names to preserve pre-upgrade idempotency fingerprints.
+    values = {key: value for key, value in values.items() if key != "display_name" or value is not None}
     encoded = json.dumps(values, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()

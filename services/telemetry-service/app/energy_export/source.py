@@ -10,6 +10,7 @@ from typing import Callable
 from sqlalchemy import and_, exists, func, or_, select, text
 from sqlalchemy.orm import Session, aliased, load_only
 from app.climate_catalog.models import ClimateChamber, MeasurementBus, MeasurementDevice
+from app.commissioning.models import EquipmentCommissioningSession
 
 from app.db import Database, TELEMETRY_HISTORY_ADVISORY_LOCK_ID, TelemetryLatest, TelemetrySample
 from app.energy_export.schemas import COUNTER, METRICS, CatalogSeries, ExportError, ExportOptions, SeriesSelection, iso, utc
@@ -45,7 +46,18 @@ def catalog(database: Database, organization_id: str) -> list[CatalogSeries]:
             .join(MeasurementBus, and_(MeasurementBus.id == MeasurementDevice.bus_id, MeasurementBus.organization_id == MeasurementDevice.organization_id))
             .join(ClimateChamber, and_(ClimateChamber.id == MeasurementDevice.climate_chamber_id, ClimateChamber.organization_id == MeasurementDevice.organization_id))
             .where(MeasurementDevice.organization_id == organization_id, MeasurementDevice.device_type == "energy_meter", MeasurementDevice.status == "active", MeasurementBus.status == "active").limit(1025)).all()
+        commissioned = session.execute(
+            select(EquipmentCommissioningSession.node_id, EquipmentCommissioningSession.bus_id,
+                   EquipmentCommissioningSession.unit_id)
+            .where(EquipmentCommissioningSession.organization_id == organization_id,
+                   EquipmentCommissioningSession.lifecycle == "active",
+                   EquipmentCommissioningSession.profile_id == "eastron-sdm120m",
+                   EquipmentCommissioningSession.profile_version == "eastron-sdm120m-fc04-v1")
+            .limit(1025)
+        ).all()
     if len(rows) > 1024:
+        raise ExportError("catalog_too_large", "Каталог перевищує підтримуваний розмір; звузьте конфігурацію обладнання.")
+    if len(commissioned) > 1024:
         raise ExportError("catalog_too_large", "Каталог перевищує підтримуваний розмір; звузьте конфігурацію обладнання.")
     result = []
     names = {}
@@ -54,7 +66,27 @@ def catalog(database: Database, organization_id: str) -> list[CatalogSeries]:
         prefix = "SDM120M" if "sdm120" in normalized else "LE01MP" if "le01mp" in normalized else None
         if prefix is not None:
             names.setdefault((node, f"{prefix}-{device_unit}"), []).append((equipment_name, designation or device_name))
+    commissioned_names = {}
+    for node, bus, unit in commissioned:
+        if not node or not bus or not re.fullmatch(r"commissioning-[0-9a-f]{16}", bus) or not isinstance(unit, int) or not 1 <= unit <= 247:
+            continue
+        identity = (node, f"SDM120M:{bus}:{unit}")
+        # Export requires telemetry.read, which can be narrower than the dashboard
+        # permission needed to read commissioning session names. Use identity-only
+        # labels rather than exposing inventory metadata through this endpoint.
+        commissioned_names.setdefault(identity, []).append(f"SDM120M · {bus} · Unit {unit}")
     for row, node_name in rows:
+        scoped = commissioned_names.get((row.node_id, row.equipment_id), [])
+        if scoped:
+            # Ambiguous inventory must not give a telemetry stream an arbitrary name.
+            if len(scoped) != 1 or row.metric == "temperature.internal":
+                continue
+            result.append(CatalogSeries(
+                node_id=row.node_id, equipment_id=row.equipment_id, channel_id=row.channel_id,
+                metric=row.metric, unit=METRICS[row.metric][1], equipment_name=f"{node_name} · {scoped[0]}",
+                meter_label=scoped[0], parameter_name=METRICS[row.metric][2], name_source="commissioning",
+            ))
+            continue
         match = re.fullmatch(r"(LE01MP|SDM120M)-(\d{1,3})", row.equipment_id)
         if not match or not 1 <= int(match[2]) <= 247:
             continue

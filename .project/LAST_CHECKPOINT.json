@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T12:13:57Z",
+  "timestamp": "2026-11-16T13:10:10Z",
   "actor": "Codex",
-  "event": "1448_security_merged_and_1574_reconciled",
+  "event": "1575_raspberry_live_source_reconciled",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1573,
-    "branch": "fix/1573-live-dashboard-connected-sensors",
+    "issue": 1575,
+    "branch": "fix/1575-pi-alembic-bridge",
     "status": "review",
     "site_cutover": false
   },
@@ -40,8 +40,10 @@
     "issue_1573_live_connected_channels": {
       "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
       "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
-      "pending_checks": "exact-head PostgreSQL and authenticated browser acceptance",
-      "site_cutover": false
+      "pending_checks": "Site acceptance after #1575",
+      "site_cutover": false,
+      "source_merged_pr": 1574,
+      "source_revision": "eb6302b0ff1a4fefa399dd07dea15fb48f9d491c"
     },
     "issue_1564_nginx_validator": {
       "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
@@ -3347,6 +3349,14 @@
       "approval_evidence_run": 43859841072,
       "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253",
       "offline_acceptance_run": 43862880148
+    },
+    "issue_1575_pi_compatibility": {
+      "deployed_telemetry_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+      "source_match": "All 229 tracked Telemetry Python app and migration files match the running service.",
+      "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
+      "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
+      "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
+      "site_cutover": false
     }
   },
   "observations": [
@@ -4917,7 +4927,7 @@
       }
     }
   ],
-  "next_action": "Verify all exact-head checks on #1574, merge after green, then prepare the separately authorized paired frontend and Telemetry activation.",
+  "next_action": "Check #1576 exact-head CI and prepare matching ARM64 artifacts and protected frontend/Telemetry handoff for nexolab-edge-01.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4926,7 +4936,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none on the production gateway or lab services; isolated temporary systemd user fixtures only",
+  "runtime_mutation": "No site cutover, production migration, hardware write or network change. The first candidate image was staged only.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

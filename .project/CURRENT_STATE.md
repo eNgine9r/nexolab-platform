@@ -1,3 +1,7 @@
+## 2026-11-16 — #1575 Raspberry compatibility for Live Dashboards
+
+Live Dashboard source PR #1574 merged at eb6302b0ff1a4fefa399dd07dea15fb48f9d491c. The active Pi database has commissioning revision `20261104_0038`. All 229 tracked Telemetry Python app and migration files match the deployed source in `4be678f6aa2581ad7fc79bcc22c26cd520c94272`. PR #1576 carries forward those deployed commissioning and energy-export paths and joins the two schema revisions. Isolated PostgreSQL 16.16 upgrades from both revisions preserved the existing instrument name and created the dashboard columns. 52 targeted existing tests passed. The Pi is still serving its previous frontend and Telemetry versions.
+
 ## 2026-11-16 — container security #1447
 
 Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
