@@ -17,6 +17,7 @@ from app.climate_catalog.repository import (
 from app.db import Database, TelemetryLatest, TelemetrySample
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
+from app.refrigeration.channel_labels import ChannelNameStore
 from app.refrigeration.commissioned_channels import (
     CommissionedTemperature,
     CommissionedTemperatureInventory,
@@ -75,6 +76,7 @@ class ClimateChamberChannel:
     captured_at: datetime
     binding: EquipmentSensorBinding | None
     controller_label: str | None = None
+    display_name: str | None = None
     input_number: int | None = None
     selectable: bool = True
     sample_valid_until: datetime | None = None
@@ -214,6 +216,9 @@ class PostgresSensorConfigurationRepository:
                     )
                 )
             }
+        labels = ChannelNameStore._names(
+            session, equipment.organization_id, node_id, list(candidates),
+        )
         rows = {}
         now = datetime.now(UTC)
         for channel_id, item in candidates.items():
@@ -237,6 +242,7 @@ class PostgresSensorConfigurationRepository:
                 captured_at=captured_at,
                 binding=by_channel.get(channel_id),
                 controller_label=item.controller_label,
+                display_name=labels.get(channel_id) or f"{item.controller_label.split(' · ')[0]} · Вхід {item.input_number}",
                 input_number=item.input_number,
                 selectable=channel_id in active,
                 sample_valid_until=valid_until,

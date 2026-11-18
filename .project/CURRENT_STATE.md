@@ -1,3 +1,9 @@
+## 2026-11-18 — #1585 Active Dixell Registry and persistent channel names
+
+On isolated source branch feat/1585-registry-channel-labels (main base 75ceb465), the Equipment Registry now uses the same read-only commissioned acquisition inventory as refrigeration. It shows active 6+2 section channels without chamber binding, keeps historical climate catalog separately inspectable, and distinguishes inventory unavailability from confirmed inactive status. Operators with equipment.manage permission can save/reset local PostgreSQL shared presentation names for the exact org/node/channel identity. The labels appear in Registry, refrigeration picker and Live Data / Live Dashboard inventory without changing ingestion, channel IDs, chart bindings or archived measurements. Migration 20261118_0040 is additive and downgrade is guarded.
+
+Local evidence: 18 Python tests passed; 436 module frontend tests passed; TypeScript, changed-file lint/format, Python syntax and isolated Alembic migration/guard verification performed. Source build/CI/site acceptance are separate gates. No production/runtime/device-agent/hardware change.
+
 ## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
 
 The source candidate makes the climate chamber optional. The scheme uses a read-only commissioned temperature inventory for picking and server validation, retains existing bindings, and attaches a chamberless passport to the authorized measurement node at the first placement. Replacement preserves position and label. Required pull request checks and installed hardware acceptance are pending.

@@ -506,6 +506,7 @@ function SensorPlacementManagerSession({
 }
 
 function quickChannelLabel(channel: AvailableSensor): string {
+  if (channel.displayName) return channel.displayName;
   if (channel.inputNumber) return `Вхід ${channel.inputNumber}`;
   return channel.inventoryNumber ? `№ ${channel.inventoryNumber}` : channel.channelId;
 }
@@ -535,6 +536,7 @@ function QuickSensorPicker({
   for (const channel of channels) {
     const searchable = [
       channel.controllerLabel,
+      channel.displayName,
       quickChannelLabel(channel),
       channel.channelId,
       channel.metric,

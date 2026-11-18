@@ -27,6 +27,7 @@ class StructuralChannelResponse(BaseModel):
     sample_valid_until: datetime | None = None
     is_bound: bool
     controller_label: str | None = None
+    display_name: str | None = None
     input_number: int | None = None
     selectable: bool = True
     bound_equipment_id: str | None = None

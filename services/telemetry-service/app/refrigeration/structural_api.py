@@ -121,6 +121,7 @@ def create_refrigeration_structural_router(
                     sample_valid_until=item.sample_valid_until,
                     is_bound=item.binding is not None,
                     controller_label=item.controller_label,
+                    display_name=item.display_name,
                     input_number=item.input_number,
                     selectable=item.selectable,
                     bound_equipment_id=(

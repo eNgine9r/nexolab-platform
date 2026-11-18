@@ -346,6 +346,7 @@ class AvailableSensorResponse(BaseModel):
     is_bound: bool
     bound_equipment_id: str | None = None
     bound_slot_key: str | None = None
+    display_name: str | None = None
 
 
 class AvailableSensorListResponse(BaseModel):

@@ -23,6 +23,10 @@ import {
 } from "lucide-react";
 
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
+import { HttpChannelNameRepository } from "@/features/equipment/channel-name-repository";
+import { createAuthenticatedFetch } from "@/features/security/security-session";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import {
   CANONICAL_CHART_TIME_RANGES,
   chartSeriesKey,
@@ -227,7 +231,13 @@ function deriveResetDomain(
   return { fromMs: historyToMs - durationMs, toMs: historyToMs };
 }
 
-export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryModel }) {
+export function LiveTelemetryExplorer({
+  telemetry,
+  organizationId,
+}: {
+  telemetry: LiveTelemetryModel;
+  organizationId?: string;
+}) {
   const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
   const pathname = usePathname();
@@ -262,6 +272,31 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [liveFollow, setLiveFollow] = useState(range === "live");
   const lastUrlRef = useRef("");
   const channelSearchRef = useRef<HTMLInputElement>(null);
+  const [commissionedNames, setCommissionedNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!organizationId) return;
+    const runtime = getTelemetryRuntimeConfig();
+    if (runtime.mode !== "live" || !runtime.apiBaseUrl) return;
+    const controller = new AbortController();
+    const repository = new HttpChannelNameRepository(
+      runtime.apiBaseUrl,
+      createAuthenticatedFetch(fetch.bind(globalThis), createRuntimeCredentialProvider(organizationId)),
+    );
+    void repository
+      .list(controller.signal)
+      .then((inventory) => {
+        if (controller.signal.aborted || inventory.state !== "available") return;
+        setCommissionedNames(
+          Object.fromEntries(
+            inventory.items.map((item) => [item.nodeId + "/" + item.channelId, item.displayName]),
+          ),
+        );
+      })
+      .catch(() => {
+        // Keep technical IDs on an unavailable inventory; never invent labels.
+      });
+    return () => controller.abort();
+  }, [organizationId]);
 
   const filtered = useMemo(
     () => filterLiveTelemetry(telemetry.samples, filters),
@@ -884,6 +919,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               <tbody role="rowgroup" className="block divide-y divide-white/[0.055] lg:table-row-group">
                 {filtered.map((sample) => {
                   const key = liveChannelKey(sample);
+                  const friendlyName = commissionedNames[sample.node_id + "/" + sample.channel_id];
                   const selectedNow = telemetry.selectedKeys.includes(key);
                   const state = liveTelemetryState(sample);
                   return (
@@ -927,7 +963,12 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                         {sample.equipment_id}
                       </td>
                       <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
-                        {sample.channel_id}
+                        {friendlyName ?? sample.channel_id}
+                        {friendlyName ? (
+                          <span className="mt-1 block font-mono text-[10px] text-slate-500">
+                            {sample.channel_id}
+                          </span>
+                        ) : null}
                       </td>
                       <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
                         {sample.metric}
@@ -937,7 +978,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                         className="col-start-2 row-start-1 min-w-0 font-medium text-white lg:px-3 lg:py-3"
                       >
                         <span className="mb-1 block text-xs [overflow-wrap:anywhere] text-slate-300 lg:hidden">
-                          {sample.equipment_id} · {sample.channel_id} · {sample.metric}
+                          {sample.equipment_id} · {friendlyName ?? sample.channel_id} · {sample.metric}
                         </span>
                         <span className="[overflow-wrap:anywhere]">{formatValue(sample)}</span>
                       </td>

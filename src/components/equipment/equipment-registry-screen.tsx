@@ -174,6 +174,8 @@ export function EquipmentRegistryScreen() {
                 <EquipmentRegistryCatalog
                   state={registry.state}
                   assets={registry.assets}
+                  commissionedState={registry.commissionedState}
+                  channelNameRepository={registry.channelNameRepository}
                   failures={registry.failures}
                   error={registry.error}
                   progress={registry.progress}

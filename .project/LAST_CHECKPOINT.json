@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-16T18:08:15Z",
-  "actor": "Codex",
-  "event": "1583_refrigeration_scheme_candidate",
+  "timestamp": "2026-11-18T08:14:16Z",
+  "actor": "ChatGPT",
+  "event": "1585_registry_channel_names_source",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1583,
-    "branch": "feat/1583-refrigeration-scheme-channels",
+    "issue": 1585,
+    "branch": "feat/1585-registry-channel-labels",
     "status": "review",
     "site_cutover": false
   },
@@ -3395,6 +3395,17 @@
       "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
       "hardware_verified": false,
       "site_cutover": false
+    },
+    "issue_1585_channel_labels": {
+      "base": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+      "scope": "6+2 active read-only channels, persistent names, unchanged channel IDs/history",
+      "python_tests": "18 passed",
+      "frontend_tests": "436 module tests passed (67 files)",
+      "migration": "isolated upgrade and guarded downgrade passed",
+      "hardware_verified": false,
+      "site_cutover": false,
+      "pending": "Exact-head CI, protected runtime package/site acceptance",
+      "source_build": "Next.js 16.3.6 production build PASS"
     }
   },
   "observations": [
@@ -4965,7 +4976,7 @@
       }
     }
   ],
-  "next_action": "Check exact-head authenticated browser CI for #1581. Continue the XWEB roadmap with interval extrema and export ergonomics after chart acceptance.",
+  "next_action": "Verify source PR exact-head CI/browser, prepare protected ARM64 package separately, obtain site authorization before activation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4974,7 +4985,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None for #1579 or #1581. Source, local builds and isolated fixture checks only.",
+  "runtime_mutation": "None. Source-only isolated #1585 worktree; no site deployment, hardware or database mutation.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

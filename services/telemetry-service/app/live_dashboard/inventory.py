@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from sqlalchemy import case, func, select
@@ -20,6 +20,8 @@ from app.live_dashboard.telemetry_identity import (
 )
 from app.nodes.models import CentralNode
 from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.channel_labels import ChannelNameStore
+from app.refrigeration.commissioned_channels import section_temperature
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,6 +156,29 @@ def list_live_dashboard_inventory(
                     )
                 )
             total += observed_total
+        # Presentation-only overlay: leave channel_id/equipment_id and stored
+        # telemetry untouched. The inventory is bounded by the requested page.
+        by_node: dict[str, list[str]] = {}
+        for row in records:
+            if section_temperature(row.channel_id) is not None:
+                by_node.setdefault(row.node_id, []).append(row.channel_id)
+        labels: dict[tuple[str, str], str] = {}
+        for node_id, channel_ids in by_node.items():
+            for channel_id, label in ChannelNameStore._names(
+                session, organization_id, node_id, channel_ids
+            ).items():
+                labels[(node_id, channel_id)] = label
+        records = [
+            replace(
+                row,
+                channel_name=labels.get((row.node_id, row.channel_id))
+                or (
+                    f"{section_temperature(row.channel_id).controller_label.split(' · ')[0]} · Вхід {section_temperature(row.channel_id).input_number}"
+                    if section_temperature(row.channel_id) is not None else row.channel_name
+                ),
+            )
+            for row in records
+        ]
     return InventoryPage(items=tuple(records), total=total)
 
 
