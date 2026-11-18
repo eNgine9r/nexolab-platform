@@ -151,7 +151,7 @@ describe("LiveTelemetryExplorer progressive filtering", () => {
     const node = screen.getByLabelText("Вузол");
 
     expect(search).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Пошук", exact: true })).toBe(search);
+    expect(screen.getByRole("textbox", { name: "Пошук" })).toBe(search);
     expect(expand).toHaveAttribute("aria-expanded", "false");
     expect(node).not.toBeVisible();
     fireEvent.change(search, { target: { value: "K106" } });
