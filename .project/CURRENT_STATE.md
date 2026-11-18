@@ -1,3 +1,9 @@
+## 2026-11-18 — #1594 Resolve exact-head read-only verification CI classification
+
+PR #1593 exact head 3eab0764 passed Core CI quality and its independently triggered Telemetry Service workflow, but NEXOLAB Merge Gate failed because the two newly introduced read-only source/build parity scripts were unclassified. The fail-closed classifier demanded Authenticated Dashboard, Offline Bundle, and Refrigeration Browser workflows although their GitHub path filters did not trigger. This is CI-governance verification mismatch, not a runtime defect.
+
+Issue #1594 adds an exact two-file allowlist to verification_tooling while keeping full Core CI and the existing fail-closed broadening for every other new script. Focused classifier tests: 84 PASS, including negative unregistered-tool and positive classifier-self-path-specialized workflow triggers. Source-only scope; no production migration, container/service restart, hardware write or active frontend routing change. Exact-head GitHub CI and mandatory external workflows must be GREEN before merge.
+
 ## 2026-11-18 — #1590 Overview telemetry deviations vs alert event journal
 
 The authenticated browser audit showed a count of 8 in the Overview alert-looking KPI while the attention card said all clear. The source revealed different scopes: buildLiveDashboardKpis counts fresh telemetry samples with threshold alarms or communication errors, whereas AlarmsPanel reads persisted active/acknowledged Alert API events. The KPI now says Сигнали з відхиленнями and explicitly distinguishes journal scope without changing its count. An empty fresh event list says Відкритих подій немає; a stale or failed empty cache says Стан подій не підтверджено and offers Retry. Existing non-empty events and error warnings are preserved.

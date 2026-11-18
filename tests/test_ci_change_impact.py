@@ -239,6 +239,53 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(result["needs_full_quality"])
         self.assertFalse(result["fail_closed"])
 
+    def test_frontend_release_parity_tools_get_full_core_without_false_external_gates(self) -> None:
+        paths = [
+            "scripts/check-frontend-entrypoint-parity.py",
+            "scripts/tests/test_frontend_entrypoint_parity.py",
+            "docs/operations/nexolab-unified-operator-release-parity.md",
+            ".project/CURRENT_STATE.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/LAST_CHECKPOINT.json",
+        ]
+        result = classify(paths)
+        self.assertEqual(result["classes"], ["verification_tooling"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["state_only"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+        # Docs still trigger their own actual Telemetry workflow on GitHub;
+        # the merge gate must wait for every workflow that *did* run.
+
+    def test_frontend_parity_allowlist_does_not_waive_other_unknown_tools(self) -> None:
+        result = classify(["scripts/unregistered-frontend-entrypoint-parity.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn("scripts/unregistered-frontend-entrypoint-parity.py", result["unknown_files"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"],
+        )
+
+    def test_classifier_change_still_triggers_all_matched_specialized_workflows(self) -> None:
+        result = classify(["scripts/classify-ci-impact.py"])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        required = result["verification"]["required_external_workflows"]
+        self.assertEqual(
+            required,
+            ["Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"],
+        )
+        for filename in (
+            "authenticated-dashboard-acceptance.yml",
+            "offline-bundle.yml",
+            "refrigeration-browser-acceptance.yml",
+        ):
+            workflow = (ROOT / ".github/workflows" / filename).read_text(encoding="utf-8")
+            trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+            self.assertIn('      - "scripts/classify-ci-impact.py"', trigger)
+
     def test_pi_energy_export_benchmark_is_explicit_verification_only_tool(self) -> None:
         result = classify([
             "scripts/energy-history-export-benchmark.py",

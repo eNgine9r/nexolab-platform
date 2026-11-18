@@ -61,17 +61,40 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1590
+      "issue": 1594
     },
     "next_work_package": null
   },
   "work_packages": [
     {
+      "issue": 1594,
+      "branch": "ci/1594-parity-verification-classification",
+      "title": "Precisely classify read-only parity tool to resolve missing CI workflow registration",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Exact-path verification-only classification of two new read-only parity files while preserving full Core and fail-closed unknown-tool checks.",
+      "permitted_paths": [
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "7b8cac8e18c017f9d0acb80374de08006a50b9fd",
+        "targeted_unittest": "84 PASS",
+        "syntax": "PASS",
+        "required_ci": "PENDING exact-head CI plus dashboard/offline/refrigeration workflows",
+        "site_mutation": false,
+        "hardware_verified": false,
+        "dependency_issue": 1592,
+        "blocked_pr": 1593
+      }
+    },
+    {
       "issue": 1590,
       "title": "Overview: distinguish telemetry deviations from alert journal events",
       "branch": "feat/1590-alert-scope-copy",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Separate live telemetry deviation KPI from persisted alert-event feed; truthful empty/stale/error states in Overview without changing measurements or alert count calculations.",
       "permitted_paths": [
         "src/lib/telemetry/dashboard-state.ts",
@@ -90,7 +113,8 @@
         "site_cutover": false,
         "hardware_verified": false,
         "github_exact_head_ci": "PENDING_PR",
-        "full_build": "PENDING_CI"
+        "full_build": "PENDING_CI",
+        "source_merge_verified": "GitHub PR #1589 / #1591 merged after exact-head GREEN; not installed"
       }
     },
     {
@@ -10800,7 +10824,7 @@
       "branch": "feat/1588-live-friendly-search",
       "title": "Live Data friendly-name search and readable chart context",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1585
       ],
@@ -10824,7 +10848,8 @@
         "site_cutover": false,
         "hardware_verified": false,
         "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
-        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending"
+        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
+        "source_merge_verified": "GitHub PR #1589 / #1591 merged after exact-head GREEN; not installed"
       }
     }
   ],

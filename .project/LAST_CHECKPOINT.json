@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T10:08:00Z",
+  "timestamp": "2026-11-18T14:35:14Z",
   "actor": "ChatGPT",
-  "event": "1590_source_ux_alert_scopes_separated",
+  "event": "1594_readonly_parity_ci_classifier_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1590,
-    "branch": "feat/1590-alert-scope-copy"
+    "issue": 1594,
+    "branch": "ci/1594-parity-verification-classification",
+    "status": "review",
+    "site_cutover": false
   },
   "evidence_snapshot": {
     "issue_1583_scheme_channels": {
@@ -3433,6 +3435,16 @@
       "runtime_mutation": "none",
       "browser_ci": "PENDING",
       "site": "UNVERIFIED"
+    },
+    "issue_1594_ci_classifier": {
+      "parent_issue": 1592,
+      "blocked_pr": 1593,
+      "failure": "NEXOLAB Merge Gate missing three untriggered workflows on exact old head",
+      "fix": "exact two-file verification_tooling mapping; other unknown scripts fail closed",
+      "targeted_tests": "84 PASS",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "pending": "exact-head CI and actual required external workflows GREEN before merge"
     }
   },
   "observations": [
@@ -5003,7 +5015,7 @@
       }
     }
   ],
-  "next_action": "Publish #1590 source-only PR after finishing #1589 exact-head CI and merge; verify Overview browser, typecheck, build and Merge Gate before merging.",
+  "next_action": "Run #1594 source exact-head CI including dashboard/offline/refrigeration; after GREEN merge, reconcile #1593 into main, verify source/build manifest mode, then prepare #1587 protected release.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
