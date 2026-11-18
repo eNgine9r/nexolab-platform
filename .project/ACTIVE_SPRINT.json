@@ -61,17 +61,50 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1594
+      "issue": 1592
     },
     "next_work_package": null
   },
   "work_packages": [
     {
+      "issue": 1592,
+      "branch": "release/1592-frontend-entrypoint-parity",
+      "title": "One operator-facing source/build version without loss of device enrollment",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only source/build parity across local Docker, lab LAN and Funnel; preserve commissioned RS-485 onboarding and prepare guarded release handoff to #1587.",
+      "permitted_paths": [
+        "scripts/check-frontend-entrypoint-parity.py",
+        "scripts/tests/test_frontend_entrypoint_parity.py",
+        "docs/operations/nexolab-unified-operator-release-parity.md",
+        ".project/"
+      ],
+      "evidence": {
+        "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+        "pull_request": 1593,
+        "unit_tests": "8/8 PASS on isolated Raspberry",
+        "python_compile": "PASS",
+        "markdown_prettier": "PASS",
+        "site_parity": "expected FAIL: Docker 4be678f6, Funnel 75ceb465, LAN 08f1c8a4",
+        "preserved_device_agent": "nexolab/quick-agent:1490",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "github_ci": "PENDING exact new #1593 head",
+        "dependency_release_issue": 1587,
+        "implementation_checkpoint": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+        "parity_unit_tests": "15 PASS including pinned-multi-origin CLI E2E",
+        "prettier": "PASS",
+        "manifest_policy": "Optional SHA256-pinned manifest; exact same approved source; distinct named build IDs",
+        "classifier_gate": "#1594 / PR #1595 merged after all 5 exact-head workflows GREEN",
+        "site_mutation": false
+      }
+    },
+    {
       "issue": 1594,
       "branch": "ci/1594-parity-verification-classification",
       "title": "Precisely classify read-only parity tool to resolve missing CI workflow registration",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Exact-path verification-only classification of two new read-only parity files while preserving full Core and fail-closed unknown-tool checks.",
       "permitted_paths": [
         "scripts/classify-ci-impact.py",
@@ -86,7 +119,8 @@
         "site_mutation": false,
         "hardware_verified": false,
         "dependency_issue": 1592,
-        "blocked_pr": 1593
+        "blocked_pr": 1593,
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     },
     {
@@ -114,7 +148,7 @@
         "hardware_verified": false,
         "github_exact_head_ci": "PENDING_PR",
         "full_build": "PENDING_CI",
-        "source_merge_verified": "GitHub PR #1589 / #1591 merged after exact-head GREEN; not installed"
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     },
     {
@@ -10849,7 +10883,7 @@
         "hardware_verified": false,
         "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
         "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
-        "source_merge_verified": "GitHub PR #1589 / #1591 merged after exact-head GREEN; not installed"
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     }
   ],

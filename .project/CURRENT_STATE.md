@@ -1,3 +1,17 @@
+## 2026-11-18 — #1592 Manifest-pinned multi-origin frontend release source reconciliation
+
+With #1588/#1589, #1590/#1591 and #1594/#1595 now source-merged to main, the #1592 source-only version parity checker supports either one identical compiled build across entrypoints (default), or an explicitly checksum-pinned reviewed offline manifest listing the distinct origin-specific Next.js build IDs from one exact approved merged-main source. This is necessary because the live frontend requires absolute API and WebSocket origins; forcing a public/Tailscale-only bundle for local LAN would violate offline-first behavior. The manifest checksum is not a signing authority and cannot alone establish authenticated behavior or installed hardware acceptance.
+
+Local isolated Raspberry source verification: 15/15 parity tests PASS, including CLI end-to-end with two differently compiled-origin fixture builds, Python compile and Markdown Prettier PASS. #1594 exact-head CI had 5/5 workflows GREEN before its source merge; #1592 needs its own new exact-head CI after this reconciliation. Preserve installed quick-agent:1490 and live 6+2 Dixell input commissioning. No site, hardware or persistent data mutation.
+
+## 2026-11-18 — #1592 Single NEXOLAB operator version across LAN and Funnel (source gate)
+
+A read-only Raspberry Pi inspection confirms multiple operator frontend identities: Docker :3000 source 4be678f6 / build CoZ2mvfZvFe67uyyeRe7a; primary Funnel :3105 source 75ceb465 / build u5qAvkW0BUJHwhOMa6pHr; lab.nexolab :3104 source 08f1c8a4 / build MCPKmYsrQCxN9zwMwDDnV. The Docker image tag carries ffdefc45 despite its runtime identity naming 4be678f6. No shared approved product release is installed.
+
+Issue #1592 / draft PR #1593 adds a fail-closed read-only local frontend identity checker, eight local HTTP fixture tests and a version-parity and equipment-onboarding preservation runbook. On isolated Raspberry source (commit d432820a), 8/8 tests, Python compile and Prettier markdown check PASSED. The real site's identity gate produced the expected FAIL (exit 1), confirming existing drift; this is not a failed hardware test. Required exact-head GitHub CI remains a separate merge gate.
+
+The commissioned production Device Agent is the site-specific nexolab/quick-agent:1490; its identity/configuration and the two Dixell groups (six Unit 1 inputs, two Unit 7 inputs; remaining four reserve) must be preserved. A stock main Device Agent cannot be substituted without independent compatibility evidence. PR #1593 performs no production mutation. Site cutover, migration 20261118_0040, matching ARM64 artifact, independently recoverable backup, and auth/Tailscale/browser acceptance remain gated under #1587 and explicit owner approval.
+
 ## 2026-11-18 — #1594 Resolve exact-head read-only verification CI classification
 
 PR #1593 exact head 3eab0764 passed Core CI quality and its independently triggered Telemetry Service workflow, but NEXOLAB Merge Gate failed because the two newly introduced read-only source/build parity scripts were unclassified. The fail-closed classifier demanded Authenticated Dashboard, Offline Bundle, and Refrigeration Browser workflows although their GitHub path filters did not trigger. This is CI-governance verification mismatch, not a runtime defect.

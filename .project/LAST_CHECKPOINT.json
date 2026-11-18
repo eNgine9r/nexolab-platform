@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T14:35:14Z",
+  "timestamp": "2026-11-18T14:47:59Z",
   "actor": "ChatGPT",
-  "event": "1594_readonly_parity_ci_classifier_review",
+  "event": "1592_multi_origin_build_manifest_source_reconciliation",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1594,
-    "branch": "ci/1594-parity-verification-classification",
+    "issue": 1592,
+    "branch": "release/1592-frontend-entrypoint-parity",
     "status": "review",
     "site_cutover": false
   },
@@ -3445,6 +3445,28 @@
       "site_cutover": false,
       "hardware_verified": false,
       "pending": "exact-head CI and actual required external workflows GREEN before merge"
+    },
+    "issue_1592_unified_operator_release": {
+      "source_pr": 1593,
+      "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+      "actual_operators": {
+        "docker": "4be678f6 / CoZ2mvfZvFe67uyyeRe7a",
+        "funnel": "75ceb465 / u5qAvkW0BUJHwhOMa6pHr",
+        "lab": "08f1c8a4 / MCPKmYsrQCxN9zwMwDDnV"
+      },
+      "local_tests": "8 PASS; Prettier check PASS; Python compile PASS",
+      "live_source_parity": "FAIL expected: exit 1",
+      "release_1587": "owner-specific cutover permission required",
+      "device_agent_preservation": "nexolab/quick-agent:1490; commissioning 6+2 channels",
+      "github_ci": "pending",
+      "site_mutation": false,
+      "hardware_verified": false,
+      "source_implementation_commit": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+      "unit_tests": "15/15 PASS",
+      "format": "Prettier PASS",
+      "optional_manifest": "checksum-pinned multiple builds from same approved source",
+      "governance_pr_1595": "merged 17516d14 with 5/5 GREEN",
+      "github_exact_head": "pending new PR #1593 CI"
     }
   },
   "observations": [
@@ -5015,7 +5037,7 @@
       }
     }
   ],
-  "next_action": "Run #1594 source exact-head CI including dashboard/offline/refrigeration; after GREEN merge, reconcile #1593 into main, verify source/build manifest mode, then prepare #1587 protected release.",
+  "next_action": "Publish #1593 refreshed exact-head PR and obtain full Core+Telemetry CI GREEN before source merge; then #1587 protected site rollout remains blocked pending verified ARM64 package/DR/owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5024,7 +5046,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None. Source/UI in isolated worktree only, no telemetry or alert API changes, Modbus write, service restart or site cutover.",
+  "runtime_mutation": "None; isolated source-only tests and GitHub feature-branch reconciliation, no Raspberry runtime changes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
