@@ -1,3 +1,7 @@
+## 2026-11-18 — #1588 first CI failure isolated and browser selector regression fixed
+
+The first #1588 PR head passed CI unit/component, static/build and quality jobs, but the canonical Authenticated Dashboard Acceptance workflow failed 5 browser cases because their selectors depended on the old English Live search placeholder. The UI has intentionally changed to Ukrainian. The focused fix changes E2E selectors to the existing accessible search textbox label and a container-scoped DOM lookup, without altering telemetry or chart APIs. Component tests now assert that accessible textbox label; 13 focused component checks PASS. Exact-head remote CI/browser gates must be green before merge. Production site/runtime remains untouched.
+
 ## 2026-11-18 — #1588 Live Data friendly-name search and chart context (source only)
 
 Issue #1588 addresses an operator-facing gap on merged main 8ab3be4a: commissioned names rendered in Live inventory but were not searchable, while selected comparison labels and chart series used raw channel IDs. The isolated feature branch passes organization/node/channel-scoped names to search and to display-only chart labels. Raw IDs, URL selections, persisted telemetry history, quality and multi-axis behavior are unchanged. Missing name inventory falls back to the original channel ID, and names cannot leak across organization switches.

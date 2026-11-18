@@ -10781,7 +10781,9 @@
       "permitted_paths": [
         "src/components/live/",
         "src/features/live/",
-        ".project/"
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts",
+        "e2e/equipment-multi-axis-chart.production.e2e.ts"
       ],
       "evidence": {
         "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
@@ -10791,9 +10793,11 @@
         "typescript_noemit": "PASS",
         "git_diff_check": "PASS",
         "full_build": "NOT_RUN_ON_PRODUCTION_PI",
-        "github_exact_head_ci": "PENDING_PR",
+        "github_exact_head_ci": "PENDING_REPAIR_COMMIT",
         "site_cutover": false,
-        "hardware_verified": false
+        "hardware_verified": false,
+        "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
+        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending"
       }
     }
   ],

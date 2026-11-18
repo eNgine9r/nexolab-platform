@@ -1,3 +1,7 @@
+## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
+
+First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
+
 ## 2026-11-18 — #1588 source CI and #1587 site release boundaries
 
 #1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
