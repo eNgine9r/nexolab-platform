@@ -42,8 +42,7 @@ import {
   type EquipmentAssetCategory,
   type EquipmentCalibrationStatus,
   type EquipmentRegistryAsset,
-  isActiveCommissionedControllerAsset,
-  isCommissionedInputAsset,
+  isHistoricalDixellCatalogAsset,
   type EquipmentRegistryFailure,
   type EquipmentRegistryFilters,
 } from "@/features/equipment/asset-registry";
@@ -177,19 +176,11 @@ export function EquipmentRegistryCatalog({
   }, []);
 
   // Historical catalog does not prove an active hardware connection.
-  const legacyCount = assets.filter(
-    (asset) =>
-      (asset.category === "temperature-controller" && !isActiveCommissionedControllerAsset(asset)) ||
-      (asset.category === "physical-sensor" && !isCommissionedInputAsset(asset)),
-  ).length;
+  const legacyCount = assets.filter(isHistoricalDixellCatalogAsset).length;
   const visibleAssets = useMemo(
     () =>
       commissionedState === "available" && !showHistorical
-        ? assets.filter(
-            (asset) =>
-              (asset.category !== "temperature-controller" || isActiveCommissionedControllerAsset(asset)) &&
-              (asset.category !== "physical-sensor" || isCommissionedInputAsset(asset)),
-          )
+        ? assets.filter((asset) => !isHistoricalDixellCatalogAsset(asset))
         : assets,
     [assets, commissionedState, showHistorical],
   );

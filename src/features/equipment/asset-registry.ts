@@ -345,6 +345,14 @@ export function normalizeEquipmentRegistry(
   return sortEquipmentRegistry(assets);
 }
 
+export function isHistoricalDixellCatalogAsset(asset: EquipmentRegistryAsset): boolean {
+  if (isCommissionedInputAsset(asset) || isActiveCommissionedControllerAsset(asset)) return false;
+  if (asset.category !== "temperature-controller" && asset.category !== "physical-sensor") return false;
+  const device = asset.category === "physical-sensor" ? asset.controller : asset;
+  if (!device) return false;
+  return /dixell/i.test(device.manufacturer ?? "") || /xjp60d/i.test(device.model ?? "");
+}
+
 export function isCommissionedInputAsset(
   asset: EquipmentRegistryAsset,
 ): asset is CommissionedInputRegistryAsset {

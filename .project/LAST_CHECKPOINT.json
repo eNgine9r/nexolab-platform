@@ -3405,7 +3405,8 @@
       "hardware_verified": false,
       "site_cutover": false,
       "pending": "Exact-head CI, protected runtime package/site acceptance",
-      "source_build": "Next.js 16.3.6 production build PASS"
+      "source_build": "Next.js 16.3.6 production build PASS",
+      "catalog_scope": "Dixell legacy only; non-Dixell devices visible"
     }
   },
   "observations": [
