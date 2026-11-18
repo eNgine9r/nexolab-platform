@@ -36,7 +36,39 @@ python3 scripts/check-frontend-entrypoint-parity.py \
 
 Exit codes: `0=PASS`, `1=FAIL parity or unavailable upstream`, `2=INVALID arguments`. The current installation is **expected to FAIL**. The script has no write path and intentionally rejects public, hostname or link-local targets. It reports only selected identity fields, never the full upstream payload.
 
-This gate is deliberately **stricter than merely matching a Git source revision**: matching source with differing build IDs still fails. If origin-specific Next.js public environment compilation requires different artifact bytes, a separate architecture/release decision must record those exact artifact hashes and provide equivalent end-to-end operator acceptance. Never silently weaken the gate.
+The default gate is deliberately **stricter than merely matching a Git source revision**: matching source with differing build IDs fails. This is correct if a single compiled frontend binary can safely serve every origin.
+
+### Approved origin-specific builds (same version, different binaries)
+
+The current `getTelemetryRuntimeConfig()` requires **absolute HTTP and WebSocket URLs** (`NEXT_PUBLIC_NEXOLAB_API_BASE_URL` and `NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL`). LAN/offline and protected HTTPS therefore may require distinct compiled frontend binaries even when both are built from the **same exact merged-main source**. Do not force the LAN client to require public/Tailscale HTTPS just to make build IDs equal.
+
+For this case, accept multiple build IDs **only** with an explicit, separately reviewed offline release manifest. A minimal example (substitute actual approved values, do not use placeholders in production):
+
+```json
+{
+  "schema_version": 1,
+  "source_commit": "<approved-merged-main-40-char-sha>",
+  "entrypoint_builds": {
+    "docker": "<approved-lan-build-id>",
+    "funnel": "<approved-https-build-id>",
+    "lab": "<approved-private-lan-build-id>"
+  }
+}
+```
+
+The release authority must attest each build's complete package/archive SHA256, origin-bound API/auth configuration, expected source SHA and ARM64 platform independently. Copy the exact SHA256 of the **manifest bytes** from that reviewed release package. Run:
+
+```bash
+python3 scripts/check-frontend-entrypoint-parity.py \
+  --expected-source "$APPROVED_SHA" \
+  --build-manifest /path/to/verified/frontend-builds.json \
+  --manifest-sha256 "$APPROVED_MANIFEST_SHA256" \
+  --entrypoint docker=http://172.18.48.66:3000 \
+  --entrypoint funnel=http://127.0.0.1:3105 \
+  --entrypoint lab=http://127.0.0.1:3104
+```
+
+This optional manifest mode requires every observed frontend to declare the **same approved source commit** and its own **exactly approved build ID**, with a complete set of entrypoints and a matching manifest digest. An unexpected build, missing source, extra entrypoint, wrong digest or unavailable upstream fails closed. The checksum is **not a digital signature** and must not be treated as release authority by itself. Source/build parity does not establish functional equivalence: authenticated LAN/HTTPS browser flows, API/schema compatibility, offline behavior and equipment onboarding must still pass #1587 acceptance.
 
 ## Protected commissioning and operator-flow regression gates
 
