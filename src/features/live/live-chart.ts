@@ -31,6 +31,8 @@ export interface LiveChartBuildOptions {
   xDomain: ChartXDomain;
   hiddenSeriesKeys?: ReadonlySet<string>;
   soloSeriesKey?: string | null;
+  /** Presentation-only channel names; telemetry identities and history never change. */
+  displayNames?: Readonly<Record<string, string>>;
 }
 
 export function liveSampleChartIdentity(sample: TelemetrySample): ChartSeriesIdentity {
@@ -69,8 +71,9 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
     : "instantaneous";
 }
 
-function seriesName(sample: TelemetrySample): string {
-  return `${sample.equipment_id} · ${sample.channel_id} · ${sample.metric}`;
+function seriesName(sample: TelemetrySample, displayNames: Readonly<Record<string, string>>): string {
+  const label = displayNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id;
+  return `${sample.equipment_id} · ${label} · ${sample.metric}`;
 }
 
 function buildSeries(
@@ -78,6 +81,7 @@ function buildSeries(
   historySamples: readonly TelemetrySample[],
   status: LiveTelemetryStatus,
   index: number,
+  displayNames: Readonly<Record<string, string>>,
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
 ): ChartSeries {
@@ -91,7 +95,7 @@ function buildSeries(
 
   return {
     identity,
-    name: seriesName(identitySample),
+    name: seriesName(identitySample, displayNames),
     colorToken: token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
@@ -140,7 +144,15 @@ export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartG
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const allSeries = options.selectedIdentities.map((identity, index) =>
-    buildSeries(identity, options.historySamples, options.status, index, hiddenSeriesKeys, soloSeriesKey),
+    buildSeries(
+      identity,
+      options.historySamples,
+      options.status,
+      index,
+      options.displayNames ?? {},
+      hiddenSeriesKeys,
+      soloSeriesKey,
+    ),
   );
 
   return equipmentSceneGroups(allSeries).map(({ equipmentId, series }, partitionIndex) => {

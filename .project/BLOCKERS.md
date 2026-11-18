@@ -1,6 +1,28 @@
+## 2026-11-18 — #1592 released source checks are not installed site authority
+
+#1594 CI-governance repair merged with five GREEN exact-head workflows, unblocking read-only parity tool classification. #1592 still requires its own exact-head PR checks and review and a separately approved #1587 protected ARM64 site update with installed Device Agent preservation, independent backup/restore (#1428), network safety (#1409), schema/auth compatibility and rollback. Distinct LAN/HTTPS build IDs may be allowed only by independently approved manifest and verified same merged-main source; never substitute local offline with mandatory public HTTPS. No site cutover performed.
+
 ## 2026-11-18 — #1592 one-version release and protected equipment enrollment
 
 Three live operator entrypoints currently report different source/build identities. Issue #1592 / PR #1593 adds read-only identity verification, not a release. Real parity is FAIL as expected. Protected site Device Agent image nexolab/quick-agent:1490 and its commissioned 6+2 Dixell channels must not be replaced by generic main. An exact merged-main release package, consistent API/schema, source provenance, independent off-device DR/rollback evidence (#1428), LAN bridge overlap mitigation (#1409), and owner-approved guarded site activation (#1587) are required before a single installed version may be claimed. CI and browser/hardware acceptance are not inferred from source tests. No live site edits or Modbus writes were performed.
+
+## 2026-11-18 — #1594 Required workflow registration mismatch blocks #1593
+
+On #1593, exact-head NEXOLAB Merge Gate failed after Telemetry Service passed because unclassified new parity tooling demanded three specialized workflows that did not trigger. #1594 narrows classification for only the two non-mutating verification files, retaining full Core and all required checks for the classifier change itself. #1593 must rebase after #1594 GREEN merge, rerun exact-head checks and preserve existing Agent. This is not authority for production deployment (#1587 remains blocked).
+
+## 2026-11-18 — #1590 Overview alert UX source acceptance pending
+
+Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
+
+## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
+
+First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
+
+## 2026-11-18 — #1588 source CI and #1587 site release boundaries
+
+#1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
+
+#1585 / PR #1586 merged to source main 8ab3be4a with 20/20 exact-head CI; older notes below demanding its CI rerun are historical. The site release #1587 is blocked on protected deployment-authority reconciliation, an exact ARM64 package, backup/rollback and separate target-specific site approval. No generic implementation instruction authorizes database migration, container replacement or cutover.
 
 ## 2026-11-18 — #1585 CI exact-head rerun required
 

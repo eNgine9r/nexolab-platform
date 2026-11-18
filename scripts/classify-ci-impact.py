@@ -324,9 +324,11 @@ RS485_ACQUISITION_PATTERNS = (
 )
 
 ISOLATED_ACCEPTANCE_TOOL_PATHS = {
-    # Dedicated synthetic-only Pi acceptance harness, never a deployment or
-    # production runtime entrypoint. Keep every other new script fail-closed.
+    # Explicit standalone read-only verification tools: no product runtime, API,
+    # hardware or packaging changes. All other unregistered scripts fail closed.
     "scripts/energy-history-export-benchmark.py",
+    "scripts/check-frontend-entrypoint-parity.py",
+    "scripts/tests/test_frontend_entrypoint_parity.py",
 }
 
 CI_GOVERNANCE_PATHS = {

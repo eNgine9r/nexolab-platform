@@ -89,8 +89,66 @@
         "preserved_device_agent": "nexolab/quick-agent:1490",
         "hardware_verified": false,
         "site_cutover": false,
-        "github_ci": "pending exact-head acceptance",
-        "dependency_release_issue": 1587
+        "github_ci": "PENDING exact new #1593 head",
+        "dependency_release_issue": 1587,
+        "implementation_checkpoint": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+        "parity_unit_tests": "15 PASS including pinned-multi-origin CLI E2E",
+        "prettier": "PASS",
+        "manifest_policy": "Optional SHA256-pinned manifest; exact same approved source; distinct named build IDs",
+        "classifier_gate": "#1594 / PR #1595 merged after all 5 exact-head workflows GREEN",
+        "site_mutation": false
+      }
+    },
+    {
+      "issue": 1594,
+      "branch": "ci/1594-parity-verification-classification",
+      "title": "Precisely classify read-only parity tool to resolve missing CI workflow registration",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "scope": "Exact-path verification-only classification of two new read-only parity files while preserving full Core and fail-closed unknown-tool checks.",
+      "permitted_paths": [
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "7b8cac8e18c017f9d0acb80374de08006a50b9fd",
+        "targeted_unittest": "84 PASS",
+        "syntax": "PASS",
+        "required_ci": "PENDING exact-head CI plus dashboard/offline/refrigeration workflows",
+        "site_mutation": false,
+        "hardware_verified": false,
+        "dependency_issue": 1592,
+        "blocked_pr": 1593,
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1590,
+      "title": "Overview: distinguish telemetry deviations from alert journal events",
+      "branch": "feat/1590-alert-scope-copy",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Separate live telemetry deviation KPI from persisted alert-event feed; truthful empty/stale/error states in Overview without changing measurements or alert count calculations.",
+      "permitted_paths": [
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/alarms-panel.tsx",
+        "src/components/dashboard/alarms-panel.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "14 PASSED / 2 files",
+        "typescript_noemit": "PASS",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "source_semantics": "KPI counts fresh telemetry samples with alarm or communication_error; Alerts panel reads independent active/acknowledged event feed.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "github_exact_head_ci": "PENDING_PR",
+        "full_build": "PENDING_CI",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     },
     {
@@ -98,7 +156,7 @@
       "branch": "feat/1585-registry-channel-labels",
       "title": "Current Dixell in Equipment Registry with shared channel names",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Show read-only commissioned 6+2 inputs and scoped display names without altering immutable telemetry identities/history.",
       "permitted_paths": [
         "src/components/equipment/",
@@ -123,7 +181,8 @@
         "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
         "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
         "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
-        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending."
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending.",
+        "source_merge_verified": "PR #1586 merged; 20/20 exact-head CI; installed release not verified"
       }
     },
     {
@@ -10792,6 +10851,39 @@
         "approved_registry_entries": 18,
         "approval_expires_on": "2026-11-23",
         "offline_evidence_run": 43862880148
+      }
+    },
+    {
+      "issue": 1588,
+      "branch": "feat/1588-live-friendly-search",
+      "title": "Live Data friendly-name search and readable chart context",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1585
+      ],
+      "scope": "Search existing commissioned names and display them in Live comparison and chart labels without changing channel identity or history.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/features/live/",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts",
+        "e2e/equipment-multi-axis-chart.production.e2e.ts"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "29 PASS across 3 files",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "typescript_noemit": "PASS",
+        "git_diff_check": "PASS",
+        "full_build": "NOT_RUN_ON_PRODUCTION_PI",
+        "github_exact_head_ci": "PENDING_REPAIR_COMMIT",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
+        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     }
   ],

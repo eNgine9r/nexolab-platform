@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T14:19:53Z",
+  "timestamp": "2026-11-18T14:47:59Z",
   "actor": "ChatGPT",
-  "event": "1592_operator_version_parity_source_gate",
+  "event": "1592_multi_origin_build_manifest_source_reconciliation",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3413,6 +3413,39 @@
       "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
       "required": "All exact-head PR workflows GREEN before merge; no site cutover"
     },
+    "issue_1588": {
+      "source_base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "29/29 PASS",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "site_update": "NOT_PERFORMED",
+      "production_hardware": "NOT_TESTED",
+      "release_1587": "BLOCKED: protected installed source authority / exact ARM64 package / rollback",
+      "ci_initial": "FAIL on 5/13 browser E2E: outdated literal English placeholder; other unit/static/build checks PASS",
+      "browser_locator_fix": "5 Live and 1 multi-axis selectors now use accessible Poshuk textbox; DOM read-order check no longer keys on English placeholder",
+      "new_ui_focus_test": "13/13 PASS"
+    },
+    "issue_1590": {
+      "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "14/14 PASSED",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "runtime_mutation": "none",
+      "browser_ci": "PENDING",
+      "site": "UNVERIFIED"
+    },
+    "issue_1594_ci_classifier": {
+      "parent_issue": 1592,
+      "blocked_pr": 1593,
+      "failure": "NEXOLAB Merge Gate missing three untriggered workflows on exact old head",
+      "fix": "exact two-file verification_tooling mapping; other unknown scripts fail closed",
+      "targeted_tests": "84 PASS",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "pending": "exact-head CI and actual required external workflows GREEN before merge"
+    },
     "issue_1592_unified_operator_release": {
       "source_pr": 1593,
       "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
@@ -3427,7 +3460,13 @@
       "device_agent_preservation": "nexolab/quick-agent:1490; commissioning 6+2 channels",
       "github_ci": "pending",
       "site_mutation": false,
-      "hardware_verified": false
+      "hardware_verified": false,
+      "source_implementation_commit": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+      "unit_tests": "15/15 PASS",
+      "format": "Prettier PASS",
+      "optional_manifest": "checksum-pinned multiple builds from same approved source",
+      "governance_pr_1595": "merged 17516d14 with 5/5 GREEN",
+      "github_exact_head": "pending new PR #1593 CI"
     }
   },
   "observations": [
@@ -4998,7 +5037,7 @@
       }
     }
   ],
-  "next_action": "Publish the focused pinned-migration-test repair in #1586 after reviewing all exact-head CI failures, rerun GitHub PR workflows, merge only after NEXOLAB Merge Gate GREEN.",
+  "next_action": "Publish #1593 refreshed exact-head PR and obtain full Core+Telemetry CI GREEN before source merge; then #1587 protected site rollout remains blocked pending verified ARM64 package/DR/owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5007,7 +5046,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None. Isolated source tests and docs only, no Raspberry runtime/DB change.",
+  "runtime_mutation": "None; isolated source-only tests and GitHub feature-branch reconciliation, no Raspberry runtime changes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

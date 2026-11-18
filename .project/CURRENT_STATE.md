@@ -1,3 +1,9 @@
+## 2026-11-18 — #1592 Manifest-pinned multi-origin frontend release source reconciliation
+
+With #1588/#1589, #1590/#1591 and #1594/#1595 now source-merged to main, the #1592 source-only version parity checker supports either one identical compiled build across entrypoints (default), or an explicitly checksum-pinned reviewed offline manifest listing the distinct origin-specific Next.js build IDs from one exact approved merged-main source. This is necessary because the live frontend requires absolute API and WebSocket origins; forcing a public/Tailscale-only bundle for local LAN would violate offline-first behavior. The manifest checksum is not a signing authority and cannot alone establish authenticated behavior or installed hardware acceptance.
+
+Local isolated Raspberry source verification: 15/15 parity tests PASS, including CLI end-to-end with two differently compiled-origin fixture builds, Python compile and Markdown Prettier PASS. #1594 exact-head CI had 5/5 workflows GREEN before its source merge; #1592 needs its own new exact-head CI after this reconciliation. Preserve installed quick-agent:1490 and live 6+2 Dixell input commissioning. No site, hardware or persistent data mutation.
+
 ## 2026-11-18 — #1592 Single NEXOLAB operator version across LAN and Funnel (source gate)
 
 A read-only Raspberry Pi inspection confirms multiple operator frontend identities: Docker :3000 source 4be678f6 / build CoZ2mvfZvFe67uyyeRe7a; primary Funnel :3105 source 75ceb465 / build u5qAvkW0BUJHwhOMa6pHr; lab.nexolab :3104 source 08f1c8a4 / build MCPKmYsrQCxN9zwMwDDnV. The Docker image tag carries ffdefc45 despite its runtime identity naming 4be678f6. No shared approved product release is installed.
@@ -5,6 +11,28 @@ A read-only Raspberry Pi inspection confirms multiple operator frontend identiti
 Issue #1592 / draft PR #1593 adds a fail-closed read-only local frontend identity checker, eight local HTTP fixture tests and a version-parity and equipment-onboarding preservation runbook. On isolated Raspberry source (commit d432820a), 8/8 tests, Python compile and Prettier markdown check PASSED. The real site's identity gate produced the expected FAIL (exit 1), confirming existing drift; this is not a failed hardware test. Required exact-head GitHub CI remains a separate merge gate.
 
 The commissioned production Device Agent is the site-specific nexolab/quick-agent:1490; its identity/configuration and the two Dixell groups (six Unit 1 inputs, two Unit 7 inputs; remaining four reserve) must be preserved. A stock main Device Agent cannot be substituted without independent compatibility evidence. PR #1593 performs no production mutation. Site cutover, migration 20261118_0040, matching ARM64 artifact, independently recoverable backup, and auth/Tailscale/browser acceptance remain gated under #1587 and explicit owner approval.
+
+## 2026-11-18 — #1594 Resolve exact-head read-only verification CI classification
+
+PR #1593 exact head 3eab0764 passed Core CI quality and its independently triggered Telemetry Service workflow, but NEXOLAB Merge Gate failed because the two newly introduced read-only source/build parity scripts were unclassified. The fail-closed classifier demanded Authenticated Dashboard, Offline Bundle, and Refrigeration Browser workflows although their GitHub path filters did not trigger. This is CI-governance verification mismatch, not a runtime defect.
+
+Issue #1594 adds an exact two-file allowlist to verification_tooling while keeping full Core CI and the existing fail-closed broadening for every other new script. Focused classifier tests: 84 PASS, including negative unregistered-tool and positive classifier-self-path-specialized workflow triggers. Source-only scope; no production migration, container/service restart, hardware write or active frontend routing change. Exact-head GitHub CI and mandatory external workflows must be GREEN before merge.
+
+## 2026-11-18 — #1590 Overview telemetry deviations vs alert event journal
+
+The authenticated browser audit showed a count of 8 in the Overview alert-looking KPI while the attention card said all clear. The source revealed different scopes: buildLiveDashboardKpis counts fresh telemetry samples with threshold alarms or communication errors, whereas AlarmsPanel reads persisted active/acknowledged Alert API events. The KPI now says Сигнали з відхиленнями and explicitly distinguishes journal scope without changing its count. An empty fresh event list says Відкритих подій немає; a stale or failed empty cache says Стан подій не підтверджено and offers Retry. Existing non-empty events and error warnings are preserved.
+
+Isolated source branch feat/1590-alert-scope-copy passes 14 focused Vitest checks, touched ESLint/Prettier, TypeScript noEmit and git diff validation. No backend, acquisition, alert lifecycle, production mutation or Modbus write. GitHub exact-head CI and authenticated browser acceptance are pending; prior #1588 review must finish before publication/merge sequencing.
+
+## 2026-11-18 — #1588 first CI failure isolated and browser selector regression fixed
+
+The first #1588 PR head passed CI unit/component, static/build and quality jobs, but the canonical Authenticated Dashboard Acceptance workflow failed 5 browser cases because their selectors depended on the old English Live search placeholder. The UI has intentionally changed to Ukrainian. The focused fix changes E2E selectors to the existing accessible search textbox label and a container-scoped DOM lookup, without altering telemetry or chart APIs. Component tests now assert that accessible textbox label; 13 focused component checks PASS. Exact-head remote CI/browser gates must be green before merge. Production site/runtime remains untouched.
+
+## 2026-11-18 — #1588 Live Data friendly-name search and chart context (source only)
+
+Issue #1588 addresses an operator-facing gap on merged main 8ab3be4a: commissioned names rendered in Live inventory but were not searchable, while selected comparison labels and chart series used raw channel IDs. The isolated feature branch passes organization/node/channel-scoped names to search and to display-only chart labels. Raw IDs, URL selections, persisted telemetry history, quality and multi-axis behavior are unchanged. Missing name inventory falls back to the original channel ID, and names cannot leak across organization switches.
+
+Verification: 29/29 targeted Vitest tests, touched ESLint, Prettier, TypeScript noEmit and git diff --check PASS. Full production build and exact-head CI pending; no site installation or hardware verification. Release #1587 is separately blocked by protected source authority, exact ARM64 package and backup/rollback gates.
 
 ## 2026-11-18 — #1585 Telemetry exact-head CI migration assertion repair
 
