@@ -61,11 +61,38 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1585
+      "issue": 1592
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1592,
+      "branch": "release/1592-frontend-entrypoint-parity",
+      "title": "One operator-facing source/build version without loss of device enrollment",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only source/build parity across local Docker, lab LAN and Funnel; preserve commissioned RS-485 onboarding and prepare guarded release handoff to #1587.",
+      "permitted_paths": [
+        "scripts/check-frontend-entrypoint-parity.py",
+        "scripts/tests/test_frontend_entrypoint_parity.py",
+        "docs/operations/nexolab-unified-operator-release-parity.md",
+        ".project/"
+      ],
+      "evidence": {
+        "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+        "pull_request": 1593,
+        "unit_tests": "8/8 PASS on isolated Raspberry",
+        "python_compile": "PASS",
+        "markdown_prettier": "PASS",
+        "site_parity": "expected FAIL: Docker 4be678f6, Funnel 75ceb465, LAN 08f1c8a4",
+        "preserved_device_agent": "nexolab/quick-agent:1490",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "github_ci": "pending exact-head acceptance",
+        "dependency_release_issue": 1587
+      }
+    },
     {
       "issue": 1585,
       "branch": "feat/1585-registry-channel-labels",

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T08:31:04Z",
+  "timestamp": "2026-11-18T14:19:53Z",
   "actor": "ChatGPT",
-  "event": "1585_ci_test_migration_head_repair",
+  "event": "1592_operator_version_parity_source_gate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1585,
-    "branch": "feat/1585-registry-channel-labels",
+    "issue": 1592,
+    "branch": "release/1592-frontend-entrypoint-parity",
     "status": "review",
     "site_cutover": false
   },
@@ -3412,6 +3412,22 @@
       "fix": "Dynamic Alembic ScriptDirectory.get_current_head assertion; single current head 20261118_0040 validated",
       "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
       "required": "All exact-head PR workflows GREEN before merge; no site cutover"
+    },
+    "issue_1592_unified_operator_release": {
+      "source_pr": 1593,
+      "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+      "actual_operators": {
+        "docker": "4be678f6 / CoZ2mvfZvFe67uyyeRe7a",
+        "funnel": "75ceb465 / u5qAvkW0BUJHwhOMa6pHr",
+        "lab": "08f1c8a4 / MCPKmYsrQCxN9zwMwDDnV"
+      },
+      "local_tests": "8 PASS; Prettier check PASS; Python compile PASS",
+      "live_source_parity": "FAIL expected: exit 1",
+      "release_1587": "owner-specific cutover permission required",
+      "device_agent_preservation": "nexolab/quick-agent:1490; commissioning 6+2 channels",
+      "github_ci": "pending",
+      "site_mutation": false,
+      "hardware_verified": false
     }
   },
   "observations": [

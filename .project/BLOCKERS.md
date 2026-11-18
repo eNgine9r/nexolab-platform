@@ -1,3 +1,7 @@
+## 2026-11-18 — #1592 one-version release and protected equipment enrollment
+
+Three live operator entrypoints currently report different source/build identities. Issue #1592 / PR #1593 adds read-only identity verification, not a release. Real parity is FAIL as expected. Protected site Device Agent image nexolab/quick-agent:1490 and its commissioned 6+2 Dixell channels must not be replaced by generic main. An exact merged-main release package, consistent API/schema, source provenance, independent off-device DR/rollback evidence (#1428), LAN bridge overlap mitigation (#1409), and owner-approved guarded site activation (#1587) are required before a single installed version may be claimed. CI and browser/hardware acceptance are not inferred from source tests. No live site edits or Modbus writes were performed.
+
 ## 2026-11-18 — #1585 CI exact-head rerun required
 
 Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.

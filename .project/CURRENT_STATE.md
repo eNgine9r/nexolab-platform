@@ -1,3 +1,11 @@
+## 2026-11-18 — #1592 Single NEXOLAB operator version across LAN and Funnel (source gate)
+
+A read-only Raspberry Pi inspection confirms multiple operator frontend identities: Docker :3000 source 4be678f6 / build CoZ2mvfZvFe67uyyeRe7a; primary Funnel :3105 source 75ceb465 / build u5qAvkW0BUJHwhOMa6pHr; lab.nexolab :3104 source 08f1c8a4 / build MCPKmYsrQCxN9zwMwDDnV. The Docker image tag carries ffdefc45 despite its runtime identity naming 4be678f6. No shared approved product release is installed.
+
+Issue #1592 / draft PR #1593 adds a fail-closed read-only local frontend identity checker, eight local HTTP fixture tests and a version-parity and equipment-onboarding preservation runbook. On isolated Raspberry source (commit d432820a), 8/8 tests, Python compile and Prettier markdown check PASSED. The real site's identity gate produced the expected FAIL (exit 1), confirming existing drift; this is not a failed hardware test. Required exact-head GitHub CI remains a separate merge gate.
+
+The commissioned production Device Agent is the site-specific nexolab/quick-agent:1490; its identity/configuration and the two Dixell groups (six Unit 1 inputs, two Unit 7 inputs; remaining four reserve) must be preserved. A stock main Device Agent cannot be substituted without independent compatibility evidence. PR #1593 performs no production mutation. Site cutover, migration 20261118_0040, matching ARM64 artifact, independently recoverable backup, and auth/Tailscale/browser acceptance remain gated under #1587 and explicit owner approval.
+
 ## 2026-11-18 — #1585 Telemetry exact-head CI migration assertion repair
 
 On PR #1586 head 50af9a4b, Telemetry Service GitHub CI ran 863 tests: 862 passed, one failed because a historic PostgreSQL circuit round-trip test compared the updated Alembic head with the literal 20261116_0039. The additive commissioned-channel-name revision 20261118_0040 is the correct migration graph head. The test now resolves its expected head with Alembic ScriptDirectory rather than a frozen revision. Local migration graph proof PASS (single head 20261118_0040); targeted telemetry suite 18 PASS and 4 PostgreSQL-only tests SKIPPED on the isolated ARM64 verifier. PostgreSQL round-trip and full exact-head CI must run in GitHub. No service/hardware/site mutation.
