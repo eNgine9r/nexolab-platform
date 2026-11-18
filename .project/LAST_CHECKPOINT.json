@@ -3411,6 +3411,19 @@
       "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
       "required": "All exact-head PR workflows GREEN before merge; no site cutover"
     },
+    "issue_1588": {
+      "source_base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "29/29 PASS",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "site_update": "NOT_PERFORMED",
+      "production_hardware": "NOT_TESTED",
+      "release_1587": "BLOCKED: protected installed source authority / exact ARM64 package / rollback",
+      "ci_initial": "FAIL on 5/13 browser E2E: outdated literal English placeholder; other unit/static/build checks PASS",
+      "browser_locator_fix": "5 Live and 1 multi-axis selectors now use accessible Poshuk textbox; DOM read-order check no longer keys on English placeholder",
+      "new_ui_focus_test": "13/13 PASS"
+    },
     "issue_1590": {
       "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
       "tests": "14/14 PASSED",

@@ -50,6 +50,28 @@ describe("Live Data canonical chart mapping", () => {
     expect(liveStatusChartFreshness("forbidden")).toBe("offline");
   });
 
+  it("shows authorized channel names in chart legend without changing history or keys", () => {
+    const identity = sample("latest", "2026-08-11T12:59:00Z", 5);
+    const named = buildLiveChartGroups({
+      selectedIdentities: [identity],
+      historySamples: [identity],
+      status: "live",
+      xDomain: domain,
+      displayNames: { "edge-01/t1": "Подача повітря" },
+    });
+    const unnamed = buildLiveChartGroups({
+      selectedIdentities: [identity],
+      historySamples: [identity],
+      status: "live",
+      xDomain: domain,
+      displayNames: { "other-node/t1": "Інший датчик" },
+    });
+    expect(named[0].scene.series[0].name).toContain("Подача повітря");
+    expect(unnamed[0].scene.series[0].name).toContain("t1");
+    expect(named[0].scene.series[0].identity).toEqual(unnamed[0].scene.series[0].identity);
+    expect(named[0].scene.series[0].segments).toEqual(unnamed[0].scene.series[0].segments);
+  });
+
   it("preserves explicit history gaps as separate chart segments", () => {
     const identity = sample("latest", "2026-08-11T12:30:00Z", 5);
     const history = [

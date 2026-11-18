@@ -213,7 +213,7 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
     await page.goto("/live?workspace=explorer", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
 
-    const search = page.getByPlaceholder("node, equipment, channel, metric, source...");
+    const search = page.getByRole("textbox", { name: "Пошук", exact: true });
     await search.fill(equipmentId);
     const compare = page.getByRole("checkbox", { name: /Порівнювати/ });
     await expect(compare).toHaveCount(CHANNELS.length);

@@ -115,6 +115,7 @@ export function liveTelemetryState(
 export function filterLiveTelemetry(
   samples: readonly TelemetrySample[],
   filters: LiveTelemetryFilters,
+  displayNames: Readonly<Record<string, string>> = {},
 ): TelemetrySample[] {
   const search = text(filters.search);
 
@@ -135,6 +136,7 @@ export function filterLiveTelemetry(
       sample.node_id,
       sample.equipment_id,
       sample.channel_id,
+      displayNames[sample.node_id + "/" + sample.channel_id] ?? "",
       sample.metric,
       sample.source,
       sample.unit,

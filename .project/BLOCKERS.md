@@ -2,6 +2,16 @@
 
 Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
 
+## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
+
+First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
+
+## 2026-11-18 — #1588 source CI and #1587 site release boundaries
+
+#1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
+
+#1585 / PR #1586 merged to source main 8ab3be4a with 20/20 exact-head CI; older notes below demanding its CI rerun are historical. The site release #1587 is blocked on protected deployment-authority reconciliation, an exact ARM64 package, backup/rollback and separate target-specific site approval. No generic implementation instruction authorizes database migration, container replacement or cutover.
+
 ## 2026-11-18 — #1585 CI exact-head rerun required
 
 Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
