@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T08:14:16Z",
+  "timestamp": "2026-11-18T08:31:04Z",
   "actor": "ChatGPT",
-  "event": "1585_registry_channel_names_source",
+  "event": "1585_ci_test_migration_head_repair",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3406,7 +3406,12 @@
       "site_cutover": false,
       "pending": "Exact-head CI, protected runtime package/site acceptance",
       "source_build": "Next.js 16.3.6 production build PASS",
-      "catalog_scope": "Dixell legacy only; non-Dixell devices visible"
+      "catalog_scope": "Dixell legacy only; non-Dixell devices visible",
+      "last_failed_head": "50af9a4b9264281c16514977b504eabd3bc735f4",
+      "last_failed_ci": "Telemetry Service 862 pass 1 fail because circuit test expected previous Alembic head 20261116_0039",
+      "fix": "Dynamic Alembic ScriptDirectory.get_current_head assertion; single current head 20261118_0040 validated",
+      "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
+      "required": "All exact-head PR workflows GREEN before merge; no site cutover"
     }
   },
   "observations": [
@@ -4977,7 +4982,7 @@
       }
     }
   ],
-  "next_action": "Verify source PR exact-head CI/browser, prepare protected ARM64 package separately, obtain site authorization before activation.",
+  "next_action": "Publish the focused pinned-migration-test repair in #1586 after reviewing all exact-head CI failures, rerun GitHub PR workflows, merge only after NEXOLAB Merge Gate GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4986,7 +4991,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None. Source-only isolated #1585 worktree; no site deployment, hardware or database mutation.",
+  "runtime_mutation": "None. Isolated source tests and docs only, no Raspberry runtime/DB change.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

@@ -94,7 +94,9 @@
         "site_cutover": false,
         "pending": "Exact-head PR CI and source build; site acceptance separately authorized.",
         "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
-        "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained"
+        "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
+        "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending."
       }
     },
     {
