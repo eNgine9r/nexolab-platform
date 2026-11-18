@@ -5,7 +5,7 @@ import { AlertTriangle, Save, X } from "lucide-react";
 
 import {
   isCommissionedControllerAsset,
-  type EquipmentRegistryAsset,
+  type EditableEquipmentRegistryAsset,
 } from "@/features/equipment/asset-registry";
 import type {
   ClimateCatalogRepository,
@@ -25,7 +25,7 @@ export function EquipmentMetadataEditor({
   onCancel,
   onDirtyChange,
 }: {
-  asset: EquipmentRegistryAsset;
+  asset: EditableEquipmentRegistryAsset;
   equipmentRepository: RefrigerationEquipmentRepository | null;
   climateCatalogRepository: ClimateCatalogRepository | null;
   onSaved: () => void;
@@ -280,7 +280,7 @@ function ReadOnlyBoundary({ text }: { text: string }) {
 
 type EditorValues = Record<string, string>;
 
-function editorValues(asset: EquipmentRegistryAsset): EditorValues {
+function editorValues(asset: EditableEquipmentRegistryAsset): EditorValues {
   if (asset.category === "refrigeration-equipment") {
     return {
       name: asset.source.name,

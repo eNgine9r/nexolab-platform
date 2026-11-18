@@ -96,6 +96,7 @@ def create_sensor_configuration_router(
                     bound_slot_key=(
                         item.binding.slot_key if item.binding else None
                     ),
+                    display_name=item.display_name,
                 )
                 for item in channels
             ],

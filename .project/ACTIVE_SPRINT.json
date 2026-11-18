@@ -61,11 +61,44 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1581
+      "issue": 1585
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1585,
+      "branch": "feat/1585-registry-channel-labels",
+      "title": "Current Dixell in Equipment Registry with shared channel names",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Show read-only commissioned 6+2 inputs and scoped display names without altering immutable telemetry identities/history.",
+      "permitted_paths": [
+        "src/components/equipment/",
+        "src/components/live/",
+        "src/components/refrigeration/",
+        "src/features/equipment/",
+        "src/features/refrigeration/",
+        "src/hooks/",
+        "services/telemetry-service/app/",
+        "services/telemetry-service/migrations/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+        "python_tests": "18 passed",
+        "frontend_tests": "436 passed across 67 module files",
+        "migration": "isolated upgrade and guarded downgrade PASS",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "pending": "Exact-head PR CI and source build; site acceptance separately authorized.",
+        "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
+        "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
+        "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending."
+      }
+    },
     {
       "issue": 1583,
       "branch": "feat/1583-refrigeration-scheme-channels",

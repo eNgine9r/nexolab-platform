@@ -43,5 +43,5 @@ function ScopedLiveDataWorkspace({ organizationId }: { organizationId: string })
     writeLiveSelectionPreference(organizationId, JSON.parse(selectionStamp) as string[]);
   }, [organizationId, selectionReady, selectionStamp]);
 
-  return <LiveTelemetryExplorer telemetry={telemetry} />;
+  return <LiveTelemetryExplorer telemetry={telemetry} organizationId={organizationId} />;
 }

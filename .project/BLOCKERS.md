@@ -1,3 +1,11 @@
+## 2026-11-18 — #1585 CI exact-head rerun required
+
+Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
+
+## 2026-11-18 — #1585 Exact-head verification and installed acceptance
+
+The new source has not been activated at site. Required: exact-head PR/CI/browser verification and protected ARM64 + matching Telemetry Service bundle, offline/rollback evidence, production migration evidence and separate approved site activation. Keep missing Device Agent registry state unavailable rather than incorrectly inactive. No Modbus/device write or persistent data deletion.
+
 ## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
 
 Site acceptance requires the matching Dashboard and Telemetry Service release and access to the local Device Agent registry from the existing commissioning origin. Verify the two installed Dixell groups in the browser after a separately approved rollout. Seven additional controls have not been physically verified.

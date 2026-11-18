@@ -331,6 +331,7 @@ function parseChannel(value: unknown, fallbackCapturedAt: string): StructuralCha
     sampleState,
     sampleValidUntil: readOptionalString(record?.sample_valid_until),
     controllerLabel: readOptionalString(record?.controller_label),
+    displayName: readOptionalString(record?.display_name),
     inputNumber: readInteger(record?.input_number),
     selectable: record?.selectable !== false,
     isBound: record?.is_bound === true,
