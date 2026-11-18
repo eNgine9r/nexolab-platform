@@ -113,21 +113,43 @@ export function AlarmsPanel({
     }
 
     if (liveAlerts.length === 0) {
+      const unverified = Boolean(alertsModel.error) || alertsModel.freshness !== "fresh";
+      const EmptyIcon = unverified ? AlertTriangle : CheckCircle2;
       return (
         <div className="p-3 sm:p-4">
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.035] px-3 py-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.07] text-emerald-300">
-              <CheckCircle2 className="h-4 w-4" />
+          <div
+            role="status"
+            className={
+              unverified
+                ? "flex items-center gap-3 rounded-xl border border-amber-300/20 bg-amber-400/[0.045] px-3 py-3"
+                : "flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.035] px-3 py-3"
+            }
+          >
+            <span
+              className={
+                unverified
+                  ? "grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-400/[0.08] text-amber-300"
+                  : "grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.07] text-emerald-300"
+              }
+            >
+              <EmptyIcon className="h-4 w-4" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-slate-100">Усе спокійно</p>
-              <p className="mt-0.5 text-[8px] text-slate-500">Активних тривог немає</p>
+              <p className="text-xs font-semibold text-slate-100">
+                {unverified ? "Стан подій не підтверджено" : "Відкритих подій немає"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                {unverified
+                  ? "Не вдалося оновити журнал тривог; останній отриманий список був порожнім."
+                  : "У журналі немає активних або підтверджених подій. Відхилення телеметрії показані окремо."}
+              </p>
             </div>
           </div>
-          {alertsModel.error ? (
-            <p className="mt-2 text-[9px] text-amber-300">
-              Оновлення не вдалося; показано останній валідний snapshot.
-            </p>
+          {unverified ? (
+            <button type="button" className="secondary-button mt-3" onClick={alertsModel.retry}>
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              Повторити
+            </button>
           ) : null}
         </div>
       );

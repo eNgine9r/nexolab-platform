@@ -203,10 +203,12 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
       ...mark,
     },
     {
-      label: "Активних тривог",
+      label: "Сигнали з відхиленнями",
       value: String(alarms.length),
-      detail: alarms.length ? "Порогові або комунікаційні помилки" : "Без telemetry alarms",
-      trend: "відсутній probe не створює тривогу",
+      detail: alarms.length
+        ? "Порогові спрацювання або помилки зв’язку у свіжих даних"
+        : "У свіжих даних немає порогових або комунікаційних відхилень",
+      trend: "Події журналу тривог — окремо",
       tone: alarms.length ? "red" : "green",
       icon: "alarm",
       ...mark,

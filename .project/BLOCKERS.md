@@ -1,3 +1,11 @@
+## 2026-11-18 — #1594 Required workflow registration mismatch blocks #1593
+
+On #1593, exact-head NEXOLAB Merge Gate failed after Telemetry Service passed because unclassified new parity tooling demanded three specialized workflows that did not trigger. #1594 narrows classification for only the two non-mutating verification files, retaining full Core and all required checks for the classifier change itself. #1593 must rebase after #1594 GREEN merge, rerun exact-head checks and preserve existing Agent. This is not authority for production deployment (#1587 remains blocked).
+
+## 2026-11-18 — #1590 Overview alert UX source acceptance pending
+
+Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
+
 ## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
 
 First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
