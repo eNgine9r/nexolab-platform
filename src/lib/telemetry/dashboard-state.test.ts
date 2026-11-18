@@ -167,7 +167,11 @@ describe("dashboard telemetry state", () => {
     const kpis = buildLiveDashboardKpis(view);
 
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("—");
-    expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.trend).toBe(
+      "Події журналу тривог — окремо",
+    );
+    expect(kpis.some((item) => item.label === "Активних тривог")).toBe(false);
   });
 
   it("maps every discovered XJP60D temperature and production power channel", () => {

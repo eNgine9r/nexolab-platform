@@ -61,11 +61,38 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1588
+      "issue": 1590
     },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1590,
+      "title": "Overview: distinguish telemetry deviations from alert journal events",
+      "branch": "feat/1590-alert-scope-copy",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Separate live telemetry deviation KPI from persisted alert-event feed; truthful empty/stale/error states in Overview without changing measurements or alert count calculations.",
+      "permitted_paths": [
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/alarms-panel.tsx",
+        "src/components/dashboard/alarms-panel.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "14 PASSED / 2 files",
+        "typescript_noemit": "PASS",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "source_semantics": "KPI counts fresh telemetry samples with alarm or communication_error; Alerts panel reads independent active/acknowledged event feed.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "github_exact_head_ci": "PENDING_PR",
+        "full_build": "PENDING_CI"
+      }
+    },
     {
       "issue": 1585,
       "branch": "feat/1585-registry-channel-labels",
