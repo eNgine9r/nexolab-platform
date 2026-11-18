@@ -1,3 +1,9 @@
+## 2026-11-18 — #1588 Live Data friendly-name search and chart context (source only)
+
+Issue #1588 addresses an operator-facing gap on merged main 8ab3be4a: commissioned names rendered in Live inventory but were not searchable, while selected comparison labels and chart series used raw channel IDs. The isolated feature branch passes organization/node/channel-scoped names to search and to display-only chart labels. Raw IDs, URL selections, persisted telemetry history, quality and multi-axis behavior are unchanged. Missing name inventory falls back to the original channel ID, and names cannot leak across organization switches.
+
+Verification: 29/29 targeted Vitest tests, touched ESLint, Prettier, TypeScript noEmit and git diff --check PASS. Full production build and exact-head CI pending; no site installation or hardware verification. Release #1587 is separately blocked by protected source authority, exact ARM64 package and backup/rollback gates.
+
 ## 2026-11-18 — #1585 Telemetry exact-head CI migration assertion repair
 
 On PR #1586 head 50af9a4b, Telemetry Service GitHub CI ran 863 tests: 862 passed, one failed because a historic PostgreSQL circuit round-trip test compared the updated Alembic head with the literal 20261116_0039. The additive commissioned-channel-name revision 20261118_0040 is the correct migration graph head. The test now resolves its expected head with Alembic ScriptDirectory rather than a frozen revision. Local migration graph proof PASS (single head 20261118_0040); targeted telemetry suite 18 PASS and 4 PostgreSQL-only tests SKIPPED on the isolated ARM64 verifier. PostgreSQL round-trip and full exact-head CI must run in GitHub. No service/hardware/site mutation.

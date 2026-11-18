@@ -69,6 +69,24 @@ describe("live telemetry inventory", () => {
     expect(filterLiveTelemetry([power, temperature], filters)).toEqual([temperature]);
   });
 
+  it("searches channel display names without changing technical identity or crossing nodes", () => {
+    const current = sample();
+    const otherNode = sample({ event_id: "other-node", node_id: "edge-02" });
+    const labels = { "edge-01/106-03": "Подача повітря" };
+    const namedSearch = { ...defaultLiveTelemetryFilters(), search: "пОдАчА" };
+
+    expect(filterLiveTelemetry([current, otherNode], namedSearch, labels)).toEqual([current]);
+    expect(filterLiveTelemetry([current, otherNode], namedSearch)).toEqual([]);
+    expect(filterLiveTelemetry([current, otherNode], { ...namedSearch, search: "106-03" }, labels)).toEqual([
+      current,
+      otherNode,
+    ]);
+    expect(filterLiveTelemetry([current, otherNode], { ...namedSearch, nodeId: "edge-02" }, labels)).toEqual(
+      [],
+    );
+    expect(liveChannelKey(current)).toBe("edge-01|DIXELL-106|106-03|temperature|degC");
+  });
+
   it("retains stale values but classifies them separately from live", () => {
     const value = sample({ captured_at: "2026-08-03T23:59:00.000Z" });
 

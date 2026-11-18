@@ -61,7 +61,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1585
+      "issue": 1588
     },
     "next_work_package": null
   },
@@ -71,7 +71,7 @@
       "branch": "feat/1585-registry-channel-labels",
       "title": "Current Dixell in Equipment Registry with shared channel names",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Show read-only commissioned 6+2 inputs and scoped display names without altering immutable telemetry identities/history.",
       "permitted_paths": [
         "src/components/equipment/",
@@ -96,7 +96,8 @@
         "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
         "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
         "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
-        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending."
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending.",
+        "source_merge_verified": "PR #1586 merged; 20/20 exact-head CI; installed release not verified"
       }
     },
     {
@@ -10765,6 +10766,34 @@
         "approved_registry_entries": 18,
         "approval_expires_on": "2026-11-23",
         "offline_evidence_run": 43862880148
+      }
+    },
+    {
+      "issue": 1588,
+      "branch": "feat/1588-live-friendly-search",
+      "title": "Live Data friendly-name search and readable chart context",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1585
+      ],
+      "scope": "Search existing commissioned names and display them in Live comparison and chart labels without changing channel identity or history.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/features/live/",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "29 PASS across 3 files",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "typescript_noemit": "PASS",
+        "git_diff_check": "PASS",
+        "full_build": "NOT_RUN_ON_PRODUCTION_PI",
+        "github_exact_head_ci": "PENDING_PR",
+        "site_cutover": false,
+        "hardware_verified": false
       }
     }
   ],

@@ -1,3 +1,9 @@
+## 2026-11-18 — #1588 source CI and #1587 site release boundaries
+
+#1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
+
+#1585 / PR #1586 merged to source main 8ab3be4a with 20/20 exact-head CI; older notes below demanding its CI rerun are historical. The site release #1587 is blocked on protected deployment-authority reconciliation, an exact ARM64 package, backup/rollback and separate target-specific site approval. No generic implementation instruction authorizes database migration, container replacement or cutover.
+
 ## 2026-11-18 — #1585 CI exact-head rerun required
 
 Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
