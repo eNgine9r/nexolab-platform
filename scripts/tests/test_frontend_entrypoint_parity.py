@@ -174,6 +174,34 @@ class ReadOnlyParityTests(unittest.TestCase):
                             p, hashlib.sha256(raw).hexdigest(), EXPECTED, ["lan", "funnel"]
                         )
 
+    def test_cli_accepts_approved_origin_specific_build_manifest(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "builds.json"
+            payload = {
+                "schema_version": 1,
+                "source_commit": EXPECTED,
+                "entrypoint_builds": {"lan": "approved-lan", "funnel": "approved-https"},
+            }
+            raw = json.dumps(payload, sort_keys=True).encode()
+            manifest.write_bytes(raw)
+            with serve(identity(build="approved-lan")) as lan:
+                with serve(identity(build="approved-https")) as https:
+                    output = StringIO()
+                    with redirect_stdout(output):
+                        code = parity.main([
+                            "--expected-source", EXPECTED,
+                            "--entrypoint", "lan=" + lan,
+                            "--entrypoint", "funnel=" + https,
+                            "--build-manifest", str(manifest),
+                            "--manifest-sha256", hashlib.sha256(raw).hexdigest(),
+                        ])
+                    self.assertEqual(code, 0)
+                    result = json.loads(output.getvalue())
+                    self.assertEqual(result["status"], "PASS")
+                    self.assertEqual(result["build_policy"], "manifest_pinned")
+
     def test_cli_requires_manifest_and_digest_together(self):
         from contextlib import redirect_stdout
         from io import StringIO
