@@ -14,7 +14,7 @@ import re
 import sys
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 NAME = re.compile(r"^[a-z][a-z0-9_-]{0,39}$")
@@ -51,7 +51,7 @@ def parse_entrypoint(value: str) -> tuple[str, str]:
 def fetch_identity(origin: str, timeout: float) -> dict[str, str]:
     req = Request(origin + "/api/runtime-identity", headers={"Accept": "application/json"})
     try:
-        with build_opener(NoRedirects).open(req, timeout=timeout) as response:
+        with build_opener(ProxyHandler({}), NoRedirects).open(req, timeout=timeout) as response:
             if response.status != 200:
                 raise ValueError(f"HTTP {response.status}, expected 200")
             raw = response.read(16385)
