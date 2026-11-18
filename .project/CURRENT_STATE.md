@@ -1,3 +1,9 @@
+## 2026-11-18 — #1590 Overview telemetry deviations vs alert event journal
+
+The authenticated browser audit showed a count of 8 in the Overview alert-looking KPI while the attention card said all clear. The source revealed different scopes: buildLiveDashboardKpis counts fresh telemetry samples with threshold alarms or communication errors, whereas AlarmsPanel reads persisted active/acknowledged Alert API events. The KPI now says Сигнали з відхиленнями and explicitly distinguishes journal scope without changing its count. An empty fresh event list says Відкритих подій немає; a stale or failed empty cache says Стан подій не підтверджено and offers Retry. Existing non-empty events and error warnings are preserved.
+
+Isolated source branch feat/1590-alert-scope-copy passes 14 focused Vitest checks, touched ESLint/Prettier, TypeScript noEmit and git diff validation. No backend, acquisition, alert lifecycle, production mutation or Modbus write. GitHub exact-head CI and authenticated browser acceptance are pending; prior #1588 review must finish before publication/merge sequencing.
+
 ## 2026-11-18 — #1585 Telemetry exact-head CI migration assertion repair
 
 On PR #1586 head 50af9a4b, Telemetry Service GitHub CI ran 863 tests: 862 passed, one failed because a historic PostgreSQL circuit round-trip test compared the updated Alembic head with the literal 20261116_0039. The additive commissioned-channel-name revision 20261118_0040 is the correct migration graph head. The test now resolves its expected head with Alembic ScriptDirectory rather than a frozen revision. Local migration graph proof PASS (single head 20261118_0040); targeted telemetry suite 18 PASS and 4 PostgreSQL-only tests SKIPPED on the isolated ARM64 verifier. PostgreSQL round-trip and full exact-head CI must run in GitHub. No service/hardware/site mutation.

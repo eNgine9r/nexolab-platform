@@ -1,3 +1,7 @@
+## 2026-11-18 — #1590 Overview alert UX source acceptance pending
+
+Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
+
 ## 2026-11-18 — #1585 CI exact-head rerun required
 
 Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
