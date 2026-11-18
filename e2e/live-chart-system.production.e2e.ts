@@ -276,7 +276,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
     await primaryChart.getByRole("button", { name: "Обрати датчики" }).focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByPlaceholder("node, equipment, channel, metric, source...")).toBeFocused();
+    await expect(page.getByRole("textbox", { name: "Пошук", exact: true })).toBeFocused();
     await expect(primaryChart.getByText("Оберіть датчики для графіка", { exact: true })).toBeVisible();
     expect(
       await page.evaluate(() => {
@@ -292,15 +292,13 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     ).toBe(true);
     expect(runtime.telemetry.filter((request) => request.url.includes("/history"))).toEqual([]);
 
-    const search = page.getByPlaceholder("node, equipment, channel, metric, source...");
+    const search = page.getByRole("textbox", { name: "Пошук", exact: true });
     await search.fill(fixture.equipmentId);
     const compare = page.getByRole("checkbox", { name: /Порівнювати/ });
     expect(
       await page.evaluate(() => {
         const chartButton = document.querySelector('[data-testid="live-primary-chart"] button');
-        const searchInput = document.querySelector(
-          'input[placeholder="node, equipment, channel, metric, source..."]',
-        );
+        const searchInput = document.querySelector('[data-testid="live-filter-panel"] input');
         const compareInput = document.querySelector(
           '[data-testid="live-inventory-panel"] input[type="checkbox"]',
         );
@@ -591,7 +589,7 @@ for (const width of [390, 1280]) {
     const runtime = observeRuntime(page);
     try {
       await page.goto("/live", { waitUntil: "domcontentloaded" });
-      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page.getByRole("textbox", { name: "Пошук", exact: true }).fill(fixture.equipmentId);
       await page
         .getByRole("checkbox", { name: /Порівнювати/ })
         .first()
@@ -676,7 +674,7 @@ for (const width of [390, 1280]) {
 
     try {
       await page.goto("/live", { waitUntil: "domcontentloaded" });
-      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page.getByRole("textbox", { name: "Пошук", exact: true }).fill(fixture.equipmentId);
       await page
         .getByRole("checkbox", { name: /Порівнювати/ })
         .first()
@@ -698,7 +696,7 @@ for (const width of [390, 1280]) {
       await expect(selectedContext).toContainText(fixture.equipmentId);
       await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
 
-      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page.getByRole("textbox", { name: "Пошук", exact: true }).fill(fixture.equipmentId);
       await page.getByRole("checkbox", { name: /Порівнювати/, checked: true }).uncheck();
       await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
       await page.goto("/live", { waitUntil: "domcontentloaded" });

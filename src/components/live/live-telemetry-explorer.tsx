@@ -52,6 +52,7 @@ import type { TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 const QUALITY_VALUES: TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARM_VALUES: LiveAlarmFilter[] = ["all", "active", "none", "low", "high"];
 const CUSTOM_MAX_MS = 7 * 24 * 60 * 60_000;
+const EMPTY_CHANNEL_NAMES: Readonly<Record<string, string>> = Object.freeze({});
 
 function queryValue(value: string | null, allowed?: readonly string[]): string {
   if (!value) return "all";
@@ -272,7 +273,15 @@ export function LiveTelemetryExplorer({
   const [liveFollow, setLiveFollow] = useState(range === "live");
   const lastUrlRef = useRef("");
   const channelSearchRef = useRef<HTMLInputElement>(null);
-  const [commissionedNames, setCommissionedNames] = useState<Record<string, string>>({});
+  const [namedInventory, setNamedInventory] = useState<{
+    organizationId: string;
+    displayNames: Record<string, string>;
+  } | null>(null);
+  // Do not show a previous organization's labels after the account scope changes.
+  const commissionedNames =
+    namedInventory && namedInventory.organizationId === organizationId
+      ? namedInventory.displayNames
+      : EMPTY_CHANNEL_NAMES;
   useEffect(() => {
     if (!organizationId) return;
     const runtime = getTelemetryRuntimeConfig();
@@ -286,11 +295,12 @@ export function LiveTelemetryExplorer({
       .list(controller.signal)
       .then((inventory) => {
         if (controller.signal.aborted || inventory.state !== "available") return;
-        setCommissionedNames(
-          Object.fromEntries(
+        setNamedInventory({
+          organizationId,
+          displayNames: Object.fromEntries(
             inventory.items.map((item) => [item.nodeId + "/" + item.channelId, item.displayName]),
           ),
-        );
+        });
       })
       .catch(() => {
         // Keep technical IDs on an unavailable inventory; never invent labels.
@@ -299,8 +309,8 @@ export function LiveTelemetryExplorer({
   }, [organizationId]);
 
   const filtered = useMemo(
-    () => filterLiveTelemetry(telemetry.samples, filters),
-    [filters, telemetry.samples],
+    () => filterLiveTelemetry(telemetry.samples, filters, commissionedNames),
+    [commissionedNames, filters, telemetry.samples],
   );
   const options = useMemo(() => liveTelemetryFilterOptions(telemetry.samples), [telemetry.samples]);
   const activeAdvancedFilterCount = [
@@ -336,8 +346,17 @@ export function LiveTelemetryExplorer({
         xDomain: effectiveDomain,
         hiddenSeriesKeys,
         soloSeriesKey,
+        displayNames: commissionedNames,
       }),
-    [effectiveDomain, hiddenSeriesKeys, selected, soloSeriesKey, telemetry.historySamples, telemetry.status],
+    [
+      commissionedNames,
+      effectiveDomain,
+      hiddenSeriesKeys,
+      selected,
+      soloSeriesKey,
+      telemetry.historySamples,
+      telemetry.status,
+    ],
   );
   const rangeLabel = CANONICAL_CHART_TIME_RANGES.find((item) => item.id === range)?.label ?? range;
 
@@ -511,8 +530,8 @@ export function LiveTelemetryExplorer({
               Синхронізована історія
             </h2>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-              До 8 каналів. Несумісні одиниці мають окремі синхронізовані шкали. Zoom/pan — display-only і не
-              змінює acquisition.
+              Оберіть до 8 датчиків для порівняння. Масштабування графіка не впливає на вимірювання. Різні
+              одиниці показуються на окремих шкалах.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -535,7 +554,7 @@ export function LiveTelemetryExplorer({
           className="mt-4 flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3"
         >
           <span className="mr-1 text-xs font-semibold tracking-wide text-cyan-200 uppercase">
-            Selected context
+            Обрані датчики
           </span>
           {selected.length === 0 ? (
             <span className="text-xs text-slate-400">Жодного каналу не обрано</span>
@@ -545,12 +564,15 @@ export function LiveTelemetryExplorer({
                 <span
                   key={liveChannelKey(sample)}
                   className="max-w-full rounded-lg border border-white/[0.08] bg-[#06142a]/70 px-2.5 py-1 text-xs text-slate-300"
+                  title={`Технічний канал: ${sample.channel_id}`}
                 >
-                  {sample.equipment_id} · {sample.channel_id} · {sample.metric} · {sample.unit}
+                  {sample.equipment_id} ·{" "}
+                  {commissionedNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id} ·{" "}
+                  {sample.metric} · {sample.unit}
                 </span>
               ))}
               {selected.length > 6 ? (
-                <span className="text-xs text-slate-500">+{selected.length - 6} channels</span>
+                <span className="text-xs text-slate-500">+{selected.length - 6} каналів</span>
               ) : null}
             </>
           )}
@@ -762,7 +784,7 @@ export function LiveTelemetryExplorer({
                 ref={channelSearchRef}
                 value={filters.search}
                 onChange={(event) => updateFilters({ search: event.target.value })}
-                placeholder="node, equipment, channel, metric, source..."
+                placeholder="Назва датчика, прилад або технічний ID"
                 className="h-10 w-full rounded-xl border border-white/10 bg-[#081a32] pr-3 pl-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
               />
             </span>

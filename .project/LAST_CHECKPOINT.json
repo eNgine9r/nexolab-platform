@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T08:31:04Z",
+  "timestamp": "2026-11-18T10:00:21Z",
   "actor": "ChatGPT",
-  "event": "1585_ci_test_migration_head_repair",
+  "event": "1588_accessible_browser_locator_ci_repair",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,8 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1585,
-    "branch": "feat/1585-registry-channel-labels",
-    "status": "review",
-    "site_cutover": false
+    "issue": 1588,
+    "branch": "feat/1588-live-friendly-search"
   },
   "evidence_snapshot": {
     "issue_1583_scheme_channels": {
@@ -3412,6 +3410,19 @@
       "fix": "Dynamic Alembic ScriptDirectory.get_current_head assertion; single current head 20261118_0040 validated",
       "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
       "required": "All exact-head PR workflows GREEN before merge; no site cutover"
+    },
+    "issue_1588": {
+      "source_base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "29/29 PASS",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "site_update": "NOT_PERFORMED",
+      "production_hardware": "NOT_TESTED",
+      "release_1587": "BLOCKED: protected installed source authority / exact ARM64 package / rollback",
+      "ci_initial": "FAIL on 5/13 browser E2E: outdated literal English placeholder; other unit/static/build checks PASS",
+      "browser_locator_fix": "5 Live and 1 multi-axis selectors now use accessible Poshuk textbox; DOM read-order check no longer keys on English placeholder",
+      "new_ui_focus_test": "13/13 PASS"
     }
   },
   "observations": [
@@ -4982,7 +4993,7 @@
       }
     }
   ],
-  "next_action": "Publish the focused pinned-migration-test repair in #1586 after reviewing all exact-head CI failures, rerun GitHub PR workflows, merge only after NEXOLAB Merge Gate GREEN.",
+  "next_action": "Publish #1588 fixed head; require exact-head successful browser + NEXOLAB Merge Gate and review before source merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4991,7 +5002,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None. Isolated source tests and docs only, no Raspberry runtime/DB change.",
+  "runtime_mutation": "None. Isolated source worktree and checks only; no service restart, Modbus/hardware action or database/site cutover.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
