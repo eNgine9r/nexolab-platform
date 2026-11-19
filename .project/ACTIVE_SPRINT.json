@@ -86,7 +86,15 @@
         "source_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
         "issues_open_before": 79,
         "pull_requests_open_before": 46,
-        "closed_source_issues": [1594, 1592, 1590, 1583, 1479, 1431, 1525],
+        "closed_source_issues": [
+          1594,
+          1592,
+          1590,
+          1583,
+          1479,
+          1431,
+          1525
+        ],
         "source_only_closure": true,
         "site_cutover": false,
         "hardware_verified": false,
