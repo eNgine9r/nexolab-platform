@@ -3643,7 +3643,9 @@
       "checksum_authority": "https://go.dev/dl/?mode=json verified",
       "ci_blocker": "unapproved HIGH CVE-2026-97054 in Go stdlib usr/local/bin/versitygw",
       "required_outcome": "Fresh fixed image trivy + full required merge gate GREEN",
-      "runtime": "SOURCE ONLY; no object storage cutover, never relax vulnerability policy"
+      "runtime": "SOURCE ONLY; no object storage cutover, never relax vulnerability policy",
+      "local_tests": "8/8 object-storage and telemetry packaging regression tests PASS",
+      "old_pin_test_fixed": "tests/test_object_storage_supply_contract.py now checks Go 1.27.4 and its verified official amd64/arm64 archives"
     }
   },
   "observations": [
