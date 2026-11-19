@@ -11213,6 +11213,46 @@
         "offline_restart": "NOT RUN; see #1606 for canonical startup/version authority",
         "release_gate": "LAN source PR #1604 required CI GREEN; HTTPS runtime cutover verified read-only post checks"
       }
+    },
+    {
+      "issue": 1609,
+      "title": "Owner-specified Embraco KK1 Unit 2 probe interpretation 0.1 °C/count with source-quality provenance",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1609-embraco-operator-celsius",
+      "depends_on": [
+        1603,
+        1607
+      ],
+      "scope": "User accepts 0.1 °C / signed int16 raw count for Embraco Sync Unit 2 cabinet/defrost probes at KK1. Frontend-only operator-derived Celsius traces and explicit CSV columns, original telemetry unchanged and still quality=unknown, with physical scale validation remaining separate. Do not affect other controllers, Modbus, DB, API or Device Agent.",
+      "permitted_paths": [
+        "src/features/refrigeration/",
+        "src/components/refrigeration/",
+        ".project/",
+        "e2e/refrigeration-layout.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1609",
+        "owner_scale": 0.1,
+        "scale_unit": "degC_per_signed_raw_count",
+        "scale_provenance": "operator_confirmed_hardware_unverified",
+        "approval": "2026-11-19 Product Owner message: Давай без фото, так і є",
+        "site_hardware_scale_verified": false,
+        "hmi_photo": "NOT PROVIDED",
+        "backend_source_quality": "Persisted source values remain NULL/unknown until actual hardware verification",
+        "affected_equipment": "EMBRACO-2 on CoolesSlim VCC L1250 KK1 only",
+        "affected_metrics": [
+          "temperature.cabinet",
+          "temperature.evaporator"
+        ],
+        "unit_tests": "25/25 targeted PASS (four suites, including negative boundaries)",
+        "types_and_lint": "TypeScript noEmit and touched-file ESLint PASS",
+        "site_deployment": "NOT DONE; exact-head GitHub CI + new ARM64 artifacts + site rollout required",
+        "authenticated_user_browser": "NOT DONE",
+        "hardware_writes": "NONE",
+        "db_mutations": "NONE",
+        "browser_e2e_contract": "Refrigeration-layout Chromium selectors and CSV expected headers reconciled for operator °C; exact-head CI pending"
+      }
     }
   ],
   "maintenance_actions": [

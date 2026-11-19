@@ -1,3 +1,9 @@
+## 2026-11-19 — #1609 Embraco operator scale 0.1 is not hardware calibration
+
+Product Owner accepts a provisional/operational `×0.1 °C` signed-FC03-register conversion for Embraco Sync Unit 2 KK1, without supplying a photographed HMI comparison. A frontend-only source candidate renders this as operator-estimated °C and exports separate source-preserving derived CSV columns. **Hardware verification remains NOT DONE**; do not mark raw telemetry `valid`, rewrite PostgreSQL or say the controller is temperature-calibrated. Outlier plausibility and historical older KK2 values were not physically correlated to the new scale. The frontend conversion must not become a required runtime API/cloud service.
+
+Pending #1609 gates: exact-head PR CI GREEN, ARM64 LAN+HTTPS builds, guarded site activation with old frontend rollback, real authenticated user browser graph/CSV review and offline restart. Global full-site DR #1428 and protected network #1409 blockers remain open.
+
 ## 2026-11-19 — #1607 HTTPS Embraco UI activated; user/browser and offline gates remain
 
 The HTTPS-only frontend release to the existing OAuth-protected Funnel URL is **site-activated and rollback-bound**: source `edd04b4aabdd28c7c46ada056cc746434796bdde`, build `qe-NDhbsh-6WHXhvG0luq`, direct 3105 identity/HTTP 200 and anonymous HTTPS OAuth denial 302 verified, original gateway and five backend containers unchanged. First stale `NEXOLAB_RUNTIME_IDENTITY_FILE` candidate rolled back; corrected second activation GREEN. No further unguarded site switch is authorized.

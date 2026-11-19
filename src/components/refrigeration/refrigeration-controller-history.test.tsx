@@ -335,14 +335,12 @@ describe("Embraco probe history and CSV UI", () => {
   it("shows a separate clearly marked raw probe chart with the same history range", () => {
     const model = controllerModel();
     render(<RefrigerationControllerHistory controller={model} />);
-    expect(screen.getByTestId("embraco-unverified-scale-note")).toHaveTextContent(
-      "Сирі показники датчиків наведено в одиницях Modbus-регістра",
-    );
-    expect(screen.getByTestId("mock-chart-container-Показники датчиків · raw")).toHaveAttribute(
+    expect(screen.getByTestId("embraco-unverified-scale-note")).toHaveTextContent("коефіцієнт ×0,1");
+    expect(screen.getByTestId("mock-chart-container-Діагностика · вихідні raw")).toHaveAttribute(
       "data-chart-x-domain-to-ms",
       String(range.to.getTime()),
     );
-    fireEvent.click(screen.getByTestId("mock-cursor-Показники датчиків · raw"));
+    fireEvent.click(screen.getByTestId("mock-cursor-Діагностика · вихідні raw"));
     expect(screen.getByTestId("mock-chart-container-Швидкість компресора")).toHaveAttribute(
       "data-shared-cursor",
       String(range.from.getTime() + 60_000),
