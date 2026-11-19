@@ -11075,6 +11075,46 @@
         "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
         "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
+    },
+    {
+      "issue": 1601,
+      "title": "Bus-scoped Embraco Unit 2 identity and safe KK1 monitoring activation",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "branch": "feature/1601-embraco-bus-scoped-kk1",
+      "depends_on": [
+        1505
+      ],
+      "scope": "Preserve legacy KK2 EMBRACO-2 and implement independent A10Q2SIF:2 commissioning bus identity, additive controller binding persistence, protected activation and real KK1 telemetry evidence.",
+      "permitted_paths": [
+        "services/device-agent/",
+        "services/telemetry-service/app/commissioning/",
+        "services/telemetry-service/app/refrigeration/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "src/features/equipment/",
+        "src/components/equipment/",
+        "docs/operations/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "hardware_read_preflight": "PASS_FC03_ONLY",
+        "site_software_activation": "BLOCKED",
+        "implementation": "NOT_STARTED_CODEX_PROVIDER_QUOTA",
+        "main_changes": false,
+        "target": "KK1:11111",
+        "legacy_binding": "KK2:EMBRACO-2_PROTECTED",
+        "checks": {
+          "read_only_fc03": "PASS",
+          "preflight_contract": "PASS",
+          "typecheck": "NOT_RUN",
+          "lint": "NOT_RUN",
+          "tests": "NOT_RUN",
+          "build": "NOT_RUN",
+          "ci": "NOT_RUN"
+        }
+      }
     }
   ],
   "maintenance_actions": [
@@ -13095,6 +13135,33 @@
         "open_prs": 46,
         "epics": 7,
         "note": "dated planning observation, not live synchronized status"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:10:40Z",
+      "kind": "1601_embarco_kk1_runtime_blocker",
+      "data": {
+        "issue": 1601,
+        "feature_branch": "feature/1601-embraco-bus-scoped-kk1",
+        "observed_on": "nexolab-edge-01",
+        "target": "CoolesSlim VCC L1250 / KK1 / 11111",
+        "target_equipment_key": "ece48888-d73e-44d6-a11d-2804a10d4cb9",
+        "controller_bus": "commissioning-c4b6e68057fa4c7f",
+        "controller_adapter_suffix": "A10Q2SIF",
+        "unit_id": 2,
+        "fc03_hardware_preflight": "passed_hardware_verified_7_checks_4_observations_133ms",
+        "legacy_binding": "EMBRACO-2 bound to CoolJet KK2; retain unchanged",
+        "legacy_last_sample_utc": "2026-11-05T14:17:06Z",
+        "activation": "not_started_three_attempts_recovery_required_http_422",
+        "codex_execution": "blocked_usage_limit_returned_2026-11-19",
+        "provider_recheck": "NEXUS and NEXUS Raspberry tool failed internally",
+        "site_changes": false,
+        "db_writes": false,
+        "modbus_writes": false,
+        "priority": "high",
+        "release": "not_ready",
+        "note": "Authoritative live observations; no software or site deployment occurred for issue 1601."
       }
     }
   ],

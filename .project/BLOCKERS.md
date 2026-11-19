@@ -1288,3 +1288,11 @@ The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown becau
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+
+## Issue #1601 — HARD BLOCKER: Embraco Unit 2 legacy identity conflict and implementation capacity (2026-11-19)
+
+Live read-only evidence confirms new Embraco `A10Q2SIF` / Unit `2` is physically responsive but cannot be safely activated and linked to **CoolesSlim VCC L1250 / KK1**. The same legacy `EMBRACO-2` identity is actively bound to **CoolJet / KK2**, and the existing binding uniqueness/telemetry ID excludes physical `bus_id`. Three activation attempts returned HTTP 422 / `recovery_required`. Never bypass the error by direct SQL or repurposing a legacy registry identity, hiding the KK2 binding, or weakening the unique index. Preserve historical telemetry.
+
+A separate feature worktree for GitHub Issue #1601 was created, but the Codex implementation request failed with `You've hit your usage limit` (2026-11-19); NEXUS providers returned internal errors. No code was modified. Hard gates: working implementation capacity, reviewed bus-scoped persistence/migration and targeted verification; protected site deployment is not authorized. A fresh read-only FC03 preflight passed with zero hardware writes, but ongoing acquisition and KK1 association remain **not verified/not activated**.
+
+The Project Owner may clarify whether the KK2 record is a distinct historical controller or physically relocated; until then preserve KK2 as a separate identity (the safe default). New site cutover requires the already established release gate and its explicit approval.
