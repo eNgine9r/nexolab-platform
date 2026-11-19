@@ -8,8 +8,9 @@ from pathlib import Path
 
 import pytest
 
-CURRENT_REVIEW_DATE = date(2026, 10, 13)
-CURRENT_EXPIRY = "2026-10-20"
+CURRENT_REVIEW_DATE = date(2026, 11, 16)
+CURRENT_EXPIRY = "2026-11-23"
+RETAINED_TELEMETRY_EXCEPTIONS = 15
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate-container-supply-chain.py"
@@ -164,15 +165,15 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
     )
     exceptions = payload["exceptions"]
     reviewed = [
-        entry for entry in exceptions if entry["vulnerability"] not in {"CVE-2026-93990", "CVE-2026-19553"}
+        entry for entry in exceptions if "run 38475307833" in entry["reason"]
     ]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
         for entry in reviewed
     }
 
-    assert len(reviewed) == 48
-    assert len(keys) == 48
+    assert len(reviewed) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert {entry["image_id"] for entry in reviewed} == {
         "telemetry-service",
     }
@@ -250,7 +251,8 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         if entry["vulnerability"] == "CVE-2026-78409"
     ]
 
-    assert len(matches) == 9
+    assert {entry["package"] for entry in matches} == {"libuuid1"}
+    assert len(matches) == 1
     assert {entry["image_id"] for entry in matches} == {
         "telemetry-service",
     }
@@ -313,12 +315,12 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     prior_review = [
         entry
         for entry in exceptions
-        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049", "CVE-2026-93990", "CVE-2026-19553"}
+        if "run 38475307833" in entry["reason"]
     ]
 
     assert len(keys) == len(exceptions)
     assert keys.isdisjoint(stale)
-    assert len(prior_review) == 48
+    assert len(prior_review) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all("34826380930" in entry["reason"] for entry in prior_review)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in prior_review)
     assert len(current_python) == 0
@@ -440,11 +442,12 @@ def test_telemetry_image_hardens_python_supply_chain() -> None:
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
 
-    assert "msgpack==1.2.1" in requirements.splitlines()
+    assert "msgpack==1.2.3" in requirements.splitlines()
+    assert "Pillow==13.0.0" in requirements.splitlines()
     assert "python -m pip uninstall --yes setuptools" in dockerfile
     assert "! python -m pip show setuptools >/dev/null 2>&1" in dockerfile
     assert 'msgpack; print(msgpack.__version__)' in dockerfile
-    assert '"1.2.1"' in dockerfile
+    assert '"1.2.3"' in dockerfile
     assert "python -m pip check" in dockerfile
 
     telemetry_exceptions = [
@@ -548,14 +551,14 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    exceptions = [entry for entry in payload["exceptions"] if entry["vulnerability"] != "CVE-2026-19553"]
+    exceptions = [entry for entry in payload["exceptions"] if "run 38475307833" in entry["reason"]]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
         for entry in exceptions
     }
 
-    assert len(exceptions) == 48
-    assert len(keys) == 48
+    assert len(exceptions) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("36123964257" in entry["reason"] for entry in exceptions)
@@ -576,14 +579,14 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    exceptions = payload["exceptions"]
+    exceptions = [entry for entry in payload["exceptions"] if "run 38475307833" in entry["reason"]]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
         for entry in exceptions
     }
 
-    assert len(exceptions) == 48
-    assert len(keys) == 48
+    assert len(exceptions) == RETAINED_TELEMETRY_EXCEPTIONS
+    assert len(keys) == RETAINED_TELEMETRY_EXCEPTIONS
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("37294551286" in entry["reason"] for entry in exceptions)
@@ -616,7 +619,6 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     keys = {(entry["image_id"], entry["package"], entry["vulnerability"]) for entry in new}
     assert keys == expected
     assert len(new) == 0
-    assert len(payload["exceptions"]) == 48
     assert all(entry["owner"] == "platform-security" for entry in new)
     assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in payload["exceptions"])
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
@@ -645,17 +647,29 @@ def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
 
 
 
-def test_current_review_is_exact_seven_days_and_does_not_except_fixed_go_findings() -> None:
-    entries = json.loads((ROOT / "security/vulnerability-exceptions.json").read_text())["exceptions"]
-    keys = sorted((item["image_id"], item["package"], item["vulnerability"]) for item in entries)
-    assert len(keys) == len(set(keys)) == 48
+def test_current_approval_is_bound_to_eighteen_reviewed_telemetry_versions() -> None:
+    path = ROOT / "security/vulnerability-exceptions.json"
+    entries = json.loads(path.read_text())["exceptions"]
+    keys = sorted(
+        (item["image_id"], item["package"], item["vulnerability"], item["installed_version"])
+        for item in entries
+    )
+    assert len(keys) == len(set(keys)) == 18
     assert {item["image_id"] for item in entries} == {"telemetry-service"}
     assert {item["owner"] for item in entries} == {"platform-security"}
+    assert {item["package"] for item in entries} == {
+        "libacl1", "libcjson1", "libncursesw6", "libsqlite3-0", "libsystemd0",
+        "libtinfo6", "libudev1", "libuuid1", "ncurses-base",
+    }
+    assert {item["vulnerability"] for item in entries if item["package"] == "libsqlite3-0"} == {
+        "CVE-2026-119373", "CVE-2026-119374", "CVE-2026-119379",
+    }
     assert date.fromisoformat(CURRENT_EXPIRY) - CURRENT_REVIEW_DATE == timedelta(days=7)
-    assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "3a0f6834d30d647b97692b2cf016f1a8ecb2e30af8067a39505a33daa634765e"
-    assert all("run 38475307833" in item["reason"] for item in entries)
-    assert all("cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29" in item["reason"] for item in entries)
+    assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253"
+    assert all("run 43859841072" in item["reason"] for item in entries)
+    assert all("163584bb22e1b51cf92f8cbd0a3acba806e6a905cb543578c051eaa349f9d297" in item["reason"] for item in entries)
     assert all(item["expires_on"] == CURRENT_EXPIRY for item in entries)
-    MODULE.validate_exceptions(ROOT / "security/vulnerability-exceptions.json", CURRENT_REVIEW_DATE)
+    MODULE.validate_exceptions(path, CURRENT_REVIEW_DATE)
+    MODULE.validate_exceptions(path, date(2026, 11, 23))
     with pytest.raises(ValidationFailure, match="expired"):
-        MODULE.validate_exceptions(ROOT / "security/vulnerability-exceptions.json", date(2026, 10, 21))
+        MODULE.validate_exceptions(path, date(2026, 11, 24))

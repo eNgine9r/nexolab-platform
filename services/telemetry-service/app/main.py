@@ -47,6 +47,7 @@ from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
 from app.refrigeration.derived_api import create_derived_read_router
 from app.refrigeration.derived_read import HistoricalDerivedReadService
 from app.refrigeration.controller_binding_api import create_refrigeration_controller_binding_router
+from app.refrigeration.commissioned_channels import LocalCommissionedTemperatureReader
 from app.refrigeration.controller_binding_repository import PostgresRefrigerationControllerBindingRepository
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
@@ -54,6 +55,7 @@ from app.refrigeration.lifecycle_api import create_equipment_lifecycle_router
 from app.refrigeration.lifecycle_repository import PostgresEquipmentLifecycleRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.sensor_configuration_repository import PostgresSensorConfigurationRepository
+from app.refrigeration.channel_labels import ChannelNameStore, create_channel_names_router
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.refrigeration.structural_api import create_refrigeration_structural_router
 from app.reports.api import create_report_router
@@ -128,9 +130,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     refrigeration_circuit_repository = RefrigerationCircuitRepository(database)
     calculation_policy_repository = CalculationPolicyRepository(database)
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
-    sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
+    sensor_configuration_repository = PostgresSensorConfigurationRepository(
+        database,
+        read_commissioned=(
+            LocalCommissionedTemperatureReader(resolved.commissioning_device_agent_base_url)
+            if resolved.commissioning_device_agent_base_url else None
+        ),
+        commissioned_organization_id=resolved.auth_default_organization_id,
+    )
     live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
+    channel_name_store = ChannelNameStore(
+        database,
+        read_commissioned=sensor_configuration_repository._read_commissioned,
+        commissioned_organization_id=resolved.auth_default_organization_id,
+    )
     instrumentation_repository = InstrumentationRepository(database)
     profile_acceptance_repository = AcquisitionProfileAcceptanceRepository(database)
     derived_read_service = HistoricalDerivedReadService(
@@ -287,6 +301,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.calculation_policy_repository = calculation_policy_repository
     app.state.equipment_lifecycle_repository = equipment_lifecycle_repository
     app.state.sensor_configuration_repository = sensor_configuration_repository
+    app.state.channel_name_store = channel_name_store
     app.state.live_dashboard_repository = live_dashboard_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
@@ -454,6 +469,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             default_organization_id=resolved.auth_default_organization_id,
         )
     )
+    app.include_router(create_channel_names_router(channel_name_store, security_dependencies, security_repository))
     app.include_router(
         create_live_dashboard_router(
             live_dashboard_repository,

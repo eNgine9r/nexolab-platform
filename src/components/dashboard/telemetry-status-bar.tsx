@@ -140,8 +140,8 @@ export function TelemetryStatusBar({
 
   return (
     <section
-      className={`mb-2 flex flex-col border sm:flex-row sm:items-center ${
-        compactHealthy ? "gap-2 rounded-xl px-3 py-2" : "gap-3 rounded-2xl px-4 py-3"
+      className={`flex flex-col border sm:flex-row sm:items-center ${
+        compactHealthy ? "gap-2 rounded-xl px-3.5 py-2.5" : "gap-3 rounded-xl px-3.5 py-3"
       } ${copy.classes}`}
       aria-live="polite"
       aria-label="Стан live telemetry"
@@ -167,17 +167,17 @@ export function TelemetryStatusBar({
               </span>
             ) : null}
           </div>
-          <p
-            className={`${compactHealthy ? "mt-0" : "mt-0.5"} text-[11px] leading-4 break-words text-slate-300`}
-          >
-            {error?.message ?? copy.detail}
-          </p>
+          {!compactHealthy ? (
+            <p className="mt-1 text-xs leading-4 break-words text-slate-300">
+              {error?.message ?? copy.detail}
+            </p>
+          ) : null}
         </div>
       </div>
 
       <div
         className={`ml-auto flex flex-wrap items-center gap-y-1 text-slate-400 ${
-          compactHealthy ? "gap-x-3 text-[11px]" : "gap-x-4 text-xs"
+          compactHealthy ? "gap-x-3 text-xs" : "gap-x-4 text-xs"
         }`}
       >
         <span>

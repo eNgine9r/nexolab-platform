@@ -15,7 +15,9 @@ export type LiveDashboardStatus = "active" | "archived";
 export interface LiveDashboardItem {
   id: string;
   position: number;
-  channel_ref_id: string;
+  channel_ref_id: string | null;
+  node_id?: string | null;
+  equipment_id?: string | null;
   channel_id: string;
   metric: string;
   native_unit: string;
@@ -52,6 +54,8 @@ export interface LiveDashboardCollection {
 }
 
 export interface LiveDashboardItemWrite {
+  node_id?: string | null;
+  equipment_id?: string | null;
   channel_id: string;
   metric: string;
   visualization: LiveDashboardVisualization;
@@ -73,6 +77,7 @@ export interface LiveDashboardVersioned<T = LiveDashboard> {
 }
 
 export interface LiveDashboardDraftItem extends LiveDashboardItemWrite {
+  observed?: boolean;
   native_unit: string;
   node_id: string | null;
   equipment_id: string | null;
@@ -97,13 +102,13 @@ export interface LiveDashboardValidation {
 
 export interface LiveDashboardInventoryItem {
   key: string;
-  channel_ref_id: string;
+  channel_ref_id: string | null;
   node_id: string;
   equipment_id: string;
   equipment_name: string;
-  climate_chamber_id: string;
-  climate_chamber_code: string;
-  climate_chamber_name: string;
+  climate_chamber_id: string | null;
+  climate_chamber_code: string | null;
+  climate_chamber_name: string | null;
   equipment_type: string;
   laboratory: string | null;
   zone: string | null;

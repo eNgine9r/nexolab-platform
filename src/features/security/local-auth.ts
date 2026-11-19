@@ -259,6 +259,7 @@ async function refreshCredentialSnapshot(
         organizationId: effectiveOrganizationId,
       };
       setSecurityCredentials(snapshot);
+      notifySecurityCredentialsInvalidated();
       return snapshot;
     }
     return currentCredentialSnapshot(effectiveOrganizationId);

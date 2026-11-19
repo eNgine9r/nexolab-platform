@@ -13,7 +13,7 @@ from app.climate_catalog.models import (
     MeasurementChannel,
     MeasurementDevice,
 )
-from app.db import Database
+from app.db import Database, TelemetryLatest
 from app.live_dashboard.models import LiveDashboard, LiveDashboardItem
 from app.live_dashboard.schemas import LiveDashboardItemWrite, LiveDashboardWrite
 from app.live_dashboard.telemetry_identity import MAX_MODBUS_UNIT_ID
@@ -28,13 +28,15 @@ DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 class DashboardItemRecord:
     id: str
     position: int
-    channel_ref_id: str
+    channel_ref_id: str | None
     channel_id: str
     metric: str
     native_unit: str
     visualization: str
     color: str | None
     display_unit: str | None
+    node_id: str | None = None
+    equipment_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,9 +342,30 @@ class LiveDashboardRepository:
         *,
         organization_id: str,
         items: list[LiveDashboardItemWrite],
-    ) -> list[tuple[LiveDashboardItemWrite, MeasurementChannel]]:
-        resolved: list[tuple[LiveDashboardItemWrite, MeasurementChannel]] = []
+    ) -> list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]]:
+        resolved: list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]] = []
         for item in items:
+            if item.node_id is not None:
+                observed = session.scalar(
+                    select(TelemetryLatest)
+                    .join(CentralNode, CentralNode.node_id == TelemetryLatest.node_id)
+                    .where(
+                        CentralNode.organization_id == organization_id,
+                        CentralNode.state != "revoked",
+                        TelemetryLatest.node_id == item.node_id,
+                        TelemetryLatest.equipment_id == item.equipment_id,
+                        TelemetryLatest.channel_id == item.channel_id,
+                        TelemetryLatest.metric == item.metric,
+                    )
+                )
+                if observed is None:
+                    raise LiveDashboardChannelNotFoundError("Observed series is unavailable in this organization")
+                if item.display_unit is not None and item.display_unit != observed.unit:
+                    raise LiveDashboardUnitConversionUnsupportedError(
+                        f"display unit must match the observed native unit {observed.unit!r}"
+                    )
+                resolved.append((item, observed))
+                continue
             channel = session.scalar(
                 select(MeasurementChannel)
                 .join(
@@ -408,7 +431,7 @@ class LiveDashboardRepository:
         session: Session,
         *,
         dashboard: LiveDashboard,
-        resolved_items: list[tuple[LiveDashboardItemWrite, MeasurementChannel]],
+        resolved_items: list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]],
     ) -> None:
         session.execute(
             delete(LiveDashboardItem).where(
@@ -422,7 +445,9 @@ class LiveDashboardRepository:
                 organization_id=dashboard.organization_id,
                 dashboard_id=dashboard.id,
                 position=position,
-                channel_ref_id=channel.id,
+                channel_ref_id=channel.id if isinstance(channel, MeasurementChannel) else None,
+                node_id=item.node_id,
+                equipment_id=item.equipment_id,
                 channel_id=channel.channel_id,
                 metric=item.metric,
                 native_unit=channel.unit,
@@ -532,6 +557,8 @@ def _dashboard_record(
                 id=item.id,
                 position=item.position,
                 channel_ref_id=item.channel_ref_id,
+                node_id=item.node_id,
+                equipment_id=item.equipment_id,
                 channel_id=item.channel_id,
                 metric=item.metric,
                 native_unit=item.native_unit,
@@ -562,6 +589,8 @@ def _snapshot(record: DashboardRecord) -> dict[str, object]:
             {
                 "position": item.position,
                 "channel_ref_id": item.channel_ref_id,
+                "node_id": item.node_id,
+                "equipment_id": item.equipment_id,
                 "channel_id": item.channel_id,
                 "metric": item.metric,
                 "native_unit": item.native_unit,

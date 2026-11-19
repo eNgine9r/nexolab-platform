@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -22,7 +22,6 @@ import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigera
 import {
   CreateEquipmentDialog,
   DeleteEquipmentDialog,
-  type ClimateChamberEquipmentSummary,
   type EquipmentNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
@@ -94,6 +93,8 @@ export function RefrigerationCatalogScreen({
   const [items, setItems] = useState<RefrigerationEquipment[]>(
     runtime.mode === "demo" ? refrigerationEquipment : [],
   );
+  const [summaryTime, setSummaryTime] = useState(() => Date.now());
+  const catalogMutation = useRef(0);
   const [chambers, setChambers] = useState<ClimateChamber[]>([]);
   const [controllerSummaryResult, setControllerSummaryResult] = useState<{
     repository: RefrigerationEquipmentRuntime["controllerBindingRepository"];
@@ -134,27 +135,47 @@ export function RefrigerationCatalogScreen({
     const repository = runtime.repository;
     if (!repository) return;
     let active = true;
-    void repository
-      .list()
-      .then((loaded) => {
-        if (!active) return;
-        setItems(loaded);
-        setNotice((current) => (current?.tone === "error" ? null : current));
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setNotice({
-          tone: "error",
-          message: error instanceof Error ? error.message : "Не вдалося завантажити каталог обладнання.",
-        });
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    let loadingList = false;
+    let initialError = false;
+    let firstRequest = true;
+    const load = async () => {
+      if (loadingList) return;
+      loadingList = true;
+      const mutationAtStart = catalogMutation.current;
+      try {
+        const loaded = await repository.list();
+        if (active && mutationAtStart === catalogMutation.current) {
+          setItems(loaded);
+          setSummaryTime(Date.now());
+          if (firstRequest || initialError) {
+            setNotice((current) => (current?.tone === "error" ? null : current));
+            initialError = false;
+          }
+        }
+      } catch (error) {
+        if (active && firstRequest) {
+          initialError = true;
+          setNotice({
+            tone: "error",
+            message: error instanceof Error ? error.message : "Не вдалося завантажити каталог обладнання.",
+          });
+        }
+      } finally {
+        if (firstRequest && active) setLoading(false);
+        firstRequest = false;
+        loadingList = false;
+      }
+    };
+    void load();
+    const refresh = runtime.mode === "live" ? window.setInterval(() => void load(), 10_000) : undefined;
+    const clock =
+      runtime.mode === "live" ? window.setInterval(() => setSummaryTime(Date.now()), 1_000) : undefined;
     return () => {
       active = false;
+      window.clearInterval(refresh);
+      window.clearInterval(clock);
     };
-  }, [runtime.repository]);
+  }, [runtime.mode, runtime.repository]);
 
   useEffect(() => {
     const repository = runtime.controllerBindingRepository;
@@ -272,20 +293,22 @@ export function RefrigerationCatalogScreen({
 
   const equipment = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
-    return items.filter((item) => {
-      const chamberItem = item.nodeId ? chamberByNodeId.get(item.nodeId) : undefined;
-      const searchText =
-        `${item.name} ${item.code} ${item.location} ${item.laboratory ?? ""} ${item.zone ?? ""} ${item.nodeId ?? ""} ${chamberItem?.code ?? ""} ${chamberItem?.name ?? ""} ${item.model}`.toLocaleLowerCase(
-          "uk-UA",
+    return items
+      .map((item) => equipmentAtTime(item, summaryTime))
+      .filter((item) => {
+        const chamberItem = item.nodeId ? chamberByNodeId.get(item.nodeId) : undefined;
+        const searchText =
+          `${item.name} ${item.code} ${item.location} ${item.laboratory ?? ""} ${item.zone ?? ""} ${item.nodeId ?? ""} ${chamberItem?.code ?? ""} ${chamberItem?.name ?? ""} ${item.model}`.toLocaleLowerCase(
+            "uk-UA",
+          );
+        return (
+          (normalizedQuery.length === 0 || searchText.includes(normalizedQuery)) &&
+          (status === "all" || item.status === status) &&
+          (lifecycle === "all" || item.lifecycleStatus === lifecycle) &&
+          (chamber === "all" || item.nodeId === chamber)
         );
-      return (
-        (normalizedQuery.length === 0 || searchText.includes(normalizedQuery)) &&
-        (status === "all" || item.status === status) &&
-        (lifecycle === "all" || item.lifecycleStatus === lifecycle) &&
-        (chamber === "all" || item.nodeId === chamber)
-      );
-    });
-  }, [chamber, chamberByNodeId, items, lifecycle, query, status]);
+      });
+  }, [chamber, chamberByNodeId, items, lifecycle, query, status, summaryTime]);
 
   const openCreate = () => {
     setCreateIntent("create");
@@ -301,38 +324,14 @@ export function RefrigerationCatalogScreen({
     setCreateOpen(true);
   };
 
-  const loadClimateChamberEquipment = async (nodeId: string): Promise<ClimateChamberEquipmentSummary> => {
-    const catalogRepository = runtime.climateCatalogRepository;
-    const catalogChamber = chambers.find((item) => item.nodeId === nodeId);
-    if (catalogRepository && catalogChamber) {
-      const equipmentCatalog = await catalogRepository.getEquipment(catalogChamber.id);
-      return {
-        temperatureControllers: equipmentCatalog.temperatureControllers.length,
-        temperatureChannels: equipmentCatalog.temperatureChannels.length,
-        energyMeters: equipmentCatalog.energyMeters.length,
-        energyMeterEmptyMessage: equipmentCatalog.energyMeterEmptyMessage,
-      };
-    }
-    const repository = runtime.lifecycleRepository;
-    if (!repository) {
-      throw new Error("Сховище кліматичних камер і вимірювальних каналів недоступне.");
-    }
-    const channels = await repository.listClimateChamberChannels(nodeId);
-    return {
-      temperatureControllers: 0,
-      temperatureChannels: channels.length,
-      energyMeters: 0,
-      energyMeterEmptyMessage: null,
-    };
-  };
-
   const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
     if (!runtime.repository) return;
     setCreateBusy(true);
     setCreateError(null);
     try {
       const created = await runtime.repository.create(input);
-      setItems((current) => [...current, created]);
+      catalogMutation.current += 1;
+      setItems((current) => [...current.filter((item) => item.id !== created.id), created]);
       setCreateOpen(false);
       setCreateInitialValue(null);
       setNotice({
@@ -355,6 +354,7 @@ export function RefrigerationCatalogScreen({
     setDeleteError(null);
     try {
       await runtime.repository.remove(deleteTarget.id, deleteTarget.version);
+      catalogMutation.current += 1;
       setItems((current) => current.filter((item) => item.id !== deleteTarget.id));
       setNotice({ tone: "success", message: `${deleteTarget.name} видалено з каталогу.` });
       setDeleteTarget(null);
@@ -509,7 +509,6 @@ export function RefrigerationCatalogScreen({
           nodeOptions={nodeOptions}
           initialValue={createInitialValue}
           intent={createIntent}
-          onClimateChamberChange={loadClimateChamberEquipment}
           onClose={() => {
             if (!createBusy) {
               setCreateOpen(false);
@@ -531,6 +530,15 @@ export function RefrigerationCatalogScreen({
       />
     </div>
   );
+}
+
+function equipmentAtTime(item: RefrigerationEquipment, now: number): RefrigerationEquipment {
+  if (item.assignedSensors === undefined || item.onlineSensors === 0) return item;
+  const validUntil = Date.parse(item.sensorSummaryValidUntil ?? "");
+  if (!Number.isFinite(validUntil) || now >= validUntil) {
+    return { ...item, onlineSensors: 0, averageTemperatureC: 0 };
+  }
+  return item.status === "offline" ? { ...item, status: "normal" } : item;
 }
 
 function EquipmentCard({
@@ -578,9 +586,9 @@ function EquipmentCard({
           <div className="min-w-0">
             <h2 className="text-base leading-6 font-semibold break-words text-white">{item.name}</h2>
             <p className="mt-1 text-xs leading-5 break-words text-slate-300">{item.location}</p>
-            <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">
-              {chamberName ?? "Камеру не вибрано"}
-            </p>
+            {chamberName ? (
+              <p className="mt-1 text-xs leading-5 break-words text-cyan-200/85">{chamberName}</p>
+            ) : null}
           </div>
           <span
             className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-4 font-medium ${statusStyles[item.status]}`}
@@ -590,8 +598,20 @@ function EquipmentCard({
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
-          <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
-          <Metric icon={Wifi} label="Датчики" value={`${item.onlineSensors}/${item.totalSensors}`} />
+          <Metric
+            icon={Thermometer}
+            label="Середня"
+            value={
+              item.onlineSensors > 0
+                ? `${Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(item.averageTemperatureC)} °C`
+                : "—"
+            }
+          />
+          <Metric
+            icon={Wifi}
+            label="Датчики"
+            value={`${item.onlineSensors} із ${item.assignedSensors ?? item.sensors.length} онлайн`}
+          />
           <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
         </div>
 

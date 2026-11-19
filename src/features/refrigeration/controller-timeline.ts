@@ -29,6 +29,8 @@ const STATE_LABELS: Record<number, string> = {
   5: "Pulldown",
 };
 
+const DEFROST_STATE_CODE = 3;
+
 const DEFAULT_TIMELINE_SOURCE_GAP_MS = 90_000;
 
 type OrderedSample = TelemetrySample & { capturedAtMs: number; usable: boolean };
@@ -58,7 +60,7 @@ function intervals<T>(
   samples: readonly TelemetrySample[],
   range: { from: Date; to: Date },
   decode: (value: number) => T,
-  project: (value: T) => { label: string; active: boolean },
+  project: (value: T) => { label: string; active: boolean } | null,
 ): TimelineInterval[] {
   const ordered = orderedEvidence(samples);
   const threshold = sourceGapMs(ordered);
@@ -75,7 +77,7 @@ function intervals<T>(
     const toMs = Math.min(toBound, next.capturedAtMs);
     if (toMs <= fromMs) continue;
     const projected = project(decode(Math.trunc(current.value)));
-    result.push({ fromMs, toMs, ...projected });
+    if (projected) result.push({ fromMs, toMs, ...projected });
   }
   return result;
 }
@@ -90,6 +92,38 @@ export function buildControlStateTimeline(
     (value) => STATE_LABELS[value] ?? `State ${value}`,
     (label) => ({ label, active: label !== "Idle" }),
   );
+}
+
+export function buildDefrostTimeline(
+  samples: readonly TelemetrySample[],
+  range: { from: Date; to: Date },
+): TimelineInterval[] {
+  return intervals(
+    samples,
+    range,
+    (value) => value,
+    (state) => {
+      if (!Object.hasOwn(STATE_LABELS, state)) return null;
+      const active = state === DEFROST_STATE_CODE;
+      return { label: active ? "ON" : "OFF", active };
+    },
+  );
+}
+
+export function summarizeActiveTimeline(
+  timeline: readonly TimelineInterval[],
+  range: { from: Date; to: Date },
+): { activeMs: number; coveredMs: number } {
+  const fromMs = range.from.getTime();
+  const toMs = range.to.getTime();
+  let activeMs = 0;
+  let coveredMs = 0;
+  for (const interval of timeline) {
+    const durationMs = Math.max(0, Math.min(toMs, interval.toMs) - Math.max(fromMs, interval.fromMs));
+    coveredMs += durationMs;
+    if (interval.active) activeMs += durationMs;
+  }
+  return { activeMs, coveredMs };
 }
 
 export function buildRelayTimeline(

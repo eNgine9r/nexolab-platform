@@ -31,6 +31,26 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 const NOW = new Date("2026-07-23T18:00:10Z");
 
 describe("dashboard telemetry state", () => {
+  it("includes all 54 inputs from nine newly commissioned controllers in temperature selection and mean", () => {
+    const inputs = Array.from({ length: 9 }, (_, index) => index * 6 + 1).flatMap((unit) =>
+      Array.from({ length: 6 }, (_, channel) =>
+        sample({
+          event_id: `new-${unit}-${channel + 1}`,
+          equipment_id: `XJP60D-S:rs485-test:${unit}`,
+          channel_id: `rs485-test:${unit}-S0${channel + 1}`,
+          value: 5,
+        }),
+      ),
+    );
+    const view = deriveDashboardTelemetry(
+      mergeDashboardTelemetry(createDashboardTelemetryStore(), inputs, { now: NOW }),
+      { now: NOW, hasLoadedSnapshot: true, connectionState: "connected", error: null },
+    );
+    expect(selectProductionTemperatures(view)).toHaveLength(54);
+    expect(buildLiveDashboardKpis(view).find((item) => item.label === "Середня температура")?.detail).toBe(
+      "54 валідних каналів XJP60D",
+    );
+  });
   it("deduplicates event ids and keeps the newest series sample", () => {
     const initial = createDashboardTelemetryStore();
     const first = mergeDashboardTelemetry(initial, [sample(), sample({ event_id: "duplicate" })], {
@@ -147,7 +167,11 @@ describe("dashboard telemetry state", () => {
     const kpis = buildLiveDashboardKpis(view);
 
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("—");
-    expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.trend).toBe(
+      "Події журналу тривог — окремо",
+    );
+    expect(kpis.some((item) => item.label === "Активних тривог")).toBe(false);
   });
 
   it("maps every discovered XJP60D temperature and production power channel", () => {

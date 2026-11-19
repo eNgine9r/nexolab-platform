@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RefrigerationControllerHistory } from "@/components/refrigeration/refrigeration-controller-history";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import { EMBRACO_METRICS } from "@/features/refrigeration/controller-monitoring";
+import type { ChartXDomain } from "@/features/charts/domain";
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -18,9 +19,17 @@ vi.mock("@/components/refrigeration/refrigeration-controller-chart", () => ({
     sharedCursorMs: number | null;
     onSharedCursorChange: (timestampMs: number | null) => void;
     onRangeSelectionChange?: (domain: { fromMs: number; toMs: number }) => void;
-    rangeSelectionEnabled?: boolean;
+    rangeSelection: ChartXDomain | null;
+    viewportDomain: ChartXDomain;
+    onViewportChange: (domain: ChartXDomain | null) => void;
+    afterPlot?: React.ReactNode;
   }) => (
-    <div data-testid={`mock-chart-container-${props.title}`} data-shared-cursor={props.sharedCursorMs ?? ""}>
+    <div
+      data-testid={`mock-chart-container-${props.title}`}
+      data-shared-cursor={props.sharedCursorMs ?? ""}
+      data-chart-x-domain-to-ms={props.viewportDomain.toMs}
+      data-selection-to-ms={props.rangeSelection?.toMs ?? ""}
+    >
       <button
         type="button"
         data-testid={`mock-chart-${props.title}`}
@@ -32,6 +41,18 @@ vi.mock("@/components/refrigeration/refrigeration-controller-chart", () => ({
         }
       >
         {props.title}
+      </button>
+      <button
+        type="button"
+        data-testid={`mock-zoom-${props.title}`}
+        onClick={() =>
+          props.onViewportChange({
+            fromMs: props.scene.xDomain.fromMs,
+            toMs: props.scene.xDomain.toMs - 30_000,
+          })
+        }
+      >
+        zoom
       </button>
       <button
         type="button"
@@ -47,6 +68,7 @@ vi.mock("@/components/refrigeration/refrigeration-controller-chart", () => ({
       >
         clear cursor
       </button>
+      {props.afterPlot}
     </div>
   ),
 }));
@@ -195,6 +217,50 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     expect(startsCard()).toHaveTextContent("1");
     expect(screen.getByTestId("relay-transition-journal")).toHaveTextContent("Подій: 1");
     expect(screen.getByTestId("compressor-analysis-range")).toHaveTextContent("Повний період");
+  });
+
+  it("shares temperature selection and zoom with the RPM chart and lanes without conflating selection and viewport", () => {
+    const controller = controllerModel();
+    const history = new Map(controller.history);
+    history.set(EMBRACO_METRICS.controlState, [
+      sample(0, EMBRACO_METRICS.controlState, 2, "state", "mode"),
+      sample(30, EMBRACO_METRICS.controlState, 3, "state", "mode"),
+      sample(60, EMBRACO_METRICS.controlState, 4, "state", "mode"),
+      sample(90, EMBRACO_METRICS.controlState, 1, "state", "mode"),
+    ]);
+    render(<RefrigerationControllerHistory controller={{ ...controller, history }} />);
+
+    const temperature = screen.getByTestId("mock-chart-container-Температури контролера");
+    const rpm = screen.getByTestId("mock-chart-container-Швидкість компресора");
+    const lanes = screen.getByTestId("relay-analysis-lanes");
+    const selectedEnd = String(range.from.getTime() + 60_000);
+    const fullEnd = String(range.to.getTime());
+
+    fireEvent.click(screen.getByTestId("mock-chart-Температури контролера"));
+    expect(rpm).toHaveAttribute("data-selection-to-ms", selectedEnd);
+    expect(lanes).toHaveAttribute("data-chart-x-domain-to-ms", fullEnd);
+    expect(screen.getByText("Тривалість відтайки").closest("article")).toHaveTextContent("30 с");
+
+    fireEvent.click(screen.getByTestId("mock-cursor-Швидкість компресора"));
+    expect(
+      lanes.querySelector('[data-timeline-label="Відтайка"] [data-testid="timeline-cursor-state"]'),
+    ).toHaveTextContent("OFF");
+    expect(
+      lanes.querySelector('[data-timeline-label="Relay 1"] [data-testid="timeline-cursor-state"]'),
+    ).toHaveTextContent("OFF");
+
+    fireEvent.click(screen.getByTestId("mock-zoom-Швидкість компресора"));
+    expect(temperature).toHaveAttribute("data-chart-x-domain-to-ms", String(range.to.getTime() - 30_000));
+    expect(lanes).toHaveAttribute("data-chart-x-domain-to-ms", String(range.to.getTime() - 30_000));
+    expect(rpm).toHaveAttribute("data-selection-to-ms", selectedEnd);
+    fireEvent.click(screen.getByRole("button", { name: "Наблизити відрізок" }));
+    expect(temperature).toHaveAttribute("data-chart-x-domain-to-ms", selectedEnd);
+    expect(lanes).toHaveAttribute("data-chart-x-domain-to-ms", selectedEnd);
+
+    fireEvent.click(screen.getByRole("button", { name: "Скинути вибір" }));
+    expect(temperature).toHaveAttribute("data-chart-x-domain-to-ms", fullEnd);
+    expect(rpm).toHaveAttribute("data-selection-to-ms", "");
+    expect(lanes).toHaveAttribute("data-chart-x-domain-to-ms", fullEnd);
   });
 
   it("exports the currently selected interval through the browser download manager", async () => {

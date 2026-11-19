@@ -412,6 +412,8 @@ export function parseEquipment(value: unknown): RefrigerationEquipment {
     minTemperatureC,
     maxTemperatureC,
     onlineSensors,
+    assignedSensors: readNumber(record.assigned_sensors) ?? undefined,
+    sensorSummaryValidUntil: readOptionalString(record.sensor_summary_valid_until),
     totalSensors,
     activeAlarms,
     lastSeenAt:

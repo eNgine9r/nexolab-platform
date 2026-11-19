@@ -42,6 +42,7 @@ import {
   type EquipmentAssetCategory,
   type EquipmentCalibrationStatus,
   type EquipmentRegistryAsset,
+  isHistoricalDixellCatalogAsset,
   type EquipmentRegistryFailure,
   type EquipmentRegistryFilters,
 } from "@/features/equipment/asset-registry";
@@ -66,6 +67,7 @@ import {
   parseEquipmentWorkspaceColumns,
   serializeEquipmentWorkspaceColumns,
 } from "@/features/equipment/workspace-preferences";
+import type { ChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import type { SettingsTableDensity } from "@/features/settings/preferences";
@@ -115,6 +117,8 @@ const filterParameters = new Set([
 export function EquipmentRegistryCatalog({
   state,
   assets,
+  commissionedState = "unavailable",
+  channelNameRepository = null,
   failures,
   error,
   progress,
@@ -125,6 +129,8 @@ export function EquipmentRegistryCatalog({
 }: {
   state: EquipmentRegistryState;
   assets: EquipmentRegistryAsset[];
+  commissionedState?: "available" | "unavailable";
+  channelNameRepository?: ChannelNameRepository | null;
   failures: EquipmentRegistryFailure[];
   error: string | null;
   progress?: { completedChambers: number; totalChambers: number } | null;
@@ -145,6 +151,7 @@ export function EquipmentRegistryCatalog({
   );
   const [groupMode, setGroupMode] = useState<EquipmentRegistryGroupMode>(() => readGroupMode(searchParams));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [showHistorical, setShowHistorical] = useState(false);
   const [page, setPage] = useState(0);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
@@ -168,9 +175,21 @@ export function EquipmentRegistryCatalog({
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  const options = useMemo(() => collectEquipmentRegistryOptions(assets), [assets]);
-  const summary = useMemo(() => summarizeEquipmentRegistry(assets), [assets]);
-  const baseFilteredAssets = useMemo(() => filterEquipmentRegistry(assets, filters), [assets, filters]);
+  // Historical catalog does not prove an active hardware connection.
+  const legacyCount = assets.filter(isHistoricalDixellCatalogAsset).length;
+  const visibleAssets = useMemo(
+    () =>
+      commissionedState === "available" && !showHistorical
+        ? assets.filter((asset) => !isHistoricalDixellCatalogAsset(asset))
+        : assets,
+    [assets, commissionedState, showHistorical],
+  );
+  const options = useMemo(() => collectEquipmentRegistryOptions(visibleAssets), [visibleAssets]);
+  const summary = useMemo(() => summarizeEquipmentRegistry(visibleAssets), [visibleAssets]);
+  const baseFilteredAssets = useMemo(
+    () => filterEquipmentRegistry(visibleAssets, filters),
+    [visibleAssets, filters],
+  );
   const filteredAssets = useMemo(
     () => filterEquipmentWorkspaceRisk(baseFilteredAssets, risk),
     [baseFilteredAssets, risk],
@@ -506,6 +525,21 @@ export function EquipmentRegistryCatalog({
         </div>
       </section>
 
+      {commissionedState === "available" && legacyCount > 0 ? (
+        <button
+          type="button"
+          aria-pressed={showHistorical}
+          onClick={() => setShowHistorical((current) => !current)}
+          className="rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 hover:text-white"
+        >
+          {showHistorical ? "Приховати старий каталог" : "Показати історичний каталог (" + legacyCount + ")"}
+        </button>
+      ) : null}
+      {commissionedState === "unavailable" ? (
+        <p role="status" className="text-xs text-amber-200">
+          Актуальний реєстр Device Agent недоступний. Статус старих записів не підтверджено.
+        </p>
+      ) : null}
       {failures.length > 0 ? <PartialFailures failures={failures} onRetry={onRetry} /> : null}
 
       {(state === "loading" || state === "idle") && assets.length === 0 ? <RegistryLoading /> : null}
@@ -576,6 +610,7 @@ export function EquipmentRegistryCatalog({
         <EquipmentAssetDetails
           asset={selectedAsset}
           canManage={canManage}
+          channelNameRepository={channelNameRepository}
           equipmentRepository={equipmentRepository}
           climateCatalogRepository={climateCatalogRepository}
           onSaved={onRetry}

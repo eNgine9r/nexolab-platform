@@ -111,15 +111,28 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const securityError = account ? account.security.error : legacySecurityError;
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   const [lifecycleOpen, setLifecycleOpen] = useState(false);
+  const [sensorEditEquipmentId, setSensorEditEquipmentId] = useState<string | null>(null);
 
   const effectiveLifecycleRepository = sensorConfigurationRepository ?? lifecycleRepository;
   const effectiveChannels = availableSensors ?? channels;
-  const cameraScoped = Boolean(
-    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
-  );
   const canManageSensorConfiguration =
     runtime.mode === "demo" ||
     Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
+  const hasSensorsToEdit =
+    bindings.length > 0 || effectiveChannels.some((channel) => channel.selectable !== false);
+  const nextSensorEditEquipmentId =
+    mode === "view"
+      ? null
+      : hasSensorsToEdit && effectiveLifecycleRepository && canManageSensorConfiguration
+        ? equipment.id
+        : sensorEditEquipmentId;
+  if (nextSensorEditEquipmentId !== sensorEditEquipmentId) {
+    setSensorEditEquipmentId(nextSensorEditEquipmentId);
+  }
+  const editingUnboundSensors = canManageSensorConfiguration && nextSensorEditEquipmentId === equipment.id;
+  const cameraScoped = Boolean(
+    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId || editingUnboundSensors),
+  );
   const externallyReadOnly = forceReadOnly || canManageEquipment === false;
 
   const capabilities = useMemo<LayoutCapabilities>(() => {

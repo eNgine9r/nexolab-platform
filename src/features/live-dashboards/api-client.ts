@@ -101,10 +101,29 @@ function statusValue(value: unknown): LiveDashboardStatus {
 function parseItem(value: unknown): LiveDashboardItem {
   if (!isRecord(value))
     throw new LiveDashboardClientError("Dashboard item is invalid.", undefined, "contract");
+  if (
+    value.channel_ref_id === null &&
+    (typeof value.node_id !== "string" ||
+      !value.node_id ||
+      typeof value.equipment_id !== "string" ||
+      !value.equipment_id)
+  ) {
+    throw new LiveDashboardClientError("Standalone dashboard series has no scope.", undefined, "contract");
+  }
   return {
     id: stringValue(value.id, "Dashboard item id"),
     position: numberValue(value.position, "Dashboard item position"),
-    channel_ref_id: stringValue(value.channel_ref_id, "Dashboard channel reference"),
+    channel_ref_id: nullableString(value.channel_ref_id, "Dashboard channel reference"),
+    ...(value.node_id === undefined
+      ? {}
+      : {
+          node_id: nullableString(value.node_id, "Dashboard telemetry node"),
+        }),
+    ...(value.equipment_id === undefined
+      ? {}
+      : {
+          equipment_id: nullableString(value.equipment_id, "Dashboard telemetry device"),
+        }),
     channel_id: stringValue(value.channel_id, "Dashboard channel id"),
     metric: stringValue(value.metric, "Dashboard metric"),
     native_unit: stringValue(value.native_unit, "Dashboard native unit"),

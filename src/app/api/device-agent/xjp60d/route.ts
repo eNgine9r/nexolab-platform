@@ -139,6 +139,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const denied = await authorize(request, [MANAGE_PERMISSION]);
   if (denied) return denied;
+  const sectionGuard = await guardSectionEnrollment();
+  if (sectionGuard) return sectionGuard;
   return relayAgent(request, AGENT_DISCOVERY_PATH, { method: "POST", timeoutMs: 180_000 });
 }
 
@@ -152,9 +154,66 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       { status: 422 },
     );
   }
+  const sectionGuard = await guardSectionEnrollment();
+  if (sectionGuard) return sectionGuard;
   return relayAgent(request, AGENT_CONFIGURATION_PATH, {
     method: "PUT",
     timeoutMs: 10_000,
     body,
   });
+}
+
+// The legacy endpoint replaces the entire numeric point set and can disable
+// bus-qualified section parents. Those must be managed through commissioning/
+// the canonical registry; never translate their IDs into the legacy namespace.
+async function guardSectionEnrollment(): Promise<NextResponse | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/acquisition-registry", agentBaseUrl()), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error("Registry unavailable");
+    const registry = await response.json();
+    if (
+      registry?.schema_version !== 2 ||
+      !Array.isArray(registry.devices) ||
+      !registry.devices.every(
+        (device: unknown) =>
+          device !== null &&
+          typeof device === "object" &&
+          typeof (device as { device_id?: unknown }).device_id === "string",
+      )
+    ) {
+      throw new Error("Invalid registry");
+    }
+    if (
+      registry.devices.some((device: { device_id: string }) =>
+        device.device_id.startsWith("xjp60d-sections:"),
+      )
+    ) {
+      return NextResponse.json(
+        {
+          detail: {
+            code: "section_enrollment_requires_registry",
+            message:
+              "Нові Dixell із секційними каналами керуються через реєстр приладів. Старий список каналів не змінено.",
+          },
+        },
+        { status: 409 },
+      );
+    }
+    return null;
+  } catch {
+    return NextResponse.json(
+      {
+        detail: {
+          code: "acquisition_registry_unavailable",
+          message: "Не вдалося перевірити реєстр приладів. Конфігурацію моніторингу не змінено.",
+        },
+      },
+      { status: 503 },
+    );
+  }
 }

@@ -19,9 +19,7 @@ type Props = {
 };
 
 function compareChannels(left: string, right: string): number {
-  const [leftUnit = 0, leftChannel = 0] = left.split("-").map(Number);
-  const [rightUnit = 0, rightChannel = 0] = right.split("-").map(Number);
-  return leftUnit - rightUnit || leftChannel - rightChannel;
+  return left.localeCompare(right, undefined, { numeric: true });
 }
 
 function diagnosticLabel(diagnostic: Xjp60dTargetDiagnostic | undefined): string {

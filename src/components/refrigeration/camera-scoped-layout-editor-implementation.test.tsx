@@ -22,9 +22,11 @@ vi.mock("@/components/refrigeration/sensor-placement-manager", () => ({
   SensorPlacementManager: ({
     configuration,
     onConfigurationChange,
+    totalSlots,
   }: {
     configuration: readonly StagedSensorConfiguration[];
     onConfigurationChange: (next: StagedSensorConfiguration[]) => void;
+    totalSlots: number;
   }) => {
     const sensor = configuration[0];
     return (
@@ -33,6 +35,7 @@ vi.mock("@/components/refrigeration/sensor-placement-manager", () => ({
         data-label={sensor?.label ?? ""}
         data-x={sensor?.x ?? ""}
         data-temperature={sensor?.temperatureC ?? ""}
+        data-slots={totalSlots}
       >
         <button
           type="button"
@@ -56,7 +59,7 @@ const equipment = {
   ...equipmentFixture,
   id: "showcase-kk2",
   name: "Showcase KK2",
-  totalSensors: 48,
+  totalSensors: 1,
 };
 
 const binding: SensorBinding = {
@@ -139,6 +142,7 @@ describe("CameraScopedLayoutEditor metadata refresh", () => {
     expect(manager).toHaveAttribute("data-label", "Persisted label");
     expect(manager).toHaveAttribute("data-x", "0.2");
     expect(manager).toHaveAttribute("data-temperature", "4.2");
+    expect(manager).toHaveAttribute("data-slots", "48");
     expect(getDraft).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: "stage edit" }));

@@ -137,6 +137,15 @@ class LiveDashboardItem(Base):
             name="uq_live_dashboard_items_channel_metric",
         ),
         CheckConstraint(
+            "(channel_ref_id IS NOT NULL AND node_id IS NULL AND equipment_id IS NULL) OR "
+            "(channel_ref_id IS NULL AND node_id IS NOT NULL AND equipment_id IS NOT NULL)",
+            name="ck_live_dashboard_items_channel_source",
+        ),
+        UniqueConstraint(
+            "organization_id", "dashboard_id", "node_id", "equipment_id", "channel_id", "metric",
+            name="uq_live_dashboard_items_observed_series",
+        ),
+        CheckConstraint(
             "position BETWEEN 1 AND 64",
             name="ck_live_dashboard_items_position",
         ),
@@ -157,7 +166,9 @@ class LiveDashboardItem(Base):
     organization_id: Mapped[str] = mapped_column(String(36), nullable=False)
     dashboard_id: Mapped[str] = mapped_column(String(36), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    channel_ref_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    channel_ref_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    node_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    equipment_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     channel_id: Mapped[str] = mapped_column(String(128), nullable=False)
     metric: Mapped[str] = mapped_column(String(64), nullable=False)
     native_unit: Mapped[str] = mapped_column(String(32), nullable=False)

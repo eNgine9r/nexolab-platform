@@ -51,6 +51,7 @@ export function LiveDashboardWorkspace({
   const library = useLiveDashboardLibrary({ enabled: true, organizationId });
   const inventory = useLiveDashboardInventory({
     enabled: mode === "editor",
+    includeObserved: true,
     organizationId,
   });
   const telemetry = useLiveDashboardTelemetry({
@@ -254,7 +255,6 @@ export function LiveDashboardWorkspace({
 
       {mode === "editor" ? (
         <DashboardEditor
-          organizationId={organizationId}
           draft={draft}
           setDraft={setDraft}
           inventory={inventory}

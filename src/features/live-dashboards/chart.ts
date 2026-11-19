@@ -29,6 +29,7 @@ export interface SavedDashboardChartGroup {
   equipmentId: string | null;
   nativeUnits: readonly string[];
   physicalQuantities: readonly ChartPhysicalQuantity[];
+  instruments: ReadonlyMap<string, { key: string; label: string; node: string | null }>;
   scene: ChartRendererScene;
 }
 
@@ -65,8 +66,8 @@ export function savedDashboardChartIdentity(
   series: LiveDashboardSeries,
 ): ChartSeriesIdentity {
   return {
-    nodeId: `live-dashboard:${dashboardId}`,
-    equipmentId: series.item.channel_ref_id,
+    nodeId: series.item.node_id ?? `live-dashboard:${dashboardId}`,
+    equipmentId: series.item.equipment_id ?? series.item.channel_ref_id ?? series.item.id,
     channelId: series.item.channel_id,
     metric: series.item.metric,
     nativeUnit: series.item.native_unit,
@@ -74,7 +75,26 @@ export function savedDashboardChartIdentity(
 }
 
 function sourceEquipmentId(series: LiveDashboardSeries): string {
-  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
+  return (
+    series.latest?.equipment_id ??
+    series.history[0]?.equipment_id ??
+    series.item.equipment_id ??
+    series.item.channel_ref_id ??
+    series.item.id
+  );
+}
+
+function observedInstrument(series: LiveDashboardSeries): {
+  key: string;
+  label: string;
+  node: string | null;
+} {
+  const sample = series.latest ?? series.history[0];
+  const node = sample?.node_id ?? series.item.node_id ?? null;
+  const equipment = sample?.equipment_id ?? series.item.equipment_id;
+  return equipment
+    ? { key: JSON.stringify([node, equipment]), label: equipment, node }
+    : { key: "unidentified", label: "Прилад не визначено", node: null };
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
@@ -153,6 +173,9 @@ export function buildSavedDashboardChartGroups(
   );
   if (chartSeries.length === 0) return [];
 
+  const instruments = new Map(
+    chartSeries.map((series, index) => [chartSeriesKey(series.identity), observedInstrument(plotted[index])]),
+  );
   const equipmentIds = [...new Set(plotted.map(sourceEquipmentId))];
   const equipmentId = equipmentIds.length === 1 ? equipmentIds[0] : null;
   const partitions = partitionChartSeriesByAxisBudget(chartSeries);
@@ -168,6 +191,7 @@ export function buildSavedDashboardChartGroups(
       equipmentId,
       nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
       physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
+      instruments,
       scene: {
         series: partition,
         xDomain: options.xDomain,

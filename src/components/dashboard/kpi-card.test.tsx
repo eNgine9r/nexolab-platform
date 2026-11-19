@@ -64,4 +64,46 @@ describe("KpiCard", () => {
 
     expect(screen.getByText("LIVE")).toBeVisible();
   });
+  it("keeps the Overview cards calm without duplicating the global live/demo indicator", () => {
+    render(
+      <KpiCard
+        variant="overview"
+        item={{
+          label: "Вузлів онлайн",
+          value: "6 / 6",
+          detail: "100% доступності",
+          trend: "За останню годину",
+          tone: "green",
+          icon: "network",
+          badge: "demo",
+          badgeTone: "demo",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("6 / 6")).toBeVisible();
+    expect(screen.getByText("100% доступності")).toBeVisible();
+    expect(screen.queryByText("demo")).not.toBeInTheDocument();
+  });
+
+  it("keeps unsafe data quality explicit in the compact Overview card", () => {
+    render(
+      <KpiCard
+        variant="overview"
+        item={{
+          label: "Датчики",
+          value: "—",
+          detail: "Дані застаріли",
+          trend: "",
+          tone: "amber",
+          icon: "signal",
+          badge: "stale",
+          badgeTone: "stale",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("stale")).toBeVisible();
+    expect(screen.getByText("Дані застаріли")).toBeVisible();
+  });
 });

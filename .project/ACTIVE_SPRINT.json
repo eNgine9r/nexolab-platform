@@ -33,7 +33,14 @@
       "source_or_state_merge_alone_is_sufficient": false,
       "automatic_activation_authorized": false,
       "owner_local_root_boundary_retained": true
-    }
+    },
+    "max_ready_work_packages": 3,
+    "max_concurrent_primary_pr_reviews": 1,
+    "primary_work_package_must_be_leaf": true,
+    "portfolio_roadmap": "docs/operations/nexolab-execution-roadmap.md",
+    "verification_gate_matrix": "docs/operations/nexolab-verification-matrix.md",
+    "ready_acceptance": "One executable leaf Issue+branch+PR, T0 product/acceptance/dependency/paths/test plan complete; coordination parent never Ready.",
+    "site_release_rule": "Source merge != installed. Protected release needs real off-device DR/restore, rollback, required CI and exact owner approval."
   },
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
@@ -60,10 +67,542 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 1460
+    },
+    "next_work_package": {
+      "issue": 1522
+    }
   },
   "work_packages": [
+    {
+      "issue": 1530,
+      "title": "Apply individually assigned page grants to navigation",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "PR #1531 must await #1528 foundation accepted; direct route authorization tested.",
+      "depends_on": [
+        1528
+      ],
+      "evidence": {
+        "pull_request": 1531,
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1530-per-page-navigation"
+    },
+    {
+      "issue": 1528,
+      "title": "Individually assignable page-grant contract foundation",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Source candidate PR #1529 for typed grants and backend permissions; exact-head CI needed.",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {
+        "pull_request": 1529,
+        "source_ci": "UNVERIFIED",
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1528-page-grant-foundation"
+    },
+    {
+      "issue": 1522,
+      "title": "Cadence-aware Live/Stale telemetry",
+      "lifecycle": "ready",
+      "priority": "high",
+      "scope": "Independent focused source-only freshness contract and targeted tests; no hardware or site mutation.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "planned_branch_only": true,
+        "autonomous_start_requires_current_review_clearance": true
+      },
+      "branch": "fix/1522-cadence-aware-live-freshness",
+      "permitted_paths": [
+        "src/features/live/",
+        "src/components/live/",
+        "src/features/acquisition/ (read-only cadence contract if required)",
+        "focused Live tests",
+        "four canonical .project state files"
+      ],
+      "verification": [
+        "Reproduce 60 s Waveshare cadence against 30 s stale threshold in focused tests.",
+        "Prove on-time, overdue, unknown-quality, reconnect and cross-organization/channel cases.",
+        "Changed-file lint/format, TypeScript, module tests and required exact-head CI.",
+        "Real authenticated site/offline acceptance remains separate and hardware writes forbidden."
+      ]
+    },
+    {
+      "issue": 1587,
+      "title": "One protected operator release across LAN and Funnel",
+      "lifecycle": "blocked",
+      "priority": "critical",
+      "scope": "Release requires complete DR, safe network/reboot acceptance, matching ARM64 packages and owner-approved activation.",
+      "depends_on": [
+        1428,
+        1409,
+        1399
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1460,
+      "title": "Read-only complete backup inventory and capacity preflight",
+      "lifecycle": "review",
+      "priority": "critical",
+      "scope": "Source-only read-only complete-backup policy and protected storage-capacity preflight; standalone pytest, exact-head CI, no production backup/restore or site actions.",
+      "depends_on": [],
+      "evidence": {
+        "pull_request": 1461,
+        "source_ci": "UNVERIFIED",
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review",
+        "worktree_scope": "isolated_reconciliation_only",
+        "reconciled_base": "current_main_after_1598",
+        "targeted_pytest": "15_pass",
+        "python_compile": "pass",
+        "state_model_validator": "pass",
+        "actual_backup": "NOT_PERFORMED",
+        "actual_restore": "NOT_PERFORMED",
+        "offline_hardware_verified": false,
+        "required_exact_head_ci": "PENDING"
+      },
+      "branch": "feature/1460-offline-backup-preflight",
+      "permitted_paths": [
+        "scripts/nexolab-offline-backup-preflight.py",
+        "scripts/tests/test_nexolab_offline_backup_preflight.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/telemetry-service.yml",
+        "docs/operations/offline-backup-preflight-1460.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "verification": [
+        "Isolated read-only preflight pytest tests: 15/15 PASS on reconciled source candidate",
+        "Source Python compile and canonical State Model v2 integrity: PASS",
+        "Required exact-head GitHub CI, offline workflow and merge gate: PENDING on the updated PR head",
+        "Real encrypted off-device backup and isolated restore: not performed, parent #1428 remains blocked"
+      ]
+    },
+    {
+      "issue": 1598,
+      "title": "Dependency-driven roadmap and verification governance",
+      "lifecycle": "completed",
+      "priority": "critical",
+      "scope": "Documentation and canonical state only; all open issue/PR inventory; no site or code mutation.",
+      "depends_on": [],
+      "evidence": {
+        "branch": "governance/1598-roadmap-queue-and-test-gates",
+        "source_only": true,
+        "source_pr_ci": "PENDING",
+        "hardware_verified": false
+      },
+      "branch": "governance/1598-roadmap-queue-and-test-gates"
+    },
+    {
+      "issue": 1596,
+      "branch": "chore/1596-board-state-reconciliation",
+      "title": "Reconcile merged source Issues, open work and stale Sprint selection",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Administrative GitHub Issue closure backed by merged PR evidence, remaining-work classification and state-only PR; no site or hardware mutation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "review_date": "2026-11-19",
+        "source_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
+        "issues_open_before": 79,
+        "pull_requests_open_before": 46,
+        "closed_source_issues": [
+          1594,
+          1592,
+          1590,
+          1583,
+          1479,
+          1431,
+          1525
+        ],
+        "source_only_closure": true,
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pr_review_and_ci": "state-only CI required GREEN before merge; this source snapshot is not site acceptance",
+        "pull_request": 1597
+      }
+    },
+    {
+      "issue": 1592,
+      "branch": "release/1592-frontend-entrypoint-parity",
+      "title": "One operator-facing source/build version without loss of device enrollment",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Read-only source/build parity across local Docker, lab LAN and Funnel; preserve commissioned RS-485 onboarding and prepare guarded release handoff to #1587.",
+      "permitted_paths": [
+        "scripts/check-frontend-entrypoint-parity.py",
+        "scripts/tests/test_frontend_entrypoint_parity.py",
+        "docs/operations/nexolab-unified-operator-release-parity.md",
+        ".project/"
+      ],
+      "evidence": {
+        "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+        "pull_request": 1593,
+        "unit_tests": "8/8 PASS on isolated Raspberry",
+        "python_compile": "PASS",
+        "markdown_prettier": "PASS",
+        "site_parity": "expected FAIL: Docker 4be678f6, Funnel 75ceb465, LAN 08f1c8a4",
+        "preserved_device_agent": "nexolab/quick-agent:1490",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "github_ci": "PENDING exact new #1593 head",
+        "dependency_release_issue": 1587,
+        "implementation_checkpoint": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+        "parity_unit_tests": "15 PASS including pinned-multi-origin CLI E2E",
+        "prettier": "PASS",
+        "manifest_policy": "Optional SHA256-pinned manifest; exact same approved source; distinct named build IDs",
+        "classifier_gate": "#1594 / PR #1595 merged after all 5 exact-head workflows GREEN",
+        "site_mutation": false
+      }
+    },
+    {
+      "issue": 1594,
+      "branch": "ci/1594-parity-verification-classification",
+      "title": "Precisely classify read-only parity tool to resolve missing CI workflow registration",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "scope": "Exact-path verification-only classification of two new read-only parity files while preserving full Core and fail-closed unknown-tool checks.",
+      "permitted_paths": [
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "7b8cac8e18c017f9d0acb80374de08006a50b9fd",
+        "targeted_unittest": "84 PASS",
+        "syntax": "PASS",
+        "required_ci": "PENDING exact-head CI plus dashboard/offline/refrigeration workflows",
+        "site_mutation": false,
+        "hardware_verified": false,
+        "dependency_issue": 1592,
+        "blocked_pr": 1593,
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1590,
+      "title": "Overview: distinguish telemetry deviations from alert journal events",
+      "branch": "feat/1590-alert-scope-copy",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Separate live telemetry deviation KPI from persisted alert-event feed; truthful empty/stale/error states in Overview without changing measurements or alert count calculations.",
+      "permitted_paths": [
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/alarms-panel.tsx",
+        "src/components/dashboard/alarms-panel.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "14 PASSED / 2 files",
+        "typescript_noemit": "PASS",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "source_semantics": "KPI counts fresh telemetry samples with alarm or communication_error; Alerts panel reads independent active/acknowledged event feed.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "github_exact_head_ci": "PENDING_PR",
+        "full_build": "PENDING_CI",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1585,
+      "branch": "feat/1585-registry-channel-labels",
+      "title": "Current Dixell in Equipment Registry with shared channel names",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Show read-only commissioned 6+2 inputs and scoped display names without altering immutable telemetry identities/history.",
+      "permitted_paths": [
+        "src/components/equipment/",
+        "src/components/live/",
+        "src/components/refrigeration/",
+        "src/features/equipment/",
+        "src/features/refrigeration/",
+        "src/hooks/",
+        "services/telemetry-service/app/",
+        "services/telemetry-service/migrations/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+        "python_tests": "18 passed",
+        "frontend_tests": "436 passed across 67 module files",
+        "migration": "isolated upgrade and guarded downgrade PASS",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "pending": "Exact-head PR CI and source build; site acceptance separately authorized.",
+        "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
+        "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
+        "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending.",
+        "source_merge_verified": "PR #1586 merged; 20/20 exact-head CI; installed release not verified"
+      }
+    },
+    {
+      "issue": 1583,
+      "branch": "feat/1583-refrigeration-scheme-channels",
+      "title": "Commissioned Dixell inputs in refrigeration schemes without a chamber requirement",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Make the climate chamber optional for refrigeration passports and use the local acquisition registry to add or replace commissioned Dixell temperature inputs in equipment schemes.",
+      "permitted_paths": [
+        "src/components/refrigeration/",
+        "src/features/refrigeration/",
+        "src/data/refrigeration.ts",
+        "services/telemetry-service/app/refrigeration/",
+        "services/telemetry-service/app/application.py",
+        "services/telemetry-service/app/main.py",
+        "services/telemetry-service/tests/test_refrigeration_sensor_configuration_api.py",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c",
+        "acceptance": "Create without a chamber, show active 6+2 section inputs, keep reserve/disabled out, preserve replacement label/coordinates/history and scope access by organization/node.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pending": "Required pull request checks and separately scoped site acceptance."
+      }
+    },
+    {
+      "issue": 1581,
+      "branch": "feat/1581-live-dashboard-legend",
+      "title": "Synchronize and compact the Saved Live Dashboard legend",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Saved Live Dashboard legend and shared historical inspection.",
+      "permitted_paths": [
+        "src/components/live-dashboards/",
+        "src/components/charts/chart-shell.tsx",
+        "src/features/live-dashboards/chart*",
+        "e2e/live.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "b57f7dee4532ef23e9ff36e033340e511219233a",
+        "behavior": "Saved Live Dashboard legends are grouped by instrument and filter by instrument, node, channel, metric or unit. Every panel derives its readout from the shared cursor and preserves recorded zeros and missing observations.",
+        "local_verification": "Focused chart and legend tests, TypeScript, lint and LOCAL_LAN production build.",
+        "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
+        "hardware_verified": false,
+        "site_cutover": false
+      }
+    },
+    {
+      "issue": 1579,
+      "title": "Synchronize controller graphs and analyze an observed refrigeration cycle",
+      "branch": "feat/1579-shared-controller-cycle",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Read-only Embraco controller history chart selection, viewport, cursor, relay and defrost evidence.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-controller-{chart,history}*",
+        "src/features/refrigeration/controller-timeline*",
+        "src/components/charts/chart-renderer-host.tsx",
+        "src/features/charts/{echarts-adapter,inspection}*",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "d92350848fa67705bd74cbd75152495d82ff387e",
+        "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
+        "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
+        "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
+        "pending": "Separate Raspberry site acceptance",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "source_merge": "b57f7dee4532ef23e9ff36e033340e511219233a",
+        "verified_head": "e3ac93a63871564a23e1d9ae9835839539d2a680",
+        "github_workflows": 4,
+        "browser_acceptance_run": 43894681745
+      }
+    },
+    {
+      "issue": 1577,
+      "title": "Restore replacement Dixell collection and canonical Overview monitoring",
+      "branch": "fix/1577-dixell-telemetry",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only canonical temperature visibility, cadence contract alignment and legacy enrollment guard; owner runtime collection/API repair already verified.",
+      "permitted_paths": [
+        "src/lib/telemetry/temperature-channel*",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/temperature-chart.test.tsx",
+        "docs/operations/dixell-telemetry-recovery.md",
+        ".project/",
+        "src/features/acquisition/temperature-monitoring*",
+        "src/hooks/use-monitored-temperature-channels*",
+        "src/features/acquisition/cadence-client*",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/settings/acquisition-cadence-panel*",
+        "src/app/api/device-agent/xjp60d/route*",
+        "scripts/acquisition-invariant-fixture.py",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "root_cause": "Parent devices were discovery_only; frontend private API origin absent; source Overview uses legacy numeric enrollment; cadence omits supported waveshare_8ai.",
+        "browser": "All eight latest values advance by 10s; six Unit1 persisted 1h series visually rendered. Monitoring auth error cleared; installed Overview and cadence contract defects remain.",
+        "runtime": "Owner verified registry46 with6+2 eligible inputs. Approved frontend-only origin override completed with FRONTEND_API_FIXED, unchanged build; journal /home/nexolab/nexolab-1577-ui-e86e61no. No agent build replacement or hardware write.",
+        "offline": "No new dependency or external runtime requirement. Hardware data and configuration remain local.",
+        "pending": "New exact-head CI/review; matching frontend-only artifact and separately approved activation; Overview and Unit7 persisted-history acceptance; future seven modules hardware-unverified.",
+        "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
+        "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
+        "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
+      }
+    },
+    {
+      "issue": 1575,
+      "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",
+      "branch": "fix/1575-pi-alembic-bridge",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Paired frontend and Telemetry release preserving the deployed standalone instruments, names and energy export.",
+      "permitted_paths": [
+        "services/telemetry-service/app/commissioning/",
+        "services/telemetry-service/app/energy_export/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "deployed_telemetry_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "source_match": "All 229 tracked Telemetry Python app and migration files match the running service.",
+        "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
+        "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
+        "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
+        "site_cutover": false
+      }
+    },
+    {
+      "issue": 1573,
+      "title": "Create dashboards from connected sensors with direct channel selection",
+      "branch": "fix/1573-live-dashboard-connected-sensors",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Responsive connected-channel picker and tenant-scoped standalone dashboard series.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "src/features/live-dashboards/",
+        "src/hooks/use-live-dashboard-*",
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "e2e/Live Dashboard verification",
+        ".project/"
+      ],
+      "evidence": {
+        "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+        "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+        "pending_checks": "Site acceptance after #1575",
+        "site_cutover": false,
+        "prior_verified_head": "181bf421a8e2c264c611f2be10401788481a67e5",
+        "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source",
+        "security_baseline_issue": 1447,
+        "source_merged_pr": 1574,
+        "source_revision": "eb6302b0ff1a4fefa399dd07dea15fb48f9d491c"
+      }
+    },
+    {
+      "issue": 1564,
+      "title": "Use the pinned Nginx validator for protected frontend handoff",
+      "branch": "fix/1564-nginx-dynamic-user-validator",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Correct the root-gated Nginx syntax check and verify the existing byte-exact rollback. Keep the protected site untouched.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/"
+      ],
+      "evidence": {
+        "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+        "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+        "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+        "offline_runtime_dependency_change": "none",
+        "github_ci": "verify the published #1564 PR head",
+        "protected_site_change": "none in this work package",
+        "protected_https_unsigned_status": 302,
+        "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+      }
+    },
+    {
+      "issue": 1569,
+      "title": "Reauthenticate when the Users & Access session is lost",
+      "branch": "fix/1569-user-admin-session-recovery",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "scope": "Local refresh invalidation and authenticated user administration recovery.",
+      "permitted_paths": [
+        "src/components/settings/users-screen.tsx",
+        "src/components/settings/users-screen.test.tsx",
+        "src/features/security/local-auth.ts",
+        "src/features/security/local-auth.test.ts",
+        "src/features/security/local-user-admin.ts",
+        "src/features/security/local-user-admin.test.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+        "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+        "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+        "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+        "local_chromium": "not run past browser startup; environment denied browser socket",
+        "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+        "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+        "runtime_dependency_change": "none",
+        "source_merged_pr": 1570,
+        "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "arm64_release_run": 43830341904
+      }
+    },
+    {
+      "issue": 1567,
+      "title": "Restore private lab access after Tailscale stop/start",
+      "branch": "fix/1567-private-lab-tunnel-recovery",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Private lab DNS and HTTP systemd lifecycle, reversible console installation and live acceptance. Legacy private HTTPS topology assessed separately.",
+      "permitted_paths": [
+        "infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf",
+        "scripts/verify-raspberry-pi-private-lab-tailscale-lifecycle.sh",
+        "docs/operations/private-lab-tunnel-recovery.md",
+        ".project/"
+      ],
+      "evidence": {
+        "isolated_pi_systemd_fixture": "baseline reproduced; delayed readiness, stop/start and restart passed",
+        "live_lab_login_independent_tailnet_client": 200,
+        "live_legacy_inspection_login": 502,
+        "live_installation": "pending_owner_console",
+        "affected_client_reboot_and_network_return": "unverified"
+      }
+    },
     {
       "issue": 1343,
       "title": "Repair offline package storage authority and image identity before native handoff",
@@ -8010,7 +8549,7 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343,
         1351
@@ -8035,7 +8574,8 @@
         "native_roundtrip_issue": 1353,
         "native_update_operation": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8",
         "native_rollback_operation": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-        "owner_action": "consumed_succeeded_do_not_replay"
+        "owner_action": "consumed_succeeded_do_not_replay",
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8043,7 +8583,7 @@
       "title": "Pin native worker Git trust to the configured site repository",
       "branch": "fix/1351-native-worker-git-lineage",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343
       ],
@@ -8081,7 +8621,8 @@
           "target_storage_gate_started_at": "2026-10-13T10:55:08.189307+00:00",
           "target_storage_gate_duration_seconds": 208.328,
           "target_storage_gate_returncode": 0
-        }
+        },
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8824,7 +9365,7 @@
       "title": "Fail closed on Docker/physical-LAN CIDR overlap",
       "branch": "fix/1406-docker-lan-cidr-preflight",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Read-only Python IPv4 interface-vs-Docker IPAM gate integrated with offline Pi acceptance; no runtime network change.",
       "evidence": {
@@ -8834,7 +9375,8 @@
         "unit_tests": "16_passed",
         "production_site_changed": false,
         "owner_authorized_subnet_migration": false,
-        "exact_head_ci": "pending"
+        "exact_head_ci": "pending",
+        "portfolio_triage_20261119": "Source PR #1407 merged 2026-10-16; protected bridge migration still open."
       }
     },
     {
@@ -8842,7 +9384,7 @@
       "title": "Detect detached packaged object-storage private network after reboot",
       "branch": "fix/1400-offline-object-storage-network-gate",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "depends_on": [],
       "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
       "evidence": {
@@ -8854,7 +9396,8 @@
         "ci": "pending",
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
-        "ci_policy_tests": "225_tests_1_expected_skip"
+        "ci_policy_tests": "225_tests_1_expected_skip",
+        "portfolio_triage_20261119": "Read-only source guard not proof of repaired site object-storage network."
       }
     },
     {
@@ -8862,8 +9405,11 @@
       "title": "Guarded packaged Docker boot network recovery",
       "branch": "feature/1399-offline-boot-network-observer",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428,
+        1409
+      ],
       "scope": "Read-only protected authority and Docker network drift observer first; later guarded owner-approved supervisor remains unimplemented.",
       "evidence": {
         "main_includes_1406": "6bb87b26d8e5781893b786e4a4a28faece426650",
@@ -8871,7 +9417,8 @@
         "source_tests": "16_passed",
         "automated_site_repair": "not_authorized_not_enabled",
         "exact_head_ci": "pending",
-        "manual_only_postgres_or_hardware_agent": "enforced"
+        "manual_only_postgres_or_hardware_agent": "enforced",
+        "portfolio_triage_20261119": "Source-only observer done; actual auto-repair gated on independent DR and safe network topology."
       }
     },
     {
@@ -8936,8 +9483,10 @@
       "title": "Migrate live Edge Docker bridge away from overlapping physical LAN without telemetry loss",
       "branch": "feature/1409-edge-ipam-readonly-inventory",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428
+      ],
       "scope": "Stage 1 only: bounded read-only full Pi interface/all-routes/Docker subnet inventory, explicit RFC1918 candidate conflict analysis, mock regression tests, protected owner-gated runbook; no live network rewrite.",
       "permitted_paths": [
         "infrastructure/offline/inspect-edge-docker-ipam-readiness.py",
@@ -8966,7 +9515,8 @@
         "test_cases": 18,
         "initial_ci_format_failure": "runbook_prettier",
         "next_ci": "pending",
-        "unapproved_candidate_exit": "nonzero_fail_closed"
+        "unapproved_candidate_exit": "nonzero_fail_closed",
+        "portfolio_triage_20261119": "Source-only IPAM done; protected network cutover gated on full DR and owner approval."
       }
     },
     {
@@ -8974,10 +9524,8 @@
       "title": "Restore offline NEXOLAB backup/restore readiness with bounded PG incident snapshot",
       "branch": "fix/1428-bounded-incident-pg-backup",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [
-        1399
-      ],
+      "lifecycle": "blocked",
+      "depends_on": [],
       "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft.",
       "permitted_paths": [
         "scripts/nexolab-safe-pg-incident-backup.sh",
@@ -9014,7 +9562,8 @@
         "source_only_pr1430": "merged",
         "merged_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
         "source_only_ci": "all_six_workflows_success",
-        "pending_full_dr": true
+        "pending_full_dr": true,
+        "portfolio_triage_20261119": "DR source can advance independent of reboot recovery; complete encrypted off-device backup+isolated restore blocked on real evidence."
       }
     },
     {
@@ -9306,7 +9855,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9333,7 +9882,8 @@
           "unit": "pending",
           "offline": "pending"
         },
-        "pr": 1411
+        "pr": 1411,
+        "portfolio_triage_20261119": "Source contract PR #1411 merged 2026-10-30; ACK publisher/consumer remain open."
       }
     },
     {
@@ -9792,7 +10342,7 @@
       "issue": 1525,
       "title": "Permission-aware navigation and known permission gaps",
       "branch": "feat/1525-permission-aware-navigation",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "site_deployed": false,
@@ -9803,11 +10353,13 @@
       "issue": 1526,
       "title": "Independently grant and enforce per-page access",
       "branch": null,
-      "lifecycle": "ready",
+      "lifecycle": "queued",
       "depends_on": [
         1525
       ],
-      "evidence": {}
+      "evidence": {
+        "portfolio_triage_20261119": "Coordination umbrella; executable grant contracts are source PR #1529 and follow-on #1531."
+      }
     },
     {
       "issue": 1532,
@@ -10081,7 +10633,7 @@
       "title": "Refrigeration catalog: compact equipment cards and trustworthy controller summaries",
       "branch": "feat/1548-refrigeration-catalog-density",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1546
       ],
@@ -10106,7 +10658,10 @@
         "authenticated_browser": "pending",
         "site_installed": false,
         "modbus_write": false,
-        "hardware_write": false
+        "hardware_write": false,
+        "source_only": true,
+        "merged_source_pr": 1549,
+        "merged_source_sha": "182777186092cc1e3968182f2239bc6ce6c377e3"
       }
     },
     {
@@ -10114,7 +10669,7 @@
       "title": "Reclaim inactive developer caches safely on NEXOLAB Raspberry SSD",
       "branch": "chore/1553-safe-cache-reclamation",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "One-time verified deletion of generated ignored node_modules and .next outside the active site runtimes; protect production/rollback databases, images, archives and release packages.",
       "permitted_paths": [
@@ -10145,46 +10700,380 @@
         "source_ci": "pending",
         "site_release": "not_requested",
         "separate_telemetry_issue": 1551,
-        "recovery_blocker_issue": 1428
+        "recovery_blocker_issue": 1428,
+        "source_only": true,
+        "merged_source_pr": 1554
       }
     },
     {
-      "issue": 1460,
-      "title": "Fail-closed offline complete-backup inventory and capacity preflight",
-      "branch": "feature/1460-offline-backup-preflight",
+      "issue": 1550,
+      "title": "Sessions list: readable operator identity and truthful organization-scoped status",
+      "branch": "feat/1550-sessions-list-clarity",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
-        1428,
-        1431
+        1548
       ],
-      "scope": "Read-only eight-store policy/staging/backup-restore authority preflight with isolated tests and offline CI registration. No production backup/restore, deletion, cutover or secret handling.",
+      "scope": "Readable compact read-only session list, explicit selection-scoped counts, requested state filters, organization-safe loading/error, responsive identity and focus. No backend/device/permission changes or site deployment.",
       "permitted_paths": [
-        "scripts/nexolab-offline-backup-preflight.py",
-        "scripts/tests/test_nexolab_offline_backup_preflight.py",
-        "scripts/classify-ci-impact.py",
-        "tests/test_ci_change_impact.py",
-        ".github/workflows/offline-bundle.yml",
-        ".github/workflows/telemetry-service.yml",
-        "docs/operations/offline-backup-preflight-1460.md",
+        "src/components/sessions/sessions-list-screen.tsx",
+        "src/components/sessions/sessions-list-screen.test.tsx",
+        "e2e/test-sessions.production.e2e.ts",
         ".project/"
       ],
       "evidence": {
-        "site_baseline_source": "main_5dae2981477a8c31a4d2aba0d03575b2439b02d7",
-        "project_source_reconciliation": "latest_main_merged_state_conflicts_resolved",
-        "site_staging_available_bytes": 45679169536,
-        "site_preflight_exit": 78,
-        "site_preflight_status": "BLOCKED",
-        "site_old_policy_missing_complete_inventory": true,
-        "site_off_device_copy_verified": false,
-        "site_independent_restore_verified": false,
-        "site_backup_timer_present": false,
-        "synthetic_eight_store_fixture": "SYNTHETIC_ONLY_PASS",
-        "synthetic_tamper_wrong_key_rejected": true,
-        "site_database_writes": false,
-        "backup_or_restore_performed": false,
+        "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+        "targeted_vitest": "7_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "PASS_42800767847",
+        "protected_site_installed": false,
+        "hardware_verification": "not_applicable_UI_only",
         "modbus_write": false,
-        "ci": "pending_after_reconciliation"
+        "hardware_write": false,
+        "browser_target_viewports": [
+          375,
+          768,
+          1440,
+          1920
+        ],
+        "merged_source_pr": 1557,
+        "merged_source_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "github_exact_head_ci": "PASS_42800767840",
+        "site_installed": false,
+        "source_merged_pr": 1557,
+        "merged_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1558,
+      "title": "Reports: readable searchable versions and truthful loaded-selection status",
+      "branch": "feat/1558-reports-operator-ui",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1550
+      ],
+      "scope": "Display-only reports list readability, searchable frozen session identity, localized report state, accurate selection-scoped counters and loading/error handling, focus and responsive behavior; no report generation/approval/download changes.",
+      "permitted_paths": [
+        "src/components/reports/reports-workspace.tsx",
+        "src/components/reports/reports-workspace.test.tsx",
+        "e2e/reports.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1558-reports-ui-20261110",
+        "targeted_vitest": "9_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_merged_pr": 1559,
+        "merged_sha": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1560,
+      "title": "Source-bound NEXOLAB Raspberry Pi HTTPS frontend blue/green operator handoff",
+      "priority": "critical",
+      "lifecycle": "review",
+      "branch": "feat/1560-frontend-bluegreen-handoff",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "A fail-closed operator-run HTTPS-only blue/green cutover preserves original 3100 and read-only security, OAuth and API proxy; staged 08f1c8a4 ARM64 artifacts, separate 3104 service, old upstream fallback, exact-identity rollback. Does not change LAN Dashboard, Docker/IPAM, DB, Modbus or hardware.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/",
+        ".github/workflows/authenticated-dashboard-acceptance.yml",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "github_offdevice_artifact_run": 42805566839,
+        "github_offdevice_artifact": "SUCCESS_both_profiles",
+        "arm64_lan_sha256": "PASS",
+        "arm64_https_sha256": "PASS",
+        "target_source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "old_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "rpi_candidate_browser_login_sessions_reports": "HTTP_200_fixture_only",
+        "nginx_bluegreen_generated_syntax": "PASS_isolated",
+        "new_handoff_contract_tests": "5_passed",
+        "site_frontend_handoff": "NOT_PERFORMED",
+        "protected_root_connector": "DENIED",
+        "full_site_dr_restore": "UNVERIFIED",
+        "docker_lan_cidr_overlap": "UNRESOLVED",
+        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
+        "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
+        "ci_followup": "required path filters added; exact-head CI pending",
+        "operator_first_execute": "FAILED_CLOSED_NEW_IDENTITY_PROVENANCE_UNSUPPORTED",
+        "nginx_rollback_after_failure": "VERIFIED_ORIGINAL_SHA_b76c1120ae9e0981",
+        "new_systemd_is_active": true,
+        "new_loopback_http_3104": 200,
+        "new_runtime_identity_source": "offline_image_manifest",
+        "new_runtime_identity_source_commit": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "new_build_id": "MCPKmYsrQCxN9zwMwDDnV",
+        "staging_and_installed_identity_metadata_corrected": true,
+        "second_stage_resume_command": "promote_NOT_execute",
+        "resume_hermetic_tests": "8_passed",
+        "protected_https_activation": false,
+        "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
+        "no_hardware_or_modbus_write": true
+      }
+    },
+    {
+      "issue": 1562,
+      "title": "Modern compact and responsive NEXOLAB Overview command center",
+      "branch": "feat/1562-overview-modern-command-center",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "Presentation-only Ukrainian Overview polish with clear heading, quick role-scoped shortcuts, compact truthful KPI row, temperature primary 8/12 and alerts/infrastructure 4/12 at desktop, lower sessions/layouts/cameras unchanged in meaning. No API/permissions/acquisition/site changes.",
+      "permitted_paths": [
+        "src/app/globals.css",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/kpi-card.test.tsx",
+        "src/components/dashboard/overview-workspace-layout.tsx",
+        "src/components/dashboard/overview-workspace-layout.test.tsx",
+        "src/components/dashboard/overview-secondary-workspace.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
+      ],
+      "evidence": {
+        "base_main_sha": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+        "worktree": "/home/nexolab/commander-workspaces/nexolab-1562-overview-v2-20261110",
+        "targeted_vitest": "15_of_15_PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "visual_browser_desktop": "1440x900_READONLY_DEMO_HTTP200",
+        "visual_browser_tablet": "768x1000_READONLY_DEMO_HTTP200",
+        "visual_browser_mobile": "390x844_READONLY_DEMO_HTTP200",
+        "horizontal_overflow": "NONE",
+        "page_errors": "NONE",
+        "visual_data": "EXPLICIT_DEMO_NOT_PRODUCTION",
+        "full_exact_head_github_ci": "PENDING_NEW_SHA",
+        "protected_site_installed": false,
+        "api_or_auth_modified": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
+        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING",
+        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY"
+      }
+    },
+    {
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "priority": "unspecified",
+      "lifecycle": "blocked",
+      "branch": "feature/1486-search-ui",
+      "evidence": {
+        "hardware": "unverified",
+        "site_activation": false,
+        "production_mutation": false,
+        "owner_context": "instruments_not_yet_connected",
+        "integration_checks": "local_PASS_hosted_domain_gates_PASS_security_merge_gate_RED",
+        "local_device_agent_tests": 342,
+        "local_central_commissioning_tests": 24,
+        "local_frontend_tests": 1233,
+        "local_frontend_test_files": 200,
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "production_build": "PASS",
+        "api_transport_redirect_test": "PASS",
+        "ci": "blocked_security",
+        "isolated_search_capability": "explicit_only_no_production_enrollment",
+        "blocker_issue": 1447,
+        "pull_request": 1488,
+        "source_candidate_sha": "0577ec6e5efb6bd9f324d30428e6a0883e8f791b",
+        "github_ci": "11_of_13_workflows_PASS_security_and_merge_gate_FAIL"
+      },
+      "scope": "One address per bounded authenticated request; explicit isolated XJP60D scan, progress/cancel/selection; source-only, no automatic enrollment or site activation.",
+      "depends_on": [
+        1482
+      ]
+    },
+    {
+      "issue": 1479,
+      "title": "Identify newly connected RS-485 adapter",
+      "branch": "feature/1479-rs485-adapter-identification",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "f3afd92e25e023ce489ed9471848fe89b1b17370",
+        "pull_request": 1480,
+        "checks": {
+          "CI": "success_41792736839",
+          "authenticated_dashboard": "success_41792736667"
+        },
+        "scope": "source_only_UI",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1482,
+      "title": "Bounded XJP60D address search core",
+      "branch": "feature/1482-xjp-search-core",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "evidence": {
+        "pull_request": 1483,
+        "local_agent_tests": 338,
+        "source_candidate_sha": "1678d1979412a99135f169164607753013500a39",
+        "github_security_gate": "Trivy_installer_exit6_persists_after_failed_jobs_retry_and_refreshed_head_run41798806416",
+        "hardware": "unverified",
+        "site_activation": false,
+        "blocker_issue": 1447
+      }
+    },
+    {
+      "issue": 1484,
+      "title": "Avoid self-matching security test marker",
+      "branch": "fix/1484-ci-secret-marker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "ef91a896d4a526fe0802a086dd24565ce5009210",
+        "pull_request": 1485,
+        "checks": {
+          "CI": "success_41794354174",
+          "offline_bundle": "success_41794354166"
+        },
+        "local_tests": 17,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "issue": 1487,
+      "title": "Restore pinned CI scanner installation from official release",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "fix/1487-trivy-download",
+      "depends_on": [],
+      "scope": "CI-only fixed Trivy version and SHA256 official release installer, preserve action scans and vulnerability policy; no runtime or site changes.",
+      "evidence": {
+        "installer_negative_tests": 4,
+        "container_policy_tests": 53,
+        "actual_official_binary_sha256_verified": true,
+        "actual_version": "0.70.0",
+        "site_mutation": false,
+        "github_ci": "pending",
+        "blocker_issue": 1447,
+        "pull_request": 1489,
+        "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+        "hosted_run": 41800839925,
+        "image_build_and_scan_jobs": "5_of_5_PASS",
+        "unchanged_policy": "FAIL_expired_2026_10_20",
+        "telemetry_high": 74,
+        "telemetry_critical": 5,
+        "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+        "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+        "ci_routing_tests": 82,
+        "final_source_ci": "4_of_6_workflows_PASS_security_and_merge_gate_FAIL",
+        "final_source_sha": "af21be8a86a8f04d87608c2ff33c1e70be1a6953"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Current source-bound container residual-risk technical review",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "depends_on": [],
+      "scope": "Review five immutable image SBOMs with fresh vulnerability DB, fix stale packaging tests and execute them in Telemetry CI, preserve exception registry and runtime versions.",
+      "evidence": {
+        "pull_request": 1448,
+        "reviewed_immutable_source": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+        "source_image_run": 41076486729,
+        "verified_manifests": 5,
+        "verified_evidence_hashes": 15,
+        "current_db_updated_at": "2026-11-04T07:16:25.226375897Z",
+        "current_telemetry_high": 50,
+        "current_all_images_critical": 0,
+        "current_other_images_high": 0,
+        "unique_high_cves": 14,
+        "debian_trixie_open_cves": 14,
+        "current_tuple_policy": "BLOCKED_new_SQLite_119373",
+        "focused_local_tests": 67,
+        "exception_registry_changed": false,
+        "approval_scope": "technical_review_only",
+        "specific_owner_risk_decision": "pending",
+        "site_activation": false,
+        "hardware": "unverified",
+        "review_evidence": "docs/architecture/security-container-review-20261104.json",
+        "full_updated_head_ci": "pending",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086",
+        "checks": {
+          "github_workflows": "22/22 green",
+          "container_supply_chain": 43862880533,
+          "offline_bundle": 43862880148
+        }
+      },
+      "result_2026_11_16": {
+        "baseline_supply_chain_run": 43851624610,
+        "latest_remediation_head": "67351d3d0717a20c88a149669f24ea499179b086",
+        "status": "merged after all 22 required and triggered exact-head workflows passed",
+        "changes": "Rebuilt dependencies, split MQTT client package and removed unused Debian packages",
+        "supply_chain_evidence_run": 43862880533,
+        "broker_control_acceptance_run": 43862880406,
+        "telemetry_high": 18,
+        "telemetry_critical": 0,
+        "retired_registry_entries": 33,
+        "approved_registry_entries": 18,
+        "approval_expires_on": "2026-11-23",
+        "offline_evidence_run": 43862880148
+      }
+    },
+    {
+      "issue": 1588,
+      "branch": "feat/1588-live-friendly-search",
+      "title": "Live Data friendly-name search and readable chart context",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1585
+      ],
+      "scope": "Search existing commissioned names and display them in Live comparison and chart labels without changing channel identity or history.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/features/live/",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts",
+        "e2e/equipment-multi-axis-chart.production.e2e.ts"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "29 PASS across 3 files",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "typescript_noemit": "PASS",
+        "git_diff_check": "PASS",
+        "full_build": "NOT_RUN_ON_PRODUCTION_PI",
+        "github_exact_head_ci": "PENDING_REPAIR_COMMIT",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
+        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
       }
     }
   ],
@@ -12170,6 +13059,42 @@
         "protected_runtime_revision": "ffdefc4550d71e211724de1154ffe9057f905c9c",
         "site_update_blocked": true,
         "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-04T08:11:34.227467+00:00",
+      "kind": "rs485_source_progress",
+      "data": {
+        "merged_prs": [
+          1480,
+          1485
+        ],
+        "pending_core_pr": 1483,
+        "separate_monitor_pr": 1477,
+        "deployment_unchanged": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T11:00:39.790Z",
+      "kind": "1598_portfolio_snapshot",
+      "data": {
+        "open_issues_including_governance": 73,
+        "open_prs": 46,
+        "epics": 7,
+        "note": "dated planning observation, not live synchronized status"
       }
     }
   ],

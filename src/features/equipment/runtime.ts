@@ -11,6 +11,7 @@ import {
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
+import { HttpChannelNameRepository, type ChannelNameRepository } from "./channel-name-repository";
 import { HttpCommissioningRepository, type CommissioningRepository } from "./commissioning-repository";
 import { HttpEquipmentDiscoveryRepository, type EquipmentDiscoveryRepository } from "./discovery-repository";
 
@@ -20,6 +21,7 @@ export type EquipmentRegistryRuntime = {
   climateCatalogRepository: ClimateCatalogRepository | null;
   discoveryRepository: EquipmentDiscoveryRepository | null;
   commissioningRepository: CommissioningRepository | null;
+  channelNameRepository?: ChannelNameRepository | null;
   error: string | null;
 };
 
@@ -31,6 +33,7 @@ export function createEquipmentRegistryRuntime(
   const runtime = createRefrigerationEquipmentRuntime(input);
   let discoveryRepository: EquipmentDiscoveryRepository | null = null;
   let commissioningRepository: CommissioningRepository | null = null;
+  let channelNameRepository: ChannelNameRepository | null = null;
   if (runtime.mode === "live" && !runtime.error) {
     const apiBaseUrl = resolveApiBaseUrl(input);
     const organizationId = normalizeOrganizationId(
@@ -44,6 +47,10 @@ export function createEquipmentRegistryRuntime(
         apiBaseUrl,
         fetchImpl: createAuthenticatedFetch(browserFetch, credentialProvider),
       });
+      channelNameRepository = new HttpChannelNameRepository(
+        apiBaseUrl,
+        createAuthenticatedFetch(browserFetch, credentialProvider),
+      );
       commissioningRepository = new HttpCommissioningRepository({
         apiBaseUrl,
         fetchImpl: createAuthenticatedFetch(browserFetch, credentialProvider),
@@ -56,6 +63,7 @@ export function createEquipmentRegistryRuntime(
     climateCatalogRepository: runtime.climateCatalogRepository ?? null,
     discoveryRepository,
     commissioningRepository,
+    channelNameRepository,
     error: runtime.error,
   };
 }

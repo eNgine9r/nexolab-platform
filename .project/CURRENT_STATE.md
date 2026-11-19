@@ -1,6 +1,174 @@
-## 2026-11-10 — #1460 offline backup preflight branch reconciled; site backup BLOCKED
+## 2026-11-19 — #1460 source PR #1461 reconciled with current main (source-only)
 
-Source-only PR #1461 has been reconciled against current `main` after four state-file conflicts were resolved by preserving the newer main Sprint, blocker and checkpoint evidence. A Pi read-only preflight on the actual NEXOLAB recovery policy returned exit 78, available **45679169536 bytes** (~42.54 GiB) and correctly reported: incomplete mandatory eight-store inventory; legacy object-storage source authority; untrusted-writable staging directory; absent independently encrypted off-device copy; no isolated restore; site asset authority and approval unverified. **No production backup was captured.** The offline synthetic eight-store AES-GCM fixture test passed with wrong-key/tamper rejection and isolated _synthetic_ restore, never production evidence. Site DR health probe returned exit 78 (no complete receipt or enabled NEXOLAB backup timer). #1428 remains a hard blocker before old telemetry or rollback/backups can be deleted. No hardware or Modbus writes. Required latest-head CI still pending.
+The isolated, uninstalled Git merge of PR #1461 onto current main preserved the latest Sprint selection, blockers and checkpoint rather than reintroducing November 10 historical versions. It brought only the 7 focused source/test/docs files forward from #1460; 4 canonical project state files carry evidence updates. Source unit tests **15/15 PASS**, source Python compile **PASS**, State Model v2 validator **PASS**. Required exact-merge-head GitHub CI still pending at this local checkpoint. Earlier six-GREEN workflows applied to an outdated PR head and do **not** approve this merge. No live Raspberry runtime, Docker, Modbus, site backup or database changes.
+
+The new diagnostic intentionally yields BLOCKED exit 78 even with complete synthetic inventory because actual independently encrypted off-device backup, source authority, isolated restore and owner-approved site activation remain unverified. Parent #1428 and protected #1587 release remain open; no green operator update readiness is implied.
+
+## 2026-11-19 — #1598 Dependency-first execution policy and test gates (source-only)
+
+Product Owner requested removal of chaotic NEXOLAB parallel work and a strict logical roadmap. Audit of live GitHub after #1597: 72 previously open Issues plus this #1598 governance Issue, 46 open PRs, historical Sprint queue of 315 WPs. All 73 currently open Issues were assigned exactly once to seven portfolio Epics, and all 46 PRs assigned once to eight review buckets. See `docs/operations/nexolab-execution-roadmap.md` for the dated inventory and milestone order G0→G6, and `docs/operations/nexolab-verification-matrix.md` for T0–T7 evidence gates. The live GitHub board remains authoritative; these documents are snapshots and policy, not synchronized status.
+
+The original active Sprint had SIX WPs simultaneously marked in_progress despite policy max_parallel_implementation_tasks=1. Source-only #1406/PR #1407 and #1410/PR #1411 had already merged; their stale in_progress records are now completed as source work only. #1428 was dependent on #1399 even though real protected #1399 activation requires backup/restore first: #1428's preparation now has no dependency on network auto-recovery, while site #1409 and #1399 remain blocked on actual off-device DR and owner-approved route/rollback evidence. #1400 requires real site validation. The #1526 page-grant umbrella is no longer a fake executable Ready item.
+
+After this governance PR merges GREEN, the selected leaf work is **#1460 / draft PR #1461** (read-only all-store backup inventory/capacity review, currently GitHub draft / mergeable=false; reconcile against latest main and CI before any merge). The next independent source-Ready candidate is **#1522** (cadence-aware Live freshness). Access source candidates #1528/PR #1529 and #1530/PR #1531 remain separate, unmerged and not release-accepted. One implementation at a time, maximum three independently Ready; an Epic parent is never a Ready implementation. #1587 protected multi-entrypoint release stays blocked by actual #1428 DR, #1409 network and #1399 boot acceptance.
+
+Verification is aligned with real `scripts/verify-project.ps1`, `scripts/classify-ci-impact.py`, exact-head CI and the mandatory offline/browser/hardware/site evidence boundaries. No application code, network, Docker services, database, backup media, production data, secrets, Modbus registers or hardware changed. Hardware/site verification for these planning changes is not applicable; operational gates remain unverified.
+
+## 2026-11-19 — #1596 GitHub issue reconciliation (source-only, no runtime mutation)
+
+GitHub baseline at review: 79 open NEXOLAB Issues and 46 open PRs. The read-only review confirmed seven individually bounded source/documentation Issues had verified merged PRs, but remained open: #1594→PR #1595, #1592→PR #1593, #1590→PR #1591, #1583→PR #1584, #1479→PR #1480, #1431→PR #1432 and #1525→PR #1527. Their original Issues were closed with completion reasons and explicit remaining site/hardware follow-ups. A dedicated audit Issue #1596 was created; current live board after seven closures is 73 open Issues and 46 open PRs. No PR was closed or merged as part of this audit. The last source-merged main observed was `b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b` (#1593).
+
+The former Sprint selection #1592 had already source-merged and is no longer an active review Work Package. #1596 tracks this state-only reconciliation, with #1526 marked as the next Ready access-grant Work Package in the existing queue; this is not a claim that open draft #1529/#1531 passed CI. The 46 open PRs include stacked onboarding, source-only operations and dependency automation; none should be closed based only on age or a matching source file. The legacy 2026-07 Sprint plan is historical, not a statement of today's installed release.
+
+**Critical unfinished outcomes (retain open):** #1587 guarded multi-origin Raspberry release and actual version parity; #1428 real complete encrypted off-device backup plus isolated restore; #1409 physical-LAN/Docker bridge collision; #1399 offline reboot recovery; #1397 committed telemetry receipt/replay; #1577 full installed Dixell/Overview acceptance; #1567 real tunnel restart/client recovery; #1564 protected nginx promotion acceptance; #1569 live administrator create/re-auth acceptance; #1526 independently enforced page grants; #1522 cadence-aware freshness. Keep unmerged draft PRs under review rather than treating their source as deployed.
+
+**Safety and evidence:** Existing `nexolab/quick-agent:1490` and the 6+2 active Dixell inputs, four reserve inputs, current data and current live services must remain intact. No deployment, migration, data deletion, Modbus/hardware write, network change, root operation or production backup was performed in #1596. Source CI and state-only PR acceptance remain separate gates.
+
+## 2026-11-18 — #1592 Manifest-pinned multi-origin frontend release source reconciliation
+
+With #1588/#1589, #1590/#1591 and #1594/#1595 now source-merged to main, the #1592 source-only version parity checker supports either one identical compiled build across entrypoints (default), or an explicitly checksum-pinned reviewed offline manifest listing the distinct origin-specific Next.js build IDs from one exact approved merged-main source. This is necessary because the live frontend requires absolute API and WebSocket origins; forcing a public/Tailscale-only bundle for local LAN would violate offline-first behavior. The manifest checksum is not a signing authority and cannot alone establish authenticated behavior or installed hardware acceptance.
+
+Local isolated Raspberry source verification: 15/15 parity tests PASS, including CLI end-to-end with two differently compiled-origin fixture builds, Python compile and Markdown Prettier PASS. #1594 exact-head CI had 5/5 workflows GREEN before its source merge; #1592 needs its own new exact-head CI after this reconciliation. Preserve installed quick-agent:1490 and live 6+2 Dixell input commissioning. No site, hardware or persistent data mutation.
+
+## 2026-11-18 — #1592 Single NEXOLAB operator version across LAN and Funnel (source gate)
+
+A read-only Raspberry Pi inspection confirms multiple operator frontend identities: Docker :3000 source 4be678f6 / build CoZ2mvfZvFe67uyyeRe7a; primary Funnel :3105 source 75ceb465 / build u5qAvkW0BUJHwhOMa6pHr; lab.nexolab :3104 source 08f1c8a4 / build MCPKmYsrQCxN9zwMwDDnV. The Docker image tag carries ffdefc45 despite its runtime identity naming 4be678f6. No shared approved product release is installed.
+
+Issue #1592 / draft PR #1593 adds a fail-closed read-only local frontend identity checker, eight local HTTP fixture tests and a version-parity and equipment-onboarding preservation runbook. On isolated Raspberry source (commit d432820a), 8/8 tests, Python compile and Prettier markdown check PASSED. The real site's identity gate produced the expected FAIL (exit 1), confirming existing drift; this is not a failed hardware test. Required exact-head GitHub CI remains a separate merge gate.
+
+The commissioned production Device Agent is the site-specific nexolab/quick-agent:1490; its identity/configuration and the two Dixell groups (six Unit 1 inputs, two Unit 7 inputs; remaining four reserve) must be preserved. A stock main Device Agent cannot be substituted without independent compatibility evidence. PR #1593 performs no production mutation. Site cutover, migration 20261118_0040, matching ARM64 artifact, independently recoverable backup, and auth/Tailscale/browser acceptance remain gated under #1587 and explicit owner approval.
+
+## 2026-11-18 — #1594 Resolve exact-head read-only verification CI classification
+
+PR #1593 exact head 3eab0764 passed Core CI quality and its independently triggered Telemetry Service workflow, but NEXOLAB Merge Gate failed because the two newly introduced read-only source/build parity scripts were unclassified. The fail-closed classifier demanded Authenticated Dashboard, Offline Bundle, and Refrigeration Browser workflows although their GitHub path filters did not trigger. This is CI-governance verification mismatch, not a runtime defect.
+
+Issue #1594 adds an exact two-file allowlist to verification_tooling while keeping full Core CI and the existing fail-closed broadening for every other new script. Focused classifier tests: 84 PASS, including negative unregistered-tool and positive classifier-self-path-specialized workflow triggers. Source-only scope; no production migration, container/service restart, hardware write or active frontend routing change. Exact-head GitHub CI and mandatory external workflows must be GREEN before merge.
+
+## 2026-11-18 — #1590 Overview telemetry deviations vs alert event journal
+
+The authenticated browser audit showed a count of 8 in the Overview alert-looking KPI while the attention card said all clear. The source revealed different scopes: buildLiveDashboardKpis counts fresh telemetry samples with threshold alarms or communication errors, whereas AlarmsPanel reads persisted active/acknowledged Alert API events. The KPI now says Сигнали з відхиленнями and explicitly distinguishes journal scope without changing its count. An empty fresh event list says Відкритих подій немає; a stale or failed empty cache says Стан подій не підтверджено and offers Retry. Existing non-empty events and error warnings are preserved.
+
+Isolated source branch feat/1590-alert-scope-copy passes 14 focused Vitest checks, touched ESLint/Prettier, TypeScript noEmit and git diff validation. No backend, acquisition, alert lifecycle, production mutation or Modbus write. GitHub exact-head CI and authenticated browser acceptance are pending; prior #1588 review must finish before publication/merge sequencing.
+
+## 2026-11-18 — #1588 first CI failure isolated and browser selector regression fixed
+
+The first #1588 PR head passed CI unit/component, static/build and quality jobs, but the canonical Authenticated Dashboard Acceptance workflow failed 5 browser cases because their selectors depended on the old English Live search placeholder. The UI has intentionally changed to Ukrainian. The focused fix changes E2E selectors to the existing accessible search textbox label and a container-scoped DOM lookup, without altering telemetry or chart APIs. Component tests now assert that accessible textbox label; 13 focused component checks PASS. Exact-head remote CI/browser gates must be green before merge. Production site/runtime remains untouched.
+
+## 2026-11-18 — #1588 Live Data friendly-name search and chart context (source only)
+
+Issue #1588 addresses an operator-facing gap on merged main 8ab3be4a: commissioned names rendered in Live inventory but were not searchable, while selected comparison labels and chart series used raw channel IDs. The isolated feature branch passes organization/node/channel-scoped names to search and to display-only chart labels. Raw IDs, URL selections, persisted telemetry history, quality and multi-axis behavior are unchanged. Missing name inventory falls back to the original channel ID, and names cannot leak across organization switches.
+
+Verification: 29/29 targeted Vitest tests, touched ESLint, Prettier, TypeScript noEmit and git diff --check PASS. Full production build and exact-head CI pending; no site installation or hardware verification. Release #1587 is separately blocked by protected source authority, exact ARM64 package and backup/rollback gates.
+
+## 2026-11-18 — #1585 Telemetry exact-head CI migration assertion repair
+
+On PR #1586 head 50af9a4b, Telemetry Service GitHub CI ran 863 tests: 862 passed, one failed because a historic PostgreSQL circuit round-trip test compared the updated Alembic head with the literal 20261116_0039. The additive commissioned-channel-name revision 20261118_0040 is the correct migration graph head. The test now resolves its expected head with Alembic ScriptDirectory rather than a frozen revision. Local migration graph proof PASS (single head 20261118_0040); targeted telemetry suite 18 PASS and 4 PostgreSQL-only tests SKIPPED on the isolated ARM64 verifier. PostgreSQL round-trip and full exact-head CI must run in GitHub. No service/hardware/site mutation.
+
+## 2026-11-18 — #1585 Active Dixell Registry and persistent channel names
+
+On isolated source branch feat/1585-registry-channel-labels (main base 75ceb465), the Equipment Registry now uses the same read-only commissioned acquisition inventory as refrigeration. It shows active 6+2 section channels without chamber binding, keeps historical Dixell climate-catalog entries separately inspectable without hiding other active controller families, and distinguishes inventory unavailability from confirmed inactive status. Operators with equipment.manage permission can save/reset local PostgreSQL shared presentation names for the exact org/node/channel identity. The labels appear in Registry, refrigeration picker and Live Data / Live Dashboard inventory without changing ingestion, channel IDs, chart bindings or archived measurements. Migration 20261118_0040 is additive and downgrade is guarded.
+
+Local evidence: 18 Python tests passed; 436 module frontend tests passed; TypeScript, changed-file lint/format, Python syntax and isolated Alembic migration/guard verification performed. Source build/CI/site acceptance are separate gates. No production/runtime/device-agent/hardware change.
+
+## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
+
+The source candidate makes the climate chamber optional. The scheme uses a read-only commissioned temperature inventory for picking and server validation, retains existing bindings, and attaches a chamberless passport to the authorized measurement node at the first placement. Replacement preserves position and label. Required pull request checks and installed hardware acceptance are pending.
+
+## 2026-11-16 — #1581 Saved Live Dashboard legend and controller chart source acceptance
+
+PR #1580 merged at b57f7dee4532ef23e9ff36e033340e511219233a. Four exact-head workflows passed, including Refrigeration Browser Acceptance with PostgreSQL. This closes #1579 in source; site and hardware acceptance are separate.
+
+The #1581 candidate adds an instrument-grouped, searchable legend to Saved Live Dashboards and derives each panel's readout from the shared cursor. Missing observations are explicit. Existing selected channels, colors, persistence, range and export controls remain compatible. Exact-head authenticated browser verification is pending.
+
+## 2026-11-16 — #1579 synchronized controller-cycle analysis
+
+The XWEB review identified a missing workflow in Refrigeration → Charts. Temperature and RPM now share the selection, zoom, and cursor with the previous state and relay history. The defrost lane follows Embraco state 3 and reports duration plus observed coverage. The alarm view, relay journal and existing CSV use the selected analysis interval. Source review and exact-head browser acceptance are pending. No site or hardware mutation was performed.
+
+## 2026-11-16 — #1577 collection restored; Overview integration candidate
+
+Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.
+
+After manual Google reauthentication, Chrome showed all eight valid Dixell timestamps advancing by 10 seconds (16:11:59–16:12:03 to 16:12:09–16:12:13 Europe/Kyiv). Saved Dashboard 1h history visually rendered six Unit 1 series since about 16:01. Unit 7 persisted history and full Overview acceptance still need explicit proof. The earlier history fetch error cleared after login. No history was deleted or synthetic hardware evidence used.
+
+Remaining installed UI defects: Overview relies on legacy numeric enrollment and excludes section IDs; cadence rejects the agent's supported `waveshare_8ai` family. Source candidate reads active, read-eligible temperatures from the canonical registry for Overview, supports Waveshare cadence, and guards legacy PUT/POST against section enrollment replacement. It preserves auth, display preferences, offline runtime, section identity and the installed custom agent. 44 additional targeted tests passed across seven files. Initial source PR head d3570e94 passed all four triggered workflows; verify new exact-head CI before merge. Only the earlier environment repair was approved/deployed; this new source is not installed.
+
+Commander execution remains unavailable. Preserve the installed section-profile agent: main does not contain that implementation. Next: finish source CI/review, prepare a matching frontend-only artifact with rollback and obtain separate approval for its activation. Further seven modules remain hardware-unverified until connected and commissioned.
+
+## 2026-11-16 — #1575 Raspberry compatibility for Live Dashboards
+
+Live Dashboard source PR #1574 merged at eb6302b0ff1a4fefa399dd07dea15fb48f9d491c. The active Pi database has commissioning revision `20261104_0038`. All 229 tracked Telemetry Python app and migration files match the deployed source in `4be678f6aa2581ad7fc79bcc22c26cd520c94272`. PR #1576 carries forward those deployed commissioning and energy-export paths and joins the two schema revisions. Isolated PostgreSQL 16.16 upgrades from both revisions preserved the existing instrument name and created the dashboard columns. 52 targeted existing tests passed. The Pi is still serving its previous frontend and Telemetry versions.
+
+## 2026-11-16 — container security #1447
+
+Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
+
+## 2026-11-16 — #1573 connected sensors in Live Dashboards
+
+Read-only counts on nexolab-edge-01 identified 24 recent authorized-node series missing from the climate-only selector, eight each for XJP60D, SDM120M and Waveshare. The production report is tracked in #1573. The editor now searches compact device groups, changes the draft in one click, and keeps existing display and selection controls. The opt-in inventory includes exact observed series from the latest projection. Save, fetch, subscribe, history and CSV retain standalone node and equipment scope. Existing climate-catalog references remain valid. Migration 0038 adds an alternative scoped reference without rewriting existing selections. Downgrade requires the database to contain no standalone dashboard references.
+
+The #1573 source is in review. PostgreSQL and authenticated browser acceptance apply to the exact PR head. The latest activated protected frontend remains the previously verified #1569 build on loopback 3105. #1573 has no production change or hardware write evidence.
+
+## 2026-11-16 — #1564 protected HTTPS handoff validator fixed in source
+
+The prior promotion failed because the wrapper passed the gateway's systemd `DynamicUser` to `runuser`. The root-gated helper now invokes the pinned Nginx binary directly in syntax-check mode. Two regression tests failed with the old wrapper. All ten handoff tests pass after the change, including byte-exact rollback and a no-reload recovery when the original is already present. Isolated Nginx accepted the original and generated blue/green configurations and rejected invalid syntax. An unsigned request to the protected URL returned HTTP 302.
+
+Issue #1569 records nine successful exact-head workflows for the merged Users & Access fix and verified ARM64 staging of source `3e4c10f3` on the Pi. The #1560 script still targets its original `08f1c8a4` artifact. Before activation, verify the actual running gateway and prepare a handoff bound to the newer artifact and build ID. The #1564 source check did not change site routing or verify an authenticated operator session.
+
+## 2026-11-16 — #1569 Users & Access after local session loss
+
+Raspberry API logs show token refresh HTTP 401 immediately before the failed user creation HTTP 401. The open protected HTTPS page still displayed administrator controls, and an on-page refresh reproduced the missing bearer error on admin reads. Reloading the page displayed the local sign-in link. The running gateway forwards Authorization to Telemetry after Google authorization. The live frontend reported source `08f1c8a4ed9212c25697d338583845bed5218ee5`.
+
+The source change invalidates the initiating tab when local refresh is rejected, requires a live bearer for Users & Access requests, and offers the existing local sign-in return flow on an admin API 401. The regression failed on the original source. 42 targeted tests, the full 1267-test frontend suite and lint-staged checks, ESLint, TypeScript and the LOCAL_LAN production build passed. The local Chromium process was blocked by its sandbox at startup. GitHub browser acceptance and protected-site verification follow separately. The change adds no external runtime dependency.
+
+## 2026-11-16 — #1567 private lab HTTP/DNS recovery
+
+Raspberry Pi LAN dashboard, local telemetry readiness and Device Agent returned 200. An independent tailnet host reached `lab.nexolab/login` with 200 and the public OAuth entry redirected with 302. Private HTTPS `8443` returned 502 from both hosts. Its root handler uses vacant staging port `3102`. The older frontend also loops with `226/NAMESPACE` due to a missing cache in an inherited workspace drop-in. Its inactive Nginx service conflicts with the active Funnel gateway's listener.
+
+The Pi systemd fixture confirmed that a stop/start of the daemon strands both dependent services with the current topology. It verified the proposed `Wants` drop-in across delayed readiness, stop/start and restart. The source candidate targets the existing private lab HTTP/DNS units. Live host configuration and privileged tunnel restart await owner approval and acceptance from the affected client.
+
+## 2026-11-10 — #1562 authenticated Overview V2 geometry assertion alignment
+
+Read the required authenticated browser acceptance **before another integration run**. Its prior geometry assertions explicitly require the old chart-full-width / alerts-below layout even though the current product scope requires desktop 8/12 + 4/12 with mobile stacking. Updated only the browser layout assertions and evidence flags in \`e2e/authenticated-dashboard.production.e2e.ts\` to verify the new desktop/mobile shape; retained org authorization, REST/WebSocket/history, chart cursor stability, zero Modbus/acquisition writes and no horizontal overflow. The retained original Sessions header is unchanged. Exact-head browser + CI acceptance pending.
+
+## 2026-11-10 — #1562 exact-head browser acceptance correction
+
+First PR #1563 exact-head production build, quality and unit jobs succeeded; authenticated dashboard browser suite returned 41/42 PASS with a single **presentation-only heading regression**: existing acceptance and operator flow expect \`Активні лабораторні сесії\`, while the new Overview used shorter \`Лабораторні сесії\`. Restored original operator-facing heading without other scope or behavioral changes, preserving the new card/layout/styling. New source exact-head CI and browser acceptance pending.
+
+## 2026-11-10 — #1562 Overview V2 refreshed, visual browser candidate (source only)
+
+Priority Product Owner request: a beautiful modern and **minimal** actual NEXOLAB Overview, without needless process/audits. Isolated feature \`feat/1562-overview-modern-command-center\` based on merged main c55dc54. Redesigned only operator Overview: calm dark modern header with role-checked shortcuts, 6 compact readable KPIs, clear live/stale/demo status without duplicate per-card demo/live pills, responsive 8/12 temperature+4/12 alerts/infrastructure desktop command grid, existing session/layout/camera modules below, consistent local scoped panel treatment. Preserves actual telemetry/auth/permission/data/quality/runtime contracts and refrigeration default KPI styling. No new runtime dependencies, CDN or remote fonts.
+
+Verified actual browser with **explicit demo mode** and Next.js dev/Chromium: desktop 1440x900, tablet 768x1000, mobile 390x844 all HTTP200; new Overview rendered with 6 KPIs, no horizontal overflow or JS page errors. These are **UI preview/demo fixtures, NOT live/hardware acceptance**. Focused Overview/KPI/status/layout tests 15/15 PASS; touched ESLint and TypeScript \`--noEmit\` PASS. Full exact-head GitHub CI and source merge pending. Protected Pi site **not updated**: current separate new frontend 3104 still serves prior main 08f1c8a4; original protected Nginx still routes old 3100. #1560 initial \`promote\` runuser validation failure remains a distinct site hard blocker; no new privileged rollout attempted. Never mistake source UI GREEN for site-installed GREEN.
+
+## 2026-11-10 — #1560 first operator execute failed closed; corrected frontend provenance; safe resume candidate
+
+Product Owner executed guarded #1560 original `execute`: preflight PASS, then `EXTERNAL_NGINX_ROLLBACK_VERIFIED` and `FRONTEND_HANDOFF_BLOCKED: New loopback frontend did not become healthy`. Direct host read-only inspection established both systemd services active: old HTTPS frontend `3100` (source `4be678f6...`), new separately hardened `nexolab-external-ui-1560.service` on loopback `3104` with HTTP 200. Exact failure: candidate runtime identity metadata contained invented provenance `verified_offdevice_arm64_release_1560`, rejected by the existing runtime-identity reader; new identity endpoint returned null source despite correctly running Next.js. Corrected **only non-sensitive installed + staged identity provenance** to supported `offline_image_manifest`, preserving source `08f1c8a4ed9212c25697d338583845bed5218ee5` and build `MCPKmYsrQCxN9zwMwDDnV`. Running `3104/api/runtime-identity` now returns both exact values, HTTP 200, no service restart.
+
+Protected Nginx still carries original SHA-256 `b76c1120ae9e0981a8f1ba49caf9c6091d754df4b2649cf32cc36650d4e97f02` and points to old `3100`; telemetry readiness and Device Agent returned 200. The old `execute` MUST NOT be repeated after it created protected root journal, release and systemd unit. Branch adds state-aware, root-journal-validated `promote` phase (verified old+new identity and systemd unit, exact config byte check, Nginx HUP, automatic restore on error) and provenance schema check. Eight focused tests pass on Pi and source `check` passes. Source CI for modified head and human root-only resume pending; existing backup/restore (#1428) and Docker/LAN overlap (#1409) unverified/unresolved. No Nginx cutover, no Modbus or database writes.
+
+## 2026-11-10 — #1560 CI integration correction
+
+First exact-head CI quality/build/unit + Telemetry Service tests passed but Merge Gate rejected the PR because required Authenticated Dashboard Acceptance, Offline Bundle and Refrigeration Browser Acceptance workflows did not register for the new operations script path. Their three workflow path filters now explicitly include the scoped handoff script and test; this is a verification-only correction, no runtime/site mutation. Exact-head full required checks will be re-run before source merge.
+
+## 2026-11-10 — #1560 guarded HTTPS frontend blue/green release candidate; protected site NOT switched
+
+Owner approved UI update. Product source main **08f1c8a4ed9212c25697d338583845bed5218ee5** includes #1550/#1558, both source PRs source-merged exact CI GREEN. Off-device GitHub Actions 42805566839 built matching verified linux/arm64 LAN and protected HTTPS profiles; both SHA-256 artifact manifests checked on Pi. Separate candidate HTTP /login, /sessions, /reports returned 200. Chromium fixtures explicitly marked TEST DATA for operator visual review, NOT live/hardware acceptance. Old/active protected HTTPS source remains 4be678f6aa2581ad7fc79bcc22c26cd520c94272; central Docker dashboard source remains ffdefc4550d7. Actual Pi API/auth/session/reports routes exist, 13 containers healthy; /login, telemetry /health/ready and device-agent /health returned HTTP 200.
+
+Issue #1560 focused blue/green worktree feat/1560-frontend-bluegreen-handoff adds a guarded operator-run Python release helper, five pure tests and recovery runbook. It stages a separate 3104 HTTPS Next.js runtime, retains existing 3100 and nine legacy systemd drop-ins, and routes two existing OAuth-protected Nginx locations through new-primary/old-backup upstream. The generated config passed local isolated Nginx -t syntax; source candidate preflight and five tests PASS. NO systemd unit or protected proxy changed. Connector denied any privileged sudo operations; legitimate operator console required. Missing full independent encrypted multi-store off-device backup/real restore (#1428) remains a hard full-site release blocker, as does current overlapping Docker 172.18.0.0/16 vs physical LAN 172.18.48.0/21 (#1409). A frontend-only source candidate is not permission to restart/recreate Docker or claim full production DR.
+
+## 2026-11-10 — #1550 GREEN source-merged; #1558 Reports operator UI source candidate
+
+Sessions list #1550 / PR #1557 merged into main at 3bafb041f8ae8a8eca78200727ff67ed4ba9973d after exact-head CI #42800767840 and authenticated Sessions Browser #42800767847 both GREEN. No protected site installation.
+
+Next UX slice #1558 (feat/1558-reports-operator-ui) improves the existing Reports workspace without modifying immutable report generation or approval. The report list is searchable by persisted frozen session number/title/test object, shows Ukrainian completed/archived states, clearer selected item and keyboard focus, responsive 375/768/1440/1920 operator layout, and labels summary counts as at most 200 loaded report versions rather than organization totals. Loading and API failures no longer render previous report cards or numeric counts as current. Missing frozen summaries remain explicit and never replaced by IDs or demo data. Original API/permission and artifact download paths unchanged.
+
+Isolated Raspberry targeted report Vitest 9/9 passed (existing identity tests and new list UI tests). Changed-file formatting, lint and TypeScript noEmit all passed; GitHub exact-head CI/build/browser evidence pending. No site runtime, network, persistent database, telemetry or Modbus write. Protected update remains gated by full offline restore/rollback and safe network boundary; developer SSD cleanup to 81% used does not independently authorize cutover.
+
+## 2026-11-10 — #1550 Sessions operator UI source candidate; protected site unchanged
+
+Following source merge #1548 / PR #1549 (182777186092cc1e3968182f2239bc6ce6c377e3), the operator-facing Sessions list #1550 now has an isolated Raspberry feature branch feat/1550-sessions-list-clarity based on main 5dae2981477a8c31a4d2aba0d03575b2439b02d7. The page retains real scoped session REST and existing routes/permissions; it adds 12px-readable status/filter labels, responsive non-truncating session/object/customer/standard identity, ready/cancelled filters and reset, truthful capped loaded-selection counters and explicit loading/error. A response is shown only for the current organization/filter/request key; prior tenant rows/counters are hidden synchronously, including during switches and failures. No demo fallback, new API write or acquisition change.
+
+Targeted Pi Vitest **7/7** across the new list and existing account-scope tests; changed-file Prettier and ESLint **PASS**; TypeScript noEmit **PASS**. Full exact-head GitHub CI/production build and authenticated responsive browser acceptance remain pending. No runtime deployment, hardware writes, Modbus writes, database or persistent-data changes. Physical Raspberry storage is currently reported at 81% used after verified #1553 developer cache cleanup, superseding older 97% preflight; protected release still blocked by isolated restore/rollback package and network-route gates, not green for updating.
 
 ## 2026-11-10 — #1553 verified NEXOLAB old developer-cache cleanup (no site release)
 

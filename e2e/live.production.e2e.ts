@@ -503,30 +503,22 @@ test("editor loads the canonical catalog and selects a channel without telemetry
   try {
     await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Створити Dashboard" }).click();
-    await expect(page.getByRole("heading", { name: "Новий Live Dashboard", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Нова панель", exact: true })).toBeVisible();
     await expect
       .poll(() => requests.dashboard.some((item) => item.url.includes("/channel-inventory")))
       .toBe(true);
 
     const selectorSearch = page.getByRole("searchbox", { name: "Пошук" });
     await selectorSearch.fill(noSampleChannelId);
-    const pointRow = page.getByRole("treeitem").filter({ hasText: "Acceptance channel without sample" });
+    const pointRow = page.getByRole("button", { name: /Acceptance channel without sample/ });
     await expect(pointRow).toHaveCount(1);
-    await expect(pointRow).toHaveAttribute("aria-checked", "false");
-
-    // Draft selector changes are session-local until Confirm.
+    await expect(pointRow).toHaveAttribute("aria-pressed", "false");
     await pointRow.click();
-    await expect(pointRow).toHaveAttribute("aria-checked", "true");
-    await page.getByRole("button", { name: "Скасувати", exact: true }).click();
-    await expect(page.getByText("Непідтверджені зміни селектора скасовано.", { exact: true })).toBeVisible();
+    await expect(pointRow).toHaveAttribute("aria-pressed", "true");
+    await pointRow.click();
     await expect(page.getByTestId("telemetry-selection-count")).toContainText("0 / 64");
 
-    await selectorSearch.fill(noSampleChannelId);
     await pointRow.click();
-    await page.getByRole("button", { name: "Підтвердити вибір", exact: true }).click();
-    await expect(
-      page.getByText("Підтверджений вибір застосовано до чернетки Dashboard.", { exact: true }),
-    ).toBeVisible();
     await expect(page.getByTestId("telemetry-selection-count")).toContainText("1 / 64");
     await expect(page.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
     const visualization = page.getByLabel("Візуалізація");
@@ -591,7 +583,7 @@ test("opens a persisted selected-series dashboard after service restart without 
 
   try {
     await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Збережені панелі", exact: true })).toBeVisible();
     await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Створити Dashboard" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Редагувати/ })).toHaveCount(0);
@@ -685,8 +677,9 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect(panel).toHaveCount(1);
     await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
     await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
-    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
-    await expect(panel.locator("svg")).toHaveCount(0);
+    const surface = panel.getByTestId("chart-renderer-surface");
+    await expect.poll(() => surface.locator("canvas").count()).toBeGreaterThan(0);
+    await expect(surface.locator("svg")).toHaveCount(0);
     for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
     await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
@@ -766,9 +759,15 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
       (item) => !["GET", "HEAD", "OPTIONS"].includes(item.method),
     ).length;
 
-    await panel.getByRole("button", { name: "Hide" }).first().click();
-    await expect(panel.getByRole("button", { name: "Show" })).toHaveCount(1);
-    await panel.getByRole("button", { name: "Solo" }).first().click();
+    await panel
+      .getByRole("button", { name: /^Приховати / })
+      .first()
+      .click();
+    await expect(panel.getByRole("button", { name: /^Показати / })).toHaveCount(1);
+    await panel
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
 
     const host = panel.getByTestId("chart-renderer-host");
     await host.scrollIntoViewIfNeeded();
@@ -799,6 +798,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     for (const width of [360, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(host).toBeVisible();
+      await expect(panel.getByTestId("saved-dashboard-legend")).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);
@@ -903,9 +903,10 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     const selected = new URL(page.url()).searchParams.getAll("compare");
     await page.getByRole("button", { name: "Відкрити збережені панелі" }).focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Збережені панелі", exact: true })).toBeVisible();
     expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
-    await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 64 точок");
+    await expect(page.getByTestId("live-workspace-guidance")).toHaveCount(0);
+    await expect(page.getByText("До 64 точок вимірювання на одній панелі")).toBeVisible();
     await page.getByRole("button", { name: "Live Data", exact: true }).click();
     await expect(compare).toBeChecked();
     expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);

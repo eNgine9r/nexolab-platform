@@ -1,4 +1,9 @@
-import type { SecurityEffectivePermission, SecurityProductRole } from "@/features/security/security-session";
+import {
+  createAuthenticatedFetch,
+  type SecurityCredentialProvider,
+  type SecurityEffectivePermission,
+  type SecurityProductRole,
+} from "@/features/security/security-session";
 
 export type LocalUserAdminUser = {
   id: string;
@@ -62,9 +67,23 @@ export class LocalUserAdminClient {
   private readonly apiBaseUrl: string;
   private readonly fetchImpl: typeof fetch;
 
-  constructor(options: { apiBaseUrl: string; fetchImpl: typeof fetch }) {
+  constructor(options: {
+    apiBaseUrl: string;
+    fetchImpl: typeof fetch;
+    credentials: SecurityCredentialProvider;
+  }) {
     this.apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl);
-    this.fetchImpl = options.fetchImpl;
+    this.fetchImpl = createAuthenticatedFetch(options.fetchImpl, async () => {
+      const credentials = await options.credentials();
+      if (!credentials.accessToken) {
+        throw new LocalUserAdminApiError(
+          401,
+          "local_user_admin_authentication_required",
+          "Щоб керувати користувачами, увійдіть у NEXOLAB повторно.",
+        );
+      }
+      return credentials;
+    });
   }
 
   async listUsers(): Promise<LocalUserAdminUser[]> {

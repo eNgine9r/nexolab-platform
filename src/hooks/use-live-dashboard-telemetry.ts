@@ -17,6 +17,7 @@ import {
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
+  LiveDashboardItem,
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
@@ -39,6 +40,25 @@ import type {
   TelemetrySample,
   TelemetrySubscription,
 } from "@/lib/telemetry/types";
+
+function dashboardSeriesQuery(item: LiveDashboardItem) {
+  return {
+    channel_id: item.channel_id,
+    metric: item.metric,
+    ...(item.channel_ref_id === null
+      ? { node_id: item.node_id ?? "", equipment_id: item.equipment_id ?? "" }
+      : {}),
+  };
+}
+
+function dashboardSeriesMatches(item: LiveDashboardItem, sample: TelemetrySample) {
+  return (
+    item.channel_id === sample.channel_id &&
+    item.metric === sample.metric &&
+    (item.channel_ref_id !== null ||
+      (item.node_id === sample.node_id && item.equipment_id === sample.equipment_id))
+  );
+}
 
 const STALE_AFTER_MS = 30_000;
 const RENDERED_POINTS_PER_SERIES = 240;
@@ -317,9 +337,8 @@ export function useLiveDashboardTelemetry({
 
     const adapter = securedAdapter(config, organizationId);
     const subscriptions: TelemetrySubscription[] = [];
-    const itemKeys = new Set(dashboard.items.map(dashboardItemIdentity));
 
-    const commitHistoryTail = (sample: TelemetrySample) => {
+    const commitHistoryTail = (key: string, sample: TelemetrySample) => {
       const ordering = historyOrderingRef.current;
       if (ordering === null) {
         historyPendingLiveRef.current.push(sample);
@@ -336,7 +355,6 @@ export function useLiveDashboardTelemetry({
           ? currentWindow
           : advanceLiveHistoryWindow(currentWindow, reconciled.samples);
       historyWindowRef.current = nextWindow;
-      const key = dashboardItemIdentity(sample);
       historyRef.current[key] = reduceHistory(
         [...(historyRef.current[key] ?? []), ...reconciled.samples],
         nextWindow,
@@ -345,46 +363,43 @@ export function useLiveDashboardTelemetry({
       scheduleFlush(dashboard.refresh_seconds);
     };
 
-    const commitSample = (sample: TelemetrySample, immediate = false) => {
-      const key = dashboardItemIdentity(sample);
-      if (!itemKeys.has(key)) return;
+    const commitSample = (item: LiveDashboardItem, sample: TelemetrySample, immediate = false) => {
+      if (!dashboardSeriesMatches(item, sample)) return;
+      const key = dashboardItemIdentity(item);
       latestRef.current[key] = newestSample(latestRef.current[key], sample);
-      commitHistoryTail(sample);
+      commitHistoryTail(key, sample);
       scheduleFlush(dashboard.refresh_seconds, immediate || Object.keys(latestRef.current).length === 1);
     };
 
     for (const item of dashboard.items) {
       subscriptions.push(
-        adapter.subscribe(
-          { channel_id: item.channel_id, metric: item.metric },
-          {
-            onSample: (sample) => commitSample(sample),
-            onStateChange: (state) => {
-              if (disposed) return;
-              setConnectionState(state);
-              if (state === "connected") setError(null);
-            },
-            onError: (nextError) => {
-              if (!disposed) setError(nextError);
-            },
-            onHeartbeat: () => setClock(Date.now()),
+        adapter.subscribe(dashboardSeriesQuery(item), {
+          onSample: (sample) => commitSample(item, sample),
+          onStateChange: (state) => {
+            if (disposed) return;
+            setConnectionState(state);
+            if (state === "connected") setError(null);
           },
-        ),
+          onError: (nextError) => {
+            if (!disposed) setError(nextError);
+          },
+          onHeartbeat: () => setClock(Date.now()),
+        }),
       );
     }
 
     void Promise.all(
       dashboard.items.map(async (item) => {
         const response = await adapter.latest(
-          { channel_id: item.channel_id, metric: item.metric, limit: 1, offset: 0 },
+          { ...dashboardSeriesQuery(item), limit: 1, offset: 0 },
           controller.signal,
         );
-        return response.items;
+        return { item, samples: response.items };
       }),
     )
       .then((pages) => {
         if (disposed) return;
-        for (const page of pages) for (const sample of page) commitSample(sample, true);
+        for (const { item, samples } of pages) for (const sample of samples) commitSample(item, sample, true);
         setLoaded(true);
         scheduleFlush(dashboard.refresh_seconds, true);
       })
@@ -446,14 +461,15 @@ export function useLiveDashboardTelemetry({
       for (const item of dashboard.items) {
         const result = await loadCompleteTelemetryHistory(
           adapter,
-          { channel_id: item.channel_id, metric: item.metric },
+          dashboardSeriesQuery(item),
           requestedWindow,
           { signal: controller.signal, snapshotAt },
         );
         snapshotAt = result.snapshotAt;
         const key = dashboardItemIdentity(item);
-        reducedBySeries[key] = reduceHistory(result.samples, requestedWindow);
-        const tail = result.samples.at(-1);
+        const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
+        reducedBySeries[key] = reduceHistory(samples, requestedWindow);
+        const tail = samples.at(-1);
         if (tail) {
           sourceTails.push(tail);
           latestRef.current[key] = newestSample(latestRef.current[key], tail);
@@ -471,10 +487,12 @@ export function useLiveDashboardTelemetry({
           : advanceLiveHistoryWindow(requestedWindow, reconciled.samples);
 
       for (const sample of reconciled.samples) {
-        const key = dashboardItemIdentity(sample);
-        if (!(key in reducedBySeries)) continue;
-        reducedBySeries[key] = reduceHistory([...reducedBySeries[key], sample], finalWindow);
-        latestRef.current[key] = newestSample(latestRef.current[key], sample);
+        for (const item of dashboard.items) {
+          if (!dashboardSeriesMatches(item, sample)) continue;
+          const key = dashboardItemIdentity(item);
+          reducedBySeries[key] = reduceHistory([...reducedBySeries[key], sample], finalWindow);
+          latestRef.current[key] = newestSample(latestRef.current[key], sample);
+        }
       }
 
       historyPendingLiveRef.current = [];

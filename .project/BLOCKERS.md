@@ -1,8 +1,133 @@
-## 2026-11-10 — #1428/#1460 verified backup capability missing (read-only checks)
+## 2026-11-19 — #1460 staged preflight source review does not resolve #1428
 
-Physical SSD now ~43 GiB available/81% used after verified developer-cache cleanup, so the 20 GiB reserve plus 4 GiB staging _capacity_ gate is not the blocker. Read-only `nexolab-offline-backup-preflight.py --check` returned exit 78: missing mandatory asset inventory (edge SQLite/outbox), unreconciled legacy MinIO vs live VersityGW source, staging directory group-writable, no protected independent encrypted off-device destination/key custody, no isolated fresh-volume restore or site approval. `nexolab-dr-readonly-health.py` returned exit 78: no complete eight-store receipt and no active backup timer. `nexolab-site-dr-fixture-harness.py --self-test` passed **synthetic-only**, not production recovery.
+PR #1461 read-only diagnostic source was reconciled with latest main, including its workflow filters and dedicated negative tests. The current-local source suite passed 15/15; however, protected backup capacity alone is insufficient and **no backup or restore was executed**. The existing policy is missing Edge SQLite/outbox and still uses legacy unverified object-storage authority, while encrypted off-device custody and an independently restored full-store test remain unverified. Exact-head CI/required workflows and final source review are the next software gate, not a production release authorization. #1428, #1409/#1399 and #1587 stay blocked for physical/site acceptance.
 
-Do not delete PostgreSQL rows, site databases, image/volume/rollback archives, /var/backups or old test-session evidence; no production startup/restart or secret access. Source-only #1460 is an isolated capability PR, not authority to enable backups or retention. Independent encrypted off-device storage and real restore proof are required by #1428; network CIDR and offline release gates remain unresolved.
+## 2026-11-19 — #1598 Sequenced P0 blockers and PR review backlog
+
+Current policy and traceable issue/PR inventory are under `docs/operations/nexolab-execution-roadmap.md` and the T0–T7 matrix. Source-accepted and site-accepted must not be merged into one status.
+
+- **G1 / #1428 — HARD for protected cutover:** no verified complete encrypted off-device backup and independent isolated full-store restore. Existing PG incident dump and synthetic DR tests do not satisfy this. Owner-provided independent storage/access and explicit approval may be required for a real backup or restore. Safe read-only review of draft **#1460/PR #1461** remains independent. PR #1461 is open Draft, GitHub reports mergeable=false on 2026-11-19; inspect conflicts/base/CI before publication.
+- **G2 / #1409 and #1399 — blocked protected network operations:** after G1 restore proof, verify physical LAN vs Docker subnet, stable actual routes and rollback. No network/cutover/reboot authorized by documentation updates. #1400 requires actual object-storage runtime validation, not source-only guard pass.
+- **G3 / #1397 — unaccepted durable delivery:** #1445/#1449/#1451 staged receipt components require exact same protocol, CI, broker/SQLite/postgreSQL outage evidence. Broker-only QoS1 is not proof of committed replay.
+- **G4 / #1587 — protected unified operator release blocked:** require backup/rollback, exact ARM64/source manifest and compatible custom Device Agent, API/schema, authorized actual auth/browser/hardware acceptance on LAN + Funnel.
+- **G5 / #1528 and #1530 — unmerged permission candidates:** PR #1529/PR #1531 are open Draft and GitHub currently reports mergeable=false. No grant enforcement or site acceptance is implied; #1526 is a coordination parent, not executable Ready.
+- **Queue / #1522 — Ready for software-only investigation:** freshness thresholds must be proven against actual polling cadence; no Modbus writes and no premature deployment. Source tests do not establish real site acquisition acceptance.
+- **Older review/dependency PRs:** 46 open PRs at this audit, including 10 dependency automation. Freeze non-urgent merges pending diff/overlap/required exact-head CI; do not close on age alone.
+
+The previous ACTIVE_SPRINT dependency `#1428 -> #1399` was inappropriate at the source-preflight level. The real protected network change depends downstream on DR (#1428), not vice versa. Only an actual lack of independent storage/owner authority stops the protected site action; it does not prevent unrelated safe source work. No Modbus/hardware/site mutation performed in #1598.
+
+## 2026-11-19 — #1596 Board reconciliation: merged source is not a release
+
+Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed _bounded source/documentation_ tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
+
+- **#1428**: actual, complete encrypted off-device backup, an independent isolated restore and safe local recovery/storage capacity remain unproven.
+- **#1587**: one compatible, pinned and authorized frontend/API/Device Agent release across all operator entrypoints is not installed/accepted. #1592 contributed a read-only source parity gate; it did not perform cutover.
+- **#1409 / #1399**: protected Docker bridge/LAN network remediation and reliable full offline boot recovery require separate verified site execution.
+- **#1577 / #1567 / #1564 / #1569**: independently verify installed source behavior and real user/browser/runtime acceptance before closing the operational defects.
+- **#1526 / #1528 / #1530 / #1522**: independently enforced page grants and actual-cadence live freshness remain unfinished; older #1525 navigation filtering is not granular authorization.
+- **Hardware**: preserve the installed 6+2 commissioned Dixell evidence; other reserve/future channels and untested controllers are not hardware-verified.
+
+No hard-blocker approval was implied by administrative Issue closure. The state-only #1596 PR requires its own GREEN integrity gate. Historical blocker entries below retain their original time-specific meaning.
+
+## 2026-11-18 — #1592 released source checks are not installed site authority
+
+#1594 CI-governance repair merged with five GREEN exact-head workflows, unblocking read-only parity tool classification. #1592 still requires its own exact-head PR checks and review and a separately approved #1587 protected ARM64 site update with installed Device Agent preservation, independent backup/restore (#1428), network safety (#1409), schema/auth compatibility and rollback. Distinct LAN/HTTPS build IDs may be allowed only by independently approved manifest and verified same merged-main source; never substitute local offline with mandatory public HTTPS. No site cutover performed.
+
+## 2026-11-18 — #1592 one-version release and protected equipment enrollment
+
+Three live operator entrypoints currently report different source/build identities. Issue #1592 / PR #1593 adds read-only identity verification, not a release. Real parity is FAIL as expected. Protected site Device Agent image nexolab/quick-agent:1490 and its commissioned 6+2 Dixell channels must not be replaced by generic main. An exact merged-main release package, consistent API/schema, source provenance, independent off-device DR/rollback evidence (#1428), LAN bridge overlap mitigation (#1409), and owner-approved guarded site activation (#1587) are required before a single installed version may be claimed. CI and browser/hardware acceptance are not inferred from source tests. No live site edits or Modbus writes were performed.
+
+## 2026-11-18 — #1594 Required workflow registration mismatch blocks #1593
+
+On #1593, exact-head NEXOLAB Merge Gate failed after Telemetry Service passed because unclassified new parity tooling demanded three specialized workflows that did not trigger. #1594 narrows classification for only the two non-mutating verification files, retaining full Core and all required checks for the classifier change itself. #1593 must rebase after #1594 GREEN merge, rerun exact-head checks and preserve existing Agent. This is not authority for production deployment (#1587 remains blocked).
+
+## 2026-11-18 — #1590 Overview alert UX source acceptance pending
+
+Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
+
+## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
+
+First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
+
+## 2026-11-18 — #1588 source CI and #1587 site release boundaries
+
+#1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
+
+#1585 / PR #1586 merged to source main 8ab3be4a with 20/20 exact-head CI; older notes below demanding its CI rerun are historical. The site release #1587 is blocked on protected deployment-authority reconciliation, an exact ARM64 package, backup/rollback and separate target-specific site approval. No generic implementation instruction authorizes database migration, container replacement or cutover.
+
+## 2026-11-18 — #1585 CI exact-head rerun required
+
+Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
+
+## 2026-11-18 — #1585 Exact-head verification and installed acceptance
+
+The new source has not been activated at site. Required: exact-head PR/CI/browser verification and protected ARM64 + matching Telemetry Service bundle, offline/rollback evidence, production migration evidence and separate approved site activation. Keep missing Device Agent registry state unavailable rather than incorrectly inactive. No Modbus/device write or persistent data deletion.
+
+## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
+
+Site acceptance requires the matching Dashboard and Telemetry Service release and access to the local Device Agent registry from the existing commissioning origin. Verify the two installed Dixell groups in the browser after a separately approved rollout. Seven additional controls have not been physically verified.
+
+## 2026-11-16 — #1581 Saved Live Dashboard browser acceptance
+
+The #1579 required source and browser verification passed. #1581 needs its own exact-head GitHub gate. These read-only chart changes are source work packages. A Raspberry site activation requires a separately approved release.
+
+## 2026-11-16 — #1579 controller chart acceptance
+
+The source candidate requires exact-head checks and the existing Refrigeration Browser Acceptance workflow. Local Chromium cannot create the OS socket required to start. Production hardware and deployment remain separately unverified.
+
+## 2026-11-16 — #1577 collection restored; Overview integration candidate
+
+Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.
+
+After manual Google reauthentication, Chrome showed all eight valid Dixell timestamps advancing by 10 seconds (16:11:59–16:12:03 to 16:12:09–16:12:13 Europe/Kyiv). Saved Dashboard 1h history visually rendered six Unit 1 series since about 16:01. Unit 7 persisted history and full Overview acceptance still need explicit proof. The earlier history fetch error cleared after login. No history was deleted or synthetic hardware evidence used.
+
+Remaining installed UI defects: Overview relies on legacy numeric enrollment and excludes section IDs; cadence rejects the agent's supported `waveshare_8ai` family. Source candidate reads active, read-eligible temperatures from the canonical registry for Overview, supports Waveshare cadence, and guards legacy PUT/POST against section enrollment replacement. It preserves auth, display preferences, offline runtime, section identity and the installed custom agent. 44 additional targeted tests passed across seven files. Initial source PR head d3570e94 passed all four triggered workflows; verify new exact-head CI before merge. Only the earlier environment repair was approved/deployed; this new source is not installed.
+
+Commander execution remains unavailable. Preserve the installed section-profile agent: main does not contain that implementation. Next: finish source CI/review, prepare a matching frontend-only artifact with rollback and obtain separate approval for its activation. Further seven modules remain hardware-unverified until connected and commissioned.
+
+## 2026-11-16 — #1575 Raspberry Live Dashboard activation pending
+
+PR #1576 preserves the deployed Telemetry commissioning/catalog paths and reconciles the database revision on the Pi. The earlier staged `eb6302b` Telemetry image lacks this compatibility. Paired rollout needs required exact-head CI, matching ARM64 artifacts, a local recovery point and the owner-only activation path. This scoped update uses the existing central network. The broader Edge subnet issue remains separate.
+
+## 2026-11-16 — container security #1447
+
+Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
+
+## 2026-11-16 — #1573 connected sensors source acceptance pending
+
+The local execution environment denies Chromium and PostgreSQL Unix sockets. Isolated backend and frontend tests run locally; PostgreSQL migration and authenticated browser evidence will come from exact-head GitHub CI. A production release needs the matching frontend and Telemetry Service, a recovery plan for migration 0038 and separate site approval.
+
+## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
+
+The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.
+
+## 2026-11-16 — #1569 protected frontend acceptance pending
+
+PR #1570 passed nine exact-head workflows and merged. The ARM64 build is staged and passed isolated Chromium on the Pi. Its source and build differ from the original #1560 handoff pins. Reconcile the active gateway and rollback frontend, then prepare a verified handoff tied to #1569. After separate site approval, live verification requires an administrator sign-in and an owner-approved account creation.
+
+## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
+
+The lifecycle change needs the Raspberry Pi root console. Run the approved procedure in `docs/operations/private-lab-tunnel-recovery.md`, then verify the affected tailnet client across a separately approved interruption or reboot. The legacy private HTTPS `8443` frontend policy and its stable upstream require separate verification. #1399 and #1409 remain independent LAN/Docker recovery work.
+
+## 2026-11-10 — #1562 Overview visual source isolated from protected site blocker
+
+Overview redesign source work is independent and browser-visible in explicit demo mode; protected site installation still requires safe Nginx/frontend transition. Owner's latest #1560 \`promote\` returned \`Command runuser failed: exit=1\` and automatic Nginx validator also failed; subsequent read-only host checks show old original Nginx config/hash, both frontend services active, telemetry and device-agent HTTP200. A frontend visual task must not bypass root-command policy or add risky unrelated Nginx operations. Follow-up site handoff remains blocked pending a separate bounded root-cause fix; #1428 complete encrypted isolated restore and #1409 physical LAN/Docker overlap remain unresolved. Do not call the new Overview installed until real authenticated operator browser confirms it.
+
+## 2026-11-10 — #1560 frontend deployment failed-closed, corrected, awaiting guarded promotion
+
+First protected user-run `execute` failed before gateway cutover; `EXTERNAL_NGINX_ROLLBACK_VERIFIED`. New `3104` service was healthy but runtime identity source rejected unsupported `identity_source`. Non-secret manifest corrected; GET `3104/api/runtime-identity` now returns exact requested source and build. Old external frontend `3100` and Nginx remain active with original configuration. Root-protected handoff journal and new unit remain; rerunning `execute` is unsafe and intentionally rejected. Dedicated resume `promote` source-only candidate requires full exact-head GitHub CI and a separate authorized root operator action, with old service kept as fallback. Complete independent off-device DR (#1428) remains unproven and Docker/LAN overlap (#1409) remains unresolved; absolutely no full site/Docker migration approved.
+
+## 2026-11-10 — #1560 main UI build READY but protected HTTPS activation unperformed
+
+Both exact-source ARM64 frontend artifacts are on nexolab-edge-01, verified and isolated smoke-tested. A new guarded frontend-only blue/green procedure and old-port automatic fallback exists as source candidate; it is NOT installed. The connected remote executor specifically disallows privileged sudo/systemd/nginx mutations; do not bypass that access boundary. Human protected console required for a scoped action, and actual full off-device encrypted multi-store backup and isolated restore are NOT proven (#1428). Existing Docker/LAN CIDR overlap #1409 must not be touched as part of UI-only release. Operator must review site risk and original nginx SHA, run bounded action separately, verify live auth/roles and rollback. Old frontend, APIs, acquisition and protected gateway remain active. No green operator update signal.
+
+## 2026-11-10 — #1558 Reports operator UI source acceptance pending
+
+Targeted 9/9 component tests pass in isolated source. Required exact-head GitHub quality/build and authenticated reports browser acceptance at 375/768/1440/1920 remain pending; production installation is not part of this Work Package. Protected Raspberry site gate remains #1428 complete isolated restore/rollback and #1409 physical LAN/Docker CIDR overlap, with source-bound offline package and explicit operator approval required.
+
+## 2026-11-10 — #1550 Sessions operator UI source review
+
+Scoped source candidate passed 7/7 focused tests, ESLint and TypeScript. GitHub exact-head CI/build and authenticated 375/768/1440/1920 browser acceptance remain required before source merge. This is not a production site deployment. Existing hard blockers #1428 protected offline restore/rollback and #1409 physical LAN/Docker CIDR overlap remain. Source update must not be interpreted as a green operator update signal.
 
 ## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
 

@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.commissioning.catalog import profile_matches_identity, supported_profile
+from app.commissioning.preflight_client import read_contract
 from app.commissioning.models import EquipmentCommissioningPreflightAttempt, EquipmentCommissioningSession
 from app.commissioning.repository import (
     CommissioningEquipmentReferenceError,
@@ -139,7 +140,7 @@ class CommissioningPreflightRepository:
                         "state": "running",
                         "profile_id": command["profile_id"],
                         "profile_version": command["profile_version"],
-                        "read_method": "modbus_rtu_fc03",
+                        "read_method": read_contract(command["profile_id"], command["profile_version"])[0],
                         "modbus_writes": "none",
                         "hardware_writes": "none",
                     },
@@ -205,7 +206,7 @@ class CommissioningPreflightRepository:
                         "result": attempt.result,
                         "code": attempt.code,
                         "evidence_level": attempt.evidence_level,
-                        "read_method": "modbus_rtu_fc03",
+                        "read_method": evidence.get("read_method"),
                         "modbus_writes": "none",
                         "hardware_writes": "none",
                     },
@@ -262,33 +263,34 @@ class CommissioningPreflightRepository:
             model=row.model,
         ):
             raise CommissioningLifecycleConflictError("Commissioning profile no longer matches device identity")
-        required = (row.node_id, row.bus_id, row.stable_transport_identifier, row.unit_id, row.target_equipment_key)
+        required = (row.node_id, row.bus_id, row.stable_transport_identifier, row.unit_id, row.target_equipment_key or row.display_name)
         if any(value is None or value == "" for value in required):
             raise CommissioningLifecycleConflictError("Commissioning transport and equipment intent is incomplete")
-        target = db.scalar(
-            select(RefrigerationEquipmentRecord.id).where(
-                RefrigerationEquipmentRecord.id == row.target_equipment_key,
-                RefrigerationEquipmentRecord.organization_id == organization_id,
-                RefrigerationEquipmentRecord.deleted_at.is_(None),
-                RefrigerationEquipmentRecord.lifecycle_status != "retired",
-            )
-        )
-        if target is None:
-            raise CommissioningEquipmentReferenceError(
-                "Target equipment is unavailable in the active organization"
-            )
-        if profile.device_class == "temperature-controller":
-            active_binding = db.scalar(
-                select(RefrigerationControllerBinding.id).where(
-                    RefrigerationControllerBinding.organization_id == organization_id,
-                    RefrigerationControllerBinding.equipment_id == row.target_equipment_key,
-                    RefrigerationControllerBinding.unbound_at.is_(None),
+        if row.target_equipment_key:
+            target = db.scalar(
+                select(RefrigerationEquipmentRecord.id).where(
+                    RefrigerationEquipmentRecord.id == row.target_equipment_key,
+                    RefrigerationEquipmentRecord.organization_id == organization_id,
+                    RefrigerationEquipmentRecord.deleted_at.is_(None),
+                    RefrigerationEquipmentRecord.lifecycle_status != "retired",
                 )
             )
-            if active_binding is not None:
+            if target is None:
                 raise CommissioningEquipmentReferenceError(
-                    "Target equipment already has an active controller binding"
+                    "Target equipment is unavailable in the active organization"
                 )
+            if profile.device_class == "temperature-controller":
+                active_binding = db.scalar(
+                    select(RefrigerationControllerBinding.id).where(
+                        RefrigerationControllerBinding.organization_id == organization_id,
+                        RefrigerationControllerBinding.equipment_id == row.target_equipment_key,
+                        RefrigerationControllerBinding.unbound_at.is_(None),
+                    )
+                )
+                if active_binding is not None:
+                    raise CommissioningEquipmentReferenceError(
+                        "Target equipment already has an active controller binding"
+                    )
         return {
             "node_id": str(row.node_id),
             "bus_id": str(row.bus_id),

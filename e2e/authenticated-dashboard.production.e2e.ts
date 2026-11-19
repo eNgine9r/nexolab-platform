@@ -427,11 +427,21 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
           throw new Error(`Overview layout missing at ${width}px`);
         }
 
-        expect(primaryBox.y).toBeLessThan(attentionBox.y);
-        expect(attentionBox.y).toBeLessThan(secondaryBox.y);
-        expect(Math.abs(primaryBox.x - attentionBox.x)).toBeLessThanOrEqual(2);
-        expect(Math.abs(primaryBox.width - attentionBox.width)).toBeLessThanOrEqual(2);
-        expect(Math.abs(primaryBox.width - commandBox.width)).toBeLessThanOrEqual(2);
+        // Overview V2: stacked on mobile; temperature 8/12 and insights 4/12 on desktop.
+        if (width < 1280) {
+          expect(primaryBox.y).toBeLessThan(attentionBox.y);
+          expect(attentionBox.y).toBeLessThan(secondaryBox.y);
+          expect(Math.abs(primaryBox.x - attentionBox.x)).toBeLessThanOrEqual(2);
+          expect(Math.abs(primaryBox.width - attentionBox.width)).toBeLessThanOrEqual(2);
+          expect(Math.abs(primaryBox.width - commandBox.width)).toBeLessThanOrEqual(2);
+        } else {
+          expect(Math.abs(primaryBox.y - attentionBox.y)).toBeLessThanOrEqual(2);
+          expect(primaryBox.x + primaryBox.width).toBeLessThan(attentionBox.x + 4);
+          expect(primaryBox.width).toBeGreaterThan(attentionBox.width);
+          expect(attentionBox.y).toBeLessThan(secondaryBox.y);
+          expect(Math.abs(attentionBox.x - secondaryBox.x)).toBeLessThanOrEqual(2);
+          expect(Math.abs(attentionBox.width - secondaryBox.width)).toBeLessThanOrEqual(2);
+        }
       }
 
       expect(acquisitionMutations).toEqual([]);
@@ -456,9 +466,10 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             canonicalOverviewChart: true,
             overviewHistorySvg: false,
             overviewGraphFirst: true,
-            overviewPrimaryFullWidth: true,
-            overviewAttentionBelowGraph: true,
+            overviewPrimaryFullWidth: false,
+            overviewAttentionBelowGraph: false,
             overviewSupportingStateBelow: true,
+            overviewResponsiveSideBySide: true,
             overviewResponsiveWidths: [360, 1440, 1920],
             cursorLayoutStable: true,
             liveCanvasIdentityStable: true,

@@ -30,11 +30,16 @@ export type SensorBinding = {
 export type AvailableSensor = {
   channelId: string;
   inventoryNumber?: string | null;
+  controllerLabel?: string | null;
+  displayName?: string | null;
+  inputNumber?: number | null;
+  selectable?: boolean;
   metric: string;
   unit: string;
   latestValue: number | null;
   quality: string;
   capturedAt: string;
+  sampleValidUntil?: string | null;
   isBound: boolean;
   boundEquipmentId: string | null;
   boundSlotKey: string | null;
@@ -458,6 +463,7 @@ function parseAvailableSensor(value: unknown): AvailableSensor {
   return {
     channelId,
     inventoryNumber: readOptionalString(record?.inventory_number),
+    displayName: readOptionalString(record?.display_name),
     metric,
     unit,
     latestValue: readNullableNumber(record?.latest_value),

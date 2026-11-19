@@ -5,25 +5,33 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+COPY bin/package-mosquitto-ctrl /tmp/package-mosquitto-ctrl
+
 # Refresh packages already inherited from the mutable Debian base tag before
 # installing runtime additions. This keeps fixed Debian security updates in the
 # produced image instead of relying on a future upstream base-image rebuild.
+# Omit the broker and system login, mount and terminal tools from the runtime.
 RUN apt-get update \
     && apt-get upgrade --yes --no-install-recommends \
+    && /bin/sh /tmp/package-mosquitto-ctrl /tmp/nexolab-mosquitto-ctrl.deb \
     && apt-get install --yes --no-install-recommends \
         fonts-dejavu-core \
-        mosquitto \
+        /tmp/nexolab-mosquitto-ctrl.deb \
+    && apt-get purge --yes --autoremove --allow-remove-essential \
+        bsdutils login mount ncurses-bin perl-base util-linux \
     && command -v mosquitto_ctrl >/dev/null \
     && ! command -v mosquitto_pub >/dev/null \
-    && apt-get purge --yes --allow-remove-essential perl-base \
-    && apt-get autoremove --yes \
+    && ! command -v mosquitto >/dev/null \
+    && linked_libraries="$(ldd /usr/bin/mosquitto_ctrl)" \
+    && ! printf '%s\n' "$linked_libraries" | grep -q 'not found' \
+    && rm /tmp/package-mosquitto-ctrl /tmp/nexolab-mosquitto-ctrl.deb \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/*
 
 COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir -r requirements.txt \
     && python -m pip uninstall --yes setuptools \
     && ! python -m pip show setuptools >/dev/null 2>&1 \
-    && test "$(python -c 'import msgpack; print(msgpack.__version__)')" = "1.2.1" \
+    && test "$(python -c 'import msgpack; print(msgpack.__version__)')" = "1.2.3" \
     && python -m pip check \
     && python -m pip uninstall --yes pip \
     && python -c 'import importlib.util; assert importlib.util.find_spec("pip") is None'

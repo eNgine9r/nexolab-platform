@@ -206,10 +206,19 @@ describe("local browser authentication", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
-    const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+    const invalidated = vi.fn(() => {
+      expectLocalAuthCredentialsCleared();
+      expect(getSecurityCredentials().accessToken).toBeNull();
+    });
+    window.addEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, invalidated);
+    try {
+      const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
 
-    expect(credentials).toEqual({ accessToken: null, organizationId: ORGANIZATION_ID });
-    expectLocalAuthCredentialsCleared();
+      expect(credentials).toEqual({ accessToken: null, organizationId: ORGANIZATION_ID });
+      expect(invalidated).toHaveBeenCalledOnce();
+    } finally {
+      window.removeEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, invalidated);
+    }
   });
 
   it("bounds a stalled refresh so the cross-tab lock is released", async () => {
