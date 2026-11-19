@@ -111,6 +111,15 @@ def _value_cell(value: object) -> str:
     return format(numeric, ".15g")
 
 
+def _is_embraco_probe_scope(row: dict[str, object]) -> bool:
+    return (
+        row.get("node_id") == "edge-01"
+        and row.get("equipment_id") == "EMBRACO-2"
+        and (row.get("channel_id"), row.get("metric")) in _EMBRACO_OPERATOR_PROBES
+        and row.get("source") == "embraco-sync"
+    )
+
+
 def _operator_embraco_probe_columns(row: dict[str, object]) -> dict[str, str]:
     """Strictly scoped CSV *presentation*, never update source `quality`/`value`.
 
@@ -118,10 +127,7 @@ def _operator_embraco_probe_columns(row: dict[str, object]) -> dict[str, str]:
     unsigned raw register and original `unknown` quality may be interpreted.
     """
     if (
-        row.get("node_id") != "edge-01"
-        or row.get("equipment_id") != "EMBRACO-2"
-        or (row.get("channel_id"), row.get("metric")) not in _EMBRACO_OPERATOR_PROBES
-        or row.get("source") != "embraco-sync"
+        not _is_embraco_probe_scope(row)
         or row.get("unit") != "degC"
         or row.get("quality") != "unknown"
         or row.get("value") is not None
@@ -139,8 +145,10 @@ def _operator_embraco_probe_columns(row: dict[str, object]) -> dict[str, str]:
     }
 
 
-def _source_raw_cell(value: object) -> str:
-    return str(value) if type(value) is int else ""
+def _source_raw_cell(row: dict[str, object]) -> str:
+    # Extra source-register data is not exposed for unrelated dashboards/devices.
+    value = row.get("raw_value")
+    return str(value) if _is_embraco_probe_scope(row) and type(value) is int else ""
 
 
 def _resolve_timezone(name: str) -> ZoneInfo:
@@ -295,7 +303,7 @@ def build_live_dashboard_csv_export(
                 "unit": str(row["unit"]),
                 "quality": str(row["quality"]),
                 "event_id": str(row["event_id"]),
-                "raw_value": _source_raw_cell(row.get("raw_value")),
+                "raw_value": _source_raw_cell(row),
                 **_operator_embraco_probe_columns(row),
             }
         )

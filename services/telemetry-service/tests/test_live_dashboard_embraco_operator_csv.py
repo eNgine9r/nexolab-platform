@@ -223,7 +223,7 @@ def test_authenticated_saved_dashboard_csv_includes_operator_scale_without_mutat
     assert [(r["channel"], r["raw_value"]) for r in output[:3]] == [
         ("2-cabinet-temperature", "65507"),
         ("2-evaporator-temperature", "65468"),
-        ("2-compressor-speed", "2198"),
+        ("2-compressor-speed", ""),
     ]
     assert [(r["value"], r["quality"], r["operator_celsius_degC"]) for r in output[:3]] == [
         ("", "unknown", "-2.9"),
@@ -237,7 +237,7 @@ def test_authenticated_saved_dashboard_csv_includes_operator_scale_without_mutat
         "",
     ]
     assert all(r["operator_celsius_degC"] == "" for r in output[3:])
-    assert [r["raw_value"] for r in output[3:]] == ["65507", "65507", "65536"]
+    assert [r["raw_value"] for r in output[3:]] == ["65507", "", "65536"]
     assert "+02:00" in output[0]["timestamp_local"]
     assert all(r["event_id"] for r in output)
     # Neither the repository nor storage had its `null/unknown` source evidence updated.
