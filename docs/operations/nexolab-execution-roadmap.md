@@ -10,32 +10,32 @@ Never require internet, CDN, paid runtime, remote fonts, SaaS telemetry or cloud
 
 ## Milestone order and release criteria
 
-| Gate | Product milestone | Entry / exit (minimum evidence) | Prominent existing work |
-| --- | --- | --- | --- |
-| G0 | Execution control and backlog ownership | Every open Issue/PR classified; active=1; no fake Ready; checkpoint and test matrix reviewed | #1598 |
-| G1 | Proven recoverability and storage headroom | Read-only DR inventory and capacity first; encrypted independent off-device full-store backup **and an isolated restore** are required before risky deployment | #1460 → #1428; #1551 only after proof |
-| G2 | Reliable offline boot, routes and network topology | On-device read-only route/IPAM and rollback baseline; protected network change only after G1 with owner approval; real offline/reboot acceptance | #1409 → #1392/#1393/#1400 → #1399; #1567 independent tunnel gate |
-| G3 | Durable measurement delivery | Committed ACK + edge replay across outages, no silently lost or fabricated readings; honest freshness by cadence | #1397 → #1445/#1449/#1451; #1522 independent source |
-| G4 | One supported operator release | One source lineage with approved per-origin build manifests, retained commissioning Agent, matched API/schema; auth, charts, LAN/Funnel and rollback accepted on real Pi | #1587 after G1+required G2/G3 gates; #1577, #1564, #1569 |
-| G5 | Operator productivity, permissions, device onboarding | Reliable RBAC + direct URL denial, simple standalone RS-485 device flow, validated Energy/Waveshare/Dixell, truthful series naming and Live UI | #1528 → #1530 under #1526; #1518 / stacked onboarding; #1191 |
-| G6 | New scientific measurement and refrigeration analytics | Only after base runtime is stable; start RFX-00 ADR, then generic measurement registry and verified read-only physical pathways | RFX-00…RFX-19 proposals, **not yet declared completed or Ready** |
+| Gate | Product milestone                                      | Entry / exit (minimum evidence)                                                                                                                                          | Prominent existing work                                          |
+| ---- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| G0   | Execution control and backlog ownership                | Every open Issue/PR classified; active=1; no fake Ready; checkpoint and test matrix reviewed                                                                             | #1598                                                            |
+| G1   | Proven recoverability and storage headroom             | Read-only DR inventory and capacity first; encrypted independent off-device full-store backup **and an isolated restore** are required before risky deployment           | #1460 → #1428; #1551 only after proof                            |
+| G2   | Reliable offline boot, routes and network topology     | On-device read-only route/IPAM and rollback baseline; protected network change only after G1 with owner approval; real offline/reboot acceptance                         | #1409 → #1392/#1393/#1400 → #1399; #1567 independent tunnel gate |
+| G3   | Durable measurement delivery                           | Committed ACK + edge replay across outages, no silently lost or fabricated readings; honest freshness by cadence                                                         | #1397 → #1445/#1449/#1451; #1522 independent source              |
+| G4   | One supported operator release                         | One source lineage with approved per-origin build manifests, retained commissioning Agent, matched API/schema; auth, charts, LAN/Funnel and rollback accepted on real Pi | #1587 after G1+required G2/G3 gates; #1577, #1564, #1569         |
+| G5   | Operator productivity, permissions, device onboarding  | Reliable RBAC + direct URL denial, simple standalone RS-485 device flow, validated Energy/Waveshare/Dixell, truthful series naming and Live UI                           | #1528 → #1530 under #1526; #1518 / stacked onboarding; #1191     |
+| G6   | New scientific measurement and refrigeration analytics | Only after base runtime is stable; start RFX-00 ADR, then generic measurement registry and verified read-only physical pathways                                          | RFX-00…RFX-19 proposals, **not yet declared completed or Ready** |
 
-**Critical dependency correction:** #1428's full DR preparation cannot wait on #1399 protected network *activation*, because #1399 activation itself must be protected by DR. Source-only DR inventory/preflight (#1460) is independent. On-site activation for #1399/#1409 is a **downstream** gate from verified #1428 recovery evidence, not a prerequisite for collecting backup readiness evidence. Separate read-only software readiness, deployment authorization and hardware acceptance in every Issue.
+**Critical dependency correction:** #1428's full DR preparation cannot wait on #1399 protected network _activation_, because #1399 activation itself must be protected by DR. Source-only DR inventory/preflight (#1460) is independent. On-site activation for #1399/#1409 is a **downstream** gate from verified #1428 recovery evidence, not a prerequisite for collecting backup readiness evidence. Separate read-only software readiness, deployment authorization and hardware acceptance in every Issue.
 
 ## Short execution window (not permission for production cutover)
 
-| Slot | Work Package | State / exact next gate | Why |
-| --- | --- | --- | --- |
-| 0 | #1598 | This governance Issue/PR, no product code | Establish deterministic execution policy |
-| 1 | #1460 / PR #1461 | **First source review candidate:** reconcile exact diff against current main, run required CI and validate read-only inventory/capacity preflight | Reduces uncertainty before protected DR |
-| 2 | #1428 | **Site-evidence blocked:** actual complete encrypted backup, verified separate custody, isolated restore, operator approval if physical action needed | Stops unsafe releases |
-| 3 | #1409, then #1392/#1393/#1400/#1399 | **Source review permitted; site change blocked** until G1 and separately scoped owner approval | Fix LAN collision, boot recovery safely |
-| 4 | #1397 → #1445/#1449/#1451 | Validate separate staged source PRs, exact committed-receipt contract and offline replay | Prevent silent data loss |
-| 5 | #1587 + #1577 | Prepare one approved versioned release; exact hardware and browser evidence only after guarded activation | One truthful operator version |
-| 6 | #1522 | **Next independent source Ready candidate**, focused freshness regression and no site mutation | Fix false Live/Stale |
-| 7 | #1528 → #1530 / umbrella #1526 | Review security-grant foundation PR #1529 before PR #1531; server-side enforcement first | No UI-only access illusion |
-| 8 | #1518 / onboarding and #1191 | Reconcile stacked PR history and do operator acceptance vertically; preserve tested devices/history | Usable equipment workflow |
-| 9 | RFX-00 | Backlog until G1–G5 release/architecture review | Avoid building advanced calculations on unstable data |
+| Slot | Work Package                        | State / exact next gate                                                                                                                               | Why                                                   |
+| ---- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 0    | #1598                               | This governance Issue/PR, no product code                                                                                                             | Establish deterministic execution policy              |
+| 1    | #1460 / PR #1461                    | **First source review candidate:** reconcile exact diff against current main, run required CI and validate read-only inventory/capacity preflight     | Reduces uncertainty before protected DR               |
+| 2    | #1428                               | **Site-evidence blocked:** actual complete encrypted backup, verified separate custody, isolated restore, operator approval if physical action needed | Stops unsafe releases                                 |
+| 3    | #1409, then #1392/#1393/#1400/#1399 | **Source review permitted; site change blocked** until G1 and separately scoped owner approval                                                        | Fix LAN collision, boot recovery safely               |
+| 4    | #1397 → #1445/#1449/#1451           | Validate separate staged source PRs, exact committed-receipt contract and offline replay                                                              | Prevent silent data loss                              |
+| 5    | #1587 + #1577                       | Prepare one approved versioned release; exact hardware and browser evidence only after guarded activation                                             | One truthful operator version                         |
+| 6    | #1522                               | **Next independent source Ready candidate**, focused freshness regression and no site mutation                                                        | Fix false Live/Stale                                  |
+| 7    | #1528 → #1530 / umbrella #1526      | Review security-grant foundation PR #1529 before PR #1531; server-side enforcement first                                                              | No UI-only access illusion                            |
+| 8    | #1518 / onboarding and #1191        | Reconcile stacked PR history and do operator acceptance vertically; preserve tested devices/history                                                   | Usable equipment workflow                             |
+| 9    | RFX-00                              | Backlog until G1–G5 release/architecture review                                                                                                       | Avoid building advanced calculations on unstable data |
 
 ## Intake, execution and WIP rules
 
@@ -54,125 +54,125 @@ The `Sprint` column below reports the previously recorded `.project/ACTIVE_SPRIN
 
 ### E0 — Управління виконанням, CI та toolchain (9)
 
-*Queue:* Поточна підготовка / відкладені оновлення.
+_Queue:_ Поточна підготовка / відкладені оновлення.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1598 — [GOVERNANCE][WP] Organize NEXOLAB roadmap, all open work and verification gates](https://github.com/eNgine9r/nexolab-platform/issues/1598) | `untracked` |
-| [#1401 — [P1][DEVENV] Repair zero-byte Git object in shared Raspberry Pi engineering worktree](https://github.com/eNgine9r/nexolab-platform/issues/1401) | `untracked` |
-| [#1402 — [P0][CI] Register scoped offline recovery verification files without weakening unknown-path gates](https://github.com/eNgine9r/nexolab-platform/issues/1402) | `untracked` |
-| [#1372 — Fix CI unreachable required workflows for isolated Energy acceptance runner](https://github.com/eNgine9r/nexolab-platform/issues/1372) | `untracked` |
-| [#1356 — Stabilize the terminal Live Retry acceptance stimulus after real WebSocket authentication](https://github.com/eNgine9r/nexolab-platform/issues/1356) | `untracked` |
-| [#1487 — [CI][BLOCKER] Trivy installation exits 6 before container evidence generation](https://github.com/eNgine9r/nexolab-platform/issues/1487) | `blocked` |
-| [#1064 — [SHADOW ACCEPTANCE] Autopilot v3 one-shot coding worker](https://github.com/eNgine9r/nexolab-platform/issues/1064) | `untracked` |
-| [#257 — [MAINT] Upgrade ESLint 9 to 10 only with a compatible Next plugin graph](https://github.com/eNgine9r/nexolab-platform/issues/257) | `untracked` |
-| [#256 — [MAINT] Evaluate TypeScript 7 native compiler after the TypeScript 6 transition](https://github.com/eNgine9r/nexolab-platform/issues/256) | `untracked` |
+| GitHub Issue                                                                                                                                                          | Current Sprint marker |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1598 — [GOVERNANCE][WP] Organize NEXOLAB roadmap, all open work and verification gates](https://github.com/eNgine9r/nexolab-platform/issues/1598)                   | `untracked`           |
+| [#1401 — [P1][DEVENV] Repair zero-byte Git object in shared Raspberry Pi engineering worktree](https://github.com/eNgine9r/nexolab-platform/issues/1401)              | `untracked`           |
+| [#1402 — [P0][CI] Register scoped offline recovery verification files without weakening unknown-path gates](https://github.com/eNgine9r/nexolab-platform/issues/1402) | `untracked`           |
+| [#1372 — Fix CI unreachable required workflows for isolated Energy acceptance runner](https://github.com/eNgine9r/nexolab-platform/issues/1372)                       | `untracked`           |
+| [#1356 — Stabilize the terminal Live Retry acceptance stimulus after real WebSocket authentication](https://github.com/eNgine9r/nexolab-platform/issues/1356)         | `untracked`           |
+| [#1487 — [CI][BLOCKER] Trivy installation exits 6 before container evidence generation](https://github.com/eNgine9r/nexolab-platform/issues/1487)                     | `blocked`             |
+| [#1064 — [SHADOW ACCEPTANCE] Autopilot v3 one-shot coding worker](https://github.com/eNgine9r/nexolab-platform/issues/1064)                                           | `untracked`           |
+| [#257 — [MAINT] Upgrade ESLint 9 to 10 only with a compatible Next plugin graph](https://github.com/eNgine9r/nexolab-platform/issues/257)                             | `untracked`           |
+| [#256 — [MAINT] Evaluate TypeScript 7 native compiler after the TypeScript 6 transition](https://github.com/eNgine9r/nexolab-platform/issues/256)                     | `untracked`           |
 
 ### E1 — Збереження даних, DR та контроль диска (5)
 
-*Queue:* P0 — перша виробнича передумова.
+_Queue:_ P0 — перша виробнича передумова.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1428 — [P0][OFFLINE DR] Schedule complete, space-bounded recoverable local backups and isolated restore on Raspb](https://github.com/eNgine9r/nexolab-platform/issues/1428) | `in_progress` |
-| [#1460 — [P0][OFFLINE DR][WP] Fail-closed read-only complete-backup inventory and capacity preflight](https://github.com/eNgine9r/nexolab-platform/issues/1460) | `untracked` |
-| [#1555 — [STORAGE] Reclaim only regenerable caches on inactive fallback microSD, preserve NEXOLAB emergency boot](https://github.com/eNgine9r/nexolab-platform/issues/1555) | `untracked` |
-| [#1551 — [P1][STORAGE] Evidence-safe 30-day telemetry retention and bounded Raspberry Pi disk reclamation](https://github.com/eNgine9r/nexolab-platform/issues/1551) | `untracked` |
-| [#189 — [WP] Prove backup, restore, rollback and power-loss recovery](https://github.com/eNgine9r/nexolab-platform/issues/189) | `blocked` |
+| GitHub Issue                                                                                                                                                                  | Current Sprint marker |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1428 — [P0][OFFLINE DR] Schedule complete, space-bounded recoverable local backups and isolated restore on Raspb](https://github.com/eNgine9r/nexolab-platform/issues/1428) | `in_progress`         |
+| [#1460 — [P0][OFFLINE DR][WP] Fail-closed read-only complete-backup inventory and capacity preflight](https://github.com/eNgine9r/nexolab-platform/issues/1460)               | `untracked`           |
+| [#1555 — [STORAGE] Reclaim only regenerable caches on inactive fallback microSD, preserve NEXOLAB emergency boot](https://github.com/eNgine9r/nexolab-platform/issues/1555)   | `untracked`           |
+| [#1551 — [P1][STORAGE] Evidence-safe 30-day telemetry retention and bounded Raspberry Pi disk reclamation](https://github.com/eNgine9r/nexolab-platform/issues/1551)          | `untracked`           |
+| [#189 — [WP] Prove backup, restore, rollback and power-loss recovery](https://github.com/eNgine9r/nexolab-platform/issues/189)                                                | `blocked`             |
 
 ### E2 — Стабільний LOCAL_LAN / автономний runtime (9)
 
-*Queue:* P0 — після незалежного DR-доказу для site-change.
+_Queue:_ P0 — після незалежного DR-доказу для site-change.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1409 — [P0][SITE NETWORK] Migrate live edge Docker bridge away from physical LAN without losing telemetry](https://github.com/eNgine9r/nexolab-platform/issues/1409) | `in_progress` |
-| [#1399 — [P0][RUNTIME] Guarded offline Docker network auto-recovery on validated Raspberry Pi boot](https://github.com/eNgine9r/nexolab-platform/issues/1399) | `in_progress` |
-| [#1392 — [P0][RUNTIME] Restore central MQTT/API network topology reliably after reboot](https://github.com/eNgine9r/nexolab-platform/issues/1392) | `untracked` |
-| [#1393 — [P0][RUNTIME] Recover packaged Dashboard network/port after reboot, preserve approved service state](https://github.com/eNgine9r/nexolab-platform/issues/1393) | `untracked` |
-| [#1400 — [P1][RUNTIME] Diagnose detached packaged object-storage network after Pi reboot](https://github.com/eNgine9r/nexolab-platform/issues/1400) | `in_progress` |
-| [#1426 — [P0][OFFLINE] Dual-access Raspberry Pi: local kiosk and isolated PC without internet or site LAN](https://github.com/eNgine9r/nexolab-platform/issues/1426) | `untracked` |
-| [#1476 — [P0][LOCAL LAN][WP] Verify immutable runnable monitor release and pinned systemd ExecStart](https://github.com/eNgine9r/nexolab-platform/issues/1476) | `untracked` |
-| [#1567 — [P0][ACCESS] Restore private NEXOLAB entry points after Raspberry Pi or tunnel restart](https://github.com/eNgine9r/nexolab-platform/issues/1567) | `review` |
-| [#108 — feat: deploy remote Tailscale TLS acceptance gate on central host](https://github.com/eNgine9r/nexolab-platform/issues/108) | `untracked` |
+| GitHub Issue                                                                                                                                                            | Current Sprint marker |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1409 — [P0][SITE NETWORK] Migrate live edge Docker bridge away from physical LAN without losing telemetry](https://github.com/eNgine9r/nexolab-platform/issues/1409)  | `in_progress`         |
+| [#1399 — [P0][RUNTIME] Guarded offline Docker network auto-recovery on validated Raspberry Pi boot](https://github.com/eNgine9r/nexolab-platform/issues/1399)           | `in_progress`         |
+| [#1392 — [P0][RUNTIME] Restore central MQTT/API network topology reliably after reboot](https://github.com/eNgine9r/nexolab-platform/issues/1392)                       | `untracked`           |
+| [#1393 — [P0][RUNTIME] Recover packaged Dashboard network/port after reboot, preserve approved service state](https://github.com/eNgine9r/nexolab-platform/issues/1393) | `untracked`           |
+| [#1400 — [P1][RUNTIME] Diagnose detached packaged object-storage network after Pi reboot](https://github.com/eNgine9r/nexolab-platform/issues/1400)                     | `in_progress`         |
+| [#1426 — [P0][OFFLINE] Dual-access Raspberry Pi: local kiosk and isolated PC without internet or site LAN](https://github.com/eNgine9r/nexolab-platform/issues/1426)    | `untracked`           |
+| [#1476 — [P0][LOCAL LAN][WP] Verify immutable runnable monitor release and pinned systemd ExecStart](https://github.com/eNgine9r/nexolab-platform/issues/1476)          | `untracked`           |
+| [#1567 — [P0][ACCESS] Restore private NEXOLAB entry points after Raspberry Pi or tunnel restart](https://github.com/eNgine9r/nexolab-platform/issues/1567)              | `review`              |
+| [#108 — feat: deploy remote Tailscale TLS acceptance gate on central host](https://github.com/eNgine9r/nexolab-platform/issues/108)                                     | `untracked`           |
 
 ### E3 — Надійність телеметрії, ACK і чесні Live-стани (7)
 
-*Queue:* P0/P1 — після відокремлення мережевої та DR-бази.
+_Queue:_ P0/P1 — після відокремлення мережевої та DR-бази.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1397 — [P0][RELIABILITY] Central durable ACK and edge replay beyond broker queue capacity](https://github.com/eNgine9r/nexolab-platform/issues/1397) | `untracked` |
-| [#1394 — [P0][RELIABILITY] Prove durable telemetry delivery while central API is offline](https://github.com/eNgine9r/nexolab-platform/issues/1394) | `untracked` |
-| [#1445 — [P0][RELIABILITY] Central PostgreSQL-committed telemetry receipt publisher with durable retry](https://github.com/eNgine9r/nexolab-platform/issues/1445) | `untracked` |
-| [#1449 — [P0][SECURITY][WP] Dedicated MQTT receipt publisher and per-node subscriber ACL, isolated acceptance](https://github.com/eNgine9r/nexolab-platform/issues/1449) | `untracked` |
-| [#1451 — [P0][RELIABILITY][WP] Edge-only authenticated committed-receipt consumer and atomic SQLite prune](https://github.com/eNgine9r/nexolab-platform/issues/1451) | `untracked` |
-| [#1522 — [BUG][LIVE] Match telemetry freshness to the actual acquisition cadence](https://github.com/eNgine9r/nexolab-platform/issues/1522) | `untracked` |
-| [#1577 — [BUG][TELEMETRY] Restore replacement Dixell temperature channels and diagnose protected monitoring access](https://github.com/eNgine9r/nexolab-platform/issues/1577) | `review` |
+| GitHub Issue                                                                                                                                                                  | Current Sprint marker |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1397 — [P0][RELIABILITY] Central durable ACK and edge replay beyond broker queue capacity](https://github.com/eNgine9r/nexolab-platform/issues/1397)                        | `untracked`           |
+| [#1394 — [P0][RELIABILITY] Prove durable telemetry delivery while central API is offline](https://github.com/eNgine9r/nexolab-platform/issues/1394)                           | `untracked`           |
+| [#1445 — [P0][RELIABILITY] Central PostgreSQL-committed telemetry receipt publisher with durable retry](https://github.com/eNgine9r/nexolab-platform/issues/1445)             | `untracked`           |
+| [#1449 — [P0][SECURITY][WP] Dedicated MQTT receipt publisher and per-node subscriber ACL, isolated acceptance](https://github.com/eNgine9r/nexolab-platform/issues/1449)      | `untracked`           |
+| [#1451 — [P0][RELIABILITY][WP] Edge-only authenticated committed-receipt consumer and atomic SQLite prune](https://github.com/eNgine9r/nexolab-platform/issues/1451)          | `untracked`           |
+| [#1522 — [BUG][LIVE] Match telemetry freshness to the actual acquisition cadence](https://github.com/eNgine9r/nexolab-platform/issues/1522)                                   | `untracked`           |
+| [#1577 — [BUG][TELEMETRY] Restore replacement Dixell temperature channels and diagnose protected monitoring access](https://github.com/eNgine9r/nexolab-platform/issues/1577) | `review`              |
 
 ### E4 — Єдиний реліз, доступ і керування версіями (15)
 
-*Queue:* Після P0 release gate; гранулярні права — незалежна source-гілка.
+_Queue:_ Після P0 release gate; гранулярні права — незалежна source-гілка.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1587 — [RELEASE][WP] Prepare and verify protected Raspberry activation of commissioned Dixell labels](https://github.com/eNgine9r/nexolab-platform/issues/1587) | `untracked` |
-| [#1564 — [P0][FRONTEND] Fix nginx DynamicUser runuser validator blocking safe UI promotion](https://github.com/eNgine9r/nexolab-platform/issues/1564) | `review` |
-| [#1569 — [BUG][ACCESS] Reauthenticate when the Users & Access session is lost](https://github.com/eNgine9r/nexolab-platform/issues/1569) | `needs_validation` |
-| [#1526 — [ACCESS][WP] Independently grant and enforce per-page access for local users](https://github.com/eNgine9r/nexolab-platform/issues/1526) | `ready` |
-| [#1528 — [ACCESS][WP1] Add guarded per-page grant contracts and upgrade foundation](https://github.com/eNgine9r/nexolab-platform/issues/1528) | `untracked` |
-| [#1530 — [ACCESS][WP2] Apply per-user page grants to navigation and direct page views](https://github.com/eNgine9r/nexolab-platform/issues/1530) | `untracked` |
-| [#1523 — [WP] Enable named multi-user access through the protected Google gateway](https://github.com/eNgine9r/nexolab-platform/issues/1523) | `untracked` |
-| [#1381 — [NEXOLAB][RELEASE] Safely activate fixed LAN runtime identity on Raspberry Pi](https://github.com/eNgine9r/nexolab-platform/issues/1381) | `untracked` |
-| [#1382 — [NEXOLAB][P0] Diagnose RS-485 acceptance race and recover failed protected version authority](https://github.com/eNgine9r/nexolab-platform/issues/1382) | `untracked` |
-| [#1384 — [NEXOLAB][P0][RECOVERY] Verify failed update evidence and safely reconcile installed package authority](https://github.com/eNgine9r/nexolab-platform/issues/1384) | `untracked` |
-| [#1323 — [WP] Reconcile partial unified activation after verified agent recovery](https://github.com/eNgine9r/nexolab-platform/issues/1323) | `blocked` |
-| [#1317 — [WP] Record prepared unified update installation and privilege checkpoint](https://github.com/eNgine9r/nexolab-platform/issues/1317) | `untracked` |
-| [#1313 — [WP] Synchronize LAN and Google HTTPS releases and expose truthful update readiness](https://github.com/eNgine9r/nexolab-platform/issues/1313) | `blocked` |
-| [#1351 — Pin native worker Git trust to the configured site repository](https://github.com/eNgine9r/nexolab-platform/issues/1351) | `needs_validation` |
-| [#1349 — Constrain native version worker writes and verify protected update/rollback](https://github.com/eNgine9r/nexolab-platform/issues/1349) | `needs_validation` |
+| GitHub Issue                                                                                                                                                               | Current Sprint marker |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1587 — [RELEASE][WP] Prepare and verify protected Raspberry activation of commissioned Dixell labels](https://github.com/eNgine9r/nexolab-platform/issues/1587)          | `untracked`           |
+| [#1564 — [P0][FRONTEND] Fix nginx DynamicUser runuser validator blocking safe UI promotion](https://github.com/eNgine9r/nexolab-platform/issues/1564)                      | `review`              |
+| [#1569 — [BUG][ACCESS] Reauthenticate when the Users & Access session is lost](https://github.com/eNgine9r/nexolab-platform/issues/1569)                                   | `needs_validation`    |
+| [#1526 — [ACCESS][WP] Independently grant and enforce per-page access for local users](https://github.com/eNgine9r/nexolab-platform/issues/1526)                           | `ready`               |
+| [#1528 — [ACCESS][WP1] Add guarded per-page grant contracts and upgrade foundation](https://github.com/eNgine9r/nexolab-platform/issues/1528)                              | `untracked`           |
+| [#1530 — [ACCESS][WP2] Apply per-user page grants to navigation and direct page views](https://github.com/eNgine9r/nexolab-platform/issues/1530)                           | `untracked`           |
+| [#1523 — [WP] Enable named multi-user access through the protected Google gateway](https://github.com/eNgine9r/nexolab-platform/issues/1523)                               | `untracked`           |
+| [#1381 — [NEXOLAB][RELEASE] Safely activate fixed LAN runtime identity on Raspberry Pi](https://github.com/eNgine9r/nexolab-platform/issues/1381)                          | `untracked`           |
+| [#1382 — [NEXOLAB][P0] Diagnose RS-485 acceptance race and recover failed protected version authority](https://github.com/eNgine9r/nexolab-platform/issues/1382)           | `untracked`           |
+| [#1384 — [NEXOLAB][P0][RECOVERY] Verify failed update evidence and safely reconcile installed package authority](https://github.com/eNgine9r/nexolab-platform/issues/1384) | `untracked`           |
+| [#1323 — [WP] Reconcile partial unified activation after verified agent recovery](https://github.com/eNgine9r/nexolab-platform/issues/1323)                                | `blocked`             |
+| [#1317 — [WP] Record prepared unified update installation and privilege checkpoint](https://github.com/eNgine9r/nexolab-platform/issues/1317)                              | `untracked`           |
+| [#1313 — [WP] Synchronize LAN and Google HTTPS releases and expose truthful update readiness](https://github.com/eNgine9r/nexolab-platform/issues/1313)                    | `blocked`             |
+| [#1351 — Pin native worker Git trust to the configured site repository](https://github.com/eNgine9r/nexolab-platform/issues/1351)                                          | `needs_validation`    |
+| [#1349 — Constrain native version worker writes and verify protected update/rollback](https://github.com/eNgine9r/nexolab-platform/issues/1349)                            | `needs_validation`    |
 
 ### E5 — Підключення RS-485, енерголічильники, instrument registry (25)
 
-*Queue:* Після стабілізації приймання; ізольовані source-PR дозволені.
+_Queue:_ Після стабілізації приймання; ізольовані source-PR дозволені.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1429 — [P0][HARDWARE] Restore Embraco and SDM120 USB RS-485 identities after Pi enclosure relocation](https://github.com/eNgine9r/nexolab-platform/issues/1429) | `untracked` |
-| [#1126 — [RUNTIME][RS485] Restore missing rs485-main CP2104 0133F090 adapter](https://github.com/eNgine9r/nexolab-platform/issues/1126) | `blocked` |
-| [#1125 — [ANALOG][WAVESHARE] Discover 8CH Modbus RTU acquisition path for humidity and future 4–20 mA instruments](https://github.com/eNgine9r/nexolab-platform/issues/1125) | `blocked` |
-| [#585 — [RESTORE] Return LE-01MP W2 / Unit 201 to NEXOLAB after temporary external RS-485 ownership](https://github.com/eNgine9r/nexolab-platform/issues/585) | `blocked` |
-| [#201 — [WP] Validate LE-01MP cumulative energy, scale and rollover](https://github.com/eNgine9r/nexolab-platform/issues/201) | `needs_validation` |
-| [#202 — [WP] Validate extended XJP60D semantics and firmware portability](https://github.com/eNgine9r/nexolab-platform/issues/202) | `hardware_validation` |
-| [#17 — [Profiles] Сформувати versioned device profiles і register-map документацію](https://github.com/eNgine9r/nexolab-platform/issues/17) | `untracked` |
-| [#1518 — Integrate and validate SDM120M, Waveshare 8AI and Energy for Raspberry update](https://github.com/eNgine9r/nexolab-platform/issues/1518) | `untracked` |
-| [#1514 — Update dashboard acceptance for advanced onboarding after quick-add redesign](https://github.com/eNgine9r/nexolab-platform/issues/1514) | `review` |
-| [#1513 — Plan retirement of obsolete CP2104 bus bindings without losing device history](https://github.com/eNgine9r/nexolab-platform/issues/1513) | `blocked` |
-| [#1508 — [ENERGY] Support bus-scoped commissioned SDM120 meters without mixing history](https://github.com/eNgine9r/nexolab-platform/issues/1508) | `review` |
-| [#1505 — [ONBOARDING][RS485] Design persistent activation of free commissioning adapters](https://github.com/eNgine9r/nexolab-platform/issues/1505) | `review` |
-| [#1503 — [ONBOARDING][SDM120] Add Eastron SDM120M to standalone instrument setup](https://github.com/eNgine9r/nexolab-platform/issues/1503) | `review` |
-| [#1502 — [ONBOARDING][WAVESHARE] Add Waveshare 8CH (B) analog input to standalone setup](https://github.com/eNgine9r/nexolab-platform/issues/1502) | `review` |
-| [#1500 — Support section-addressed XJP60D modules without misattributing physical instruments](https://github.com/eNgine9r/nexolab-platform/issues/1500) | `untracked` |
-| [#1498 — Simplify instrument connections and open filtered live readings directly](https://github.com/eNgine9r/nexolab-platform/issues/1498) | `untracked` |
-| [#1496 — [ONBOARDING] Add named standalone instruments without creating or requiring refrigeration equipment](https://github.com/eNgine9r/nexolab-platform/issues/1496) | `untracked` |
-| [#1494 — [ONBOARDING] Search all devices on any connected adapter with response counts](https://github.com/eNgine9r/nexolab-platform/issues/1494) | `untracked` |
-| [#1492 — [ONBOARDING] Refresh adapter dropdown on USB connect/disconnect](https://github.com/eNgine9r/nexolab-platform/issues/1492) | `untracked` |
-| [#1490 — [ONBOARDING] One-page quick device setup for disposable lab testing](https://github.com/eNgine9r/nexolab-platform/issues/1490) | `untracked` |
-| [#1486 — [ONBOARDING][WP2B] Connect bounded XJP address search to authenticated wizard](https://github.com/eNgine9r/nexolab-platform/issues/1486) | `blocked` |
-| [#1482 — [ONBOARDING][WP2A] Bounded XJP60D read-only address-search foundation](https://github.com/eNgine9r/nexolab-platform/issues/1482) | `blocked` |
-| [#1481 — [ONBOARDING][WP2] Guided read-only Modbus address search on an isolated RS-485 adapter](https://github.com/eNgine9r/nexolab-platform/issues/1481) | `untracked` |
-| [#1478 — [DISCOVERY][UX] Simplify read-only device and RS-485 onboarding](https://github.com/eNgine9r/nexolab-platform/issues/1478) | `untracked` |
-| [#1520 — [ONBOARDING] Preserve adapter list after a commissioned bus becomes active](https://github.com/eNgine9r/nexolab-platform/issues/1520) | `untracked` |
+| GitHub Issue                                                                                                                                                                 | Current Sprint marker |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1429 — [P0][HARDWARE] Restore Embraco and SDM120 USB RS-485 identities after Pi enclosure relocation](https://github.com/eNgine9r/nexolab-platform/issues/1429)            | `untracked`           |
+| [#1126 — [RUNTIME][RS485] Restore missing rs485-main CP2104 0133F090 adapter](https://github.com/eNgine9r/nexolab-platform/issues/1126)                                      | `blocked`             |
+| [#1125 — [ANALOG][WAVESHARE] Discover 8CH Modbus RTU acquisition path for humidity and future 4–20 mA instruments](https://github.com/eNgine9r/nexolab-platform/issues/1125) | `blocked`             |
+| [#585 — [RESTORE] Return LE-01MP W2 / Unit 201 to NEXOLAB after temporary external RS-485 ownership](https://github.com/eNgine9r/nexolab-platform/issues/585)                | `blocked`             |
+| [#201 — [WP] Validate LE-01MP cumulative energy, scale and rollover](https://github.com/eNgine9r/nexolab-platform/issues/201)                                                | `needs_validation`    |
+| [#202 — [WP] Validate extended XJP60D semantics and firmware portability](https://github.com/eNgine9r/nexolab-platform/issues/202)                                           | `hardware_validation` |
+| [#17 — [Profiles] Сформувати versioned device profiles і register-map документацію](https://github.com/eNgine9r/nexolab-platform/issues/17)                                  | `untracked`           |
+| [#1518 — Integrate and validate SDM120M, Waveshare 8AI and Energy for Raspberry update](https://github.com/eNgine9r/nexolab-platform/issues/1518)                            | `untracked`           |
+| [#1514 — Update dashboard acceptance for advanced onboarding after quick-add redesign](https://github.com/eNgine9r/nexolab-platform/issues/1514)                             | `review`              |
+| [#1513 — Plan retirement of obsolete CP2104 bus bindings without losing device history](https://github.com/eNgine9r/nexolab-platform/issues/1513)                            | `blocked`             |
+| [#1508 — [ENERGY] Support bus-scoped commissioned SDM120 meters without mixing history](https://github.com/eNgine9r/nexolab-platform/issues/1508)                            | `review`              |
+| [#1505 — [ONBOARDING][RS485] Design persistent activation of free commissioning adapters](https://github.com/eNgine9r/nexolab-platform/issues/1505)                          | `review`              |
+| [#1503 — [ONBOARDING][SDM120] Add Eastron SDM120M to standalone instrument setup](https://github.com/eNgine9r/nexolab-platform/issues/1503)                                  | `review`              |
+| [#1502 — [ONBOARDING][WAVESHARE] Add Waveshare 8CH (B) analog input to standalone setup](https://github.com/eNgine9r/nexolab-platform/issues/1502)                           | `review`              |
+| [#1500 — Support section-addressed XJP60D modules without misattributing physical instruments](https://github.com/eNgine9r/nexolab-platform/issues/1500)                     | `untracked`           |
+| [#1498 — Simplify instrument connections and open filtered live readings directly](https://github.com/eNgine9r/nexolab-platform/issues/1498)                                 | `untracked`           |
+| [#1496 — [ONBOARDING] Add named standalone instruments without creating or requiring refrigeration equipment](https://github.com/eNgine9r/nexolab-platform/issues/1496)      | `untracked`           |
+| [#1494 — [ONBOARDING] Search all devices on any connected adapter with response counts](https://github.com/eNgine9r/nexolab-platform/issues/1494)                            | `untracked`           |
+| [#1492 — [ONBOARDING] Refresh adapter dropdown on USB connect/disconnect](https://github.com/eNgine9r/nexolab-platform/issues/1492)                                          | `untracked`           |
+| [#1490 — [ONBOARDING] One-page quick device setup for disposable lab testing](https://github.com/eNgine9r/nexolab-platform/issues/1490)                                      | `untracked`           |
+| [#1486 — [ONBOARDING][WP2B] Connect bounded XJP address search to authenticated wizard](https://github.com/eNgine9r/nexolab-platform/issues/1486)                            | `blocked`             |
+| [#1482 — [ONBOARDING][WP2A] Bounded XJP60D read-only address-search foundation](https://github.com/eNgine9r/nexolab-platform/issues/1482)                                    | `blocked`             |
+| [#1481 — [ONBOARDING][WP2] Guided read-only Modbus address search on an isolated RS-485 adapter](https://github.com/eNgine9r/nexolab-platform/issues/1481)                   | `untracked`           |
+| [#1478 — [DISCOVERY][UX] Simplify read-only device and RS-485 onboarding](https://github.com/eNgine9r/nexolab-platform/issues/1478)                                          | `untracked`           |
+| [#1520 — [ONBOARDING] Preserve adapter list after a commissioned bus becomes active](https://github.com/eNgine9r/nexolab-platform/issues/1520)                               | `untracked`           |
 
 ### E6 — Операторський UX, аудит сценаріїв і додаткові інтеграції (3)
 
-*Queue:* Після надійного базового моніторингу.
+_Queue:_ Після надійного базового моніторингу.
 
-| GitHub Issue | Current Sprint marker |
-| --- | --- |
-| [#1191 — [UX AUDIT] All-page operator workflow review and simplification evidence gate](https://github.com/eNgine9r/nexolab-platform/issues/1191) | `untracked` |
-| [#1300 — [UX AUDIT] Production operator Wave 2: Sessions to Reports read-only journey](https://github.com/eNgine9r/nexolab-platform/issues/1300) | `untracked` |
-| [#1571 — [CAMERA][DISCOVERY] Ajax local video feasibility and door-test evidence pilot](https://github.com/eNgine9r/nexolab-platform/issues/1571) | `untracked` |
+| GitHub Issue                                                                                                                                      | Current Sprint marker |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| [#1191 — [UX AUDIT] All-page operator workflow review and simplification evidence gate](https://github.com/eNgine9r/nexolab-platform/issues/1191) | `untracked`           |
+| [#1300 — [UX AUDIT] Production operator Wave 2: Sessions to Reports read-only journey](https://github.com/eNgine9r/nexolab-platform/issues/1300)  | `untracked`           |
+| [#1571 — [CAMERA][DISCOVERY] Ajax local video feasibility and door-test evidence pilot](https://github.com/eNgine9r/nexolab-platform/issues/1571) | `untracked`           |
 
 ## Open PR portfolio snapshot (all 46)
 
