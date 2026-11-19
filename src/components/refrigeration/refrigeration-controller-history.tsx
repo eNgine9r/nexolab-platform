@@ -13,8 +13,8 @@ import type { ChartXDomain } from "@/features/charts/domain";
 import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
+  buildEmbracoOperatorCelsiusScene,
   buildEmbracoProbeRawScene,
-  buildEmbracoTemperatureScene,
 } from "@/features/refrigeration/controller-chart";
 import {
   buildControllerAnalysisCsv,
@@ -126,8 +126,18 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
 
   const temperatureScene = useMemo(
     () =>
-      buildEmbracoTemperatureScene(controller.history, controller.range, controller.latest?.online ?? false),
-    [controller.history, controller.latest?.online, controller.range],
+      buildEmbracoOperatorCelsiusScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        controller.binding?.controllerEquipmentId ?? "",
+      ),
+    [
+      controller.history,
+      controller.latest?.online,
+      controller.range,
+      controller.binding?.controllerEquipmentId,
+    ],
   );
   const probeRawScene = useMemo(
     () => buildEmbracoProbeRawScene(controller.history, controller.range, controller.latest?.online ?? false),
@@ -418,23 +428,23 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
 
       <RefrigerationControllerChart
         title="Температури контролера · °C"
-        context="Температура в об’ємі · Датчик відтайки · Конденсатор · Уставка"
+        context="Температура в об’ємі · Датчик відтайки · операторський коефіцієнт 0,1"
         rangeLabel={chartRangeLabel}
         scene={temperatureScene}
         afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
         {...chartInteractions}
-        emptyMessage="Масштаб °C ще не підтверджено або у вибраному періоді немає достовірних значень. Нижче доступні сирі показники двох датчиків без перетворення в °C."
+        emptyMessage="У вибраному періоді немає показників двох датчиків для перерахунку °C."
       />
       <section
         className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 text-xs text-amber-200"
         data-testid="embraco-unverified-scale-note"
       >
-        Сирі показники датчиків наведено в одиницях Modbus-регістра, <strong>не °C</strong>. Графік °C вище
-        відображає лише значення зі статусом valid; без підтвердженого масштабу він залишиться порожнім.
-        Експорт CSV містить час, сирі показники та статус якості без вигаданих температур.
+        <strong>Температура в °C (коефіцієнт ×0,1)</strong> — масштаб задано оператором для Embraco Sync Unit
+        2; незалежна перевірка обладнання ще не проведена. У CSV розраховані °C наведені окремим стовпчиком з
+        позначкою походження, а вихідні raw і якість вимірювання збережено без змін.
       </section>
       <RefrigerationControllerChart
-        title="Показники датчиків · raw"
+        title="Діагностика · вихідні raw"
         context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"
         rangeLabel={chartRangeLabel}
         scene={probeRawScene}

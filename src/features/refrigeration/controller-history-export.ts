@@ -2,6 +2,12 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import type { CompressorRuntimeDuty, CompressorStartEvent } from "./compressor-runtime";
 import { decodeRelayBits, EMBRACO_METRICS } from "./controller-monitoring";
+import {
+  EMBRACO_KK1_OPERATOR_SCALE,
+  EMBRACO_KK1_OPERATOR_SCALE_BASIS,
+  isEmbracoProbeMetric,
+  operatorEmbracoCelsius,
+} from "./embraco-operator-scale";
 import type { RelayTransition } from "./controller-timeline";
 
 export type ControllerAnalysisExportRange = { fromMs: number; toMs: number };
@@ -33,6 +39,9 @@ type CsvRow = {
   source: string;
   raw_value: string;
   raw_signed: string;
+  operator_celsius_degC: string;
+  operator_scale_degC_per_count: string;
+  operator_scale_basis: string;
   raw_status: string;
   previous_timestamp_utc: string;
   previous_event_id: string;
@@ -56,6 +65,9 @@ const HEADERS: readonly (keyof CsvRow)[] = [
   "source",
   "raw_value",
   "raw_signed",
+  "operator_celsius_degC",
+  "operator_scale_degC_per_count",
+  "operator_scale_basis",
   "raw_status",
   "previous_timestamp_utc",
   "previous_event_id",
@@ -171,6 +183,7 @@ function telemetryRow(
   timeZone: string,
 ): CsvRow {
   const capturedAtMs = Date.parse(sample.captured_at);
+  const operatorCelsius = operatorEmbracoCelsius(sample);
   return {
     ...emptyRow(base),
     timestamp_utc: new Date(capturedAtMs).toISOString(),
@@ -187,24 +200,23 @@ function telemetryRow(
     source: sample.source,
     raw_value: sample.raw_value === null ? "" : String(sample.raw_value),
     raw_signed:
-      isProbeMetric(sample.metric) &&
+      isEmbracoProbeMetric(sample.metric) &&
       sample.raw_value !== null &&
       Number.isInteger(sample.raw_value) &&
       sample.raw_value >= 0 &&
       sample.raw_value <= 65535
         ? String(sample.raw_value >= 32768 ? sample.raw_value - 65536 : sample.raw_value)
         : "",
+    operator_celsius_degC: operatorCelsius === null ? "" : String(operatorCelsius),
+    operator_scale_degC_per_count: operatorCelsius === null ? "" : String(EMBRACO_KK1_OPERATOR_SCALE),
+    operator_scale_basis: operatorCelsius === null ? "" : EMBRACO_KK1_OPERATOR_SCALE_BASIS,
     raw_status: sample.raw_status === null ? "" : String(sample.raw_status),
-    note: isProbeMetric(sample.metric)
-      ? `${sample.metric === EMBRACO_METRICS.cabinet ? "Температура в об’ємі" : "Датчик відтайки"}; ${sample.quality === "valid" ? "підтверджене значення °C" : "масштаб °C не підтверджений; raw_signed у регістрах, не °C"}`
+    note: isEmbracoProbeMetric(sample.metric)
+      ? `${sample.metric === EMBRACO_METRICS.cabinet ? "Температура в об’ємі" : "Датчик відтайки"}; ${sample.quality === "valid" ? "підтверджене значення °C" : operatorCelsius === null ? "масштаб °C не підтверджений; raw_signed у регістрах, не °C" : "°C за коефіцієнтом 0,1 від оператора; апаратно не перевірено; source value/quality незмінні"}`
       : sample.metric === EMBRACO_METRICS.relays
         ? "Decoded relay states are included in state."
         : "",
   };
-}
-
-function isProbeMetric(metric: string): boolean {
-  return metric === EMBRACO_METRICS.cabinet || metric === EMBRACO_METRICS.evaporator;
 }
 
 function telemetryState(sample: TelemetrySample): string {
@@ -253,6 +265,9 @@ function emptyRow(base: Pick<CsvRow, "selected_from_utc" | "selected_to_utc">): 
     source: "",
     raw_value: "",
     raw_signed: "",
+    operator_celsius_degC: "",
+    operator_scale_degC_per_count: "",
+    operator_scale_basis: "",
     raw_status: "",
     previous_timestamp_utc: "",
     previous_event_id: "",

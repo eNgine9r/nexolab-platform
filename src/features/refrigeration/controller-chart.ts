@@ -9,6 +9,7 @@ import {
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { EMBRACO_METRICS, type RefrigerationHistoryRange } from "./controller-monitoring";
+import { EMBRACO_KK1_CONTROLLER_ID, operatorEmbracoCelsius } from "./embraco-operator-scale";
 
 const TEMPERATURE_NAMES = new Map<string, string>([
   [EMBRACO_METRICS.cabinet, "Температура в об’ємі"],
@@ -81,6 +82,55 @@ export function buildEmbracoTemperatureScene(
   const series = [...TEMPERATURE_NAMES.entries()].flatMap(([metric, name], index) => {
     const built = seriesFromSamples(history.get(metric) ?? [], name, index, online);
     return built ? [built] : [];
+  });
+  return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
+}
+
+/**
+ * Operator-scaled (0.1 °C/count), not independently hardware-verified.
+ * Unverified raw telemetry stays immutable and retains `quality: unknown` in storage.
+ * The synthetic `valid` quality exists ONLY in the chart renderer's local input,
+ * permitting a visibly labeled derived series without rewriting source evidence.
+ */
+export function buildEmbracoOperatorCelsiusScene(
+  history: ReadonlyMap<string, readonly TelemetrySample[]>,
+  range: RefrigerationHistoryRange,
+  online: boolean,
+  controllerEquipmentId: string,
+): ChartRendererScene {
+  if (controllerEquipmentId !== EMBRACO_KK1_CONTROLLER_ID) {
+    return { series: [], xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
+  }
+  const probes = [
+    [EMBRACO_METRICS.cabinet, "Температура в об’ємі"],
+    [EMBRACO_METRICS.evaporator, "Датчик відтайки"],
+  ] as const;
+  const series = probes.flatMap(([metric, name], index) => {
+    const displaySamples = (history.get(metric) ?? []).flatMap((sample) => {
+      const operatorCelsius = operatorEmbracoCelsius(sample);
+      if (operatorCelsius !== null) {
+        return [
+          {
+            ...sample,
+            value: operatorCelsius,
+            unit: "degC",
+            quality: "valid" as const,
+            channel_id: `${sample.channel_id}:operator-degC`,
+          },
+        ];
+      }
+      if (
+        sample.equipment_id === EMBRACO_KK1_CONTROLLER_ID &&
+        sample.quality === "valid" &&
+        sample.value !== null &&
+        Number.isFinite(sample.value)
+      ) {
+        return [{ ...sample, unit: "degC" }];
+      }
+      return [];
+    });
+    const built = seriesFromSamples(displaySamples, name, index, online);
+    return built ? [{ ...built, displayPrecision: 1 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
 }

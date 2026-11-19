@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { buildEmbracoProbeRawScene, buildEmbracoTemperatureScene } from "./controller-chart";
+import {
+  buildEmbracoOperatorCelsiusScene,
+  buildEmbracoProbeRawScene,
+  buildEmbracoTemperatureScene,
+} from "./controller-chart";
 import { EMBRACO_METRICS } from "./controller-monitoring";
 
 function sample(quality: TelemetrySample["quality"], value: number | null): TelemetrySample {
@@ -122,5 +126,72 @@ describe("buildEmbracoProbeRawScene", () => {
     expect(unverified.value).toBeNull();
     expect(unverified.quality).toBe("unknown");
     expect(buildEmbracoTemperatureScene(input, range, true).series).toEqual([]);
+  });
+});
+
+describe("buildEmbracoOperatorCelsiusScene", () => {
+  const range = { from: new Date("2026-11-19T15:00:00Z"), to: new Date("2026-11-19T15:05:00Z") };
+  const input = (
+    metric: string,
+    raw_value: number | null,
+    quality: TelemetrySample["quality"] = "unknown",
+  ): TelemetrySample => ({
+    ...sample(quality, null),
+    event_id: `operator-${metric}-${raw_value}`,
+    equipment_id: "EMBRACO-2",
+    source: "embraco-sync",
+    metric,
+    raw_value,
+  });
+
+  it("draws operator-interpreted cabinet and defrost temperatures in degC without changing source", () => {
+    const cabinet = input(EMBRACO_METRICS.cabinet, 42);
+    const defrost = input(EMBRACO_METRICS.evaporator, 65510);
+    const scene = buildEmbracoOperatorCelsiusScene(
+      new Map([
+        [EMBRACO_METRICS.cabinet, [cabinet]],
+        [EMBRACO_METRICS.evaporator, [defrost]],
+      ]),
+      range,
+      true,
+      "EMBRACO-2",
+    );
+    expect(scene.series.map((series) => series.name)).toEqual(["Температура в об’ємі", "Датчик відтайки"]);
+    expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual(["degC", "degC"]);
+    expect(scene.series.map((series) => series.displayPrecision)).toEqual([1, 1]);
+    expect(scene.series.map((series) => series.segments[0]?.points[0]?.value)).toEqual([4.2, -2.6]);
+    expect(cabinet.quality).toBe("unknown");
+    expect(cabinet.value).toBeNull();
+    expect(defrost.value).toBeNull();
+  });
+
+  it("fails closed on other binding identities and bad-quality data", () => {
+    const wrong = input(EMBRACO_METRICS.cabinet, 42);
+    const error = input(EMBRACO_METRICS.evaporator, 65510, "communication_error");
+    const history = new Map([
+      [EMBRACO_METRICS.cabinet, [wrong]],
+      [EMBRACO_METRICS.evaporator, [error]],
+    ]);
+    expect(buildEmbracoOperatorCelsiusScene(history, range, true, "EMBRACO-96").series).toEqual([]);
+    expect(buildEmbracoOperatorCelsiusScene(history, range, true, "EMBRACO-2").series).toHaveLength(1);
+    expect(
+      buildEmbracoOperatorCelsiusScene(
+        new Map([[EMBRACO_METRICS.cabinet, [{ ...wrong, equipment_id: "EMBRACO-96" }]]]),
+        range,
+        true,
+        "EMBRACO-2",
+      ).series,
+    ).toEqual([]);
+  });
+
+  it("retains valid source engineering value rather than overriding it with operator estimate", () => {
+    const valid = { ...input(EMBRACO_METRICS.cabinet, 42, "valid"), value: 3.7 };
+    const scene = buildEmbracoOperatorCelsiusScene(
+      new Map([[EMBRACO_METRICS.cabinet, [valid]]]),
+      range,
+      true,
+      "EMBRACO-2",
+    );
+    expect(scene.series[0]?.segments[0]?.points[0]?.value).toBe(3.7);
   });
 });

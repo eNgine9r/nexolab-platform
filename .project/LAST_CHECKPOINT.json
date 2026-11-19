@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T15:24:39Z",
+  "timestamp": "2026-11-19T15:59:20Z",
   "actor": "ChatGPT",
-  "event": "1607_oauth_gated_https_embraco_charts_activated_site_verified",
+  "event": "1609_operator_celsius_provenance_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,10 @@
     "protected_frontend_build_id": "qe-NDhbsh-6WHXhvG0luq"
   },
   "active_work": {
-    "issue": 1607,
-    "branch": "ops/1607-https-embraco-activation-evidence",
+    "issue": 1609,
+    "branch": "feature/1609-embraco-operator-celsius",
     "status": "needs_validation",
-    "site_cutover": true
+    "site_cutover": false
   },
   "evidence_snapshot": {
     "issue_1596_board_reconciliation": {
@@ -3597,6 +3597,18 @@
       "reboot_offline": "NOT VERIFIED",
       "temperature_units": "RAW signed 16-bit registers; unverified Celsius mapping",
       "release_authority_followup_issue": 1606
+    },
+    "issue_1609_operator_celsius": {
+      "input": "Product Owner sets coefficient 0.1 without HMI photo (2026-11-19)",
+      "original_source_quality": "unchanged unknown and value null; no rewrite",
+      "derived_celsius_in_csv": "separate operator_celsius_degC, multiplier and basis",
+      "provenance": "operator_confirmed_hardware_unverified",
+      "scope": "EMBRACO-2, cabinet and evaporator probes only",
+      "source_main_baseline": "5434f0f14b0960630b4e436b6c5f45599b5ee5a8",
+      "source_validation": "25 target tests PASS; tsc noemit PASS; touched-file ESLint PASS",
+      "site_runtime_status": "previously deployed LAN/HTTPS on source edd04b4a unchanged; new conversion NOT DEPLOYED",
+      "no_modbus_or_db_write": true,
+      "real_hardware_scale_verified": false
     }
   },
   "observations": [
@@ -5227,7 +5239,7 @@
       }
     }
   ],
-  "next_action": "Owner: sign in to https://nexolab-edge-01.tail7f9b04.ts.net/ and verify KK1 controller Graphs: cabinet/defrost raw traces, 1h/12h/24h/custom history and CSV export. No Celsius acceptance until HMI/device scale. Independent Ready work: #1606 preserve frontend source/version authority across offline restart, with owner-approved controlled reboot. Keep current autonomous Sprint selection #1460 unchanged.",
+  "next_action": "Issue #1609 feature branch: finish source verification, exact-head CI GREEN and off-device ARM64 LAN/HTTPS builds; then separately perform bounded frontend-only LAN + protected HTTPS site rollout and browser acceptance, preserving raw telemetry and old rollback images. Do not claim physically verified Celsius without HMI calibration evidence. Existing global Sprint selection #1460 unaffected.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5236,7 +5248,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner-approved HTTPS frontend-only user-systemd service #1607 on loopback port 3105, alongside earlier scoped LAN Dashboard-only #1603. Existing Google OAuth gateway, Tailscale, backend Docker, DB and hardware unchanged. First failed attempt rolled back; second verified activation GREEN.",
+  "runtime_mutation": "NONE for #1609 source-only stage; current LAN+HTTPS production is previously activated #1603/#1607 release.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
