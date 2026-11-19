@@ -139,12 +139,21 @@ export async function loadEmbracoHistory(
   range: RefrigerationHistoryRange,
   signal?: AbortSignal,
 ): Promise<Map<string, TelemetrySample[]>> {
+  // The same physical Embraco can be moved between assets. Never attribute
+  // history captured before this binding to the new refrigeration equipment.
+  const boundAtMs = Date.parse(binding.boundAt);
+  if (!Number.isFinite(boundAtMs)) throw new Error("Invalid controller binding timestamp");
+  const fromMs = Math.max(range.from.getTime(), boundAtMs);
+  if (fromMs >= range.to.getTime()) {
+    return new Map<string, TelemetrySample[]>(EMBRACO_HISTORY_METRICS.map((metric) => [metric, []]));
+  }
+  const boundRange = { from: new Date(fromMs), to: range.to };
   const entries = await Promise.all(
     EMBRACO_HISTORY_METRICS.map(async (metric) => {
       const result = await loadCompleteTelemetryHistory(
         adapter,
         { node_id: binding.nodeId, equipment_id: binding.controllerEquipmentId, metric },
-        range,
+        boundRange,
         { signal },
       );
       return [metric, result.samples] as const;

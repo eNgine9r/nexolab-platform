@@ -355,6 +355,8 @@ test("renders the read-only Embraco digital twin without fabricating temperature
     },
   );
   expect(bindingResponse.status()).toBe(200);
+  const newBinding = (await bindingResponse.json()) as { bound_at: string };
+  expect(Number.isFinite(Date.parse(newBinding.bound_at))).toBe(true);
 
   await page.goto(absoluteRoute("/refrigeration"), { waitUntil: "networkidle" });
   const controllerSummary = page.getByTestId(`controller-summary-${equipment.id}`);
@@ -398,50 +400,25 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   for (const period of ["1 год", "12 год", "24 год", "Кастом"]) {
     await expect(history.getByRole("button", { name: period, exact: true })).toBeVisible();
   }
+  // This equipment is bound *after* the preloaded controller samples were captured.
+  // Historical KK2 readings must never appear as fresh/owned by this new asset.
   const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
-  await expect(duty).toContainText(/\d+\.\d %/);
-  await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
-  await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
-  await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
-  const relayLanes = history.getByTestId("relay-analysis-lanes");
-  await expect(relayLanes.getByText("Відтайка", { exact: true })).toBeVisible();
+  await expect(duty).toBeVisible();
+  await expect(history.getByText(/Масштаб °C ще не підтверджено/)).toBeVisible();
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText("не °C");
+  await expect(
+    history.locator(
+      '[data-testid="refrigeration-controller-chart"][data-chart-title="Показники датчиків · raw"]',
+    ),
+  ).toBeVisible();
+  await expect(history.getByTestId("refrigeration-controller-chart")).toHaveCount(3);
   await expect(history.getByText("Тривалість відтайки", { exact: true })).toBeVisible();
-  for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
-    await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
-  }
   await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
-  await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
 
-  const compressorChart = history.locator(
-    '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
-  );
-  const compressorHost = compressorChart.getByTestId("chart-renderer-host");
-  const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
-  await expect(compressorHost).toHaveAttribute("data-range-selection-enabled", "true");
-  await compressorSurface.scrollIntoViewIfNeeded();
-  await expect(compressorSurface).toBeInViewport();
-  const compressorBounds = await compressorSurface.boundingBox();
-  expect(compressorBounds).not.toBeNull();
-  if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");
-  const selectionY = compressorBounds.y + compressorBounds.height * 0.5;
-  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.3, selectionY);
-  await page.mouse.down();
-  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
-  await page.mouse.up();
-  await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
-  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
-
-  const selectedFrom = await compressorSurface.getAttribute("data-range-selection-from-ms");
-  const selectedTo = await compressorSurface.getAttribute("data-range-selection-to-ms");
-  if (!selectedFrom || !selectedTo) throw new Error("Selected interval is unavailable");
-  await history.getByRole("button", { name: "Наблизити відрізок", exact: true }).click();
-  for (const surface of [compressorHost, relayLanes]) {
-    await expect(surface).toHaveAttribute("data-chart-x-domain-from-ms", selectedFrom);
-    await expect(surface).toHaveAttribute("data-chart-x-domain-to-ms", selectedTo);
-  }
-
+  // Export is still available for the selected interval, but must not leak
+  // old controller rows into the newly bound refrigeration equipment history.
   const downloadPromise = page.waitForEvent("download");
-  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  await history.getByRole("button", { name: "Експорт CSV", exact: true }).click();
   const csvDownload = await downloadPromise;
   expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
   const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
@@ -449,18 +426,17 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   const controllerCsv = readFileSync(controllerExportPath, "utf8");
   expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
   expect(controllerCsv).toContain("compressor.start_count");
-  expect(controllerCsv).toContain("controller.relay_state_bits");
-  expect(controllerCsv).toContain("relay_transition");
-  const csvLines = controllerCsv
+  expect(controllerCsv).toContain("raw_value,raw_signed,raw_status");
+  // The seed may include fresh samples during browser acceptance, but no event
+  // captured while the controller belonged to a previous refrigeration asset.
+  const exportedTelemetry = controllerCsv
     .replace(/^\uFEFF/, "")
-    .trim()
-    .split(/\r?\n/);
-  const selectedRangeColumns = csvLines[1]?.split(",") ?? [];
-  expect(Date.parse(selectedRangeColumns[1] ?? "") - Date.parse(selectedRangeColumns[0] ?? "")).toBeLessThan(
-    60 * 60 * 1000,
-  );
-
-  await history.getByRole("button", { name: "Скинути вибір", exact: true }).click();
+    .split(/\r?\n/)
+    .map((line) => line.split(","))
+    .filter((cells) => cells[4] === "telemetry");
+  for (const cells of exportedTelemetry) {
+    expect(Date.parse(cells[2] ?? "")).toBeGreaterThanOrEqual(Date.parse(newBinding.bound_at));
+  }
   await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
 
   await history.getByRole("button", { name: "Кастом", exact: true }).click();

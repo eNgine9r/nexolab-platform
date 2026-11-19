@@ -154,13 +154,13 @@ function startsCard(): HTMLElement {
 describe("RefrigerationControllerHistory selected analysis range", () => {
   it("shares one cursor timestamp across both controller charts and clears stale range cursors", async () => {
     const { rerender } = render(<RefrigerationControllerHistory controller={controllerModel()} />);
-    const temperature = screen.getByTestId("mock-chart-container-Температури контролера");
+    const temperature = screen.getByTestId("mock-chart-container-Температури контролера · °C");
     const compressor = screen.getByTestId("mock-chart-container-Швидкість компресора");
 
     expect(temperature).toHaveAttribute("data-shared-cursor", "");
     expect(compressor).toHaveAttribute("data-shared-cursor", "");
 
-    fireEvent.click(screen.getByTestId("mock-cursor-Температури контролера"));
+    fireEvent.click(screen.getByTestId("mock-cursor-Температури контролера · °C"));
     const sharedTimestamp = String(range.from.getTime() + 60_000);
     expect(temperature).toHaveAttribute("data-shared-cursor", sharedTimestamp);
     expect(compressor).toHaveAttribute("data-shared-cursor", sharedTimestamp);
@@ -181,7 +181,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("mock-chart-container-Температури контролера")).toHaveAttribute(
+      expect(screen.getByTestId("mock-chart-container-Температури контролера · °C")).toHaveAttribute(
         "data-shared-cursor",
         "",
       ),
@@ -230,13 +230,13 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     ]);
     render(<RefrigerationControllerHistory controller={{ ...controller, history }} />);
 
-    const temperature = screen.getByTestId("mock-chart-container-Температури контролера");
+    const temperature = screen.getByTestId("mock-chart-container-Температури контролера · °C");
     const rpm = screen.getByTestId("mock-chart-container-Швидкість компресора");
     const lanes = screen.getByTestId("relay-analysis-lanes");
     const selectedEnd = String(range.from.getTime() + 60_000);
     const fullEnd = String(range.to.getTime());
 
-    fireEvent.click(screen.getByTestId("mock-chart-Температури контролера"));
+    fireEvent.click(screen.getByTestId("mock-chart-Температури контролера · °C"));
     expect(rpm).toHaveAttribute("data-selection-to-ms", selectedEnd);
     expect(lanes).toHaveAttribute("data-chart-x-domain-to-ms", fullEnd);
     expect(screen.getByText("Тривалість відтайки").closest("article")).toHaveTextContent("30 с");
@@ -270,7 +270,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
 
     fireEvent.click(screen.getByTestId("mock-chart-Швидкість компресора"));
     await waitFor(() => expect(startsCard()).toHaveTextContent("0"));
-    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Експорт CSV" }));
 
     expect(download).toHaveBeenCalledTimes(1);
     const argument = download.mock.calls[0]?.[0];
@@ -292,7 +292,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
 
     expect(dutyCard()).toHaveTextContent("—");
     expect(startsCard()).toHaveTextContent("—");
-    const exportButton = screen.getByRole("button", { name: "Export CSV" });
+    const exportButton = screen.getByRole("button", { name: "Експорт CSV" });
     expect(exportButton).toBeDisabled();
     fireEvent.click(exportButton);
     expect(download).not.toHaveBeenCalled();
@@ -306,7 +306,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("history failed");
     expect(dutyCard()).toHaveTextContent("—");
     expect(startsCard()).toHaveTextContent("—");
-    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Експорт CSV" })).toBeDisabled();
   });
 
   it("clears a stale sub-selection when the loaded history range changes", async () => {
@@ -328,5 +328,24 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
       expect(screen.getByTestId("compressor-analysis-range")).toHaveTextContent("Повний період"),
     );
     expect(screen.queryByRole("button", { name: "Скинути вибір" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Embraco probe history and CSV UI", () => {
+  it("shows a separate clearly marked raw probe chart with the same history range", () => {
+    const model = controllerModel();
+    render(<RefrigerationControllerHistory controller={model} />);
+    expect(screen.getByTestId("embraco-unverified-scale-note")).toHaveTextContent(
+      "Сирі показники датчиків наведено в одиницях Modbus-регістра",
+    );
+    expect(screen.getByTestId("mock-chart-container-Показники датчиків · raw")).toHaveAttribute(
+      "data-chart-x-domain-to-ms",
+      String(range.to.getTime()),
+    );
+    fireEvent.click(screen.getByTestId("mock-cursor-Показники датчиків · raw"));
+    expect(screen.getByTestId("mock-chart-container-Швидкість компресора")).toHaveAttribute(
+      "data-shared-cursor",
+      String(range.from.getTime() + 60_000),
+    );
   });
 });

@@ -32,6 +32,7 @@ type CsvRow = {
   event_id: string;
   source: string;
   raw_value: string;
+  raw_signed: string;
   raw_status: string;
   previous_timestamp_utc: string;
   previous_event_id: string;
@@ -54,6 +55,7 @@ const HEADERS: readonly (keyof CsvRow)[] = [
   "event_id",
   "source",
   "raw_value",
+  "raw_signed",
   "raw_status",
   "previous_timestamp_utc",
   "previous_event_id",
@@ -61,6 +63,8 @@ const HEADERS: readonly (keyof CsvRow)[] = [
 ];
 
 const EXPORTED_TELEMETRY_METRICS = [
+  EMBRACO_METRICS.cabinet,
+  EMBRACO_METRICS.evaporator,
   EMBRACO_METRICS.compressorSpeed,
   EMBRACO_METRICS.controlState,
   EMBRACO_METRICS.relays,
@@ -182,9 +186,25 @@ function telemetryRow(
     event_id: sample.event_id,
     source: sample.source,
     raw_value: sample.raw_value === null ? "" : String(sample.raw_value),
+    raw_signed:
+      isProbeMetric(sample.metric) &&
+      sample.raw_value !== null &&
+      Number.isInteger(sample.raw_value) &&
+      sample.raw_value >= 0 &&
+      sample.raw_value <= 65535
+        ? String(sample.raw_value >= 32768 ? sample.raw_value - 65536 : sample.raw_value)
+        : "",
     raw_status: sample.raw_status === null ? "" : String(sample.raw_status),
-    note: sample.metric === EMBRACO_METRICS.relays ? "Decoded relay states are included in state." : "",
+    note: isProbeMetric(sample.metric)
+      ? `${sample.metric === EMBRACO_METRICS.cabinet ? "Температура в об’ємі" : "Датчик відтайки"}; ${sample.quality === "valid" ? "підтверджене значення °C" : "масштаб °C не підтверджений; raw_signed у регістрах, не °C"}`
+      : sample.metric === EMBRACO_METRICS.relays
+        ? "Decoded relay states are included in state."
+        : "",
   };
+}
+
+function isProbeMetric(metric: string): boolean {
+  return metric === EMBRACO_METRICS.cabinet || metric === EMBRACO_METRICS.evaporator;
 }
 
 function telemetryState(sample: TelemetrySample): string {
@@ -232,6 +252,7 @@ function emptyRow(base: Pick<CsvRow, "selected_from_utc" | "selected_to_utc">): 
     event_id: "",
     source: "",
     raw_value: "",
+    raw_signed: "",
     raw_status: "",
     previous_timestamp_utc: "",
     previous_event_id: "",

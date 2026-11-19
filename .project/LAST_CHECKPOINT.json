@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T13:33:09Z",
+  "timestamp": "2026-11-19T13:55:59Z",
   "actor": "ChatGPT",
-  "event": "1601_same_physical_embraco_moved_to_KK1_persisted_live_telemetry_verified",
+  "event": "1603_embraco_raw_probe_charts_traceable_csv_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3551,6 +3551,28 @@
       "device_agent_restart": "healthy",
       "browser_recheck": "pending",
       "temperature_sensor_acceptance": "unverified"
+    },
+    "issue_1603_temp_probe_chart_export": {
+      "work_package": 1603,
+      "branch": "feature/1603-embraco-probes-chart-export",
+      "source_only": true,
+      "site_cutover": false,
+      "two_traces": [
+        "temperature.cabinet",
+        "temperature.evaporator"
+      ],
+      "raw_sample_quality": "unverified degC values remain null/unknown; display raw as its own unit",
+      "verified_tests": "27/27 targeted; 271/271 refrigeration module",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "typecheck": "PASS",
+      "csv": "UTC+local time, value, quality, 16-bit raw, signed raw, channel/event identifiers",
+      "history_scope": "KK1 from active binding timestamp, earlier KK2 remains PostgreSQL history",
+      "ci": "PENDING",
+      "production_deployment": "NOT_PERFORMED",
+      "temperature_scale": "UNVERIFIED",
+      "modbus_writes": "none",
+      "hardware_writes": "none"
     }
   },
   "observations": [
@@ -5181,7 +5203,7 @@
       }
     }
   ],
-  "next_action": "Completed Issue #1601 site transfer. Current Sprint #1585 source work remains separate. Inspect the CoolesSlim VCC L1250 / KK1 UI using authenticated browser, investigate 9 unknown temperature inputs and brief FTDI USB disconnect; verify offline/restart recovery and Docker LAN overlapping CIDR in separate #1399/#1409. Avoid re-activating previously failed quick-onboarding sessions. No further site cutover authorized.",
+  "next_action": "Review and run exact-head GitHub CI for feature/1603-embraco-probes-chart-export / Issue #1603. Merge source only after required GREEN. Raspberry Pi site remains unchanged; verified Celsius requires contemporaneous HMI reference/physical sensor-scale evidence before updating EMBRACO_TEMPERATURE_SCALE. Preserve active Sprint #1460 and historical KK2 telemetry. Protected site cutover requires explicit Product Owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5190,7 +5212,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Product Owner explicitly requested same physical Embraco Sync Unit 2 transfer KK2 -> KK1. Bounded audited live Edge registry migration+restart, PostgreSQL binding soft-unbind/rebind, one read-only activation, preserved historical telemetry; no Modbus or hardware writes.",
+  "runtime_mutation": "None in Issue #1603: code/tests/docs edited only in isolated source feature worktree. Existing Embraco production acquisition left unchanged.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

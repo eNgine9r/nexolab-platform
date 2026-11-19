@@ -13,6 +13,7 @@ import type { ChartXDomain } from "@/features/charts/domain";
 import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
+  buildEmbracoProbeRawScene,
   buildEmbracoTemperatureScene,
 } from "@/features/refrigeration/controller-chart";
 import {
@@ -126,6 +127,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   const temperatureScene = useMemo(
     () =>
       buildEmbracoTemperatureScene(controller.history, controller.range, controller.latest?.online ?? false),
+    [controller.history, controller.latest?.online, controller.range],
+  );
+  const probeRawScene = useMemo(
+    () => buildEmbracoProbeRawScene(controller.history, controller.range, controller.latest?.online ?? false),
     [controller.history, controller.latest?.online, controller.range],
   );
   const compressorScene = useMemo(
@@ -346,7 +351,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
             className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 text-xs text-cyan-100 outline-none hover:bg-cyan-400/10 focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-3.5 w-3.5" />
-            Export CSV
+            Експорт CSV
           </button>
           {selectedAnalysisDomain ? (
             <button
@@ -412,13 +417,29 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       </div>
 
       <RefrigerationControllerChart
-        title="Температури контролера"
-        context="Cabinet · Evaporator · Condenser · Setpoint"
+        title="Температури контролера · °C"
+        context="Температура в об’ємі · Датчик відтайки · Конденсатор · Уставка"
         rangeLabel={chartRangeLabel}
         scene={temperatureScene}
         afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
         {...chartInteractions}
-        emptyMessage="Температурний scale ще не підтверджений або в обраному періоді немає valid °C даних. Raw регістри не візуалізуються як температура."
+        emptyMessage="Масштаб °C ще не підтверджено або у вибраному періоді немає достовірних значень. Нижче доступні сирі показники двох датчиків без перетворення в °C."
+      />
+      <section
+        className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 text-xs text-amber-200"
+        data-testid="embraco-unverified-scale-note"
+      >
+        Сирі показники датчиків наведено в одиницях Modbus-регістра, <strong>не °C</strong>. Графік °C вище
+        відображає лише значення зі статусом valid; без підтвердженого масштабу він залишиться порожнім.
+        Експорт CSV містить час, сирі показники та статус якості без вигаданих температур.
+      </section>
+      <RefrigerationControllerChart
+        title="Показники датчиків · raw"
+        context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"
+        rangeLabel={chartRangeLabel}
+        scene={probeRawScene}
+        {...chartInteractions}
+        emptyMessage="За вибраний період немає вихідних регістрів двох датчиків."
       />
       <RefrigerationControllerChart
         title="Швидкість компресора"

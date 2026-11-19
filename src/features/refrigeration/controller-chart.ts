@@ -11,10 +11,10 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 import { EMBRACO_METRICS, type RefrigerationHistoryRange } from "./controller-monitoring";
 
 const TEMPERATURE_NAMES = new Map<string, string>([
-  [EMBRACO_METRICS.cabinet, "Cabinet"],
-  [EMBRACO_METRICS.evaporator, "Evaporator"],
-  [EMBRACO_METRICS.condenser, "Condenser"],
-  [EMBRACO_METRICS.setpoint, "Setpoint"],
+  [EMBRACO_METRICS.cabinet, "Температура в об’ємі"],
+  [EMBRACO_METRICS.evaporator, "Датчик відтайки"],
+  [EMBRACO_METRICS.condenser, "Конденсатор"],
+  [EMBRACO_METRICS.setpoint, "Уставка"],
 ]);
 
 function timestamp(sample: TelemetrySample): number {
@@ -81,6 +81,44 @@ export function buildEmbracoTemperatureScene(
   const series = [...TEMPERATURE_NAMES.entries()].flatMap(([metric, name], index) => {
     const built = seriesFromSamples(history.get(metric) ?? [], name, index, online);
     return built ? [built] : [];
+  });
+  return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
+}
+
+/**
+ * Physical signed FC03 register readings, NOT engineering degrees Celsius.
+ * The original unknown-quality °C samples remain unmodified in telemetry and CSV.
+ * This separate raw-unit scene is only for diagnostics until an approved scale exists.
+ */
+export function buildEmbracoProbeRawScene(
+  history: ReadonlyMap<string, readonly TelemetrySample[]>,
+  range: RefrigerationHistoryRange,
+  online: boolean,
+): ChartRendererScene {
+  const probes = [
+    [EMBRACO_METRICS.cabinet, "Температура в об’ємі · raw"],
+    [EMBRACO_METRICS.evaporator, "Датчик відтайки · raw"],
+  ] as const;
+  const series = probes.flatMap(([metric, name], index) => {
+    const rawSamples = (history.get(metric) ?? [])
+      .filter(
+        (sample) =>
+          (sample.quality === "valid" || sample.quality === "unknown") &&
+          sample.raw_value !== null &&
+          Number.isInteger(sample.raw_value) &&
+          sample.raw_value >= 0 &&
+          sample.raw_value <= 65535,
+      )
+      .map((sample) => ({
+        ...sample,
+        value: sample.raw_value! >= 32768 ? sample.raw_value! - 65536 : sample.raw_value!,
+        unit: "raw",
+        // The validated raw reading is distinct from the unverified Celsius value.
+        quality: "valid" as const,
+        channel_id: `${sample.channel_id}:raw`,
+      }));
+    const built = seriesFromSamples(rawSamples, name, index, online);
+    return built ? [{ ...built, displayPrecision: 0 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
 }
