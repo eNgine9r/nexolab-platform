@@ -11318,6 +11318,34 @@
         "sprint_selection": "#1460 unchanged",
         "modbus_writes": "NONE"
       }
+    },
+    {
+      "issue": 1617,
+      "title": "Security: rebuild fixed VersityGW object-storage binary with official Go 1.27.4 SHA256 pins",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "security/1617-go-1274-object-storage",
+      "depends_on": [],
+      "scope": "Only infrastructure/object-storage/Dockerfile pinned security Go patch; no object storage production deployment, dependency upgrades beyond Go patch, modifications to volume or endpoint. A separate focused security source PR unblocks #1616 Go stdlib CVE CI gate.",
+      "permitted_paths": [
+        "infrastructure/object-storage/Dockerfile",
+        "tests/test_object_storage_supply_contract.py",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1617",
+        "build_reproduction": "PR #1616 Container Supply Chain run 44608818848: HIGH CVE-2026-97054 usr/local/bin/versitygw go stdlib v1.27.3",
+        "sha256_source": "go.dev/dl/?mode=json publicly verified both architecture tarball hashes",
+        "Go_patch": "1.27.4 from 1.27.3; x/net v0.62.0 unchanged, VersityGW commit unchanged",
+        "runtime": "NONE; source-only; no site cutover",
+        "checks": {
+          "official_sha256": "Go 1.27.4 SHA256 amd64/arm64 verified via go.dev/dl/?mode=json",
+          "local_contracts": "8/8 focused object storage and packaging pytest PASS",
+          "first_ci": "previous source head had an expected old-Go version assertion in test; replaced with exact newly verified Go 1.27.4 pins",
+          "exact_head_ci": "pending new source sha and supply-chain scan"
+        },
+        "hardware": "No device writes"
+      }
     }
   ],
   "maintenance_actions": [

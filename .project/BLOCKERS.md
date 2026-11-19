@@ -1,3 +1,7 @@
+## 2026-11-19 — #1617 high-severity upstream VersityGW Go vulnerability blocks #1616 merge
+
+Container Supply Chain job 135862419900 (run 44608818848, PR #1616 source `9cfd8979...`) blocked **HIGH CVE-2026-97054** in VersityGW binary Go stdlib `1.27.3` (fixed in Go 1.27.4). Required NEXOLAB Merge Gate correctly failed. Do not whitelist, downgrade or merge #1616 while red. Focused Issue #1617 pins Go 1.27.4 and official architecture checksums, requires successful fresh image scan and exact-head CI. No storage/site cutover. Independently, #1616 had outdated CSV header expectation in E2E; corrected in its new branch head `567d431fd3e484895fd440250303b967c8b547c2`; new CI still subject to the same security gate until #1617 merges. Running Telemetry API stays unchanged.
+
 ## 2026-11-19 — #1613 Saved Dashboard update and CSV acceptance gates
 
 Exact 4→3 series correction was verified by local authorized read-only API but not applied pending complete source CI/rollout and safe versioned `If-Match` PUT with backup and audit. Display-only °C chart preserves source `unknown` and original raw. Existing server Saved Dashboard CSV still exports blank source `value` for unknown temperature samples; requires separately reviewed backend exporter/runtime acceptance, never silent backend mutation during frontend patch. Hardware scale unverified, authenticated mobile browser and offline reboot proof remain pending.

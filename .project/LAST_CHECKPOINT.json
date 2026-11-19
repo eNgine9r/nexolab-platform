@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T19:29:36Z",
+  "timestamp": "2026-11-19T20:38:39Z",
   "actor": "ChatGPT",
-  "event": "1613_saved_live_embraco_three_series_source_candidate",
+  "event": "1617_versitygw_go_1274_security_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1613,
-    "branch": "feature/1613-live-embraco-three-series",
+    "issue": 1617,
+    "branch": "security/1617-go-1274-object-storage",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3632,6 +3632,20 @@
       "api_export": "server still emits source value null; not remediated by frontend-only scope",
       "storage_mutation": "NONE",
       "hardware_write": false
+    },
+    "issue_1617_versitygw_go_cve": {
+      "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1617",
+      "source_baseline": "0516cd6181167486613ad96333938c497e640d3e",
+      "fixed_go": "1.27.4",
+      "previous_go": "1.27.3",
+      "sha256_amd64": "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840",
+      "sha256_arm64": "3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92",
+      "checksum_authority": "https://go.dev/dl/?mode=json verified",
+      "ci_blocker": "unapproved HIGH CVE-2026-97054 in Go stdlib usr/local/bin/versitygw",
+      "required_outcome": "Fresh fixed image trivy + full required merge gate GREEN",
+      "runtime": "SOURCE ONLY; no object storage cutover, never relax vulnerability policy",
+      "local_tests": "8/8 object-storage and telemetry packaging regression tests PASS",
+      "old_pin_test_fixed": "tests/test_object_storage_supply_contract.py now checks Go 1.27.4 and its verified official amd64/arm64 archives"
     }
   },
   "observations": [
@@ -5262,7 +5276,7 @@
       }
     }
   ],
-  "next_action": "Exact-head PR CI and SHA256 ARM64 dual frontend release. Then activate only stateless LAN Dashboard and OAuth-gated HTTPS UI; owner-authorized exact v2→v3 saved dashboard PUT through existing RBAC/audit API, restore snapshot on failure. Check correct lines and RPM; CSV server scaling is a separate backend WP. #1606 offline reboot still pending.",
+  "next_action": "Complete #1617 exact-head CI and merge if required checks all green; then fresh #1616 backend CSV PR from updated main with corrected E2E contract and full CI; backend site cutover requires independent owner authorization and rollback.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5271,7 +5285,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NONE under #1613 source work. Live site remains earlier approved frontend.",
+  "runtime_mutation": "NONE in #1617. Existing running site unchanged. Previous #1613 frontend-only release remains active.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
