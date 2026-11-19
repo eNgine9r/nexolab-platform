@@ -718,7 +718,9 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await download.saveAs(exportPath);
     const csv = readFileSync(exportPath, "utf8");
     expect(csv.split("\n")[0]).toBe(
-      "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id",
+      "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id," +
+        "raw_value,raw_signed_int16,operator_celsius_degC,operator_scale_degC_per_count," +
+        "operator_scale_basis",
     );
     expect(csv.trim().split("\n").length).toBeGreaterThan(1);
     expect(
