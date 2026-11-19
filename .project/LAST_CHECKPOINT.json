@@ -42,7 +42,15 @@
       "reviewed_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
       "open_issues_before": 79,
       "open_pull_requests": 46,
-      "source_issues_closed": [1594, 1592, 1590, 1583, 1479, 1431, 1525],
+      "source_issues_closed": [
+        1594,
+        1592,
+        1590,
+        1583,
+        1479,
+        1431,
+        1525
+      ],
       "open_issues_after_creating_1596": 73,
       "state_only_pr_ci": "PENDING",
       "site_cutover": false,
