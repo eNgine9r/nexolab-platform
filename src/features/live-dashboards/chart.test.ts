@@ -237,3 +237,68 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     ]);
   });
 });
+
+describe("saved operator Embraco temperature with compressor RPM", () => {
+  const observed = (name: string, metric: string, position: number, unit: string): LiveDashboardItem => ({
+    id: name,
+    position,
+    channel_ref_id: null,
+    node_id: "edge-01",
+    equipment_id: "EMBRACO-2",
+    channel_id: name,
+    metric,
+    native_unit: unit,
+    display_unit: unit,
+    visualization: "line",
+    color: null,
+  });
+  const historySample = (
+    sourceItem: LiveDashboardItem,
+    raw: number,
+    value: number | null,
+    quality: TelemetrySample["quality"],
+  ): TelemetrySample => ({
+    event_id: sourceItem.channel_id + "-event",
+    node_id: "edge-01",
+    equipment_id: "EMBRACO-2",
+    channel_id: sourceItem.channel_id,
+    metric: sourceItem.metric,
+    captured_at: new Date(START + 10_000).toISOString(),
+    raw_value: raw,
+    raw_status: null,
+    value,
+    unit: sourceItem.native_unit,
+    quality,
+    source: "embraco-sync",
+    alarm: null,
+  });
+
+  it("renders exactly two meaningful operator-Celsius traces and compressor RPM on two independent axes", () => {
+    const cabinet = observed("2-cabinet-temperature", "temperature.cabinet", 1, "degC");
+    const defrost = observed("2-evaporator-temperature", "temperature.evaporator", 2, "degC");
+    const rpm = observed("2-compressor-speed", "compressor.speed", 3, "rpm");
+    const a = historySample(cabinet, 65507, null, "unknown");
+    const b = historySample(defrost, 65468, null, "unknown");
+    const c = historySample(rpm, 2198, 2198, "valid");
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "specific-saved-dashboard",
+      series: [series(rpm, [c]), series(defrost, [b]), series(cabinet, [a])],
+      status: "stale",
+      xDomain: { fromMs: START, toMs: START + 30_000 },
+    });
+    expect(groups).toHaveLength(1);
+    expect(groups[0].scene.series.map((s) => s.name)).toEqual([
+      "Температура в об’ємі",
+      "Датчик відтайки",
+      "Обороти компресора",
+    ]);
+    expect(groups[0].nativeUnits).toEqual(["°C", "rpm"]);
+    expect(groups[0].scene.series.map((s) => s.segments.flatMap((x) => x.points)[0]?.value)).toEqual([
+      -2.9, -6.8, 2198,
+    ]);
+    expect(groups[0].scene.series.every((s) => s.freshness === "stale")).toBe(true);
+    expect(a.value).toBeNull();
+    expect(a.quality).toBe("unknown");
+    expect(a.raw_value).toBe(65507);
+  });
+});

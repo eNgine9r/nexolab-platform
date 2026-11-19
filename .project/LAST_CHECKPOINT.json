@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T16:27:46Z",
+  "timestamp": "2026-11-19T19:29:36Z",
   "actor": "ChatGPT",
-  "event": "1611_site_verified_lan_and_https_operator_celsius",
+  "event": "1613_saved_live_embraco_three_series_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1611,
-    "branch": "ops/1611-operator-celsius-site-evidence",
+    "issue": 1613,
+    "branch": "feature/1613-live-embraco-three-series",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3618,6 +3618,20 @@
       "hardware_scale_verified": false,
       "authenticated_browser": "NOT TESTED",
       "offline_reboot": "NOT TESTED"
+    },
+    "issue_1613_saved_three_series": {
+      "intended_dashboard_id": "70f0e2d5-7509-4778-91bd-4807c92bc5a8",
+      "preflight_version": 2,
+      "exact_current_count": 4,
+      "target_count": 3,
+      "actor_permission": "owner-authenticated scoped GET/ETag confirmed",
+      "source_baseline": "fea025736f299fb4c1da40fbae8f9fe4bfe36b41",
+      "source_tests": "53/53 live dashboard tests PASS; TS typecheck PASS; ESLint PASS",
+      "hardware_scale": "user 0.1, physical verification NO",
+      "site_runtime": "previous source #1609 still active until new guarded release",
+      "api_export": "server still emits source value null; not remediated by frontend-only scope",
+      "storage_mutation": "NONE",
+      "hardware_write": false
     }
   },
   "observations": [
@@ -5248,7 +5262,7 @@
       }
     }
   ],
-  "next_action": "Product Owner: sign into protected HTTPS KK1 Graphs and verify two operator-scaled Celsius lines, range controls and CSV operator_celsius_degC column. Hardware scale unverified; no offline reboot performed. #1606 handles durable startup/version authority. Preserve Sprint #1460 selection.",
+  "next_action": "Exact-head PR CI and SHA256 ARM64 dual frontend release. Then activate only stateless LAN Dashboard and OAuth-gated HTTPS UI; owner-authorized exact v2→v3 saved dashboard PUT through existing RBAC/audit API, restore snapshot on failure. Check correct lines and RPM; CSV server scaling is a separate backend WP. #1606 offline reboot still pending.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5257,7 +5271,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "State-only #1611 no runtime writes. Earlier #1609 scoped frontend-only LAN and HTTPS releases verified, no backend or hardware writes.",
+  "runtime_mutation": "NONE under #1613 source work. Live site remains earlier approved frontend.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

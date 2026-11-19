@@ -1,3 +1,7 @@
+## 2026-11-19 — #1613 Saved Dashboard update and CSV acceptance gates
+
+Exact 4→3 series correction was verified by local authorized read-only API but not applied pending complete source CI/rollout and safe versioned `If-Match` PUT with backup and audit. Display-only °C chart preserves source `unknown` and original raw. Existing server Saved Dashboard CSV still exports blank source `value` for unknown temperature samples; requires separately reviewed backend exporter/runtime acceptance, never silent backend mutation during frontend patch. Hardware scale unverified, authenticated mobile browser and offline reboot proof remain pending.
+
 ## 2026-11-19 — #1611 remaining gates after verified #1609 frontend releases
 
 Both LAN and OAuth-protected HTTPS frontend-only cutovers to source `27b273865a96a60e5a6c1766fc55dc29cecf72ef` succeeded, without backend restarts or gateway modification. Existing signed raw telemetry is unchanged; UI/CSV temperature in °C uses owner-provided ×0.1, **not independently verified calibration**. Public anonymous OAuth 302 and live source/build readiness are verified, but signed-in human browser chart/CSV acceptance remains pending. Offline reboot, recovery and durable version-manager adoption #1606, complete off-device DR #1428, and protected network acceptance remain unverified. Do not mistake these for a full-stack or hardware-verified release.

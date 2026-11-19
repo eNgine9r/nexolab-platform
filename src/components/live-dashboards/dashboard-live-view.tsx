@@ -22,17 +22,23 @@ import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-char
 import type { ChartXDomain } from "@/features/charts/domain";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
+import {
+  isOperatorEmbracoTemperature,
+  savedDashboardChannelLabel,
+  savedDashboardDisplaySample,
+  savedDashboardSeriesLabel,
+} from "@/features/live-dashboards/embraco-series";
 import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
 import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
-import type { TelemetrySample } from "@/lib/telemetry/types";
 
-function formatValue(sample: TelemetrySample | null): string {
-  if (!sample || sample.value === null || !Number.isFinite(sample.value)) return "—";
-  const absolute = Math.abs(sample.value);
-  const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
-  return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
+function formatValue(series: LiveDashboardTelemetryModel["series"][number]): string {
+  const displayed = savedDashboardDisplaySample(series.item, series.latest);
+  if (!displayed) return "—";
+  const absolute = Math.abs(displayed.value);
+  const digits = displayed.operatorDerived ? 1 : absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
+  return `${new Intl.NumberFormat("uk-UA", { minimumFractionDigits: displayed.operatorDerived ? 1 : 0, maximumFractionDigits: digits }).format(displayed.value)} ${displayed.unit}`;
 }
 
 function formatTimestamp(value: string | null, displayTimeZone: string): string {
@@ -104,6 +110,9 @@ function statusPresentation(status: LiveDashboardTelemetryStatus): {
 
 function seriesState(series: LiveDashboardTelemetryModel["series"][number]): string {
   if (!series.latest) return "Немає persisted sample";
+  if (savedDashboardDisplaySample(series.item, series.latest)?.operatorDerived) {
+    return "°C за коефіцієнтом оператора · апаратно не перевірено";
+  }
   const state = liveTelemetryState(series.latest);
   if (state === "live") return "Live";
   if (state === "stale") return "Застарілі";
@@ -157,6 +166,7 @@ export function DashboardLiveView({
       }),
     [dashboard.id, effectiveDomain, hiddenSeriesKeys, soloSeriesKey, telemetry.series, telemetry.status],
   );
+  const containsOperatorTemperatures = dashboard.items.some(isOperatorEmbracoTemperature);
   const valueSeries = telemetry.series.filter(
     (item) => item.item.visualization === "value" || item.item.visualization === "gauge",
   );
@@ -282,6 +292,16 @@ export function DashboardLiveView({
         </div>
       </div>
 
+      {containsOperatorTemperatures ? (
+        <div
+          data-testid="saved-dashboard-operator-temperature-note"
+          className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-sm text-amber-100"
+        >
+          Температури Embraco відображено у °C за коефіцієнтом оператора ×0,1 від signed Modbus raw. Апаратне
+          калібрування ще не підтверджене; вихідна якість телеметрії не змінюється.
+        </div>
+      ) : null}
+
       {dashboard.items.length === 0 ? (
         <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-white/10 bg-[#081a32]/55 p-8 text-center">
           <div>
@@ -314,11 +334,9 @@ export function DashboardLiveView({
                 className="mt-3 truncate text-sm font-medium text-slate-300"
                 title={`${item.item.channel_id} ${item.item.metric}`}
               >
-                {item.item.channel_id} · {item.item.metric}
+                {savedDashboardSeriesLabel(item.item)}
               </h2>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
-                {formatValue(item.latest)}
-              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{formatValue(item)}</p>
               <p className="mt-3 text-xs text-slate-500">{seriesState(item)}</p>
               <p className="mt-1 text-xs text-slate-600">
                 {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
@@ -483,9 +501,11 @@ export function DashboardLiveView({
             <tbody className="divide-y divide-white/[0.06]">
               {telemetry.series.map((item) => (
                 <tr key={item.item.id} className="text-slate-300">
-                  <td className="px-5 py-3 font-medium text-slate-100">{item.item.channel_id}</td>
+                  <td className="px-5 py-3 font-medium text-slate-100">
+                    {savedDashboardChannelLabel(item.item)}
+                  </td>
                   <td className="px-5 py-3">{item.item.metric}</td>
-                  <td className="px-5 py-3 font-semibold text-white">{formatValue(item.latest)}</td>
+                  <td className="px-5 py-3 font-semibold text-white">{formatValue(item)}</td>
                   <td className="px-5 py-3">{seriesState(item)}</td>
                   <td className="px-5 py-3 text-slate-500">
                     {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
