@@ -1,6 +1,6 @@
-## 2026-11-19 — #1613 Saved Dashboard update and CSV acceptance gates
+## 2026-11-19 — #1613 site UI COMPLETE; #1615 backend CSV export still requires independent rollout
 
-Exact 4→3 series correction was verified by local authorized read-only API but not applied pending complete source CI/rollout and safe versioned `If-Match` PUT with backup and audit. Display-only °C chart preserves source `unknown` and original raw. Existing server Saved Dashboard CSV still exports blank source `value` for unknown temperature samples; requires separately reviewed backend exporter/runtime acceptance, never silent backend mutation during frontend patch. Hardware scale unverified, authenticated mobile browser and offline reboot proof remain pending.
+Original #1613 v2→v3 dashboard selection and frontend-only releases are now GREEN with localized authenticated browser evidence and full audit/rollback snapshots; old notes below are historical. **Remaining CSV blocker #1615:** production API still exports original unknown/null Celsius `value`; new source code exists only in `feature/1615-saved-embraco-csv`. Review backend-only Telemetry Service compatible image, precise deployment authority and rollback, live MQTT persistence/ack/ingest behavior and available backups before approved backend restart. CI source-only pass does not grant site authorization. Operator-confirmed scale ×0.1 is NOT independently hardware-verified. Public OAuth gate still requires actual signed-in Google HTTPS browser acceptance, and offline power-cycle/reboot #1606 and off-device backup/DR #1428 remain unverified.
 
 ## 2026-11-19 — #1611 remaining gates after verified #1609 frontend releases
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T19:29:36Z",
+  "timestamp": "2026-11-19T20:20:49Z",
   "actor": "ChatGPT",
-  "event": "1613_saved_live_embraco_three_series_source_candidate",
+  "event": "1615_embraco_source_preserving_csv_candidate_after_1613_live_acceptance",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1613,
-    "branch": "feature/1613-live-embraco-three-series",
+    "issue": 1615,
+    "branch": "feature/1615-saved-embraco-csv",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3620,18 +3620,30 @@
       "offline_reboot": "NOT TESTED"
     },
     "issue_1613_saved_three_series": {
-      "intended_dashboard_id": "70f0e2d5-7509-4778-91bd-4807c92bc5a8",
-      "preflight_version": 2,
-      "exact_current_count": 4,
-      "target_count": 3,
-      "actor_permission": "owner-authenticated scoped GET/ETag confirmed",
-      "source_baseline": "fea025736f299fb4c1da40fbae8f9fe4bfe36b41",
-      "source_tests": "53/53 live dashboard tests PASS; TS typecheck PASS; ESLint PASS",
-      "hardware_scale": "user 0.1, physical verification NO",
-      "site_runtime": "previous source #1609 still active until new guarded release",
-      "api_export": "server still emits source value null; not remediated by frontend-only scope",
-      "storage_mutation": "NONE",
-      "hardware_write": false
+      "source_sha": "52ec42fb1a9ac7bae5021f94c6d1cdc87e0c9c6e",
+      "merged_main_sha": "0516cd6181167486613ad96333938c497e640d3e",
+      "lan_runtime_build": "KySdT-zIFobbK5-JfejLS",
+      "https_runtime_build": "Pi2us7V-O6Kx151spAm_A",
+      "landed_source": "both frontend deployments GREEN",
+      "dashboard_id": "70f0e2d5-7509-4778-91bd-4807c92bc5a8",
+      "saved_version": 3,
+      "series_count": 3,
+      "operator_authenticated_api_audit": true,
+      "rollback_snapshot": "/home/nexolab/commander-workspaces/nexolab-1613-dashboard-config/before-1613.json",
+      "browser": "local authenticated Chromium 3/3 signals, no JS/API errors and mobile 390px pass",
+      "public_https_oauth_gate": "302 preserved, signed-in Google browser NOT tested",
+      "backend_ids": "preserved by activation scripts",
+      "hardware_celsius": "NOT verified",
+      "modbus_writes": false
+    },
+    "issue_1615_csv_candidate": {
+      "branch": "feature/1615-saved-embraco-csv",
+      "scope": "append-only saved dashboard CSV source raw, signed16, operator estimated Celsius scale/basis for two exact Embraco probes only",
+      "source_tests": "7/7 focused PASS; 31/31 dashboard PASS, 1 skipped PostgreSQL-only",
+      "production_telemetry_api": "unchanged source-only CSV; no deployment",
+      "rollback": "backend release not approved yet",
+      "hardware": "scale unverified",
+      "modbus_writes": false
     }
   },
   "observations": [
@@ -5262,7 +5274,7 @@
       }
     }
   ],
-  "next_action": "Exact-head PR CI and SHA256 ARM64 dual frontend release. Then activate only stateless LAN Dashboard and OAuth-gated HTTPS UI; owner-authorized exact v2→v3 saved dashboard PUT through existing RBAC/audit API, restore snapshot on failure. Check correct lines and RPM; CSV server scaling is a separate backend WP. #1606 offline reboot still pending.",
+  "next_action": "Finish #1615 source review + exact-head CI and tests. Record deployed #1613 frontend provenance. Backend export image/site activation only with owner-authorized protected rollback and no telemetry loss. Do not change Modbus or raw data. Independent global Sprint #1460 remains selected.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5271,7 +5283,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NONE under #1613 source work. Live site remains earlier approved frontend.",
+  "runtime_mutation": "#1613: audited saved Dashboard v2→v3 and frontend-only LAN/HTTPS site activation; all checked relevant backends stayed unchanged. #1615: no runtime mutation.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

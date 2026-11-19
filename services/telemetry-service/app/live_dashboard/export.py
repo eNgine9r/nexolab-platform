@@ -33,9 +33,26 @@ EXPORT_FIELDS = (
     "unit",
     "quality",
     "event_id",
+    # Additive fields: the original persisted `value` and `quality` remain unchanged.
+    "raw_value",
+    "raw_signed_int16",
+    "operator_celsius_degC",
+    "operator_scale_degC_per_count",
+    "operator_scale_basis",
 )
 DEFAULT_EXPORT_MAX_ROWS = 100_000
 EXPORT_PAGE_SIZE = 1_000
+
+# Operator-confirmed convention for these two physical Embraco Sync Unit 2 probes;
+# NOT independently verified calibration or a change to persisted telemetry.
+_EMBRACO_OPERATOR_PROBES = frozenset(
+    {
+        ("2-cabinet-temperature", "temperature.cabinet"),
+        ("2-evaporator-temperature", "temperature.evaporator"),
+    }
+)
+_EMBRACO_OPERATOR_SCALE = "0.1"
+_EMBRACO_OPERATOR_BASIS = "operator_confirmed_hardware_unverified"
 
 # Chromium/WebKit installations can still surface historical IANA link names.
 # Normalize only explicit compatibility aliases; unknown identifiers must remain
@@ -92,6 +109,38 @@ def _value_cell(value: object) -> str:
     if numeric == 0:
         return "0"
     return format(numeric, ".15g")
+
+
+def _operator_embraco_probe_columns(row: dict[str, object]) -> dict[str, str]:
+    """Strictly scoped CSV *presentation*, never update source `quality`/`value`.
+
+    Only exact Embraco Sync Unit 2 physical probe samples with a valid 16-bit
+    unsigned raw register and original `unknown` quality may be interpreted.
+    """
+    if (
+        row.get("node_id") != "edge-01"
+        or row.get("equipment_id") != "EMBRACO-2"
+        or (row.get("channel_id"), row.get("metric")) not in _EMBRACO_OPERATOR_PROBES
+        or row.get("source") != "embraco-sync"
+        or row.get("unit") != "degC"
+        or row.get("quality") != "unknown"
+        or row.get("value") is not None
+    ):
+        return {}
+    raw = row.get("raw_value")
+    if type(raw) is not int or not 0 <= raw <= 0xFFFF:
+        return {}
+    signed = raw if raw < 0x8000 else raw - 0x10000
+    return {
+        "raw_signed_int16": str(signed),
+        "operator_celsius_degC": _value_cell(signed / 10),
+        "operator_scale_degC_per_count": _EMBRACO_OPERATOR_SCALE,
+        "operator_scale_basis": _EMBRACO_OPERATOR_BASIS,
+    }
+
+
+def _source_raw_cell(value: object) -> str:
+    return str(value) if type(value) is int else ""
 
 
 def _resolve_timezone(name: str) -> ZoneInfo:
@@ -246,6 +295,8 @@ def build_live_dashboard_csv_export(
                 "unit": str(row["unit"]),
                 "quality": str(row["quality"]),
                 "event_id": str(row["event_id"]),
+                "raw_value": _source_raw_cell(row.get("raw_value")),
+                **_operator_embraco_probe_columns(row),
             }
         )
 
