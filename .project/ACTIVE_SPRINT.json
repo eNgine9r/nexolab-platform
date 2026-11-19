@@ -11167,11 +11167,51 @@
           "changed_file_eslint": "PASS",
           "typescript_noemit": "PASS",
           "git_diff_check": "PASS",
-          "full_build": "NOT_RUN_ON_PRODUCTION_PI; await hosted CI",
-          "github_exact_head_ci": "PENDING_PR",
-          "site_browser": "NOT_RUN; no cutover",
-          "site_offline": "NOT_RUN; no cutover"
+          "full_build": "PASS hosted static quality and production build on source PR #1604",
+          "github_exact_head_ci": "GREEN before merge; NEXOLAB Merge Gate, Chromium, PostgreSQL, local S3",
+          "site_browser": "HTTP 200 LAN and HTTPS 3105 loopback; public HTTPS anonymous OAuth 302; authenticated browser NOT TESTED",
+          "site_offline": "Core local services intact; HTTPS + LAN offline-reboot and authenticated browser NOT TESTED"
+        },
+        "post_merge_rollout": {
+          "lan": "frontend-only Docker Dashboard HTTP200, source edd04b4aabdd28c7c46ada056cc746434796bdde, build 9B-pHrz8lObcc5N_TX8F1, backend unchanged",
+          "https": "OAuth-gated user frontend 3105 source edd04b4aabdd28c7c46ada056cc746434796bdde, build qe-NDhbsh-6WHXhvG0luq, existing 18790 gateway unchanged",
+          "hardware_celsius_scale": "NOT VERIFIED; raw Modbus signed registers only"
         }
+      }
+    },
+    {
+      "issue": 1607,
+      "title": "Activate Embraco KK1 probe charts and CSV on existing OAuth-gated HTTPS frontend",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1607-https-embraco-activation-evidence",
+      "depends_on": [
+        1603
+      ],
+      "scope": "Owner-approved HTTPS frontend-only runtime activation using the exact already-GREEN #1604 source and SHA256-verified off-device ARM64 HTTPS artifact; existing Tailscale Funnel/OAuth at 18790 forwards authenticated UI to user-level 3105. Preserve gateway, LAN Dashboard, backend, read-only hardware and rollback. Source branch is evidence-only; no product/architecture changes.",
+      "permitted_paths": [
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1607",
+        "source": "edd04b4aabdd28c7c46ada056cc746434796bdde",
+        "https_build_id": "qe-NDhbsh-6WHXhvG0luq",
+        "prior_https_source": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+        "completed_at_utc": "2026-11-19T15:20:13.777147+00:00",
+        "site_report_private": "/home/nexolab/commander-workspaces/nexolab-1603-release-artifacts/https-1607/activation-report-1607.json",
+        "artifact": "HTTPS ARM64 source verified, 12/12 manifest entries and 17613 runtime-file SHA256 entries PASS",
+        "isolated_preview": "3107, source/build exact, routes / /login /refrigeration /refrigeration/KK1 all 200",
+        "protected_frontend": "3105 exact identity and routes HTTP 200",
+        "oauth_funnel": "Public anonymous HTTPS /, /login, /refrigeration, KK1, /api/runtime-identity, /api/v1/telemetry/latest all 302; gateway PID/Tailscale route unchanged",
+        "rollback": "Initial activation failed due to stale unit identity env; exact prior frontend restored; corrected env and promoted GREEN; old release retained",
+        "backend": "All 5 observed backend container IDs/images/networks unchanged; LAN source/build and API unchanged",
+        "modbus_writes": "NONE",
+        "hardware_writes": "NONE",
+        "db_mutations": "NONE",
+        "temperature_celsius": "NOT VERIFIED; raw chart is not °C",
+        "authenticated_browser": "NOT RUN; requires logged-in Product Owner test of graph/export",
+        "offline_restart": "NOT RUN; see #1606 for canonical startup/version authority",
+        "release_gate": "LAN source PR #1604 required CI GREEN; HTTPS runtime cutover verified read-only post checks"
       }
     }
   ],
