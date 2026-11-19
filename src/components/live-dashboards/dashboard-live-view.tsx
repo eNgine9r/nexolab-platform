@@ -24,6 +24,7 @@ import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-d
 import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
 import {
   isOperatorEmbracoTemperature,
+  savedDashboardChannelLabel,
   savedDashboardDisplaySample,
   savedDashboardSeriesLabel,
 } from "@/features/live-dashboards/embraco-series";
@@ -501,7 +502,7 @@ export function DashboardLiveView({
               {telemetry.series.map((item) => (
                 <tr key={item.item.id} className="text-slate-300">
                   <td className="px-5 py-3 font-medium text-slate-100">
-                    {savedDashboardSeriesLabel(item.item)}
+                    {savedDashboardChannelLabel(item.item)}
                   </td>
                   <td className="px-5 py-3">{item.item.metric}</td>
                   <td className="px-5 py-3 font-semibold text-white">{formatValue(item)}</td>

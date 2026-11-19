@@ -4,6 +4,7 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
   isOperatorEmbracoTemperature,
+  savedDashboardChannelLabel,
   savedDashboardDisplaySample,
   savedDashboardSeriesLabel,
   savedDashboardSeriesUnit,
@@ -43,6 +44,11 @@ const sample: TelemetrySample = {
 describe("operator Embraco saved dashboard display", () => {
   it("shows explicitly operator-derived signed16 Celsius only for exact installed probe", () => {
     expect(savedDashboardSeriesLabel(cabinet)).toBe("Температура в об’ємі");
+    expect(savedDashboardChannelLabel(cabinet)).toBe("Температура в об’ємі");
+    expect(savedDashboardChannelLabel({ ...cabinet, node_id: "edge-02" })).toBe("2-cabinet-temperature");
+    expect(
+      savedDashboardChannelLabel({ ...cabinet, channel_id: "106-03", metric: "temperature.probe" }),
+    ).toBe("106-03");
     expect(savedDashboardSeriesUnit(cabinet)).toBe("°C");
     expect(isOperatorEmbracoTemperature(cabinet)).toBe(true);
     expect(savedDashboardDisplaySample(cabinet, sample)).toEqual({

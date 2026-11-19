@@ -44,6 +44,11 @@ export function savedDashboardSeriesLabel(item: LiveDashboardItem): string {
   return configuredOperatorSeries(item)?.name ?? `${item.channel_id} · ${item.metric}`;
 }
 
+/** Keep existing channel-cell identity for non-Embraco saved dashboards. */
+export function savedDashboardChannelLabel(item: LiveDashboardItem): string {
+  return configuredOperatorSeries(item)?.name ?? item.channel_id;
+}
+
 export function savedDashboardSeriesUnit(item: LiveDashboardItem): string {
   return configuredOperatorSeries(item)?.unit ?? item.native_unit;
 }
