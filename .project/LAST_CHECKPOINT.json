@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T11:31:53Z",
+  "timestamp": "2026-11-19T13:33:09Z",
   "actor": "ChatGPT",
-  "event": "1460_source_candidate_main_reconciled_preflight_tests_pass_ci_pending",
+  "event": "1601_same_physical_embraco_moved_to_KK1_persisted_live_telemetry_verified",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,10 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1460,
-    "branch": "feature/1460-offline-backup-preflight",
-    "status": "review",
-    "site_cutover": false
+    "issue": 1601,
+    "branch": "feature/1601-embraco-bus-scoped-kk1",
+    "status": "completed",
+    "site_cutover": true
   },
   "evidence_snapshot": {
     "issue_1596_board_reconciliation": {
@@ -3524,6 +3524,33 @@
       "hardware_write": false,
       "modbus_write": false,
       "site_cutover": false
+    },
+    "issue_1601_kk1_embraco": {
+      "github_issue": 1601,
+      "site_hw_preflight": "hardware_verified_FC03_pass",
+      "target_KK1": "CoolesSlim VCC L1250 / 11111",
+      "live_telemetry": "VERIFIED_13_latest_4_valid_9_unknown_26_of_26_scheduled_reads",
+      "source_implementation": "NOT_REQUIRED_SAME_IDENTITY",
+      "legacy_KK2": "preserved",
+      "network_site_mutation": false,
+      "modbus_writes": "none",
+      "preceding_checkpoint_active_work": {
+        "issue": 1460,
+        "branch": "feature/1460-offline-backup-preflight",
+        "status": "review",
+        "site_cutover": false
+      },
+      "preceding_checkpoint_next_action": "Publish only the main-reconciled #1461 read-only source candidate; run exact-head CI and all required offline, dashboard, refrigeration and telemetry workflows. Merge only after GREEN and focused review; parent #1428 independent encrypted off-device backup and isolated restore remain unverified. Then proceed with next independent Ready #1522, keeping one active source implementation.",
+      "status": "completed_same_controller_physical_move",
+      "old_KK2_binding": "historically_retained_soft_unbound",
+      "new_KK1_binding": "e9a84aeb-abe5-4096-bdc1-0cb9d90d8f55",
+      "owner_approved_site_move": true,
+      "edge_registry_revision": 54,
+      "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+      "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+      "device_agent_restart": "healthy",
+      "browser_recheck": "pending",
+      "temperature_sensor_acceptance": "unverified"
     }
   },
   "observations": [
@@ -5092,9 +5119,69 @@
         "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
         "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:10:40Z",
+      "kind": "1601_embarco_kk1_runtime_blocker",
+      "data": {
+        "issue": 1601,
+        "feature_branch": "feature/1601-embraco-bus-scoped-kk1",
+        "observed_on": "nexolab-edge-01",
+        "target": "CoolesSlim VCC L1250 / KK1 / 11111",
+        "target_equipment_key": "ece48888-d73e-44d6-a11d-2804a10d4cb9",
+        "controller_bus": "commissioning-c4b6e68057fa4c7f",
+        "controller_adapter_suffix": "A10Q2SIF",
+        "unit_id": 2,
+        "fc03_hardware_preflight": "passed_hardware_verified_7_checks_4_observations_133ms",
+        "legacy_binding": "EMBRACO-2 bound to CoolJet KK2; retain unchanged",
+        "legacy_last_sample_utc": "2026-11-05T14:17:06Z",
+        "activation": "not_started_three_attempts_recovery_required_http_422",
+        "codex_execution": "blocked_usage_limit_returned_2026-11-19",
+        "provider_recheck": "NEXUS and NEXUS Raspberry tool failed internally",
+        "site_changes": false,
+        "db_writes": false,
+        "modbus_writes": false,
+        "priority": "high",
+        "release": "not_ready",
+        "note": "Authoritative live observations; no software or site deployment occurred for issue 1601."
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:33:09Z",
+      "kind": "1601_owner_confirmed_same_embraco_kk1_runtime_accepted",
+      "data": {
+        "issue": 1601,
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "owner_correction": "same_physical_unit_2_relocated_KK2_to_KK1",
+        "edge_physical_bus": "commissioning-c4b6e68057fa4c7f",
+        "adapter": "A10Q2SIF",
+        "previous_equipment_code": "CS-001",
+        "target_equipment_code": "11111",
+        "controller_telemetry_identity": "EMBRACO-2",
+        "edge_registry_revision": 54,
+        "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "active_targets": 13,
+        "read_only_poll_successes": 26,
+        "read_only_poll_failures": 0,
+        "new_postgresql_latest_rows": 13,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "new_last_sample_at_utc": "2026-11-19T13:29:46Z",
+        "historic_bindings_preserved": true,
+        "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+        "modbus_writes": false,
+        "hardware_writes": false,
+        "owner_approved_site_transfer": true,
+        "future_site_mutations_authorized": false,
+        "hardware_temperature_inputs_verified": false,
+        "browser_acceptance": "not_run",
+        "reboot_after_activation": "not_run"
+      }
     }
   ],
-  "next_action": "Publish only the main-reconciled #1461 read-only source candidate; run exact-head CI and all required offline, dashboard, refrigeration and telemetry workflows. Merge only after GREEN and focused review; parent #1428 independent encrypted off-device backup and isolated restore remain unverified. Then proceed with next independent Ready #1522, keeping one active source implementation.",
+  "next_action": "Completed Issue #1601 site transfer. Current Sprint #1585 source work remains separate. Inspect the CoolesSlim VCC L1250 / KK1 UI using authenticated browser, investigate 9 unknown temperature inputs and brief FTDI USB disconnect; verify offline/restart recovery and Docker LAN overlapping CIDR in separate #1399/#1409. Avoid re-activating previously failed quick-onboarding sessions. No further site cutover authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5103,7 +5190,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "None; isolated source-only tests and GitHub feature-branch reconciliation, no Raspberry runtime changes.",
+  "runtime_mutation": "Product Owner explicitly requested same physical Embraco Sync Unit 2 transfer KK2 -> KK1. Bounded audited live Edge registry migration+restart, PostgreSQL binding soft-unbind/rebind, one read-only activation, preserved historical telemetry; no Modbus or hardware writes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
