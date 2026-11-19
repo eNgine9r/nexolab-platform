@@ -14,7 +14,7 @@ The previous ACTIVE_SPRINT dependency `#1428 -> #1399` was inappropriate at the 
 
 ## 2026-11-19 — #1596 Board reconciliation: merged source is not a release
 
-Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed *bounded source/documentation* tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
+Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed _bounded source/documentation_ tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
 
 - **#1428**: actual, complete encrypted off-device backup, an independent isolated restore and safe local recovery/storage capacity remain unproven.
 - **#1587**: one compatible, pinned and authorized frontend/API/Device Agent release across all operator entrypoints is not installed/accepted. #1592 contributed a read-only source parity gate; it did not perform cutover.
