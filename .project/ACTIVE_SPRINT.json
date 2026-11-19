@@ -61,7 +61,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1596
+      "issue": 1428
     },
     "next_work_package": {
       "issue": 1526
@@ -73,7 +73,7 @@
       "branch": "chore/1596-board-state-reconciliation",
       "title": "Reconcile merged source Issues, open work and stale Sprint selection",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "scope": "Administrative GitHub Issue closure backed by merged PR evidence, remaining-work classification and state-only PR; no site or hardware mutation.",
       "permitted_paths": [
         ".project/CURRENT_STATE.md",
@@ -98,7 +98,8 @@
         "source_only_closure": true,
         "site_cutover": false,
         "hardware_verified": false,
-        "pr_review_and_ci": "PENDING"
+        "pr_review_and_ci": "state-only CI required GREEN before merge; this source snapshot is not site acceptance",
+        "pull_request": 1597
       }
     },
     {
