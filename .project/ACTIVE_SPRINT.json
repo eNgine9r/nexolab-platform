@@ -11078,14 +11078,12 @@
     },
     {
       "issue": 1601,
-      "title": "Bus-scoped Embraco Unit 2 identity and safe KK1 monitoring activation",
+      "title": "Move same physical Embraco Sync Unit 2 from CoolJet KK2 to CoolesSlim KK1 with read-only telemetry",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "branch": "feature/1601-embraco-bus-scoped-kk1",
-      "depends_on": [
-        1505
-      ],
-      "scope": "Preserve legacy KK2 EMBRACO-2 and implement independent A10Q2SIF:2 commissioning bus identity, additive controller binding persistence, protected activation and real KK1 telemetry evidence.",
+      "depends_on": [],
+      "scope": "Product Owner confirmed same physical Embraco Unit 2, not two distinct controllers; preserve legacy EMBRACO-2 telemetry/history and perform bounded audited site transfer from legacy KK2 to KK1, read-only acquisition, hardware/data evidence.",
       "permitted_paths": [
         "services/device-agent/",
         "services/telemetry-service/app/commissioning/",
@@ -11106,14 +11104,37 @@
         "target": "KK1:11111",
         "legacy_binding": "KK2:EMBRACO-2_PROTECTED",
         "checks": {
-          "read_only_fc03": "PASS",
-          "preflight_contract": "PASS",
-          "typecheck": "NOT_RUN",
-          "lint": "NOT_RUN",
-          "tests": "NOT_RUN",
-          "build": "NOT_RUN",
-          "ci": "NOT_RUN"
-        }
+          "project_state_validation": "PASS_previous_checkpoint",
+          "real_hardware_fc03": "PASS_7_checks_4_observations",
+          "edge_restart_health": "PASS",
+          "read_only_activation": "PASS_13_targets",
+          "postgres_latest_after_activation": "PASS_2_cycles_26_successes_0_failures",
+          "postgres_binding_transaction": "PASS",
+          "dashboard_http_200": "PASS",
+          "telemetry_api_http_200": "PASS",
+          "modbus_write": "NONE",
+          "targeted_source_tests": "NOT_APPLICABLE_NO_PRODUCT_SOURCE_CHANGE",
+          "frontend_build": "NOT_RUN",
+          "browser_auth_acceptance": "NOT_RUN",
+          "offline_reboot": "NOT_RUN"
+        },
+        "superseded_old_distinct_device_premise": true,
+        "site_transfer": "owner_explicitly_authorized_and_completed_2026-11-19",
+        "source_code_changes": "not_required_same_controller",
+        "registry_change": "old_disabled_embraco-2_transferred_to_commissioning_c4b6_bus_and_activated_rev_54",
+        "edge_activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "postgres_binding": "old_KK2_soft_unbound_new_KK1_active_audited",
+        "telemetry_latest_new_samples": 13,
+        "polling_successes": 26,
+        "polling_failures": 0,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "hardware_fc03_verified": true,
+        "live_acquisition_verified": true,
+        "temperature_probes_verified": false,
+        "browser_acceptance": "NOT_RUN",
+        "offline_restart_after_activation": "NOT_RUN",
+        "site_network_risk": "172.18_cidr_overlap_separate_issues_1399_1409"
       }
     }
   ],
@@ -13162,6 +13183,39 @@
         "priority": "high",
         "release": "not_ready",
         "note": "Authoritative live observations; no software or site deployment occurred for issue 1601."
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:33:09Z",
+      "kind": "1601_owner_confirmed_same_embraco_kk1_runtime_accepted",
+      "data": {
+        "issue": 1601,
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "owner_correction": "same_physical_unit_2_relocated_KK2_to_KK1",
+        "edge_physical_bus": "commissioning-c4b6e68057fa4c7f",
+        "adapter": "A10Q2SIF",
+        "previous_equipment_code": "CS-001",
+        "target_equipment_code": "11111",
+        "controller_telemetry_identity": "EMBRACO-2",
+        "edge_registry_revision": 54,
+        "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "active_targets": 13,
+        "read_only_poll_successes": 26,
+        "read_only_poll_failures": 0,
+        "new_postgresql_latest_rows": 13,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "new_last_sample_at_utc": "2026-11-19T13:29:46Z",
+        "historic_bindings_preserved": true,
+        "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+        "modbus_writes": false,
+        "hardware_writes": false,
+        "owner_approved_site_transfer": true,
+        "future_site_mutations_authorized": false,
+        "hardware_temperature_inputs_verified": false,
+        "browser_acceptance": "not_run",
+        "reboot_after_activation": "not_run"
       }
     }
   ],
