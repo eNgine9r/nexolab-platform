@@ -116,8 +116,24 @@
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
-        "site_cutover": false
-      }
+        "site_cutover": false,
+        "planned_branch_only": true,
+        "autonomous_start_requires_current_review_clearance": true
+      },
+      "branch": "fix/1522-cadence-aware-live-freshness",
+      "permitted_paths": [
+        "src/features/live/",
+        "src/components/live/",
+        "src/features/acquisition/ (read-only cadence contract if required)",
+        "focused Live tests",
+        "four canonical .project state files"
+      ],
+      "verification": [
+        "Reproduce 60 s Waveshare cadence against 30 s stale threshold in focused tests.",
+        "Prove on-time, overdue, unknown-quality, reconnect and cross-organization/channel cases.",
+        "Changed-file lint/format, TypeScript, module tests and required exact-head CI.",
+        "Real authenticated site/offline acceptance remains separate and hardware writes forbidden."
+      ]
     },
     {
       "issue": 1587,
