@@ -11228,7 +11228,8 @@
       "permitted_paths": [
         "src/features/refrigeration/",
         "src/components/refrigeration/",
-        ".project/"
+        ".project/",
+        "e2e/refrigeration-layout.production.e2e.ts"
       ],
       "evidence": {
         "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1609",
@@ -11249,7 +11250,8 @@
         "site_deployment": "NOT DONE; exact-head GitHub CI + new ARM64 artifacts + site rollout required",
         "authenticated_user_browser": "NOT DONE",
         "hardware_writes": "NONE",
-        "db_mutations": "NONE"
+        "db_mutations": "NONE",
+        "browser_e2e_contract": "Refrigeration-layout Chromium selectors and CSV expected headers reconciled for operator °C; exact-head CI pending"
       }
     }
   ],

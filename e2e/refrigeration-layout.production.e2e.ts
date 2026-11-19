@@ -404,11 +404,14 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   // Historical KK2 readings must never appear as fresh/owned by this new asset.
   const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
   await expect(duty).toBeVisible();
-  await expect(history.getByText(/Масштаб °C ще не підтверджено/)).toBeVisible();
-  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText("не °C");
+  await expect(history.getByText(/У вибраному періоді немає показників двох датчиків/)).toBeVisible();
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText("коефіцієнт ×0,1");
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText(
+    "незалежна перевірка обладнання ще не проведена",
+  );
   await expect(
     history.locator(
-      '[data-testid="refrigeration-controller-chart"][data-chart-title="Показники датчиків · raw"]',
+      '[data-testid="refrigeration-controller-chart"][data-chart-title="Діагностика · вихідні raw"]',
     ),
   ).toBeVisible();
   await expect(history.getByTestId("refrigeration-controller-chart")).toHaveCount(3);
@@ -426,7 +429,9 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   const controllerCsv = readFileSync(controllerExportPath, "utf8");
   expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
   expect(controllerCsv).toContain("compressor.start_count");
-  expect(controllerCsv).toContain("raw_value,raw_signed,raw_status");
+  expect(controllerCsv).toContain(
+    "raw_value,raw_signed,operator_celsius_degC,operator_scale_degC_per_count,operator_scale_basis,raw_status",
+  );
   // The seed may include fresh samples during browser acceptance, but no event
   // captured while the controller belonged to a previous refrigeration asset.
   const exportedTelemetry = controllerCsv

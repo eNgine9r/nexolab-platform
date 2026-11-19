@@ -113,7 +113,7 @@ export function buildEmbracoOperatorCelsiusScene(
           {
             ...sample,
             value: operatorCelsius,
-            unit: "degC",
+            unit: "°C",
             quality: "valid" as const,
             channel_id: `${sample.channel_id}:operator-degC`,
           },
@@ -125,7 +125,7 @@ export function buildEmbracoOperatorCelsiusScene(
         sample.value !== null &&
         Number.isFinite(sample.value)
       ) {
-        return [{ ...sample, unit: "degC" }];
+        return [{ ...sample, unit: "°C" }];
       }
       return [];
     });

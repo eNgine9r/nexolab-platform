@@ -157,7 +157,7 @@ describe("buildEmbracoOperatorCelsiusScene", () => {
       "EMBRACO-2",
     );
     expect(scene.series.map((series) => series.name)).toEqual(["Температура в об’ємі", "Датчик відтайки"]);
-    expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual(["degC", "degC"]);
+    expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual(["°C", "°C"]);
     expect(scene.series.map((series) => series.displayPrecision)).toEqual([1, 1]);
     expect(scene.series.map((series) => series.segments[0]?.points[0]?.value)).toEqual([4.2, -2.6]);
     expect(cabinet.quality).toBe("unknown");
