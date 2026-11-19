@@ -15,13 +15,18 @@ import {
   type LiveDashboardHistoryRange,
 } from "@/features/live-dashboards/history-range";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
+import {
+  operatorHistoryPreview,
+  reduceSavedDashboardHistory,
+  restoreOperatorEvidence,
+} from "@/features/live-dashboards/operator-history";
 import type {
   LiveDashboard,
   LiveDashboardItem,
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
-import { advanceLiveHistoryWindow, downsampleLiveHistory } from "@/features/live/live-history";
+import { advanceLiveHistoryWindow } from "@/features/live/live-history";
 import { createRuntimeCredentialProvider } from "@/features/security/auth-runtime";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -144,12 +149,14 @@ function serializedWindow(
 }
 
 function reduceHistory(
+  item: LiveDashboardItem,
   samples: readonly TelemetrySample[],
   window: TelemetryHistoryWindow,
 ): TelemetrySample[] {
   const fromMs = window.from.getTime();
   const toMs = window.to.getTime();
-  return downsampleLiveHistory(
+  return reduceSavedDashboardHistory(
+    item,
     samples.filter((sample) => {
       const capturedAt = sampleTimestamp(sample);
       return capturedAt >= fromMs && capturedAt <= toMs;
@@ -338,25 +345,25 @@ export function useLiveDashboardTelemetry({
     const adapter = securedAdapter(config, organizationId);
     const subscriptions: TelemetrySubscription[] = [];
 
-    const commitHistoryTail = (key: string, sample: TelemetrySample) => {
+    const commitHistoryTail = (key: string, item: LiveDashboardItem, sample: TelemetrySample) => {
       const ordering = historyOrderingRef.current;
       if (ordering === null) {
         historyPendingLiveRef.current.push(sample);
         return;
       }
-      const reconciled = reconcileTelemetryHistoryEvents([sample], ordering);
+      const reconciled = reconcileTelemetryHistoryEvents([operatorHistoryPreview(item, sample)], ordering);
       historyOrderingRef.current = reconciled.state;
       if (reconciled.samples.length === 0) return;
+      const sourceSamples = restoreOperatorEvidence(reconciled.samples, [sample]);
 
       const selection = historySelectionRef.current;
       const currentWindow = historyWindowRef.current;
       const nextWindow =
-        selection.kind === "custom"
-          ? currentWindow
-          : advanceLiveHistoryWindow(currentWindow, reconciled.samples);
+        selection.kind === "custom" ? currentWindow : advanceLiveHistoryWindow(currentWindow, sourceSamples);
       historyWindowRef.current = nextWindow;
       historyRef.current[key] = reduceHistory(
-        [...(historyRef.current[key] ?? []), ...reconciled.samples],
+        item,
+        [...(historyRef.current[key] ?? []), ...sourceSamples],
         nextWindow,
       );
       setHistoryWindow(serializedWindow(nextWindow, selection.kind, selection.label));
@@ -367,7 +374,7 @@ export function useLiveDashboardTelemetry({
       if (!dashboardSeriesMatches(item, sample)) return;
       const key = dashboardItemIdentity(item);
       latestRef.current[key] = newestSample(latestRef.current[key], sample);
-      commitHistoryTail(key, sample);
+      commitHistoryTail(key, item, sample);
       scheduleFlush(dashboard.refresh_seconds, immediate || Object.keys(latestRef.current).length === 1);
     };
 
@@ -468,7 +475,7 @@ export function useLiveDashboardTelemetry({
         snapshotAt = result.snapshotAt;
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
-        reducedBySeries[key] = reduceHistory(samples, requestedWindow);
+        reducedBySeries[key] = reduceHistory(item, samples, requestedWindow);
         const tail = samples.at(-1);
         if (tail) {
           sourceTails.push(tail);
@@ -479,18 +486,23 @@ export function useLiveDashboardTelemetry({
       if (disposed) return;
       let ordering = seedTelemetryHistoryOrderingState(sourceTails);
       const pending = historyPendingLiveRef.current;
-      const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
+      const pendingPreview = pending.map((sample) => {
+        const item = dashboard.items.find((candidate) => dashboardSeriesMatches(candidate, sample));
+        return item ? operatorHistoryPreview(item, sample) : sample;
+      });
+      const reconciled = reconcileTelemetryHistoryEvents(pendingPreview, ordering);
+      const restoredSamples = restoreOperatorEvidence(reconciled.samples, pending);
       ordering = reconciled.state;
       const finalWindow =
         requestedRange.kind === "custom"
           ? requestedWindow
-          : advanceLiveHistoryWindow(requestedWindow, reconciled.samples);
+          : advanceLiveHistoryWindow(requestedWindow, restoredSamples);
 
-      for (const sample of reconciled.samples) {
+      for (const sample of restoredSamples) {
         for (const item of dashboard.items) {
           if (!dashboardSeriesMatches(item, sample)) continue;
           const key = dashboardItemIdentity(item);
-          reducedBySeries[key] = reduceHistory([...reducedBySeries[key], sample], finalWindow);
+          reducedBySeries[key] = reduceHistory(item, [...reducedBySeries[key], sample], finalWindow);
           latestRef.current[key] = newestSample(latestRef.current[key], sample);
         }
       }

@@ -11284,6 +11284,40 @@
         "CI": "PENDING_SOURCE_STATE_PR",
         "no_site_mutation": true
       }
+    },
+    {
+      "issue": 1613,
+      "title": "Live Embraco saved dashboard: two operator Celsius traces plus compressor RPM; remove evaporator_2",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1613-live-embraco-three-series",
+      "depends_on": [
+        1609,
+        1611
+      ],
+      "scope": "Operator-signed ×0.1 °C only for exact edge-01 EMBRACO-2 probes; preserve raw quality, add two-axis chart/legend/latest and source-preserving downsample. Separate owner-authenticated version-checked dashboard config repair from 4 items to 3 only after frontend release. Export CSV remains backend source-value-only and requires separate explicit backend release/acceptance; do not claim CSV scaling.",
+      "permitted_paths": [
+        "src/features/live-dashboards/",
+        "src/components/live-dashboards/",
+        "src/hooks/use-live-dashboard-telemetry.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1613",
+        "preflight": "Owner-local authenticated dashboard GET v2 exact four items PASS; no DB write performed",
+        "target_channels": [
+          "2-cabinet-temperature",
+          "2-evaporator-temperature",
+          "2-compressor-speed"
+        ],
+        "deleted_view_selection": "2-evaporator-2-temperature (dashboard item only, not telemetry)",
+        "tests": "53/53 saved-dashboard/hooks tests PASS; TS noEmit and touched file ESLint PASS",
+        "hardware_celsius": "operator-confirmed 0.1/raw; unverified hardware",
+        "backend_export": "Existing CSV server gives blank Celsius because persisted value null; separate backend acceptance required",
+        "runtime": "NO #1613 SITE CUTOVER YET",
+        "sprint_selection": "#1460 unchanged",
+        "modbus_writes": "NONE"
+      }
     }
   ],
   "maintenance_actions": [

@@ -1,3 +1,11 @@
+## 2026-11-19 — #1613 source candidate to repair saved Embraco Live Dashboard
+
+Product Owner requests exactly three series on saved active `Температури в вітрині`: `2-cabinet-temperature` / `temperature.cabinet` (operator ×0.1 °C), `2-evaporator-temperature` / `temperature.evaporator` (operator ×0.1 °C), and `2-compressor-speed` / `compressor.speed` (native RPM). Extra `2-evaporator-2-temperature` must disappear from this dashboard definition **only**, never from telemetry storage. Read-only PostgreSQL evidence confirmed exact dashboard `70f0e2d5-7509-4778-91bd-4807c92bc5a8` v2 and four observed Embraco-2 channels. Owner-authenticated live API/ETag preflight PASS, no dashboard write yet.
+
+Feature branch `feature/1613-live-embraco-three-series` uses existing operator-provided scale with exact device/source/channel guards, correct °C/rpm axes and human labels. Generic history reduction ordinarily drops `quality=unknown` before chart rendering; a scoped display-only preprocessing and evidence restoration retains actual signed raw temperatures without altering original persisted `quality=unknown`/`value=NULL` or injecting communication-error bridges. Targeted hook/live dashboard 53 tests PASS; TS/lint and remaining CI/release gates pending. Actual registered saved dashboard changes and live frontend promotion have not yet occurred.
+
+**Boundary:** Current Saved Dashboard CSV server exports original persisted nullable `value`, and does not gain derived Celsius in this frontend-only PR; explicit backend export implementation/deployment will need a subsequent independently scoped WP. Hardware Celsius scale is operator-confirmed only, not calibrated. Avoid full-stack or hardware writes. Global Sprint selection #1460 unchanged.
+
 ## 2026-11-19 — #1611 records verified #1609 LAN/HTTPS operator Celsius release
 
 Source PR #1610 is **MERGED** in main (`59dc14cacac70c63407afc57d3ee797e98e77f47`); exact implementation `27b273865a96a60e5a6c1766fc55dc29cecf72ef` passed all required CI (including Chromium, PostgreSQL/local S3, production build and Merge Gate). GitHub ARM64 workflow `44562627634` SUCCESS supplied SHA256-verified same-source LAN and HTTPS release packages.

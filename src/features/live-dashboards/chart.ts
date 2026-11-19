@@ -13,6 +13,11 @@ import {
   type ChartXDomain,
 } from "@/features/charts";
 import { timeWindowMilliseconds } from "@/features/live-dashboards/model";
+import {
+  savedDashboardDisplaySample,
+  savedDashboardSeriesLabel,
+  savedDashboardSeriesUnit,
+} from "@/features/live-dashboards/embraco-series";
 import { liveHistorySegments } from "@/features/live/live-history";
 import type {
   LiveDashboard,
@@ -70,7 +75,7 @@ export function savedDashboardChartIdentity(
     equipmentId: series.item.equipment_id ?? series.item.channel_ref_id ?? series.item.id,
     channelId: series.item.channel_id,
     metric: series.item.metric,
-    nativeUnit: series.item.native_unit,
+    nativeUnit: savedDashboardSeriesUnit(series.item),
   };
 }
 
@@ -124,13 +129,17 @@ function buildSeries(
   const segments = liveHistorySegments(samples).flatMap((sourceSegment, segmentIndex) =>
     buildChartSegments(
       identity,
-      sourceSegment.map((sample) => ({
-        id: sample.event_id,
-        timestampMs: timestamp(sample),
-        value: sample.value,
-        quality: sample.quality,
-        sourceEventId: sample.event_id,
-      })),
+      sourceSegment.map((sample) => {
+        const display = savedDashboardDisplaySample(source.item, sample);
+        return {
+          id: sample.event_id,
+          timestampMs: timestamp(sample),
+          value: display?.value ?? null,
+          // Derived operator °C is chart-local. Persisted sample quality remains unknown.
+          quality: display?.operatorDerived ? ("valid" as const) : sample.quality,
+          sourceEventId: sample.event_id,
+        };
+      }),
     ).map((segment, index) =>
       segmentIndex > 0 && index === 0 && segment.points[0]
         ? {
@@ -146,7 +155,7 @@ function buildSeries(
 
   return {
     identity,
-    name: `${source.item.channel_id} · ${source.item.metric}`,
+    name: savedDashboardSeriesLabel(source.item),
     colorToken: source.item.color ?? token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
@@ -154,6 +163,9 @@ function buildSeries(
     segments: reduceTruthfully(segments),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
+    ...(identity.nativeUnit === "°C" && source.item.equipment_id === "EMBRACO-2"
+      ? { displayPrecision: 1 }
+      : {}),
     ...(source.item.visualization === "area" ? { areaFillOpacity: SAVED_AREA_FILL_OPACITY } : {}),
   };
 }
