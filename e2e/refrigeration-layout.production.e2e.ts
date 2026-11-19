@@ -400,7 +400,13 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   }
   const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
   await expect(duty).toContainText(/\d+\.\d %/);
-  await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
+  await expect(history.getByText(/Масштаб °C ще не підтверджено/)).toBeVisible();
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText("не °C");
+  await expect(
+    history.locator(
+      '[data-testid="refrigeration-controller-chart"][data-chart-title="Показники датчиків · raw"]',
+    ),
+  ).toBeVisible();
   await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
   await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
   const relayLanes = history.getByTestId("relay-analysis-lanes");
@@ -441,7 +447,7 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   }
 
   const downloadPromise = page.waitForEvent("download");
-  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  await history.getByRole("button", { name: "Експорт CSV", exact: true }).click();
   const csvDownload = await downloadPromise;
   expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
   const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
