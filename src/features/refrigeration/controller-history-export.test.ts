@@ -144,3 +144,69 @@ describe("controller selected-interval CSV export", () => {
     );
   });
 });
+
+describe("temperature probe export", () => {
+  it("exports both raw probes and quality without inventing °C; preserves signed and original raw", () => {
+    const cabinet: TelemetrySample = {
+      ...sample("cabinet-probe", 60, EMBRACO_METRICS.cabinet, 0, "2-cabinet-temperature"),
+      raw_value: 65485,
+      value: null,
+      unit: "degC",
+      quality: "unknown",
+    };
+    const defrost: TelemetrySample = {
+      ...sample("defrost-probe", 120, EMBRACO_METRICS.evaporator, 0, "2-evaporator-temperature"),
+      raw_value: 65418,
+      value: null,
+      unit: "degC",
+      quality: "unknown",
+    };
+    const csv = buildControllerAnalysisCsv({
+      history: new Map([
+        [EMBRACO_METRICS.cabinet, [cabinet]],
+        [EMBRACO_METRICS.evaporator, [defrost]],
+      ]),
+      range,
+      duty,
+      compressorStarts: [],
+      relayTransitions: [],
+      equipmentId: "EMBRACO-2",
+      timeZone: "Europe/Kyiv",
+    });
+    expect(csv).toContain("raw_value,raw_signed,raw_status");
+    const cabinetRow = csv.split("\r\n").find((line) => line.includes("cabinet-probe"));
+    const defrostRow = csv.split("\r\n").find((line) => line.includes("defrost-probe"));
+    expect(cabinetRow).toContain("temperature.cabinet");
+    expect(cabinetRow).toContain(",unknown,");
+    expect(cabinetRow).toContain(",65485,-51,");
+    expect(cabinetRow).toContain("масштаб °C не підтверджений");
+    expect(defrostRow).toContain("temperature.evaporator");
+    expect(defrostRow).toContain(",65418,-118,");
+    expect(defrostRow).toContain("Датчик відтайки");
+    // A missing approved conversion must never create an engineering value.
+    const headers = csv.split("\r\n")[0]!.replace("\uFEFF", "").split(",");
+    const cabinetColumns = cabinetRow!.split(",");
+    expect(cabinetColumns[headers.indexOf("value")]).toBe("");
+  });
+
+  it("exports calibrated Celsius as valid only when the source sample itself is valid", () => {
+    const calibrated: TelemetrySample = {
+      ...sample("calibrated", 60, EMBRACO_METRICS.cabinet, -0.51, "2-cabinet-temperature"),
+      raw_value: 65485,
+      unit: "degC",
+      quality: "valid",
+    };
+    const csv = buildControllerAnalysisCsv({
+      history: new Map([[EMBRACO_METRICS.cabinet, [calibrated]]]),
+      range,
+      duty,
+      compressorStarts: [],
+      relayTransitions: [],
+      equipmentId: "EMBRACO-2",
+      timeZone: "UTC",
+    });
+    expect(csv).toContain("temperature.cabinet");
+    expect(csv).toContain(",-0.51,degC,valid,");
+    expect(csv).toContain("підтверджене значення °C");
+  });
+});

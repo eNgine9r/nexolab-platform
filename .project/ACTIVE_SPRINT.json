@@ -11136,6 +11136,43 @@
         "offline_restart_after_activation": "NOT_RUN",
         "site_network_risk": "172.18_cidr_overlap_separate_issues_1399_1409"
       }
+    },
+    {
+      "issue": 1603,
+      "title": "KK1 Embraco cabinet/defrost probe charts, signed raw register view and traceable CSV export",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1603-embraco-probes-chart-export",
+      "depends_on": [
+        1601
+      ],
+      "scope": "Source-only charts for two Embraco temperature probes on KK1 with existing time range and series selection; export both with timestamps, quality, original and signed raw and confirmed engineering value if present; exclude old KK2 history before new binding. No speculative Celsius scaling.",
+      "permitted_paths": [
+        "src/features/refrigeration/",
+        "src/components/refrigeration/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1603",
+        "source_only": true,
+        "runtime_cutover": false,
+        "hardware_read_verified": "previous read-only Embraco FC03, 13/13 targets active",
+        "temperature_conversion_verified": false,
+        "temperature_scale": "UNSET; render signed raw separately, no Celsius invention",
+        "legacy_kk2": "historical samples preserved and excluded from KK1 history before boundAt",
+        "checks": {
+          "focused_vitest": "27/27 PASS (4 suites)",
+          "refrigeration_module_vitest": "271/271 PASS (37 suites)",
+          "changed_file_prettier": "PASS",
+          "changed_file_eslint": "PASS",
+          "typescript_noemit": "PASS",
+          "git_diff_check": "PASS",
+          "full_build": "NOT_RUN_ON_PRODUCTION_PI; await hosted CI",
+          "github_exact_head_ci": "PENDING_PR",
+          "site_browser": "NOT_RUN; no cutover",
+          "site_offline": "NOT_RUN; no cutover"
+        }
+      }
     }
   ],
   "maintenance_actions": [

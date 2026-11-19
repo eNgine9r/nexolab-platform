@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { buildEmbracoTemperatureScene } from "./controller-chart";
+import { buildEmbracoProbeRawScene, buildEmbracoTemperatureScene } from "./controller-chart";
 import { EMBRACO_METRICS } from "./controller-monitoring";
 
 function sample(quality: TelemetrySample["quality"], value: number | null): TelemetrySample {
@@ -56,5 +56,71 @@ describe("buildEmbracoTemperatureScene", () => {
     expect(points).toHaveLength(240);
     expect(points?.some((point) => point.value === -50)).toBe(true);
     expect(points?.some((point) => point.value === 100)).toBe(true);
+  });
+});
+
+describe("buildEmbracoProbeRawScene", () => {
+  const range = {
+    from: new Date("2026-11-19T13:00:00.000Z"),
+    to: new Date("2026-11-19T13:05:00.000Z"),
+  };
+  const at = (
+    metric: string,
+    raw_value: number | null,
+    quality: TelemetrySample["quality"] = "unknown",
+  ): TelemetrySample => ({
+    ...sample(quality, null),
+    metric,
+    raw_value,
+    event_id: `${metric}-${raw_value}`,
+  });
+
+  it("shows both read-only raw probe traces as signed register values without claiming Celsius", () => {
+    const scene = buildEmbracoProbeRawScene(
+      new Map([
+        [EMBRACO_METRICS.cabinet, [at(EMBRACO_METRICS.cabinet, 65485)]],
+        [EMBRACO_METRICS.evaporator, [at(EMBRACO_METRICS.evaporator, 65418)]],
+      ]),
+      range,
+      true,
+    );
+
+    expect(scene.series.map((item) => item.name)).toEqual([
+      "Температура в об’ємі · raw",
+      "Датчик відтайки · raw",
+    ]);
+    expect(scene.series.map((item) => item.identity.nativeUnit)).toEqual(["raw", "raw"]);
+    expect(scene.series.map((item) => item.segments[0]?.points[0]?.value)).toEqual([-51, -118]);
+    expect(scene.series.map((item) => item.displayPrecision)).toEqual([0, 0]);
+    expect(scene.series.map((item) => item.identity.channelId.endsWith(":raw"))).toEqual([true, true]);
+  });
+
+  it("fails closed for missing register samples, errors, and out-of-range register values", () => {
+    const scene = buildEmbracoProbeRawScene(
+      new Map([
+        [
+          EMBRACO_METRICS.cabinet,
+          [
+            at(EMBRACO_METRICS.cabinet, null),
+            at(EMBRACO_METRICS.cabinet, 12, "communication_error"),
+            at(EMBRACO_METRICS.cabinet, -2),
+            at(EMBRACO_METRICS.cabinet, 65536),
+          ],
+        ],
+        [EMBRACO_METRICS.evaporator, [at(EMBRACO_METRICS.evaporator, null)]],
+      ]),
+      range,
+      true,
+    );
+    expect(scene.series).toEqual([]);
+  });
+
+  it("preserves the unverified Celsius state in the original samples", () => {
+    const unverified = at(EMBRACO_METRICS.cabinet, 65485);
+    const input = new Map([[EMBRACO_METRICS.cabinet, [unverified]]]);
+    buildEmbracoProbeRawScene(input, range, true);
+    expect(unverified.value).toBeNull();
+    expect(unverified.quality).toBe("unknown");
+    expect(buildEmbracoTemperatureScene(input, range, true).series).toEqual([]);
   });
 });
