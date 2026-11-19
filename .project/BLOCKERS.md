@@ -1,3 +1,17 @@
+## 2026-11-19 — #1598 Sequenced P0 blockers and PR review backlog
+
+Current policy and traceable issue/PR inventory are under `docs/operations/nexolab-execution-roadmap.md` and the T0–T7 matrix. Source-accepted and site-accepted must not be merged into one status.
+
+- **G1 / #1428 — HARD for protected cutover:** no verified complete encrypted off-device backup and independent isolated full-store restore. Existing PG incident dump and synthetic DR tests do not satisfy this. Owner-provided independent storage/access and explicit approval may be required for a real backup or restore. Safe read-only review of draft **#1460/PR #1461** remains independent. PR #1461 is open Draft, GitHub reports mergeable=false on 2026-11-19; inspect conflicts/base/CI before publication.
+- **G2 / #1409 and #1399 — blocked protected network operations:** after G1 restore proof, verify physical LAN vs Docker subnet, stable actual routes and rollback. No network/cutover/reboot authorized by documentation updates. #1400 requires actual object-storage runtime validation, not source-only guard pass.
+- **G3 / #1397 — unaccepted durable delivery:** #1445/#1449/#1451 staged receipt components require exact same protocol, CI, broker/SQLite/postgreSQL outage evidence. Broker-only QoS1 is not proof of committed replay.
+- **G4 / #1587 — protected unified operator release blocked:** require backup/rollback, exact ARM64/source manifest and compatible custom Device Agent, API/schema, authorized actual auth/browser/hardware acceptance on LAN + Funnel.
+- **G5 / #1528 and #1530 — unmerged permission candidates:** PR #1529/PR #1531 are open Draft and GitHub currently reports mergeable=false. No grant enforcement or site acceptance is implied; #1526 is a coordination parent, not executable Ready.
+- **Queue / #1522 — Ready for software-only investigation:** freshness thresholds must be proven against actual polling cadence; no Modbus writes and no premature deployment. Source tests do not establish real site acquisition acceptance.
+- **Older review/dependency PRs:** 46 open PRs at this audit, including 10 dependency automation. Freeze non-urgent merges pending diff/overlap/required exact-head CI; do not close on age alone.
+
+The previous ACTIVE_SPRINT dependency `#1428 -> #1399` was inappropriate at the source-preflight level. The real protected network change depends downstream on DR (#1428), not vice versa. Only an actual lack of independent storage/owner authority stops the protected site action; it does not prevent unrelated safe source work. No Modbus/hardware/site mutation performed in #1598.
+
 ## 2026-11-19 — #1596 Board reconciliation: merged source is not a release
 
 Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed *bounded source/documentation* tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
