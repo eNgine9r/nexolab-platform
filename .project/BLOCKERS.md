@@ -1,3 +1,16 @@
+## 2026-11-19 — #1596 Board reconciliation: merged source is not a release
+
+Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed *bounded source/documentation* tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
+
+- **#1428**: actual, complete encrypted off-device backup, an independent isolated restore and safe local recovery/storage capacity remain unproven.
+- **#1587**: one compatible, pinned and authorized frontend/API/Device Agent release across all operator entrypoints is not installed/accepted. #1592 contributed a read-only source parity gate; it did not perform cutover.
+- **#1409 / #1399**: protected Docker bridge/LAN network remediation and reliable full offline boot recovery require separate verified site execution.
+- **#1577 / #1567 / #1564 / #1569**: independently verify installed source behavior and real user/browser/runtime acceptance before closing the operational defects.
+- **#1526 / #1528 / #1530 / #1522**: independently enforced page grants and actual-cadence live freshness remain unfinished; older #1525 navigation filtering is not granular authorization.
+- **Hardware**: preserve the installed 6+2 commissioned Dixell evidence; other reserve/future channels and untested controllers are not hardware-verified.
+
+No hard-blocker approval was implied by administrative Issue closure. The state-only #1596 PR requires its own GREEN integrity gate. Historical blocker entries below retain their original time-specific meaning.
+
 ## 2026-11-18 — #1592 released source checks are not installed site authority
 
 #1594 CI-governance repair merged with five GREEN exact-head workflows, unblocking read-only parity tool classification. #1592 still requires its own exact-head PR checks and review and a separately approved #1587 protected ARM64 site update with installed Device Agent preservation, independent backup/restore (#1428), network safety (#1409), schema/auth compatibility and rollback. Distinct LAN/HTTPS build IDs may be allowed only by independently approved manifest and verified same merged-main source; never substitute local offline with mandatory public HTTPS. No site cutover performed.

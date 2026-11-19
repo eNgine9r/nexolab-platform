@@ -61,17 +61,53 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1592
+      "issue": 1428
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1526
+    }
   },
   "work_packages": [
+    {
+      "issue": 1596,
+      "branch": "chore/1596-board-state-reconciliation",
+      "title": "Reconcile merged source Issues, open work and stale Sprint selection",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Administrative GitHub Issue closure backed by merged PR evidence, remaining-work classification and state-only PR; no site or hardware mutation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "review_date": "2026-11-19",
+        "source_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
+        "issues_open_before": 79,
+        "pull_requests_open_before": 46,
+        "closed_source_issues": [
+          1594,
+          1592,
+          1590,
+          1583,
+          1479,
+          1431,
+          1525
+        ],
+        "source_only_closure": true,
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pr_review_and_ci": "state-only CI required GREEN before merge; this source snapshot is not site acceptance",
+        "pull_request": 1597
+      }
+    },
     {
       "issue": 1592,
       "branch": "release/1592-frontend-entrypoint-parity",
       "title": "One operator-facing source/build version without loss of device enrollment",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Read-only source/build parity across local Docker, lab LAN and Funnel; preserve commissioned RS-485 onboarding and prepare guarded release handoff to #1587.",
       "permitted_paths": [
         "scripts/check-frontend-entrypoint-parity.py",
@@ -190,7 +226,7 @@
       "branch": "feat/1583-refrigeration-scheme-channels",
       "title": "Commissioned Dixell inputs in refrigeration schemes without a chamber requirement",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Make the climate chamber optional for refrigeration passports and use the local acquisition registry to add or replace commissioned Dixell temperature inputs in equipment schemes.",
       "permitted_paths": [
         "src/components/refrigeration/",
@@ -8372,7 +8408,7 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343,
         1351
@@ -8397,7 +8433,8 @@
         "native_roundtrip_issue": 1353,
         "native_update_operation": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8",
         "native_rollback_operation": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-        "owner_action": "consumed_succeeded_do_not_replay"
+        "owner_action": "consumed_succeeded_do_not_replay",
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8405,7 +8442,7 @@
       "title": "Pin native worker Git trust to the configured site repository",
       "branch": "fix/1351-native-worker-git-lineage",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343
       ],
@@ -8443,7 +8480,8 @@
           "target_storage_gate_started_at": "2026-10-13T10:55:08.189307+00:00",
           "target_storage_gate_duration_seconds": 208.328,
           "target_storage_gate_returncode": 0
-        }
+        },
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -10154,7 +10192,7 @@
       "issue": 1525,
       "title": "Permission-aware navigation and known permission gaps",
       "branch": "feat/1525-permission-aware-navigation",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "site_deployed": false,

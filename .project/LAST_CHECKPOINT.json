@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-18T14:47:59Z",
+  "timestamp": "2026-11-19T10:18:26.861Z",
   "actor": "ChatGPT",
-  "event": "1592_multi_origin_build_manifest_source_reconciliation",
+  "event": "1596_issue_reconciliation_post_merge_handoff",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,12 +31,33 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1592,
-    "branch": "release/1592-frontend-entrypoint-parity",
-    "status": "review",
+    "issue": 1428,
+    "branch": null,
+    "status": "in_progress",
     "site_cutover": false
   },
   "evidence_snapshot": {
+    "issue_1596_board_reconciliation": {
+      "review_date": "2026-11-19",
+      "reviewed_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
+      "open_issues_before": 79,
+      "open_pull_requests": 46,
+      "source_issues_closed": [
+        1594,
+        1592,
+        1590,
+        1583,
+        1479,
+        1431,
+        1525
+      ],
+      "open_issues_after_creating_1596": 73,
+      "state_only_pr_ci": "PENDING",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "release_issue_remaining": 1587,
+      "offsite_dr_issue_remaining": 1428
+    },
     "issue_1583_scheme_channels": {
       "baseline": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c",
       "acceptance": "Create without a chamber, show active 6+2 section inputs, keep reserve/disabled out, preserve replacement label/coordinates/history and scope access by organization/node.",
@@ -5037,7 +5058,7 @@
       }
     }
   ],
-  "next_action": "Publish #1593 refreshed exact-head PR and obtain full Core+Telemetry CI GREEN before source merge; then #1587 protected site rollout remains blocked pending verified ARM64 package/DR/owner approval.",
+  "next_action": "Merge state-only PR #1597 only after its exact-head state-integrity CI GREEN; then prioritize #1428 verified complete encrypted off-device backup and isolated restore, keep #1587 protected site release blocked until all safety/evidence gates, and prepare independent Ready #1526 page-grant Work Package. Do not repeat merged #1593.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
