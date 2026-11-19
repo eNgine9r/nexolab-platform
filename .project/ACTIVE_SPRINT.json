@@ -86,8 +86,10 @@
       ],
       "evidence": {
         "pull_request": 1531,
-        "site_cutover": false
-      }
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1530-per-page-navigation"
     },
     {
       "issue": 1528,
@@ -100,8 +102,10 @@
       ],
       "evidence": {
         "pull_request": 1529,
-        "source_ci": "UNVERIFIED"
-      }
+        "source_ci": "UNVERIFIED",
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1528-page-grant-foundation"
     },
     {
       "issue": 1522,
@@ -141,8 +145,10 @@
       "evidence": {
         "pull_request": 1461,
         "source_ci": "UNVERIFIED",
-        "site_cutover": false
-      }
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feature/1460-offline-backup-preflight"
     },
     {
       "issue": 1598,
@@ -156,7 +162,8 @@
         "source_only": true,
         "source_pr_ci": "PENDING",
         "hardware_verified": false
-      }
+      },
+      "branch": "governance/1598-roadmap-queue-and-test-gates"
     },
     {
       "issue": 1596,
