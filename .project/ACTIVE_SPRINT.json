@@ -8407,7 +8407,7 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343,
         1351
@@ -8432,7 +8432,8 @@
         "native_roundtrip_issue": 1353,
         "native_update_operation": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8",
         "native_rollback_operation": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-        "owner_action": "consumed_succeeded_do_not_replay"
+        "owner_action": "consumed_succeeded_do_not_replay",
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8440,7 +8441,7 @@
       "title": "Pin native worker Git trust to the configured site repository",
       "branch": "fix/1351-native-worker-git-lineage",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343
       ],
@@ -8478,7 +8479,8 @@
           "target_storage_gate_started_at": "2026-10-13T10:55:08.189307+00:00",
           "target_storage_gate_duration_seconds": 208.328,
           "target_storage_gate_returncode": 0
-        }
+        },
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
