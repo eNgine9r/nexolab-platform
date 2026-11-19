@@ -33,7 +33,14 @@
       "source_or_state_merge_alone_is_sufficient": false,
       "automatic_activation_authorized": false,
       "owner_local_root_boundary_retained": true
-    }
+    },
+    "max_ready_work_packages": 3,
+    "max_concurrent_primary_pr_reviews": 1,
+    "primary_work_package_must_be_leaf": true,
+    "portfolio_roadmap": "docs/operations/nexolab-execution-roadmap.md",
+    "verification_gate_matrix": "docs/operations/nexolab-verification-matrix.md",
+    "ready_acceptance": "One executable leaf Issue+branch+PR, T0 product/acceptance/dependency/paths/test plan complete; coordination parent never Ready.",
+    "site_release_rule": "Source merge != installed. Protected release needs real off-device DR/restore, rollback, required CI and exact owner approval."
   },
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
@@ -61,13 +68,119 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1428
+      "issue": 1460
     },
     "next_work_package": {
-      "issue": 1526
+      "issue": 1522
     }
   },
   "work_packages": [
+    {
+      "issue": 1530,
+      "title": "Apply individually assigned page grants to navigation",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "PR #1531 must await #1528 foundation accepted; direct route authorization tested.",
+      "depends_on": [
+        1528
+      ],
+      "evidence": {
+        "pull_request": 1531,
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1530-per-page-navigation"
+    },
+    {
+      "issue": 1528,
+      "title": "Individually assignable page-grant contract foundation",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Source candidate PR #1529 for typed grants and backend permissions; exact-head CI needed.",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {
+        "pull_request": 1529,
+        "source_ci": "UNVERIFIED",
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1528-page-grant-foundation"
+    },
+    {
+      "issue": 1522,
+      "title": "Cadence-aware Live/Stale telemetry",
+      "lifecycle": "ready",
+      "priority": "high",
+      "scope": "Independent focused source-only freshness contract and targeted tests; no hardware or site mutation.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "planned_branch_only": true,
+        "autonomous_start_requires_current_review_clearance": true
+      },
+      "branch": "fix/1522-cadence-aware-live-freshness",
+      "permitted_paths": [
+        "src/features/live/",
+        "src/components/live/",
+        "src/features/acquisition/ (read-only cadence contract if required)",
+        "focused Live tests",
+        "four canonical .project state files"
+      ],
+      "verification": [
+        "Reproduce 60 s Waveshare cadence against 30 s stale threshold in focused tests.",
+        "Prove on-time, overdue, unknown-quality, reconnect and cross-organization/channel cases.",
+        "Changed-file lint/format, TypeScript, module tests and required exact-head CI.",
+        "Real authenticated site/offline acceptance remains separate and hardware writes forbidden."
+      ]
+    },
+    {
+      "issue": 1587,
+      "title": "One protected operator release across LAN and Funnel",
+      "lifecycle": "blocked",
+      "priority": "critical",
+      "scope": "Release requires complete DR, safe network/reboot acceptance, matching ARM64 packages and owner-approved activation.",
+      "depends_on": [
+        1428,
+        1409,
+        1399
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1460,
+      "title": "Read-only complete backup inventory and capacity preflight",
+      "lifecycle": "review",
+      "priority": "critical",
+      "scope": "Review existing PR #1461 and verify source-only DR preflight before any protected backup.",
+      "depends_on": [],
+      "evidence": {
+        "pull_request": 1461,
+        "source_ci": "UNVERIFIED",
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feature/1460-offline-backup-preflight"
+    },
+    {
+      "issue": 1598,
+      "title": "Dependency-driven roadmap and verification governance",
+      "lifecycle": "completed",
+      "priority": "critical",
+      "scope": "Documentation and canonical state only; all open issue/PR inventory; no site or code mutation.",
+      "depends_on": [],
+      "evidence": {
+        "branch": "governance/1598-roadmap-queue-and-test-gates",
+        "source_only": true,
+        "source_pr_ci": "PENDING",
+        "hardware_verified": false
+      },
+      "branch": "governance/1598-roadmap-queue-and-test-gates"
+    },
     {
       "issue": 1596,
       "branch": "chore/1596-board-state-reconciliation",
@@ -9224,7 +9337,7 @@
       "title": "Fail closed on Docker/physical-LAN CIDR overlap",
       "branch": "fix/1406-docker-lan-cidr-preflight",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Read-only Python IPv4 interface-vs-Docker IPAM gate integrated with offline Pi acceptance; no runtime network change.",
       "evidence": {
@@ -9234,7 +9347,8 @@
         "unit_tests": "16_passed",
         "production_site_changed": false,
         "owner_authorized_subnet_migration": false,
-        "exact_head_ci": "pending"
+        "exact_head_ci": "pending",
+        "portfolio_triage_20261119": "Source PR #1407 merged 2026-10-16; protected bridge migration still open."
       }
     },
     {
@@ -9242,7 +9356,7 @@
       "title": "Detect detached packaged object-storage private network after reboot",
       "branch": "fix/1400-offline-object-storage-network-gate",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "depends_on": [],
       "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
       "evidence": {
@@ -9254,7 +9368,8 @@
         "ci": "pending",
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
-        "ci_policy_tests": "225_tests_1_expected_skip"
+        "ci_policy_tests": "225_tests_1_expected_skip",
+        "portfolio_triage_20261119": "Read-only source guard not proof of repaired site object-storage network."
       }
     },
     {
@@ -9262,8 +9377,11 @@
       "title": "Guarded packaged Docker boot network recovery",
       "branch": "feature/1399-offline-boot-network-observer",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428,
+        1409
+      ],
       "scope": "Read-only protected authority and Docker network drift observer first; later guarded owner-approved supervisor remains unimplemented.",
       "evidence": {
         "main_includes_1406": "6bb87b26d8e5781893b786e4a4a28faece426650",
@@ -9271,7 +9389,8 @@
         "source_tests": "16_passed",
         "automated_site_repair": "not_authorized_not_enabled",
         "exact_head_ci": "pending",
-        "manual_only_postgres_or_hardware_agent": "enforced"
+        "manual_only_postgres_or_hardware_agent": "enforced",
+        "portfolio_triage_20261119": "Source-only observer done; actual auto-repair gated on independent DR and safe network topology."
       }
     },
     {
@@ -9336,8 +9455,10 @@
       "title": "Migrate live Edge Docker bridge away from overlapping physical LAN without telemetry loss",
       "branch": "feature/1409-edge-ipam-readonly-inventory",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428
+      ],
       "scope": "Stage 1 only: bounded read-only full Pi interface/all-routes/Docker subnet inventory, explicit RFC1918 candidate conflict analysis, mock regression tests, protected owner-gated runbook; no live network rewrite.",
       "permitted_paths": [
         "infrastructure/offline/inspect-edge-docker-ipam-readiness.py",
@@ -9366,7 +9487,8 @@
         "test_cases": 18,
         "initial_ci_format_failure": "runbook_prettier",
         "next_ci": "pending",
-        "unapproved_candidate_exit": "nonzero_fail_closed"
+        "unapproved_candidate_exit": "nonzero_fail_closed",
+        "portfolio_triage_20261119": "Source-only IPAM done; protected network cutover gated on full DR and owner approval."
       }
     },
     {
@@ -9374,10 +9496,8 @@
       "title": "Restore offline NEXOLAB backup/restore readiness with bounded PG incident snapshot",
       "branch": "fix/1428-bounded-incident-pg-backup",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [
-        1399
-      ],
+      "lifecycle": "blocked",
+      "depends_on": [],
       "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft.",
       "permitted_paths": [
         "scripts/nexolab-safe-pg-incident-backup.sh",
@@ -9414,7 +9534,8 @@
         "source_only_pr1430": "merged",
         "merged_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
         "source_only_ci": "all_six_workflows_success",
-        "pending_full_dr": true
+        "pending_full_dr": true,
+        "portfolio_triage_20261119": "DR source can advance independent of reboot recovery; complete encrypted off-device backup+isolated restore blocked on real evidence."
       }
     },
     {
@@ -9706,7 +9827,7 @@
       "title": "Versioned central durable telemetry receipt protocol for offline Edge replay",
       "branch": "feature/1410-durable-receipt-contract",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Contract-only offline application-level MQTT receipt schema/validator with trusted-identity matching, replay ledger required, timestamp freshness, strict FIFO final-only prune semantics, 23 hermetic tests; no actual publisher or subscriber.",
       "permitted_paths": [
@@ -9733,7 +9854,8 @@
           "unit": "pending",
           "offline": "pending"
         },
-        "pr": 1411
+        "pr": 1411,
+        "portfolio_triage_20261119": "Source contract PR #1411 merged 2026-10-30; ACK publisher/consumer remain open."
       }
     },
     {
@@ -10203,11 +10325,13 @@
       "issue": 1526,
       "title": "Independently grant and enforce per-page access",
       "branch": null,
-      "lifecycle": "ready",
+      "lifecycle": "queued",
       "depends_on": [
         1525
       ],
-      "evidence": {}
+      "evidence": {
+        "portfolio_triage_20261119": "Coordination umbrella; executable grant contracts are source PR #1529 and follow-on #1531."
+      }
     },
     {
       "issue": 1532,
@@ -12932,6 +13056,17 @@
         "pull_request": 1448,
         "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
         "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T11:00:39.790Z",
+      "kind": "1598_portfolio_snapshot",
+      "data": {
+        "open_issues_including_governance": 73,
+        "open_prs": 46,
+        "epics": 7,
+        "note": "dated planning observation, not live synchronized status"
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T10:18:26.861Z",
+  "timestamp": "2026-11-19T11:02:36.565Z",
   "actor": "ChatGPT",
-  "event": "1596_issue_reconciliation_post_merge_handoff",
+  "event": "1598_dependency_driven_roadmap_and_verified_queue_reconciliation_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1428,
-    "branch": null,
-    "status": "in_progress",
+    "issue": 1460,
+    "branch": "feature/1460-offline-backup-preflight",
+    "status": "review",
     "site_cutover": false
   },
   "evidence_snapshot": {
@@ -3488,6 +3488,29 @@
       "optional_manifest": "checksum-pinned multiple builds from same approved source",
       "governance_pr_1595": "merged 17516d14 with 5/5 GREEN",
       "github_exact_head": "pending new PR #1593 CI"
+    },
+    "issue_1598_execution_governance": {
+      "source_only": true,
+      "roadmap": "docs/operations/nexolab-execution-roadmap.md",
+      "test_matrix": "docs/operations/nexolab-verification-matrix.md",
+      "issues_count_including_1598": 73,
+      "open_pr_count": 46,
+      "open_pr_dep_automation": 10,
+      "stale_in_progress_converted": [
+        1406,
+        1410,
+        1428,
+        1409,
+        1399,
+        1400
+      ],
+      "selected_source_review_issue": 1460,
+      "selected_source_review_pr": 1461,
+      "independent_next_ready_issue": 1522,
+      "full_offsite_dr": "UNVERIFIED",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "github_governance_pr_ci": "PENDING"
     }
   },
   "observations": [
@@ -5058,7 +5081,7 @@
       }
     }
   ],
-  "next_action": "Merge state-only PR #1597 only after its exact-head state-integrity CI GREEN; then prioritize #1428 verified complete encrypted off-device backup and isolated restore, keep #1587 protected site release blocked until all safety/evidence gates, and prepare independent Ready #1526 page-grant Work Package. Do not repeat merged #1593.",
+  "next_action": "First inspect and reconcile draft PR #1461 / Issue #1460 against current main, conflicts, applicable AGENTS, full offline DR inventory and exact-head CI; no production backup or site changes. Then advance independent Ready #1522 (one focused branch/PR and cadence tests). Keep #1428 full encrypted off-device restore, #1409/#1399 site recovery and #1587 release blocked until actual physical evidence and explicit owner approval. No other parallel feature starts.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
