@@ -1,3 +1,7 @@
+## 2026-11-19 — #1611 remaining gates after verified #1609 frontend releases
+
+Both LAN and OAuth-protected HTTPS frontend-only cutovers to source `27b273865a96a60e5a6c1766fc55dc29cecf72ef` succeeded, without backend restarts or gateway modification. Existing signed raw telemetry is unchanged; UI/CSV temperature in °C uses owner-provided ×0.1, **not independently verified calibration**. Public anonymous OAuth 302 and live source/build readiness are verified, but signed-in human browser chart/CSV acceptance remains pending. Offline reboot, recovery and durable version-manager adoption #1606, complete off-device DR #1428, and protected network acceptance remain unverified. Do not mistake these for a full-stack or hardware-verified release.
+
 ## 2026-11-19 — #1609 Embraco operator scale 0.1 is not hardware calibration
 
 Product Owner accepts a provisional/operational `×0.1 °C` signed-FC03-register conversion for Embraco Sync Unit 2 KK1, without supplying a photographed HMI comparison. A frontend-only source candidate renders this as operator-estimated °C and exports separate source-preserving derived CSV columns. **Hardware verification remains NOT DONE**; do not mark raw telemetry `valid`, rewrite PostgreSQL or say the controller is temperature-calibrated. Outlier plausibility and historical older KK2 values were not physically correlated to the new scale. The frontend conversion must not become a required runtime API/cloud service.

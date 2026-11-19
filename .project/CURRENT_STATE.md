@@ -1,3 +1,11 @@
+## 2026-11-19 — #1611 records verified #1609 LAN/HTTPS operator Celsius release
+
+Source PR #1610 is **MERGED** in main (`59dc14cacac70c63407afc57d3ee797e98e77f47`); exact implementation `27b273865a96a60e5a6c1766fc55dc29cecf72ef` passed all required CI (including Chromium, PostgreSQL/local S3, production build and Merge Gate). GitHub ARM64 workflow `44562627634` SUCCESS supplied SHA256-verified same-source LAN and HTTPS release packages.
+
+Actual Raspberry Pi frontend-only cutovers were successful with rollback contracts. LAN Dashboard `172.18.48.66:3000` now runs source `27b27386...` build `4QJaWhiSXkGsAyTaVtVjf`, Docker healthy. HTTPS OAuth-gated Next.js at `127.0.0.1:3105` runs the same source, build `qfF_dxzeeg5BUGOKOpEoc`; protected public Funnel returns HTTP 302 to unauthenticated requests. Gateway/Tailscale remained unchanged. Existing five backend containers preserved across each rollout; Telemetry and Device Agent healthy. Auditable private on-host reports are under `commander-workspaces/nexolab-1609-release-artifacts/site-dashboard-only/activation-report-1609.json` and `https-1609/activation-report-1609.json`. Previous frontend releases and rollback manifests remain available; no Modbus, database or hardware writes.
+
+Operator explicitly accepts signed int16 FC03 probe readings ×0.1 °C for the KK1 Embraco-2 UI and separate derived CSV columns. Persisted source `value=NULL` and `quality=unknown` remain unchanged. **This is operator-provided conversion, not physical calibration**; authenticated human-browser chart/CSV acceptance is still pending. Offline reboot/version-manager authority #1606 and full-site DR #1428 are not accepted. This state-only PR has no site mutation and preserves global Sprint selection #1460.
+
 ## 2026-11-19 — #1609 operator-confirmed Embraco probe ×0.1 °C conversion source candidate
 
 Product Owner directly stated `Давай без фото, так і є`, accepting the proposed scale **0.1 °C per signed raw FC03 count** for Embraco Sync Unit 2 on CoolesSlim VCC L1250 KK1. This is an **operator-provided conversion, NOT independently verified physical HMI/calibration evidence**; hardware acceptance and calibrated accuracy remain open. The Pi Device Agent still leaves `EMBRACO_TEMPERATURE_SCALE` unset and correctly reports raw source samples with `value=NULL` and `quality=unknown`, with no backend writes or restart.

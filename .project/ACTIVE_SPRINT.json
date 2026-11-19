@@ -11247,11 +11247,42 @@
         ],
         "unit_tests": "25/25 targeted PASS (four suites, including negative boundaries)",
         "types_and_lint": "TypeScript noEmit and touched-file ESLint PASS",
-        "site_deployment": "NOT DONE; exact-head GitHub CI + new ARM64 artifacts + site rollout required",
+        "site_deployment": "VERIFIED LAN Docker Dashboard-only and OAuth-gated HTTPS frontend-only; no backend modifications",
         "authenticated_user_browser": "NOT DONE",
         "hardware_writes": "NONE",
         "db_mutations": "NONE",
-        "browser_e2e_contract": "Refrigeration-layout Chromium selectors and CSV expected headers reconciled for operator °C; exact-head CI pending"
+        "browser_e2e_contract": "Refrigeration-layout Chromium selectors and CSV expected headers reconciled for operator °C; exact-head CI pending",
+        "source_sha": "27b273865a96a60e5a6c1766fc55dc29cecf72ef",
+        "source_pr": "#1610 MERGED with exact-head CI GREEN",
+        "arm64_artifacts": "GitHub Actions #44562627634 SUCCESS; dual SHA256-verified ARM64 releases",
+        "lan_build": "4QJaWhiSXkGsAyTaVtVjf",
+        "https_build": "qfF_dxzeeg5BUGOKOpEoc",
+        "lan_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/site-dashboard-only/activation-report-1609.json",
+        "https_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/https-1609/activation-report-1609.json",
+        "browser_authenticated": "NOT YET VERIFIED",
+        "hardware_scale": "operator-confirmed ×0.1; physical calibration UNVERIFIED",
+        "offline_restart": "NOT TESTED; follow-up #1606"
+      }
+    },
+    {
+      "issue": 1611,
+      "title": "Record verified operator Celsius LAN/HTTPS frontend-only release evidence",
+      "priority": "medium",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1611-operator-celsius-site-evidence",
+      "depends_on": [
+        1609
+      ],
+      "scope": "State evidence only; do not modify product/backend/site runtime",
+      "permitted_paths": [
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1611",
+        "lan_and_https": "ACTIVATED",
+        "scale": "operator-provided not hardware-verified",
+        "CI": "PENDING_SOURCE_STATE_PR",
+        "no_site_mutation": true
       }
     }
   ],

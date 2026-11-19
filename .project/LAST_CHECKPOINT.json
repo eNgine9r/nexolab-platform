@@ -3,15 +3,15 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T15:59:20Z",
+  "timestamp": "2026-11-19T16:27:46Z",
   "actor": "ChatGPT",
-  "event": "1609_operator_celsius_provenance_source_candidate",
+  "event": "1611_site_verified_lan_and_https_operator_celsius",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_compatibility_source_sha": "edd04b4aabdd28c7c46ada056cc746434796bdde",
-    "frontend_build_id": "9B-pHrz8lObcc5N_TX8F1",
-    "frontend_release": "validated_package:edd04b4aabdd28c7c46ada056cc746434796bdde",
+    "frontend_compatibility_source_sha": "27b273865a96a60e5a6c1766fc55dc29cecf72ef",
+    "frontend_build_id": "4QJaWhiSXkGsAyTaVtVjf",
+    "frontend_release": "validated_package:27b273865a96a60e5a6c1766fc55dc29cecf72ef",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
     "frontend_runtime_evidence": "issue-1603 private site-dashboard-only/activation-report-1603.json (LAN frontend only)",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
@@ -27,12 +27,12 @@
     "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "edd04b4aabdd28c7c46ada056cc746434796bdde",
-    "protected_frontend_build_id": "qe-NDhbsh-6WHXhvG0luq"
+    "protected_frontend_compatibility_source_sha": "27b273865a96a60e5a6c1766fc55dc29cecf72ef",
+    "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1609,
-    "branch": "feature/1609-embraco-operator-celsius",
+    "issue": 1611,
+    "branch": "ops/1611-operator-celsius-site-evidence",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3606,9 +3606,18 @@
       "scope": "EMBRACO-2, cabinet and evaporator probes only",
       "source_main_baseline": "5434f0f14b0960630b4e436b6c5f45599b5ee5a8",
       "source_validation": "25 target tests PASS; tsc noemit PASS; touched-file ESLint PASS",
-      "site_runtime_status": "previously deployed LAN/HTTPS on source edd04b4a unchanged; new conversion NOT DEPLOYED",
+      "site_runtime_status": "LAN and HTTPS frontend-only ACTIVATED and verified; prior sources retained",
       "no_modbus_or_db_write": true,
-      "real_hardware_scale_verified": false
+      "real_hardware_scale_verified": false,
+      "site_source_merge": "59dc14cacac70c63407afc57d3ee797e98e77f47",
+      "site_lan_build": "4QJaWhiSXkGsAyTaVtVjf",
+      "site_https_build": "qfF_dxzeeg5BUGOKOpEoc",
+      "lan_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/site-dashboard-only/activation-report-1609.json",
+      "https_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/https-1609/activation-report-1609.json",
+      "oauth_gateway_backend_unchanged": true,
+      "hardware_scale_verified": false,
+      "authenticated_browser": "NOT TESTED",
+      "offline_reboot": "NOT TESTED"
     }
   },
   "observations": [
@@ -5239,7 +5248,7 @@
       }
     }
   ],
-  "next_action": "Issue #1609 feature branch: finish source verification, exact-head CI GREEN and off-device ARM64 LAN/HTTPS builds; then separately perform bounded frontend-only LAN + protected HTTPS site rollout and browser acceptance, preserving raw telemetry and old rollback images. Do not claim physically verified Celsius without HMI calibration evidence. Existing global Sprint selection #1460 unaffected.",
+  "next_action": "Product Owner: sign into protected HTTPS KK1 Graphs and verify two operator-scaled Celsius lines, range controls and CSV operator_celsius_degC column. Hardware scale unverified; no offline reboot performed. #1606 handles durable startup/version authority. Preserve Sprint #1460 selection.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5248,7 +5257,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NONE for #1609 source-only stage; current LAN+HTTPS production is previously activated #1603/#1607 release.",
+  "runtime_mutation": "State-only #1611 no runtime writes. Earlier #1609 scoped frontend-only LAN and HTTPS releases verified, no backend or hardware writes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
