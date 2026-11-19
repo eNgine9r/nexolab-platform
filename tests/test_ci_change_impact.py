@@ -36,6 +36,61 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             self.assertIn('deployment_runtime', result['classes'])
             self.assertTrue(result['verification']['offline_bundle'])
 
+    def test_offline_backup_readonly_preflight_is_known_dr_and_triggers_offline_bundle(self) -> None:
+        source = "scripts/nexolab-offline-backup-preflight.py"
+        test = "scripts/tests/test_nexolab_offline_backup_preflight.py"
+        for path in (source, test):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertEqual(
+                    result["verification"]["required_external_workflows"],
+                    ["Offline Bundle"],
+                )
+
+        paths = [
+            source, test,
+            "docs/operations/offline-backup-preflight-1460.md",
+            ".project/ACTIVE_SPRINT.json",
+        ]
+        combined = classify(paths)
+        self.assertFalse(combined["fail_closed"])
+        self.assertEqual(
+            combined["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
+        # A change to the classifier itself intentionally requires the
+        # broader external lanes; verify those workflows register via their
+        # existing classifier path trigger, never suppress the merge gate.
+        classifier_change = classify([*paths, "scripts/classify-ci-impact.py"])
+        self.assertFalse(classifier_change["fail_closed"])
+        self.assertEqual(
+            set(classifier_change["verification"]["required_external_workflows"]),
+            {
+                "Offline Bundle", "Authenticated Dashboard Acceptance",
+                "Refrigeration Browser Acceptance",
+            },
+        )
+        offline_workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        offline_triggers = offline_workflow.split("  pull_request:", 1)[1].split(
+            "  workflow_dispatch:", 1
+        )[0]
+        for path in (source, test):
+            self.assertIn(f'      - "{path}"', offline_triggers)
+        for workflow_file in (
+            "authenticated-dashboard-acceptance.yml",
+            "refrigeration-browser-acceptance.yml",
+        ):
+            other = (ROOT / ".github/workflows" / workflow_file).read_text(
+                encoding="utf-8"
+            )
+            self.assertIn('      - "scripts/classify-ci-impact.py"', other)
+
     def test_incident_pg_backup_helpers_require_offline_bundle_not_unknown_broadening(self) -> None:
         result = classify([
             "scripts/nexolab-safe-pg-incident-backup.sh",

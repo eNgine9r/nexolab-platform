@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T11:02:36.565Z",
+  "timestamp": "2026-11-19T11:31:53Z",
   "actor": "ChatGPT",
-  "event": "1598_dependency_driven_roadmap_and_verified_queue_reconciliation_source_candidate",
+  "event": "1460_source_candidate_main_reconciled_preflight_tests_pass_ci_pending",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3511,6 +3511,19 @@
       "site_cutover": false,
       "hardware_verified": false,
       "github_governance_pr_ci": "PENDING"
+    },
+    "1460_source_review_20261119": {
+      "issue": 1460,
+      "pr": 1461,
+      "local_preflight_pytest": "15_of_15_pass",
+      "python_compile": "pass",
+      "state_validation": "pass",
+      "new_pr_head_ci": "PENDING",
+      "site_backup": false,
+      "site_restore": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "site_cutover": false
     }
   },
   "observations": [
@@ -5081,7 +5094,7 @@
       }
     }
   ],
-  "next_action": "First inspect and reconcile draft PR #1461 / Issue #1460 against current main, conflicts, applicable AGENTS, full offline DR inventory and exact-head CI; no production backup or site changes. Then advance independent Ready #1522 (one focused branch/PR and cadence tests). Keep #1428 full encrypted off-device restore, #1409/#1399 site recovery and #1587 release blocked until actual physical evidence and explicit owner approval. No other parallel feature starts.",
+  "next_action": "Publish only the main-reconciled #1461 read-only source candidate; run exact-head CI and all required offline, dashboard, refrigeration and telemetry workflows. Merge only after GREEN and focused review; parent #1428 independent encrypted off-device backup and isolated restore remain unverified. Then proceed with next independent Ready #1522, keeping one active source implementation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

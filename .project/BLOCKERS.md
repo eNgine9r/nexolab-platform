@@ -1,3 +1,7 @@
+## 2026-11-19 — #1460 staged preflight source review does not resolve #1428
+
+PR #1461 read-only diagnostic source was reconciled with latest main, including its workflow filters and dedicated negative tests. The current-local source suite passed 15/15; however, protected backup capacity alone is insufficient and **no backup or restore was executed**. The existing policy is missing Edge SQLite/outbox and still uses legacy unverified object-storage authority, while encrypted off-device custody and an independently restored full-store test remain unverified. Exact-head CI/required workflows and final source review are the next software gate, not a production release authorization. #1428, #1409/#1399 and #1587 stay blocked for physical/site acceptance.
+
 ## 2026-11-19 — #1598 Sequenced P0 blockers and PR review backlog
 
 Current policy and traceable issue/PR inventory are under `docs/operations/nexolab-execution-roadmap.md` and the T0–T7 matrix. Source-accepted and site-accepted must not be merged into one status.

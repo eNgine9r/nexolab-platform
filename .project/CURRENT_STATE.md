@@ -1,3 +1,9 @@
+## 2026-11-19 — #1460 source PR #1461 reconciled with current main (source-only)
+
+The isolated, uninstalled Git merge of PR #1461 onto current main preserved the latest Sprint selection, blockers and checkpoint rather than reintroducing November 10 historical versions. It brought only the 7 focused source/test/docs files forward from #1460; 4 canonical project state files carry evidence updates. Source unit tests **15/15 PASS**, source Python compile **PASS**, State Model v2 validator **PASS**. Required exact-merge-head GitHub CI still pending at this local checkpoint. Earlier six-GREEN workflows applied to an outdated PR head and do **not** approve this merge. No live Raspberry runtime, Docker, Modbus, site backup or database changes.
+
+The new diagnostic intentionally yields BLOCKED exit 78 even with complete synthetic inventory because actual independently encrypted off-device backup, source authority, isolated restore and owner-approved site activation remain unverified. Parent #1428 and protected #1587 release remain open; no green operator update readiness is implied.
+
 ## 2026-11-19 — #1598 Dependency-first execution policy and test gates (source-only)
 
 Product Owner requested removal of chaotic NEXOLAB parallel work and a strict logical roadmap. Audit of live GitHub after #1597: 72 previously open Issues plus this #1598 governance Issue, 46 open PRs, historical Sprint queue of 315 WPs. All 73 currently open Issues were assigned exactly once to seven portfolio Epics, and all 46 PRs assigned once to eight review buckets. See `docs/operations/nexolab-execution-roadmap.md` for the dated inventory and milestone order G0→G6, and `docs/operations/nexolab-verification-matrix.md` for T0–T7 evidence gates. The live GitHub board remains authoritative; these documents are snapshots and policy, not synchronized status.

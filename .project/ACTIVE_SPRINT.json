@@ -156,15 +156,43 @@
       "title": "Read-only complete backup inventory and capacity preflight",
       "lifecycle": "review",
       "priority": "critical",
-      "scope": "Review existing PR #1461 and verify source-only DR preflight before any protected backup.",
+      "scope": "Source-only read-only complete-backup policy and protected storage-capacity preflight; standalone pytest, exact-head CI, no production backup/restore or site actions.",
       "depends_on": [],
       "evidence": {
         "pull_request": 1461,
         "source_ci": "UNVERIFIED",
         "site_cutover": false,
-        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review",
+        "worktree_scope": "isolated_reconciliation_only",
+        "reconciled_base": "current_main_after_1598",
+        "targeted_pytest": "15_pass",
+        "python_compile": "pass",
+        "state_model_validator": "pass",
+        "actual_backup": "NOT_PERFORMED",
+        "actual_restore": "NOT_PERFORMED",
+        "offline_hardware_verified": false,
+        "required_exact_head_ci": "PENDING"
       },
-      "branch": "feature/1460-offline-backup-preflight"
+      "branch": "feature/1460-offline-backup-preflight",
+      "permitted_paths": [
+        "scripts/nexolab-offline-backup-preflight.py",
+        "scripts/tests/test_nexolab_offline_backup_preflight.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/telemetry-service.yml",
+        "docs/operations/offline-backup-preflight-1460.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "verification": [
+        "Isolated read-only preflight pytest tests: 15/15 PASS on reconciled source candidate",
+        "Source Python compile and canonical State Model v2 integrity: PASS",
+        "Required exact-head GitHub CI, offline workflow and merge gate: PENDING on the updated PR head",
+        "Real encrypted off-device backup and isolated restore: not performed, parent #1428 remains blocked"
+      ]
     },
     {
       "issue": 1598,
