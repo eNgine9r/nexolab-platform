@@ -87,7 +87,7 @@ export function buildEmbracoTemperatureScene(
 }
 
 /**
- * Operator-scaled (0.1 °C/count), not independently hardware-verified.
+ * Provisional HMI-informed (0.01 °C/count), not independently calibrated.
  * Unverified raw telemetry stays immutable and retains `quality: unknown` in storage.
  * The synthetic `valid` quality exists ONLY in the chart renderer's local input,
  * permitting a visibly labeled derived series without rewriting source evidence.
@@ -130,7 +130,7 @@ export function buildEmbracoOperatorCelsiusScene(
       return [];
     });
     const built = seriesFromSamples(displaySamples, name, index, online);
-    return built ? [{ ...built, displayPrecision: 1 }] : [];
+    return built ? [{ ...built, displayPrecision: 2 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
 }

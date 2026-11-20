@@ -111,7 +111,7 @@ function statusPresentation(status: LiveDashboardTelemetryStatus): {
 function seriesState(series: LiveDashboardTelemetryModel["series"][number]): string {
   if (!series.latest) return "Немає persisted sample";
   if (savedDashboardDisplaySample(series.item, series.latest)?.operatorDerived) {
-    return "°C за коефіцієнтом оператора · апаратно не перевірено";
+    return "Попередня оцінка °C ×0,01 · датчик на дисплеї не підтверджено";
   }
   const state = liveTelemetryState(series.latest);
   if (state === "live") return "Live";
@@ -297,8 +297,9 @@ export function DashboardLiveView({
           data-testid="saved-dashboard-operator-temperature-note"
           className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-sm text-amber-100"
         >
-          Температури Embraco відображено у °C за коефіцієнтом оператора ×0,1 від signed Modbus raw. Апаратне
-          калібрування ще не підтверджене; вихідна якість телеметрії не змінюється.
+          Попередня оцінка температур Embraco: signed Modbus raw ×0,01 °C. Попередній коефіцієнт ×0,1
+          суперечив показу контролера. Вибір датчика на дисплеї та калібрування ще не підтверджено; вихідні
+          raw і якість телеметрії не змінюються.
         </div>
       ) : null}
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-20T05:29:16Z",
+  "timestamp": "2026-11-20T07:35:16Z",
   "actor": "ChatGPT",
-  "event": "1615_csv_pr_reconciled_with_1617_green_security_main_and_10s_hardware_read_evidence",
+  "event": "1621_embraco_real_hmi_scale_mismatch_provisional_frontend_source_candidate",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1615,
-    "branch": "feature/1615-saved-embraco-csv",
+    "issue": 1621,
+    "branch": "fix/1621-embraco-hmi-scale",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3677,6 +3677,33 @@
       "observed_temperature_spacing_sec": 10.0,
       "hardware_celsius_scale": "NOT verified",
       "sampling_runtime_mutation": "none; cadence was already verified 10 seconds, regardless of global SAMPLE_INTERVAL_SECONDS=5"
+    },
+    "issue_1621_embraco_hmi_mismatch": {
+      "user_physical_hmi_celsius": 0.1,
+      "raw_2026_11_20_0722_utc": {
+        "cabinet": 65514,
+        "evaporator": 24,
+        "condenser": 3202
+      },
+      "source_old_scale": 0.1,
+      "source_provisional_candidate_scale": 0.01,
+      "hardware_scale_accepted": false,
+      "probe_hmi_mapping_accepted": false,
+      "local_tests": "36/36 targeted initial PASS",
+      "lint": "ESLint touched-file max-warnings 0 PASS",
+      "typecheck": "TypeScript tsc --noEmit PASS",
+      "site_runtime": "UNCHANGED prior frontend ×0.1; no backend deployment",
+      "backend_csv_depends_on_issue": 1622,
+      "blocked_backend_image": "nexolab/telemetry-service:issue-1615-1e5537cb-arm64",
+      "hardware_writes": false,
+      "site_space_gib": "~19 GiB free; under 20 GiB DR reserve",
+      "full_related_tests": "69/69 PASS in 16 related Vitest files",
+      "source_targeted_tests": "36/36 PASS then all 69/69 PASS",
+      "formatting": "changed file Prettier PASS",
+      "site_cutover": "not performed",
+      "hardware_calibration": "UNVERIFIED",
+      "browser_first_ci": "Initial browser PostgreSQL+S3 E2E failed exclusively on stale literal old ×0.1 and old warning text, fixed in new test contract",
+      "ci_status": "new exact-head CI pending"
     }
   },
   "observations": [
@@ -5307,7 +5334,7 @@
       }
     }
   ],
-  "next_action": "Check PR #1616 exact-head CI on merged security-fixed main. Actual site data for Embraco three series already persists every 10 sec (180 samples per 30 min); no interval change needed. No Telemetry API backend cutover before independent rollback / no-loss evidence and approval. Hardware Celsius scale unverified.",
+  "next_action": "Finish frontend #1621 exact-head source checks/PR CI. User must identify what physical probe HMI +0.1°C represents; collect concurrent two-point raw/HMI comparison, then owner-approved frontend-only LAN+HTTPS release. Implement backend-only #1622 separately; never activate old backend ×0.1 image. Restore DR #1428 before any telemetry-service cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5316,7 +5343,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NO runtime change in #1615 or sampling validation. Prior issue #1613 UI frontend-only activation and audited v2→v3 dashboard selection remain active.",
+  "runtime_mutation": "NONE. Frontend ×0.01 is source candidate, no site cutover. Telemetry acquisition unchanged read-only.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

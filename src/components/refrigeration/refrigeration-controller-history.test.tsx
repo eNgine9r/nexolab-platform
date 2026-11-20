@@ -335,7 +335,9 @@ describe("Embraco probe history and CSV UI", () => {
   it("shows a separate clearly marked raw probe chart with the same history range", () => {
     const model = controllerModel();
     render(<RefrigerationControllerHistory controller={model} />);
-    expect(screen.getByTestId("embraco-unverified-scale-note")).toHaveTextContent("коефіцієнт ×0,1");
+    expect(screen.getByTestId("embraco-unverified-scale-note")).toHaveTextContent(
+      "попередній коефіцієнт ×0,01",
+    );
     expect(screen.getByTestId("mock-chart-container-Діагностика · вихідні raw")).toHaveAttribute(
       "data-chart-x-domain-to-ms",
       String(range.to.getTime()),

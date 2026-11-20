@@ -52,7 +52,7 @@ describe("selected dashboard operator history reduction", () => {
   it("keeps selected unknown/null Embraco samples for chart without altering source evidence", () => {
     const originals = [raw("a", 0, 65507), raw("b", 10_000, 65468), raw("c", 20_000, 65516)];
     const preview = operatorHistoryPreview(item, originals[0]);
-    expect(preview).toMatchObject({ quality: "valid", value: -2.9, unit: "°C" });
+    expect(preview).toMatchObject({ quality: "valid", value: -0.29, unit: "°C" });
     expect(originals[0]).toMatchObject({ quality: "unknown", value: null, raw_value: 65507 });
     const reduced = reduceSavedDashboardHistory(item, originals, window);
     expect(reduced.map((s) => s.raw_value)).toEqual([65507, 65468, 65516]);

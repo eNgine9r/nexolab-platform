@@ -180,17 +180,17 @@ describe("temperature probe export", () => {
     const defrostRow = csv.split("\r\n").find((line) => line.includes("defrost-probe"));
     expect(cabinetRow).toContain("temperature.cabinet");
     expect(cabinetRow).toContain(",unknown,");
-    expect(cabinetRow).toContain(",65485,-51,-5.1,0.1,operator_confirmed_hardware_unverified,");
-    expect(cabinetRow).toContain("апаратно не перевірено");
+    expect(cabinetRow).toContain(",65485,-51,-0.51,0.01,candidate_0p01_hmi_not_calibrated,");
+    expect(cabinetRow).toContain("відповідність HMI/датчика не підтверджена");
     expect(defrostRow).toContain("temperature.evaporator");
-    expect(defrostRow).toContain(",65418,-118,-11.8,0.1,operator_confirmed_hardware_unverified,");
+    expect(defrostRow).toContain(",65418,-118,-1.18,0.01,candidate_0p01_hmi_not_calibrated,");
     expect(defrostRow).toContain("Датчик відтайки");
     // The operator-derived Celsius MUST NOT overwrite persisted source `value` or quality.
     const headers = csv.split("\r\n")[0]!.replace("\uFEFF", "").split(",");
     const cabinetColumns = splitCsvRow(cabinetRow!);
     expect(cabinetColumns[headers.indexOf("value")]).toBe("");
     expect(cabinetColumns[headers.indexOf("quality")]).toBe("unknown");
-    expect(cabinetColumns[headers.indexOf("operator_celsius_degC")]).toBe("-5.1");
+    expect(cabinetColumns[headers.indexOf("operator_celsius_degC")]).toBe("-0.51");
   });
 
   it("exports calibrated Celsius as valid only when the source sample itself is valid", () => {
