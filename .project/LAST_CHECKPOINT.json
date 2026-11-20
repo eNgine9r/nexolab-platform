@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-19T20:20:49Z",
+  "timestamp": "2026-11-20T05:29:16Z",
   "actor": "ChatGPT",
-  "event": "1615_embraco_source_preserving_csv_candidate_after_1613_live_acceptance",
+  "event": "1615_csv_pr_reconciled_with_1617_green_security_main_and_10s_hardware_read_evidence",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3636,6 +3636,24 @@
       "hardware_celsius": "NOT verified",
       "modbus_writes": false
     },
+    "issue_1617_versitygw_go_cve": {
+      "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1617",
+      "source_baseline": "0516cd6181167486613ad96333938c497e640d3e",
+      "fixed_go": "1.27.4",
+      "previous_go": "1.27.3",
+      "sha256_amd64": "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840",
+      "sha256_arm64": "3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92",
+      "checksum_authority": "https://go.dev/dl/?mode=json verified",
+      "ci_blocker": "unapproved HIGH CVE-2026-97054 in Go stdlib usr/local/bin/versitygw",
+      "required_outcome": "Fresh fixed image trivy + full required merge gate GREEN",
+      "runtime": "SOURCE ONLY; no object storage cutover, never relax vulnerability policy",
+      "local_tests": "8/8 object-storage and telemetry packaging regression tests PASS",
+      "old_pin_test_fixed": "tests/test_object_storage_supply_contract.py now checks Go 1.27.4 and its verified official amd64/arm64 archives",
+      "merge_source_sha": "dc7573126ffaf3e6b456ee2d1e8d9cfed421d28e",
+      "merged_main_sha": "91266af356016f7e44df9121d8ef5d3f2d12f31b",
+      "required_ci": "38 PASS; no failures, Merge Gate GREEN",
+      "site": "NOT deployed; existing storage unchanged"
+    },
     "issue_1615_csv_candidate": {
       "branch": "feature/1615-saved-embraco-csv",
       "scope": "append-only saved dashboard CSV source raw, signed16, operator estimated Celsius scale/basis for two exact Embraco probes only",
@@ -3644,6 +3662,21 @@
       "rollback": "backend release not approved yet",
       "hardware": "scale unverified",
       "modbus_writes": false
+    },
+    "embraco_three_series_10s_production_sampling": {
+      "observed_utc": "2026-11-20T05:29:16Z",
+      "site": "nexolab-edge-01; central PostgreSQL",
+      "scope": "edge-01 EMBRACO-2 cabinet, evaporator, compressor.speed",
+      "window": "30 min; 12 min interarrival calculation",
+      "per_metric_30_min_rows": 180,
+      "median_spacing_sec": 10.0,
+      "observed_range_compressor_sec": [
+        9.99,
+        10.01
+      ],
+      "observed_temperature_spacing_sec": 10.0,
+      "hardware_celsius_scale": "NOT verified",
+      "sampling_runtime_mutation": "none; cadence was already verified 10 seconds, regardless of global SAMPLE_INTERVAL_SECONDS=5"
     }
   },
   "observations": [
@@ -5274,7 +5307,7 @@
       }
     }
   ],
-  "next_action": "Finish #1615 source review + exact-head CI and tests. Record deployed #1613 frontend provenance. Backend export image/site activation only with owner-authorized protected rollback and no telemetry loss. Do not change Modbus or raw data. Independent global Sprint #1460 remains selected.",
+  "next_action": "Check PR #1616 exact-head CI on merged security-fixed main. Actual site data for Embraco three series already persists every 10 sec (180 samples per 30 min); no interval change needed. No Telemetry API backend cutover before independent rollback / no-loss evidence and approval. Hardware Celsius scale unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5283,7 +5316,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "#1613: audited saved Dashboard v2→v3 and frontend-only LAN/HTTPS site activation; all checked relevant backends stayed unchanged. #1615: no runtime mutation.",
+  "runtime_mutation": "NO runtime change in #1615 or sampling validation. Prior issue #1613 UI frontend-only activation and audited v2→v3 dashboard selection remain active.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
