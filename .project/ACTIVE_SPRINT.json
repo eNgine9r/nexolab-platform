@@ -11461,6 +11461,45 @@
         "source_tests": "release CI still pending",
         "old_image": "Staged #1615 incorrect x0.1 NOT APPROVED"
       }
+    },
+    {
+      "issue": 1625,
+      "title": "Frontends source-pinned Embraco provisional Celsius ×0.01 activation on LAN and OAuth HTTPS",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1625-frontend-temperature-release-evidence",
+      "depends_on": [
+        1621,
+        1622
+      ],
+      "scope": "Publish merged frontend source only to existing stateless LAN Docker Dashboard and protected HTTPS user service. Preserve backend/Device Agent/MQTT/DB and OAuth gate unchanged, replay-safe rollback. Source release GREEN, physical scale unverified. ",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1625",
+        "source": "8854fae2fd40f4706e30a4ab2cd4183452fc753e",
+        "arm64_workflow": "https://github.com/eNgine9r/nexolab-platform/actions/runs/44712932452",
+        "lan": "ACTIVATED source 8854fae2 build BWbEQWMGUfn-_kqZjIRoj image sha256:3fd6453f3d99e7972f9108c89479c4c87716bdf3fb37773a93732ca464acf42f",
+        "https": "ACTIVATED source 8854fae2 build N94Tr6VkW3hXQ9TkFRZNm via exact user service drop-in; anonymous 302 preserved",
+        "checks": {
+          "artifact_integrity": "LAN/HTTPS 12 package digests and 17,613 runtime files each PASS",
+          "isolated_previews": "LAN 3125 and HTTPS 3126 exact identity and 5 routes HTTP200",
+          "production_paths": "LAN/HTTPS five paths each HTTP200, public OAuth 6 paths anonymous 302",
+          "backend_immutability": "five exact container ids/image ids/network modes unchanged",
+          "sampling": "read-only PostgreSQL 90 events each of three Embraco channels / 15m, average interval 10.000sec",
+          "disk": "22,828,228,608 bytes available after release >=20GiB"
+        },
+        "release_audit": "/home/nexolab/commander-workspaces/nexolab-1625-release-8854fae2/site-activation-report-1625.json",
+        "disk_reserve_bytes": 22828228608,
+        "actual_hardware_calibration": "UNVERIFIED, provisional x0.01; HMI cabinet channel identity owner-confirmed",
+        "authenticated_owner_browser": "NOT YET VERIFIED",
+        "backend_csv": "NOT deployed; server CSV and site DR #1428 remain blocked",
+        "hardware_writes": "NONE"
+      }
     }
   ],
   "maintenance_actions": [
