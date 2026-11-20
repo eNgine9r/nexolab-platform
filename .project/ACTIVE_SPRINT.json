@@ -11289,7 +11289,7 @@
       "issue": 1613,
       "title": "Live Embraco saved dashboard: two operator Celsius traces plus compressor RPM; remove evaporator_2",
       "priority": "high",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
       "branch": "feature/1613-live-embraco-three-series",
       "depends_on": [
         1609,
@@ -11313,17 +11313,47 @@
         "deleted_view_selection": "2-evaporator-2-temperature (dashboard item only, not telemetry)",
         "tests": "53/53 saved-dashboard/hooks tests PASS; TS noEmit and touched file ESLint PASS",
         "hardware_celsius": "operator-confirmed 0.1/raw; unverified hardware",
-        "backend_export": "Existing CSV server gives blank Celsius because persisted value null; separate backend acceptance required",
+        "backend_export": "followup #1615; absent on running API",
         "runtime": "NO #1613 SITE CUTOVER YET",
         "sprint_selection": "#1460 unchanged",
-        "modbus_writes": "NONE"
+        "modbus_writes": "NONE",
+        "production_ui": "LAN+HTTPS frontend activation PASS with rollback reports; authored source 52ec42fb1a9ac7bae5021f94c6d1cdc87e0c9c6e, merged main 0516cd6181167486613ad96333938c497e640d3e",
+        "production_saved_config": "Authorized audited API PUT exact 4→3, v2→v3; backup before-1613.json",
+        "browser": "Chromium LAN 3/3 channels °C/rpm, 1 chart, legend and mobile PASS, no API/page errors",
+        "hardware": "operator scale only; hardware unverified"
+      }
+    },
+    {
+      "issue": 1615,
+      "title": "Export Embraco saved dashboard source-preserving signed raw operator Celsius CSV columns",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1615-saved-embraco-csv",
+      "depends_on": [
+        1613
+      ],
+      "scope": "Add five append-only CSV fields including unsigned raw/signed16/estimated °C/count/basis for exact edge-01 EMBRACO-2 two temperature probes. Preserve value/quality/event/tenant auth. Backend-only source candidate; no runtime deployment without separate approved guarded Telemetry Service release.",
+      "permitted_paths": [
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/tests/test_live_dashboard_api.py",
+        "services/telemetry-service/tests/test_live_dashboard_embraco_operator_csv.py",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1615",
+        "frontend_dependency": "#1613 source and LAN+HTTPS site verified",
+        "hardware_scale": "operator provided 0.1 °C/count; hardware unverified",
+        "focused_tests": "7/7 PASS; dashboard module 31 PASSED 1 SKIPPED (PostgreSQL-only unavailable locally)",
+        "runtime": "NOT DEPLOYED; server CSV currently remains source-only",
+        "backend_cutover": "hard blocker until current protected telemetry and rollback/deployment authority reviewed and separately approved",
+        "modbus_write": "none"
       }
     },
     {
       "issue": 1617,
       "title": "Security: rebuild fixed VersityGW object-storage binary with official Go 1.27.4 SHA256 pins",
       "priority": "high",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
       "branch": "security/1617-go-1274-object-storage",
       "depends_on": [],
       "scope": "Only infrastructure/object-storage/Dockerfile pinned security Go patch; no object storage production deployment, dependency upgrades beyond Go patch, modifications to volume or endpoint. A separate focused security source PR unblocks #1616 Go stdlib CVE CI gate.",
@@ -11342,9 +11372,11 @@
           "official_sha256": "Go 1.27.4 SHA256 amd64/arm64 verified via go.dev/dl/?mode=json",
           "local_contracts": "8/8 focused object storage and packaging pytest PASS",
           "first_ci": "previous source head had an expected old-Go version assertion in test; replaced with exact newly verified Go 1.27.4 pins",
-          "exact_head_ci": "pending new source sha and supply-chain scan"
+          "exact_head_ci": "pending new source sha and supply-chain scan",
+          "final_ci": "38 SUCCESS with required NEXOLAB Merge Gate (PR #1618)"
         },
-        "hardware": "No device writes"
+        "hardware": "No device writes",
+        "source_merge": "main 91266af356016f7e44df9121d8ef5d3f2d12f31b; no site deployment"
       }
     }
   ],
