@@ -69,9 +69,9 @@ def event(
 def test_exact_operator_probe_celsius_is_a_separate_derived_column() -> None:
     assert _operator_embraco_probe_columns(raw_row()) == {
         "raw_signed_int16": "-29",
-        "operator_celsius_degC": "-2.9",
-        "operator_scale_degC_per_count": "0.1",
-        "operator_scale_basis": "operator_confirmed_hardware_unverified",
+        "operator_celsius_degC": "-0.29",
+        "operator_scale_degC_per_count": "0.01",
+        "operator_scale_basis": "candidate_0p01_hmi_not_calibrated",
     }
     assert (
         _operator_embraco_probe_columns(
@@ -81,11 +81,36 @@ def test_exact_operator_probe_celsius_is_a_separate_derived_column() -> None:
                 raw_value=65468,
             )
         )["operator_celsius_degC"]
-        == "-6.8"
+        == "-0.68"
     )
     assert _operator_embraco_probe_columns(raw_row(raw_value=0))["operator_celsius_degC"] == "0"
+    # Observed Raspberry Pi FC03 words while physical controller HMI displayed
+    # +0.1 °C; these candidates do NOT prove HMI probe binding or calibration.
     assert (
-        _operator_embraco_probe_columns(raw_row(raw_value=65535))["operator_celsius_degC"] == "-0.1"
+        _operator_embraco_probe_columns(raw_row(raw_value=65514))["operator_celsius_degC"]
+        == "-0.22"
+    )
+    assert (
+        _operator_embraco_probe_columns(
+            raw_row(
+                channel_id="2-evaporator-temperature", metric="temperature.evaporator", raw_value=24
+            )
+        )["operator_celsius_degC"]
+        == "0.24"
+    )
+    # A physically plausible condenser 3202 -> +32.02 °C is not in this
+    # two-probe export policy and must NOT derive arbitrary extra channels.
+    assert (
+        _operator_embraco_probe_columns(
+            raw_row(
+                channel_id="2-condenser-temperature", metric="temperature.condenser", raw_value=3202
+            )
+        )
+        == {}
+    )
+    assert (
+        _operator_embraco_probe_columns(raw_row(raw_value=65535))["operator_celsius_degC"]
+        == "-0.01"
     )
 
 
@@ -226,14 +251,14 @@ def test_authenticated_saved_dashboard_csv_includes_operator_scale_without_mutat
         ("2-compressor-speed", ""),
     ]
     assert [(r["value"], r["quality"], r["operator_celsius_degC"]) for r in output[:3]] == [
-        ("", "unknown", "-2.9"),
-        ("", "unknown", "-6.8"),
+        ("", "unknown", "-0.29"),
+        ("", "unknown", "-0.68"),
         ("2198", "valid", ""),
     ]
     assert [r["raw_signed_int16"] for r in output[:3]] == ["-29", "-68", ""]
     assert [r["operator_scale_basis"] for r in output[:3]] == [
-        "operator_confirmed_hardware_unverified",
-        "operator_confirmed_hardware_unverified",
+        "candidate_0p01_hmi_not_calibrated",
+        "candidate_0p01_hmi_not_calibrated",
         "",
     ]
     assert all(r["operator_celsius_degC"] == "" for r in output[3:])

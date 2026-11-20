@@ -11437,13 +11437,13 @@
       "issue": 1622,
       "title": "Stop and correct stale x0.1 Embraco backend Saved Dashboard CSV prior to protected site activation",
       "priority": "high",
-      "lifecycle": "blocked",
-      "branch": null,
+      "lifecycle": "needs_validation",
+      "branch": "fix/1622-embraco-csv-hmi-scale",
       "depends_on": [
         1621,
         1428
       ],
-      "scope": "Backend-only corrected export and provenance candidate scale source fix, no runtime cutover until backup/restore and hardware mapping acceptance.",
+      "scope": "Backend Saved Dashboard CSV source-only correction x0.01 candidate matching merged frontend #1621. Source validation/PR allowed; production backend release remains BLOCKED until independently verified backup + isolated restore #1428, protected reserve and safe no-loss owner site gate.",
       "permitted_paths": [
         "services/telemetry-service/app/live_dashboard/export.py",
         "services/telemetry-service/tests/",
@@ -11452,7 +11452,14 @@
       "evidence": {
         "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1622",
         "block_reason": "Incorrect previous ×0.1 multiplier in staged backend exporter conflicts with new physical HMI; old backend image not deployed and MUST NOT be activated",
-        "modbus_writes": "none"
+        "modbus_writes": "none",
+        "source_baseline": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+        "new_scale_candidate": "0.01 unverified",
+        "new_basis": "candidate_0p01_hmi_not_calibrated",
+        "local_tests": "31/31 backend Dashboard pytest PASS, one PostgreSQL-only skipped; run against separate venv",
+        "runtime": "UNCHANGED original telemetry-service; site activation HARD BLOCKED",
+        "source_tests": "release CI still pending",
+        "old_image": "Staged #1615 incorrect x0.1 NOT APPROVED"
       }
     }
   ],
