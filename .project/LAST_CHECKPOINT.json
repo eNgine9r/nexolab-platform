@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-20T07:35:16Z",
+  "timestamp": "2026-11-20T07:56:24Z",
   "actor": "ChatGPT",
-  "event": "1621_embraco_real_hmi_scale_mismatch_provisional_frontend_source_candidate",
+  "event": "1622_backend_embraco_csv_hmi_provisional_source_candidate_after_1621_merged",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1621,
-    "branch": "fix/1621-embraco-hmi-scale",
+    "issue": 1622,
+    "branch": "fix/1622-embraco-csv-hmi-scale",
     "status": "needs_validation",
     "site_cutover": false
   },
@@ -3704,6 +3704,21 @@
       "hardware_calibration": "UNVERIFIED",
       "browser_first_ci": "Initial browser PostgreSQL+S3 E2E failed exclusively on stale literal old ×0.1 and old warning text, fixed in new test contract",
       "ci_status": "new exact-head CI pending"
+    },
+    "issue_1622_backend_csv_hmi_fix": {
+      "main_baseline": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+      "frontend_source": "292e4091f4de0022a06161c1141328e6bba09e3e",
+      "frontend_merge": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+      "backend_source_status": "SOURCE CANDIDATE ONLY, not deployed",
+      "candidate_scale": 0.01,
+      "candidate_basis": "candidate_0p01_hmi_not_calibrated",
+      "unit": "edge-01 EMBRACO-2 cabinet+evaporator only",
+      "new_source_tests": "31 passed, 1 skipped PostgreSQL-specific",
+      "original_data": "value null / quality unknown unchanged",
+      "hardware_calibration": "unverified",
+      "site_free_gib": "~19 GiB, protected 20 GiB minimum",
+      "runtime": "old current API and frontend, no cutover",
+      "required_ci": "pending"
     }
   },
   "observations": [
@@ -5334,7 +5349,7 @@
       }
     }
   ],
-  "next_action": "Finish frontend #1621 exact-head source checks/PR CI. User must identify what physical probe HMI +0.1°C represents; collect concurrent two-point raw/HMI comparison, then owner-approved frontend-only LAN+HTTPS release. Implement backend-only #1622 separately; never activate old backend ×0.1 image. Restore DR #1428 before any telemetry-service cutover.",
+  "next_action": "Finish #1622 backend source checks and full PR CI; do NOT deploy old #1615 backend image or any API site cutover without verified DR #1428 and hardware HMI probe mapping/scale. Owner to identify HMI source field and collect same-time two sensor readings; protected frontend release separate explicit authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5343,7 +5358,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NONE. Frontend ×0.01 is source candidate, no site cutover. Telemetry acquisition unchanged read-only.",
+  "runtime_mutation": "NONE: source-only frontend #1621 merged, backend #1622 source candidate, production site remains previous build.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

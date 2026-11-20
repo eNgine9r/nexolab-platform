@@ -43,16 +43,18 @@ EXPORT_FIELDS = (
 DEFAULT_EXPORT_MAX_ROWS = 100_000
 EXPORT_PAGE_SIZE = 1_000
 
-# Operator-confirmed convention for these two physical Embraco Sync Unit 2 probes;
-# NOT independently verified calibration or a change to persisted telemetry.
+# HMI-informed scale CANDIDATE for only two Embraco Sync Unit 2 probes.
+# Physical controller HMI reported +0.1 °C on 2026-11-20, but the selected
+# HMI input, filtering and exact raw-to-Celsius coefficient remain unverified.
+# Source quality=unknown/value=NULL and historical raw are never overwritten.
 _EMBRACO_OPERATOR_PROBES = frozenset(
     {
         ("2-cabinet-temperature", "temperature.cabinet"),
         ("2-evaporator-temperature", "temperature.evaporator"),
     }
 )
-_EMBRACO_OPERATOR_SCALE = "0.1"
-_EMBRACO_OPERATOR_BASIS = "operator_confirmed_hardware_unverified"
+_EMBRACO_OPERATOR_SCALE = "0.01"
+_EMBRACO_OPERATOR_BASIS = "candidate_0p01_hmi_not_calibrated"
 
 # Chromium/WebKit installations can still surface historical IANA link names.
 # Normalize only explicit compatibility aliases; unknown identifiers must remain
@@ -139,7 +141,7 @@ def _operator_embraco_probe_columns(row: dict[str, object]) -> dict[str, str]:
     signed = raw if raw < 0x8000 else raw - 0x10000
     return {
         "raw_signed_int16": str(signed),
-        "operator_celsius_degC": _value_cell(signed / 10),
+        "operator_celsius_degC": _value_cell(signed / 100),
         "operator_scale_degC_per_count": _EMBRACO_OPERATOR_SCALE,
         "operator_scale_basis": _EMBRACO_OPERATOR_BASIS,
     }
@@ -179,7 +181,9 @@ def _series_scope(
                 )
             )
         if allowed_node is None:
-            raise LiveDashboardExportError("Saved dashboard node is unavailable in this organization")
+            raise LiveDashboardExportError(
+                "Saved dashboard node is unavailable in this organization"
+            )
         return item.node_id, item.equipment_id
     with Session(database.engine) as session:
         row = session.execute(
