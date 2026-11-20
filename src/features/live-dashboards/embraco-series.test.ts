@@ -52,7 +52,7 @@ describe("operator Embraco saved dashboard display", () => {
     expect(savedDashboardSeriesUnit(cabinet)).toBe("°C");
     expect(isOperatorEmbracoTemperature(cabinet)).toBe(true);
     expect(savedDashboardDisplaySample(cabinet, sample)).toEqual({
-      value: -2.9,
+      value: -0.29,
       unit: "°C",
       operatorDerived: true,
     });
@@ -81,7 +81,7 @@ describe("operator Embraco saved dashboard display", () => {
         metric: defrost.metric,
         raw_value: 65468,
       })?.value,
-    ).toBe(-6.8);
+    ).toBe(-0.68);
     expect(isOperatorEmbracoTemperature(rpm)).toBe(false);
     expect(savedDashboardSeriesLabel(rpm)).toBe("Обороти компресора");
     expect(

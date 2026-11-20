@@ -428,7 +428,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
 
       <RefrigerationControllerChart
         title="Температури контролера · °C"
-        context="Температура в об’ємі · Датчик відтайки · операторський коефіцієнт 0,1"
+        context="Температура в об’ємі · Датчик відтайки · попередній коефіцієнт 0,01"
         rangeLabel={chartRangeLabel}
         scene={temperatureScene}
         afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
@@ -439,9 +439,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 text-xs text-amber-200"
         data-testid="embraco-unverified-scale-note"
       >
-        <strong>Температура в °C (коефіцієнт ×0,1)</strong> — масштаб задано оператором для Embraco Sync Unit
-        2; незалежна перевірка обладнання ще не проведена. У CSV розраховані °C наведені окремим стовпчиком з
-        позначкою походження, а вихідні raw і якість вимірювання збережено без змін.
+        <strong>Температура в °C (попередній коефіцієнт ×0,01)</strong> — масштаб переглянуто після показу
+        контролера +0,1 °C; відповідність датчика на дисплеї та калібрування ще не підтверджені. У CSV
+        розраховані °C наведені окремим стовпчиком з позначкою походження, а вихідні raw і якість вимірювання
+        збережено без змін.
       </section>
       <RefrigerationControllerChart
         title="Діагностика · вихідні raw"

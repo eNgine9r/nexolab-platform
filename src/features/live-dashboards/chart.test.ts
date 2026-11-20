@@ -294,7 +294,7 @@ describe("saved operator Embraco temperature with compressor RPM", () => {
     ]);
     expect(groups[0].nativeUnits).toEqual(["°C", "rpm"]);
     expect(groups[0].scene.series.map((s) => s.segments.flatMap((x) => x.points)[0]?.value)).toEqual([
-      -2.9, -6.8, 2198,
+      -0.29, -0.68, 2198,
     ]);
     expect(groups[0].scene.series.every((s) => s.freshness === "stale")).toBe(true);
     expect(a.value).toBeNull();

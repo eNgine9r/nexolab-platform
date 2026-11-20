@@ -11378,6 +11378,80 @@
         "hardware": "No device writes",
         "source_merge": "main 91266af356016f7e44df9121d8ef5d3f2d12f31b; no site deployment"
       }
+    },
+    {
+      "issue": 1621,
+      "title": "Fix misleading Embraco signed raw ×0.1 presentation vs physical +0.1 °C HMI; bounded x0.01 candidate",
+      "priority": "critical",
+      "lifecycle": "needs_validation",
+      "branch": "fix/1621-embraco-hmi-scale",
+      "depends_on": [
+        1603
+      ],
+      "scope": "Frontend-only derived candidate ×0.01 for exact edge-01/EMBRACO-2 cabinet & evaporator channels; readable provisional HMI-unverified provenance, chart 2 decimals and frontend chart CSV. No Device Agent or backend modifications, no site release without operator scale/mapping evidence.",
+      "permitted_paths": [
+        "src/features/refrigeration/embraco-operator-scale.ts",
+        "src/features/refrigeration/embraco-operator-scale.test.ts",
+        "src/features/refrigeration/controller-chart.ts",
+        "src/features/refrigeration/controller-chart.test.ts",
+        "src/features/refrigeration/controller-history-export.ts",
+        "src/features/refrigeration/controller-history-export.test.ts",
+        "src/features/live-dashboards/chart.ts",
+        "src/features/live-dashboards/chart.test.ts",
+        "src/features/live-dashboards/embraco-series.test.ts",
+        "src/components/live-dashboards/dashboard-live-view.tsx",
+        "src/components/refrigeration/refrigeration-controller-history.tsx",
+        "src/components/refrigeration/refrigeration-controller-history.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1621",
+        "physical_controller_display": "+0.1 °C reported by owner 2026-11-20 ~09:21 Kyiv; which probe/display mapping remains unverified",
+        "physical_readonly_raw_07_22_utc": {
+          "cabinet": 65514,
+          "evaporator": 24,
+          "condenser": 3202
+        },
+        "old_display_celsius": {
+          "cabinet": -2.2,
+          "evaporator": 2.4,
+          "condenser_candidate_if_scaled": 320.2
+        },
+        "new_candidate_celsius": {
+          "cabinet": -0.22,
+          "evaporator": 0.24,
+          "condenser_plausibility_only": 32.02
+        },
+        "source_acceptance": "not hardware calibrated; CI pending, no live site update",
+        "runtime": "NO SITE MUTATION",
+        "hardware": "read-only PostgreSQL and code analysis; no Modbus write",
+        "backend_dependency": "separate #1622; old staged #1615 ×0.1 API image prohibited",
+        "local_vitest": "69/69 PASS relevant suite; all 16 files",
+        "local_static": "TypeScript noEmit, ESLint and changed-file Prettier PASS",
+        "runtime_unchanged": true
+      }
+    },
+    {
+      "issue": 1622,
+      "title": "Stop and correct stale x0.1 Embraco backend Saved Dashboard CSV prior to protected site activation",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "branch": null,
+      "depends_on": [
+        1621,
+        1428
+      ],
+      "scope": "Backend-only corrected export and provenance candidate scale source fix, no runtime cutover until backup/restore and hardware mapping acceptance.",
+      "permitted_paths": [
+        "services/telemetry-service/app/live_dashboard/export.py",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1622",
+        "block_reason": "Incorrect previous ×0.1 multiplier in staged backend exporter conflicts with new physical HMI; old backend image not deployed and MUST NOT be activated",
+        "modbus_writes": "none"
+      }
     }
   ],
   "maintenance_actions": [

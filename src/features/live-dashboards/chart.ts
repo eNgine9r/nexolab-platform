@@ -164,7 +164,7 @@ function buildSeries(
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
     ...(identity.nativeUnit === "°C" && source.item.equipment_id === "EMBRACO-2"
-      ? { displayPrecision: 1 }
+      ? { displayPrecision: 2 }
       : {}),
     ...(source.item.visualization === "area" ? { areaFillOpacity: SAVED_AREA_FILL_OPACITY } : {}),
   };

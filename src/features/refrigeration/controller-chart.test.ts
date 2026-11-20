@@ -142,6 +142,7 @@ describe("buildEmbracoOperatorCelsiusScene", () => {
     source: "embraco-sync",
     metric,
     raw_value,
+    channel_id: metric === EMBRACO_METRICS.evaporator ? "2-evaporator-temperature" : "2-cabinet-temperature",
   });
 
   it("draws operator-interpreted cabinet and defrost temperatures in degC without changing source", () => {
@@ -158,8 +159,8 @@ describe("buildEmbracoOperatorCelsiusScene", () => {
     );
     expect(scene.series.map((series) => series.name)).toEqual(["Температура в об’ємі", "Датчик відтайки"]);
     expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual(["°C", "°C"]);
-    expect(scene.series.map((series) => series.displayPrecision)).toEqual([1, 1]);
-    expect(scene.series.map((series) => series.segments[0]?.points[0]?.value)).toEqual([4.2, -2.6]);
+    expect(scene.series.map((series) => series.displayPrecision)).toEqual([2, 2]);
+    expect(scene.series.map((series) => series.segments[0]?.points[0]?.value)).toEqual([0.42, -0.26]);
     expect(cabinet.quality).toBe("unknown");
     expect(cabinet.value).toBeNull();
     expect(defrost.value).toBeNull();

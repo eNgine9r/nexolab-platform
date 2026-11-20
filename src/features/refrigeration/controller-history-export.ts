@@ -212,7 +212,7 @@ function telemetryRow(
     operator_scale_basis: operatorCelsius === null ? "" : EMBRACO_KK1_OPERATOR_SCALE_BASIS,
     raw_status: sample.raw_status === null ? "" : String(sample.raw_status),
     note: isEmbracoProbeMetric(sample.metric)
-      ? `${sample.metric === EMBRACO_METRICS.cabinet ? "Температура в об’ємі" : "Датчик відтайки"}; ${sample.quality === "valid" ? "підтверджене значення °C" : operatorCelsius === null ? "масштаб °C не підтверджений; raw_signed у регістрах, не °C" : "°C за коефіцієнтом 0,1 від оператора; апаратно не перевірено; source value/quality незмінні"}`
+      ? `${sample.metric === EMBRACO_METRICS.cabinet ? "Температура в об’ємі" : "Датчик відтайки"}; ${sample.quality === "valid" ? "підтверджене значення °C" : operatorCelsius === null ? "масштаб °C не підтверджений; raw_signed у регістрах, не °C" : "попередня оцінка °C за коефіцієнтом 0,01; відповідність HMI/датчика не підтверджена; source value/quality незмінні"}`
       : sample.metric === EMBRACO_METRICS.relays
         ? "Decoded relay states are included in state."
         : "",
