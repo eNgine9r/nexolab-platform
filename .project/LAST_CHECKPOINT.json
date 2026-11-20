@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-20T07:56:24Z",
+  "timestamp": "2026-11-20T10:13:04Z",
   "actor": "ChatGPT",
-  "event": "1622_backend_embraco_csv_hmi_provisional_source_candidate_after_1621_merged",
+  "event": "1625_embraco_provisional_001_celsius_both_frontends_lan_https_activated_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,10 +31,10 @@
     "protected_frontend_build_id": "qfF_dxzeeg5BUGOKOpEoc"
   },
   "active_work": {
-    "issue": 1622,
-    "branch": "fix/1622-embraco-csv-hmi-scale",
+    "issue": 1625,
+    "branch": "ops/1625-frontend-temperature-release-evidence",
     "status": "needs_validation",
-    "site_cutover": false
+    "site_cutover": "frontend-only completed"
   },
   "evidence_snapshot": {
     "issue_1596_board_reconciliation": {
@@ -3719,6 +3719,25 @@
       "site_free_gib": "~19 GiB, protected 20 GiB minimum",
       "runtime": "old current API and frontend, no cutover",
       "required_ci": "pending"
+    },
+    "issue_1625_embraco_frontend_site_release": {
+      "source": "8854fae2fd40f4706e30a4ab2cd4183452fc753e",
+      "lan_image": "sha256:3fd6453f3d99e7972f9108c89479c4c87716bdf3fb37773a93732ca464acf42f",
+      "lan_build": "BWbEQWMGUfn-_kqZjIRoj",
+      "https_build": "N94Tr6VkW3hXQ9TkFRZNm",
+      "arm64_off_device_ci_run": 44712932452,
+      "artifact_and_runtime_hash": "PASS for LAN & HTTPS",
+      "site_activation_report": "/home/nexolab/commander-workspaces/nexolab-1625-release-8854fae2/site-activation-report-1625.json",
+      "status": "BOTH_FRONTENDS_ACTIVATED_GREEN",
+      "independent_site_paths": "5 LAN + 5 HTTPS 200; all public OAuth routes anonymous 302",
+      "backend_containers_unchanged": true,
+      "live_acquisition": "90 persisted samples for each probe/RPM in last 15m, mean 10.0s",
+      "free_disk_bytes_after": 22828228608,
+      "hardware_celsius_scale": "CANDIDATE x0.01 UNVERIFIED",
+      "physical_hmi_probe": "cabinet confirmed by Product Owner",
+      "site_backend_csv": "NOT DEPLOYED; #1428 DR hard blocker",
+      "owner_browser": "not independently verified",
+      "hardware_writes": false
     }
   },
   "observations": [
@@ -5349,7 +5368,7 @@
       }
     }
   ],
-  "next_action": "Finish #1622 backend source checks and full PR CI; do NOT deploy old #1615 backend image or any API site cutover without verified DR #1428 and hardware HMI probe mapping/scale. Owner to identify HMI source field and collect same-time two sensor readings; protected frontend release separate explicit authorization.",
+  "next_action": "Ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5358,7 +5377,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "NONE: source-only frontend #1621 merged, backend #1622 source candidate, production site remains previous build.",
+  "runtime_mutation": "Issue #1625: stateless LAN Docker Dashboard container-only replacement and HTTPS user systemd frontend-only restart; all five backend container IDs and images unchanged, OAuth gateway PID/topology unchanged, no hardware or Modbus writes.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
