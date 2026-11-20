@@ -405,9 +405,11 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
   await expect(duty).toBeVisible();
   await expect(history.getByText(/У вибраному періоді немає показників двох датчиків/)).toBeVisible();
-  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText("коефіцієнт ×0,1");
   await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText(
-    "незалежна перевірка обладнання ще не проведена",
+    "попередній коефіцієнт ×0,01",
+  );
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText(
+    "відповідність датчика на дисплеї та калібрування ще не підтверджені",
   );
   await expect(
     history.locator(

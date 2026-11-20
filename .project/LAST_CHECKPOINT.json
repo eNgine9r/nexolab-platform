@@ -3701,7 +3701,9 @@
       "source_targeted_tests": "36/36 PASS then all 69/69 PASS",
       "formatting": "changed file Prettier PASS",
       "site_cutover": "not performed",
-      "hardware_calibration": "UNVERIFIED"
+      "hardware_calibration": "UNVERIFIED",
+      "browser_first_ci": "Initial browser PostgreSQL+S3 E2E failed exclusively on stale literal old ×0.1 and old warning text, fixed in new test contract",
+      "ci_status": "new exact-head CI pending"
     }
   },
   "observations": [

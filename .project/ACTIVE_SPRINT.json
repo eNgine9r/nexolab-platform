@@ -11402,7 +11402,8 @@
         "src/components/live-dashboards/dashboard-live-view.tsx",
         "src/components/refrigeration/refrigeration-controller-history.tsx",
         "src/components/refrigeration/refrigeration-controller-history.test.tsx",
-        ".project/"
+        ".project/",
+        "e2e/refrigeration-layout.production.e2e.ts"
       ],
       "evidence": {
         "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1621",
@@ -11428,7 +11429,8 @@
         "backend_dependency": "separate #1622; old staged #1615 ×0.1 API image prohibited",
         "local_vitest": "69/69 PASS relevant suite; all 16 files",
         "local_static": "TypeScript noEmit, ESLint and changed-file Prettier PASS",
-        "runtime_unchanged": true
+        "runtime_unchanged": true,
+        "browser_first_ci": "Exact-head #9d91ad9 browser acceptance failed only on literal obsolete ×0.1 warning text; new source/UI note asserted by targeted updated browser E2E; full exact-head CI rerun required"
       }
     },
     {
