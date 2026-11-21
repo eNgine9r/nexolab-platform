@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1522,
-      "title": "Cadence-aware Live/Stale telemetry",
-      "branch": "fix/1522-cadence-aware-live-freshness"
+      "issue": 1643,
+      "title": "Per-series truthful freshness for Saved Dashboards and main dashboard",
+      "branch": "fix/1643-per-series-dashboard-freshness"
     },
     "next_work_package": null
   },
@@ -11572,6 +11572,34 @@
         "backend_csv": "NOT deployed; server CSV and site DR #1428 remain blocked",
         "hardware_writes": "NONE"
       }
+    },
+    {
+      "issue": 1643,
+      "title": "Per-series truthful freshness for Saved Dashboards and main dashboard (XWEB chart programme WP-A)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Frontend-only source change: Saved Dashboard chart freshness per series (#1522 contract) and cadence-aware main-dashboard freshness (#1634). No backend, hardware, polling or site change.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 216 files/1402 tests PASS; eslint --max-warnings=0 PASS; tsc --noEmit PASS; prettier PASS; next build PASS (local, 2026-11-21T23:21:12Z)",
+        "review_clearance": "No critical Ready software WP in sprint (all critical blocked on #1428/#1409/#1399 site gates); Product Owner requested XWEB-level chart programme 2026-11-22",
+        "closes": [
+          1634
+        ]
+      },
+      "branch": "fix/1643-per-series-dashboard-freshness",
+      "permitted_paths": [
+        "src/features/live-dashboards/",
+        "src/components/live-dashboards/",
+        "src/hooks/use-live-dashboard-telemetry.ts",
+        "src/hooks/use-dashboard-telemetry.ts",
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/features/live/freshness.ts",
+        ".project/"
+      ]
     }
   ],
   "maintenance_actions": [

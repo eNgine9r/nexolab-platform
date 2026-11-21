@@ -228,4 +228,23 @@ describe("dashboard telemetry state", () => {
     expect(kpis.find((item) => item.label === "Поточне споживання")?.value).toBe("2,00 kW");
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("5,7 °C");
   });
+
+  it("applies a per-sample cadence-aware threshold instead of the fixed 30 s (#1634)", () => {
+    const slow = sample({ event_id: "slow", channel_id: "slow-ch", captured_at: "2026-07-23T17:59:10Z" });
+    const store = mergeDashboardTelemetry(createDashboardTelemetryStore(), [slow], { now: NOW });
+    const base = { now: NOW, hasLoadedSnapshot: true, connectionState: "connected" as const, error: null };
+    // 60 s old: stale under the fixed 30 s rule …
+    expect(deriveDashboardTelemetry(store, { ...base, staleAfterMs: 30_000 }).status).toBe("stale");
+    // … but live for a 60 s channel (threshold 105 s), and stale again once that threshold passes.
+    expect(
+      deriveDashboardTelemetry(store, { ...base, staleAfterMs: 30_000, staleAfterMsFor: () => 105_000 }),
+    ).toMatchObject({ status: "live", freshSamples: [slow] });
+    expect(
+      deriveDashboardTelemetry(store, {
+        ...base,
+        now: new Date("2026-07-23T18:01:00Z"),
+        staleAfterMsFor: () => 105_000,
+      }).status,
+    ).toBe("stale");
+  });
 });

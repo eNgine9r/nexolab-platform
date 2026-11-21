@@ -12,13 +12,15 @@ import {
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts";
-import { timeWindowMilliseconds } from "@/features/live-dashboards/model";
+import { dashboardItemIdentity, timeWindowMilliseconds } from "@/features/live-dashboards/model";
 import {
   savedDashboardDisplaySample,
   savedDashboardSeriesLabel,
   savedDashboardSeriesUnit,
 } from "@/features/live-dashboards/embraco-series";
 import { liveHistorySegments } from "@/features/live/live-history";
+import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
+import { liveTelemetryState } from "@/features/live/live-telemetry";
 import type {
   LiveDashboard,
   LiveDashboardSeries,
@@ -45,6 +47,14 @@ export interface SavedDashboardChartBuildOptions {
   xDomain: ChartXDomain;
   hiddenSeriesKeys?: ReadonlySet<string>;
   soloSeriesKey?: string | null;
+  /**
+   * #1643: when provided, freshness is evaluated per series from each item's own newest sample
+   * (server contract → observed cadence → 30 s default, the #1522 rule) instead of from the
+   * page-wide status, so one live channel can never make a silent or invalid channel look live.
+   */
+  cadenceObservations?: CadenceObservations;
+  /** Evaluation clock (epoch ms) for per-series freshness. Defaults to `Date.now()`. */
+  now?: number;
 }
 
 function timestamp(sample: TelemetrySample): number {
@@ -64,6 +74,34 @@ export function savedDashboardChartFreshness(status: LiveDashboardTelemetryStatu
   if (status === "connecting") return "connecting";
   if (status === "reconnecting") return "reconnecting";
   return "offline";
+}
+
+/**
+ * Per-series freshness. Page connectivity (connecting/reconnecting/offline/…) always wins;
+ * otherwise the series' own newest sample decides: no sample → stale, a newest sample without
+ * a valid measurement → invalid, a valid sample older than its cadence-aware threshold → stale.
+ * The Embraco operator-derived °C display keeps persisted quality `unknown`, so for it only
+ * age decides (its provisional labelling is handled elsewhere and is never hidden here).
+ */
+export function savedDashboardSeriesFreshness(
+  status: LiveDashboardTelemetryStatus,
+  source: LiveDashboardSeries,
+  cadence: CadenceObservations | undefined,
+  now: number,
+): ChartFreshnessState {
+  if (status !== "live" && status !== "stale") return savedDashboardChartFreshness(status);
+  const latest = source.latest;
+  if (!latest) return "stale";
+  const staleAfterMs = liveFreshnessFor(latest, dashboardItemIdentity(source.item), cadence).staleAfterMs;
+  const operatorDerived = savedDashboardDisplaySample(source.item, latest)?.operatorDerived === true;
+  const state = liveTelemetryState(
+    operatorDerived ? { ...latest, quality: "valid" } : latest,
+    now,
+    staleAfterMs,
+  );
+  if (state === "live") return "live";
+  if (state === "stale") return "stale";
+  return "invalid";
 }
 
 export function savedDashboardChartIdentity(
@@ -121,6 +159,7 @@ function buildSeries(
   visualIndex: number,
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
+  perSeries: Pick<SavedDashboardChartBuildOptions, "cadenceObservations" | "now"> | null = null,
 ): ChartSeries {
   const identity = savedDashboardChartIdentity(dashboardId, source);
   const key = chartSeriesKey(identity);
@@ -159,7 +198,14 @@ function buildSeries(
     colorToken: source.item.color ?? token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
-    freshness: savedDashboardChartFreshness(status),
+    freshness: perSeries
+      ? savedDashboardSeriesFreshness(
+          status,
+          source,
+          perSeries.cadenceObservations,
+          perSeries.now ?? Date.now(),
+        )
+      : savedDashboardChartFreshness(status),
     segments: reduceTruthfully(segments),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
@@ -181,7 +227,15 @@ export function buildSavedDashboardChartGroups(
       (left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
     );
   const chartSeries = plotted.map((source, index) =>
-    buildSeries(options.dashboardId, source, options.status, index, hiddenSeriesKeys, soloSeriesKey),
+    buildSeries(
+      options.dashboardId,
+      source,
+      options.status,
+      index,
+      hiddenSeriesKeys,
+      soloSeriesKey,
+      options.now !== undefined || options.cadenceObservations !== undefined ? options : null,
+    ),
   );
   if (chartSeries.length === 0) return [];
 

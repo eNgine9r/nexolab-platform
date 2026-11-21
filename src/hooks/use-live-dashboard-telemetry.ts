@@ -93,6 +93,8 @@ export interface LiveDashboardTelemetryModel {
   lastCapturedAt: string | null;
   /** Per-series observed acquisition cadence keyed by dashboard item identity (#1522). */
   cadenceObservations?: CadenceObservations;
+  /** Wall-clock tick (epoch ms) used for freshness, so a silent series goes stale without a new sample (#1643). */
+  now?: number;
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -635,6 +637,7 @@ export function useLiveDashboardTelemetry({
     series,
     lastCapturedAt,
     cadenceObservations: visibleCadence,
+    now: clock,
     historyRange,
     historyWindow,
     historyStatus,
