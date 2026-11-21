@@ -416,7 +416,7 @@
       "branch": "feat/1581-live-dashboard-legend",
       "title": "Synchronize and compact the Saved Live Dashboard legend",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Saved Live Dashboard legend and shared historical inspection.",
       "permitted_paths": [
         "src/components/live-dashboards/",
@@ -431,7 +431,13 @@
         "local_verification": "Focused chart and legend tests, TypeScript, lint and LOCAL_LAN production build.",
         "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
         "hardware_verified": false,
-        "site_cutover": false
+        "site_cutover": false,
+        "verified_head_sha": "ae85a7590415fe6ad820539a3911e122024ece8a",
+        "pull_request": 1582,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c"
+        }
       }
     },
     {
@@ -502,7 +508,7 @@
       "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",
       "branch": "fix/1575-pi-alembic-bridge",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "scope": "Paired frontend and Telemetry release preserving the deployed standalone instruments, names and energy export.",
       "permitted_paths": [
         "services/telemetry-service/app/commissioning/",
@@ -517,7 +523,13 @@
         "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
         "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
         "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
-        "site_cutover": false
+        "site_cutover": false,
+        "verified_head_sha": "2552b7ef77f7cbf9207e4ff77dd0b813e244f725",
+        "pull_request": 1576,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "4722f9bd6f87307541b029ccef7f691e528bdc87"
+        }
       }
     },
     {
@@ -989,7 +1001,7 @@
       "title": "Validate complete LAN artifact contract before frontend completion handoff",
       "branch": "fix/1335-complete-lan-runtime-contract",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1333
       ],
@@ -1021,6 +1033,12 @@
           "backend_mutation": "none",
           "controller_write": "none",
           "whole_site_authority": "unchanged_historical_D00"
+        },
+        "verified_head_sha": "7c6abd030cf8b5988255c81f9ddd1b35ea40a6ba",
+        "pull_request": 1336,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2"
         }
       }
     },
@@ -8384,7 +8402,7 @@
       "issue": 1315,
       "title": "Build protected ARM64 offline packages for unified update acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/protected-offline-package-workflow",
       "evidence": {
         "local_workflow_contract_tests": "30_passed",
@@ -8392,7 +8410,13 @@
         "actual_arm64_build": "pending_after_required_CI",
         "modbus_write": "none",
         "hardware_write": "none",
-        "runtime_mutation": "none"
+        "runtime_mutation": "none",
+        "verified_head_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "pull_request": 1316,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b"
+        }
       },
       "scope": "Optional protected offline artifact workflow; Dashboard public export fix",
       "verification": "Executable source/origin/worktree failure tests; required CI; actual ARM64 artifact builds after merge"
@@ -9367,7 +9391,7 @@
       "title": "Record recovered ffdefc production authority and Energy page operator acceptance",
       "branch": "docs/1390-recovered-ffdefc-acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1388
       ],
@@ -9380,7 +9404,13 @@
         "chromium_login": "desktop_mobile_PASS_auth_gate",
         "owner_energy_page": "opens_after_login",
         "energy_csv_xlsx_on_ffdefc": "awaiting_operator_confirmation",
-        "ci": "pending"
+        "ci": "pending",
+        "verified_head_sha": "e634ae9f3d8d14b13b3598791d4969ab47c43b92",
+        "pull_request": 1391,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "bd56f38c77d06ce14ade1b69a249aa81b3852c3e"
+        }
       }
     },
     {
@@ -10357,9 +10387,16 @@
       "issue": 1516,
       "title": "Checkpoint current onboarding and adapter evidence",
       "branch": "docs/1516-current-device-checkpoint",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "74884abb8fc70ce7a4a85a99b2f0964a73b332ba",
+        "pull_request": 1517,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "e25f5f1899455690ff523695ce5b2056504087f8"
+        }
+      }
     },
     {
       "issue": 1525,
@@ -10809,7 +10846,7 @@
       "issue": 1560,
       "title": "Source-bound NEXOLAB Raspberry Pi HTTPS frontend blue/green operator handoff",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/1560-frontend-bluegreen-handoff",
       "depends_on": [
         1550,
@@ -10854,7 +10891,13 @@
         "resume_hermetic_tests": "8_passed",
         "protected_https_activation": false,
         "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
-        "no_hardware_or_modbus_write": true
+        "no_hardware_or_modbus_write": true,
+        "verified_head_sha": "13769bb7d97dd264fe335faf2e828e7099b0f47a",
+        "pull_request": 1561,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074"
+        }
       }
     },
     {
@@ -10862,7 +10905,7 @@
       "title": "Modern compact and responsive NEXOLAB Overview command center",
       "branch": "feat/1562-overview-modern-command-center",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1550,
         1558
@@ -10899,7 +10942,13 @@
         "hardware_write": false,
         "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
         "remediation": "RESTORED_ORIGINAL_SESSION_HEADING",
-        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY"
+        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY",
+        "verified_head_sha": "e2fe27a268576e8f95b4e70652f929fe023b1ba8",
+        "pull_request": 1563,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "96582b96862a4b35c243b7608ca10399d08b347e"
+        }
       }
     },
     {

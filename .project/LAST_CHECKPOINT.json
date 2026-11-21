@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T19:30:00Z",
+  "timestamp": "2026-11-21T20:30:00Z",
   "actor": "Claude",
-  "event": "1522_independent_review_fixes_exact_head_ci_green",
+  "event": "1629_reconcile_eight_merged_work_packages",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -3761,6 +3761,26 @@
       "site_backend_csv": "NOT DEPLOYED; #1428 DR hard blocker",
       "owner_browser": "not independently verified",
       "hardware_writes": false
+    },
+    "issue_1629_sprint_drift_reconciliation": {
+      "completed_from_review": [
+        1581,
+        1575,
+        1335,
+        1315,
+        1390,
+        1516,
+        1560,
+        1562
+      ],
+      "evidence": "each: Issue closed/completed, PR merged, NEXOLAB Merge Gate success on exact head (check-runs API), merge commit in main; re-verified 2026-11-21",
+      "meaning": "source scope completed; preserved evidence such as site_frontend_handoff=NOT_PERFORMED (#1560) and protected_site_installed=false (#1562) keeps site gates on #1564/#1587",
+      "excluded": {
+        "1611": "needs_validation may only move to ready under the state model; owner decision"
+      },
+      "baselines_changed": false,
+      "selection_changed": false,
+      "site_cutover": false
     }
   },
   "observations": [
