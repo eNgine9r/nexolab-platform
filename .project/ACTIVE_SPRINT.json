@@ -129,7 +129,10 @@
           "JWT REST history WebSocket and acquisition invariant": "SUCCESS",
           "Unit and component tests": "SUCCESS",
           "Static quality and build": "SUCCESS"
-        }
+        },
+        "review_fix_head_sha": "e35ccabaa718f81bfd858472533552be043c7f5f",
+        "review_fix_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E request budgets SUCCESS",
+        "independent_review_2026_11_21": "P1 cadence from chart-reduced history fixed; P2 malformed stale_after_seconds tolerated; Overview fixed-30s follow-up #1634"
       },
       "branch": "fix/1522-cadence-aware-live-freshness",
       "permitted_paths": [

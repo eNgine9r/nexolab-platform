@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T16:10:00Z",
+  "timestamp": "2026-11-21T19:30:00Z",
   "actor": "Claude",
-  "event": "1522_cadence_aware_live_freshness_exact_head_ci_green_review",
+  "event": "1522_independent_review_fixes_exact_head_ci_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -46,7 +46,7 @@
         "observed_cadence x1.5 + 15 s (min 30 s, max 3600 s cadence)",
         "default 30 s"
       ],
-      "persisted_bootstrap": "seed from already-loaded history only (selected Live channels, Saved Dashboard series); no extra API requests",
+      "persisted_bootstrap": "seed only from raw newest history tail (cadenceSamples) of already-loaded Live history and raw Saved Dashboard history; never from chart-reduced series; zero additional requests",
       "previous_active_work_preserved": "1625 remains needs_validation in ACTIVE_SPRINT; its evidence below is unchanged",
       "state_reconciliation": "1460 completed from verified merged PR #1461 head 7c7bc70e (NEXOLAB Merge Gate SUCCESS)",
       "site_cutover": false,
@@ -56,7 +56,9 @@
       "pull_request": 1627,
       "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
       "exact_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E (request-budget invariants) SUCCESS; mergeStateStatus CLEAN",
-      "merge": "NOT_PERFORMED - awaiting owner approval"
+      "merge": "NOT_PERFORMED - awaiting owner approval",
+      "review_fix_head_sha": "e35ccabaa718f81bfd858472533552be043c7f5f",
+      "review_fix_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E SUCCESS"
     },
     "issue_1596_board_reconciliation": {
       "review_date": "2026-11-19",
@@ -5389,7 +5391,7 @@
       }
     }
   ],
-  "next_action": "#1522: obtain exact-head NEXOLAB Merge Gate on the source PR, then owner review/merge decision; site acceptance of Live freshness needs a separately validated frontend release. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
+  "next_action": "#1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
