@@ -676,7 +676,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     const panel = page.getByTestId("saved-dashboard-chart-panel");
     await expect(panel).toHaveCount(1);
     await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
-    await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
+    await expect(panel.getByTestId("chart-accessible-summary")).toContainText("Видимих серій 2");
     const surface = panel.getByTestId("chart-renderer-surface");
     await expect.poll(() => surface.locator("canvas").count()).toBeGreaterThan(0);
     await expect(surface.locator("svg")).toHaveCount(0);
