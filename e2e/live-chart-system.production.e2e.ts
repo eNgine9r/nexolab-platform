@@ -457,7 +457,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     ).length;
 
     publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.876);
-    await expect(page.getByText("9.88 degC", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("9.88 °C", { exact: true }).first()).toBeVisible();
     await expect(rendererHosts).toHaveCount(1);
     await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
     await expect
