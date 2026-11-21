@@ -40,19 +40,19 @@
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
       "base_main_sha": "9abf080add5690972634a4d1256fc4342c702efa",
-      "source": "Cowork v2 patches 0001+0002 applied via git am (stray scripts/__pycache__ .pyc excluded) plus bounded tab-scoped probe cache",
+      "source": "Cowork v2 patches 0001+0002 applied via git am (stray scripts/__pycache__ .pyc excluded); 0002 network probe replaced",
       "freshness_basis_order": [
         "server_contract stale_after_seconds",
         "observed_cadence x1.5 + 15 s (min 30 s, max 3600 s cadence)",
         "default 30 s"
       ],
-      "persisted_bootstrap": "read-only GET /history newest-first limit 6, concurrency 3, max 120 channels, 2h15m look-back, served by ix_telemetry_history_lookup",
-      "probe_cache": "in-memory per tab, 10 min TTL, 500 entries, keyed by organization scope + channel identity; empty history cached, failures not cached",
+      "persisted_bootstrap": "seed from already-loaded history only (selected Live channels, Saved Dashboard series); no extra API requests",
       "previous_active_work_preserved": "1625 remains needs_validation in ACTIVE_SPRINT; its evidence below is unchanged",
       "state_reconciliation": "1460 completed from verified merged PR #1461 head 7c7bc70e (NEXOLAB Merge Gate SUCCESS)",
       "site_cutover": false,
       "hardware_verified": false,
-      "modbus_write": false
+      "modbus_write": false,
+      "ci_first_run": "PR #1627 head 7497ffa1: E2E request-budget invariants failed (/history 32 vs 15; navigation 29 vs <=3) caused by 0002 probe; fixed by removing probe"
     },
     "issue_1596_board_reconciliation": {
       "review_date": "2026-11-19",

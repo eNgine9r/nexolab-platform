@@ -149,13 +149,30 @@ export function seedCadenceObservations(
   return next;
 }
 
-/** Merges independently gathered observations without losing either side. */
-export function mergeCadenceObservations(
-  base: CadenceObservations,
-  extra: CadenceObservations,
+/**
+ * Seeds cadence from persisted samples the page has *already* loaded (no extra
+ * API requests). Only the newest `limit` distinct timestamps per channel are
+ * used; channels without history are simply left to learn from the live stream.
+ */
+export function seedCadenceFromSamples(
+  observations: CadenceObservations,
+  samples: readonly TelemetrySample[],
+  keyOf: (sample: TelemetrySample) => string,
+  limit = CADENCE_OBSERVATION_LIMIT,
 ): CadenceObservations {
-  let next = base;
-  for (const [key, timestamps] of Object.entries(extra))
-    next = seedCadenceObservations(next, key, timestamps);
+  const byKey = new Map<string, number[]>();
+  for (const sample of samples) {
+    const capturedAt = Date.parse(sample.captured_at);
+    if (!Number.isFinite(capturedAt)) continue;
+    const key = keyOf(sample);
+    const timestamps = byKey.get(key);
+    if (timestamps) timestamps.push(capturedAt);
+    else byKey.set(key, [capturedAt]);
+  }
+  let next = observations;
+  for (const [key, timestamps] of byKey) {
+    const newest = [...new Set(timestamps)].sort((left, right) => left - right).slice(-limit);
+    next = seedCadenceObservations(next, key, newest);
+  }
   return next;
 }

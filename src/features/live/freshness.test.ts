@@ -13,6 +13,7 @@ import {
   observedCadenceMs,
   recordCadenceObservation,
   resolveLiveFreshness,
+  seedCadenceFromSamples,
   staleAfterForCadenceMs,
   type CadenceObservations,
 } from "./freshness";
@@ -221,6 +222,55 @@ describe("observation bookkeeping", () => {
     expect(formatFreshnessBasis({ staleAfterMs: 30_000, basis: "default", cadenceMs: null })).toContain(
       "ще не визначено",
     );
+  });
+
+  it("bootstraps cadence from already-loaded persisted history without extra requests", () => {
+    // 10 persisted 60 s samples for ch3 (ascending, as the history loader returns them).
+    const history = Array.from({ length: 10 }, (_, index) =>
+      sample({ event_id: `h-${index}`, captured_at: new Date(T0 + index * 60 * SECOND).toISOString() }),
+    );
+    const latest = history.at(-1)!;
+    const key = liveChannelKey(latest);
+    const observations = seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, history, liveChannelKey);
+
+    expect(observations[key]).toHaveLength(CADENCE_OBSERVATION_LIMIT);
+    expect(observations[key].at(-1)).toBe(Date.parse(latest.captured_at));
+    expect(liveFreshnessFor(latest, key, observations)).toMatchObject({
+      basis: "observed_cadence",
+      staleAfterMs: 105 * SECOND,
+    });
+  });
+
+  it("keeps channels independent when seeding and leaves channels without history on the default", () => {
+    const slow = [0, 60, 120].map((offset) =>
+      sample({ event_id: `s-${offset}`, captured_at: new Date(T0 + offset * SECOND).toISOString() }),
+    );
+    const fast = [0, 10, 20].map((offset) =>
+      sample({
+        event_id: `f-${offset}`,
+        channel_id: "ch4",
+        captured_at: new Date(T0 + offset * SECOND).toISOString(),
+      }),
+    );
+    const observations = seedCadenceFromSamples(
+      EMPTY_CADENCE_OBSERVATIONS,
+      [...fast, ...slow],
+      liveChannelKey,
+    );
+    expect(observedCadenceMs(observations[liveChannelKey(slow[0])])).toBe(60 * SECOND);
+    expect(observedCadenceMs(observations[liveChannelKey(fast[0])])).toBe(10 * SECOND);
+
+    const unseen = sample({ channel_id: "ch9" });
+    expect(liveFreshnessFor(unseen, liveChannelKey(unseen), observations).basis).toBe("default");
+  });
+
+  it("returns the same object for empty or invalid history", () => {
+    expect(seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, [], liveChannelKey)).toBe(
+      EMPTY_CADENCE_OBSERVATIONS,
+    );
+    expect(
+      seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, [sample({ captured_at: "bad" })], liveChannelKey),
+    ).toBe(EMPTY_CADENCE_OBSERVATIONS);
   });
 
   it("evaluates freshness from captured_at, not from the arrival time", () => {

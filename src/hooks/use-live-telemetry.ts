@@ -11,13 +11,12 @@ import {
   type LiveHistoryOrderingState,
   type LiveHistoryWindow,
 } from "@/features/live/live-history";
-import { CadenceProbeCache, probeLiveChannelCadence } from "@/features/live/cadence-probe";
 import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
-  mergeCadenceObservations,
   recordCadenceObservation,
+  seedCadenceFromSamples,
   type CadenceObservations,
 } from "@/features/live/freshness";
 import {
@@ -38,8 +37,6 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
-/** #1522: tab-scoped cache so reopening Live does not re-read history for every channel. */
-const liveCadenceProbeCache = new CadenceProbeCache();
 const MAX_STARTUP_LIVE_SAMPLES = 4_000;
 const MAX_LATEST_PAGES = 100;
 const LATEST_PAGE_SIZE = 1_000;
@@ -443,23 +440,6 @@ export function useLiveTelemetry({
         commit([...snapshot, ...buffered]);
         setHasLoadedSnapshot(true);
         setHasCompleteInventory(true);
-        // #1522: bootstrap per-channel cadence from the newest persisted samples
-        // so slow channels do not flicker to stale right after the page opens.
-        void probeLiveChannelCadence(adapter, snapshot, {
-          signal: controller.signal,
-          cache: liveCadenceProbeCache,
-          cacheScope: scopeKey,
-        })
-          .then((probed) => {
-            if (disposed) return;
-            const current = storeRef.current;
-            const cadence = mergeCadenceObservations(current.cadence, probed);
-            if (cadence === current.cadence) return;
-            const nextStore = { ...current, cadence };
-            storeRef.current = nextStore;
-            setStore(nextStore);
-          })
-          .catch(() => undefined);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
@@ -547,6 +527,14 @@ export function useLiveTelemetry({
     void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)
       .then((result) => {
         if (disposed) return;
+        // #1522: seed per-channel cadence from the persisted history that was
+        // already requested for the selected channels; no additional requests.
+        const seeded = seedCadenceFromSamples(storeRef.current.cadence, result.samples, liveChannelKey);
+        if (seeded !== storeRef.current.cadence) {
+          const nextStore = { ...storeRef.current, cadence: seeded };
+          storeRef.current = nextStore;
+          setStore(nextStore);
+        }
         setHistorySamples((current) => {
           const next = mergeLiveHistoryTail(result.samples, current, selected, requestedWindow);
           historySamplesRef.current = next;
