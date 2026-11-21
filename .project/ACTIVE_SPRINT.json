@@ -110,7 +110,7 @@
     {
       "issue": 1522,
       "title": "Cadence-aware Live/Stale telemetry",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "priority": "high",
       "scope": "Independent focused source-only freshness contract and targeted tests; no hardware or site mutation.",
       "depends_on": [],
@@ -121,7 +121,15 @@
         "autonomous_start_requires_current_review_clearance": true,
         "review_clearance": "2026-11-21 product owner authorized autonomous source-only #1522 branch+PR; #1460 verified merged (PR #1461), no file overlap",
         "persisted_cadence_bootstrap": "seeded only from history already loaded for selected Live channels and Saved Dashboard series; zero additional /history requests (network probe from patch 0002 removed after E2E request-budget failure on PR #1627)",
-        "site_acceptance": "NOT_PERFORMED"
+        "site_acceptance": "NOT_PERFORMED",
+        "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
+        "pull_request": 1627,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "JWT REST history WebSocket and acquisition invariant": "SUCCESS",
+          "Unit and component tests": "SUCCESS",
+          "Static quality and build": "SUCCESS"
+        }
       },
       "branch": "fix/1522-cadence-aware-live-freshness",
       "permitted_paths": [

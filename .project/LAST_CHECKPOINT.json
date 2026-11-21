@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T15:30:00Z",
+  "timestamp": "2026-11-21T16:10:00Z",
   "actor": "Claude",
-  "event": "1522_cadence_aware_live_freshness_source_pr_opened",
+  "event": "1522_cadence_aware_live_freshness_exact_head_ci_green_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -33,7 +33,7 @@
   "active_work": {
     "issue": 1522,
     "branch": "fix/1522-cadence-aware-live-freshness",
-    "status": "in_progress",
+    "status": "review",
     "site_cutover": false
   },
   "evidence_snapshot": {
@@ -52,7 +52,11 @@
       "site_cutover": false,
       "hardware_verified": false,
       "modbus_write": false,
-      "ci_first_run": "PR #1627 head 7497ffa1: E2E request-budget invariants failed (/history 32 vs 15; navigation 29 vs <=3) caused by 0002 probe; fixed by removing probe"
+      "ci_first_run": "PR #1627 head 7497ffa1: E2E request-budget invariants failed (/history 32 vs 15; navigation 29 vs <=3) caused by 0002 probe; fixed by removing probe",
+      "pull_request": 1627,
+      "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
+      "exact_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E (request-budget invariants) SUCCESS; mergeStateStatus CLEAN",
+      "merge": "NOT_PERFORMED - awaiting owner approval"
     },
     "issue_1596_board_reconciliation": {
       "review_date": "2026-11-19",
