@@ -1,3 +1,23 @@
+## 2026-11-21 — #1638 chart-audit fixes SITE ACTIVE on LAN + HTTPS (frontend only)
+
+Product Owner approved updating the Raspberry Pi after #1639/#1640 merged. GitHub Actions run 44954810847 built LAN and protected HTTPS ARM64 artifacts for `main@f0295409`. On the Pi, the ZIP digests matched GitHub; package, artifact and runtime file SHA-256 passed; and the public/runtime contracts and lockfile were identical to #1522.
+
+The LAN image `sha256:c6c5ae80…` was built offline on the Pi from the #1522 image. The first two builds silently reused the stale #1522 `.next` content through BuildKit context sync, because the artifact files have identical sizes and normalised mtimes. The image was rebuilt from a tar-streamed context and verified file-by-file (849 files) against the artifact before activation; the bad images were removed. **Future offline LAN builds must use a tar-streamed context and a file-hash comparison.**
+
+The #1522 guarded scripts were regenerated with only the release constants changed (new HTTPS drop-in `99-release-1638-chart-audit.conf`). The run printed `NEXOLAB_1638_BOTH_FRONTENDS_ACTIVATED_GREEN`.
+
+Independent post-check:
+
+- LAN `:3000` and HTTPS `:3105` serve `f0295409` (`PyM62Vg07TywCAwHY6JjL` / `U_-FTp6Unq2wciBPuPq1f`), and the served HTML carries the new build ids;
+- routes return 200;
+- backend container IDs are identical to the pre-release snapshot;
+- the OAuth gate still returns 302;
+- telemetry is ready;
+- previews are removed;
+- 24.5 GiB free.
+
+Rollback assets are retained (the #1522 image and HTTPS release). **Not yet verified:** a signed-in owner browser check of the chart pages; offline reboot. No backend, database, Docker engine, OS or Modbus change.
+
 ## 2026-11-21 — #1638 chart-system audit: P1 merged (#1639), follow-ups in review (source only, not installed)
 
 Product Owner asked for an audit of the chart system on the running monitoring and for every finding to be fixed. The read-only audit used the owner's own signed-in browser session; no site change was made.
