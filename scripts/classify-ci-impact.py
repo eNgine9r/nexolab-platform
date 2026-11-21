@@ -303,6 +303,12 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_ci_site_dr_fixture_harness.py",
     "tests/test_ci_site_dr_preflight.py",
     "tests/test_ci_site_dr_inventory_v2.py",
+    # #1630 scheduled encrypted backup: source-only tooling, synthetic tests,
+    # executed by the Disaster Recovery Acceptance workflow. No site mutation.
+    "scripts/nexolab-dr-stream.py",
+    "scripts/nexolab-dr-scheduled-backup.py",
+    "tests/test_nexolab_dr_stream.py",
+    "tests/test_nexolab_dr_scheduled_backup.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
