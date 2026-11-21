@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetryHistoryQuery, TelemetrySample } from "@/lib/telemetry/types";
 
-import { CADENCE_PROBE_LOOKBACK_MS, probeLiveChannelCadence } from "./cadence-probe";
+import {
+  CADENCE_PROBE_CACHE_TTL_MS,
+  CADENCE_PROBE_LOOKBACK_MS,
+  CadenceProbeCache,
+  probeLiveChannelCadence,
+} from "./cadence-probe";
 import { CADENCE_OBSERVATION_LIMIT, liveFreshnessFor, observedCadenceMs } from "./freshness";
 import { liveChannelKey } from "./live-telemetry";
 
@@ -145,6 +150,68 @@ describe("#1522 persisted cadence bootstrap", () => {
       concurrency: 1,
     });
     expect(observedCadenceMs(observations[liveChannelKey(good[0])])).toBe(60_000);
+  });
+
+  it("keeps the default threshold when a channel has no persisted history", async () => {
+    const latest = sample("ch3", NOW);
+    const observations = await probeLiveChannelCadence(historyAdapter([]), [latest], { now: NOW });
+    expect(observations).toEqual({});
+    expect(liveFreshnessFor(latest, liveChannelKey(latest), observations).basis).toBe("default");
+  });
+
+  it("reuses cached results (including empty history) instead of re-reading the API", async () => {
+    const cache = new CadenceProbeCache();
+    const rows = Array.from({ length: 4 }, (_, index) => sample("ch3", NOW - index * 60_000));
+    const empty = sample("ch9", NOW);
+    const adapter = historyAdapter(rows);
+
+    const first = await probeLiveChannelCadence(adapter, [rows[0], empty], {
+      now: NOW,
+      cache,
+      cacheScope: "org-a",
+    });
+    expect(adapter.history).toHaveBeenCalledTimes(2);
+
+    const second = await probeLiveChannelCadence(adapter, [rows[0], empty], {
+      now: NOW + 60_000,
+      cache,
+      cacheScope: "org-a",
+    });
+    expect(adapter.history).toHaveBeenCalledTimes(2);
+    expect(second).toEqual(first);
+    expect(observedCadenceMs(second[liveChannelKey(rows[0])])).toBe(60_000);
+  });
+
+  it("isolates cached results by organization scope and expires them after the TTL", async () => {
+    const cache = new CadenceProbeCache();
+    const rows = Array.from({ length: 4 }, (_, index) => sample("ch3", NOW - index * 60_000));
+    const adapter = historyAdapter(rows);
+
+    await probeLiveChannelCadence(adapter, [rows[0]], { now: NOW, cache, cacheScope: "org-a" });
+    await probeLiveChannelCadence(adapter, [rows[0]], { now: NOW, cache, cacheScope: "org-b" });
+    expect(adapter.history).toHaveBeenCalledTimes(2);
+
+    await probeLiveChannelCadence(adapter, [rows[0]], {
+      now: NOW + CADENCE_PROBE_CACHE_TTL_MS + 1,
+      cache,
+      cacheScope: "org-a",
+    });
+    expect(adapter.history).toHaveBeenCalledTimes(3);
+  });
+
+  it("never caches failed requests and stays bounded", async () => {
+    const cache = new CadenceProbeCache(CADENCE_PROBE_CACHE_TTL_MS, 3);
+    const failing = {
+      history: vi.fn(async () => {
+        throw new Error("network");
+      }),
+    };
+    await probeLiveChannelCadence(failing, [sample("ch3", NOW)], { now: NOW, cache, cacheScope: "org-a" });
+    expect(cache.size).toBe(0);
+
+    const latest = Array.from({ length: 6 }, (_, index) => sample(`ch${index}`, NOW));
+    await probeLiveChannelCadence(historyAdapter([]), latest, { now: NOW, cache, cacheScope: "org-a" });
+    expect(cache.size).toBe(3);
   });
 
   it("stops when the page scope is aborted", async () => {

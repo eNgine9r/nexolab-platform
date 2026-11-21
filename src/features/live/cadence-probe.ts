@@ -24,12 +24,69 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 export const CADENCE_PROBE_LOOKBACK_MS = 2 * MAX_ACQUISITION_CADENCE_MS + 15 * 60_000;
 export const CADENCE_PROBE_MAX_CHANNELS = 120;
 export const CADENCE_PROBE_CONCURRENCY = 3;
+/** Reopening Live within this window reuses earlier probe results instead of re-reading history. */
+export const CADENCE_PROBE_CACHE_TTL_MS = 10 * 60_000;
+export const CADENCE_PROBE_CACHE_MAX_ENTRIES = 500;
+
+export interface CadenceProbeCacheEntry {
+  fetchedAt: number;
+  timestamps: readonly number[];
+}
+
+/**
+ * Bounded in-memory (per browser tab) probe cache. Entries are keyed by the
+ * caller's authorization scope *and* the channel identity, so results never
+ * leak between organizations. An empty history is cached too, so channels
+ * without persisted samples are not re-requested on every page open; failed
+ * requests are never cached.
+ */
+export class CadenceProbeCache {
+  private readonly entries = new Map<string, CadenceProbeCacheEntry>();
+
+  constructor(
+    private readonly ttlMs = CADENCE_PROBE_CACHE_TTL_MS,
+    private readonly maxEntries = CADENCE_PROBE_CACHE_MAX_ENTRIES,
+  ) {}
+
+  get size(): number {
+    return this.entries.size;
+  }
+
+  get(scope: string, key: string, now: number): CadenceProbeCacheEntry | undefined {
+    const id = `${scope}\u0000${key}`;
+    const entry = this.entries.get(id);
+    if (!entry) return undefined;
+    if (now - entry.fetchedAt > this.ttlMs || entry.fetchedAt > now) {
+      this.entries.delete(id);
+      return undefined;
+    }
+    return entry;
+  }
+
+  set(scope: string, key: string, entry: CadenceProbeCacheEntry): void {
+    const id = `${scope}\u0000${key}`;
+    this.entries.delete(id);
+    this.entries.set(id, entry);
+    while (this.entries.size > this.maxEntries) {
+      const oldest = this.entries.keys().next().value;
+      if (oldest === undefined) break;
+      this.entries.delete(oldest);
+    }
+  }
+
+  clear(): void {
+    this.entries.clear();
+  }
+}
 
 export interface CadenceProbeOptions {
   now?: number;
   signal?: AbortSignal;
   maxChannels?: number;
   concurrency?: number;
+  /** Optional cache; requires `cacheScope` (the organization/authorization scope). */
+  cache?: CadenceProbeCache;
+  cacheScope?: string;
 }
 
 function probeTargets(samples: readonly TelemetrySample[], maxChannels: number): TelemetrySample[] {
@@ -49,11 +106,21 @@ export async function probeLiveChannelCadence(
   options: CadenceProbeOptions = {},
 ): Promise<CadenceObservations> {
   const now = options.now ?? Date.now();
-  const targets = probeTargets(samples, options.maxChannels ?? CADENCE_PROBE_MAX_CHANNELS);
+  const cache = options.cache && options.cacheScope !== undefined ? options.cache : undefined;
+  const cacheScope = options.cacheScope ?? "";
+  let observations: CadenceObservations = EMPTY_CADENCE_OBSERVATIONS;
+  const targets = probeTargets(samples, options.maxChannels ?? CADENCE_PROBE_MAX_CHANNELS).filter(
+    (target) => {
+      const key = liveChannelKey(target);
+      const cached = cache?.get(cacheScope, key, now);
+      if (!cached) return true;
+      observations = seedCadenceObservations(observations, key, cached.timestamps);
+      return false;
+    },
+  );
   const concurrency = Math.max(1, Math.floor(options.concurrency ?? CADENCE_PROBE_CONCURRENCY));
   const from = new Date(now - CADENCE_PROBE_LOOKBACK_MS);
   const to = new Date(now);
-  let observations: CadenceObservations = EMPTY_CADENCE_OBSERVATIONS;
   let cursor = 0;
   let denied = false;
 
@@ -78,8 +145,11 @@ export async function probeLiveChannelCadence(
         );
         const timestamps = response.items
           .filter((item) => liveChannelKey(item) === key)
-          .map((item) => Date.parse(item.captured_at));
+          .map((item) => Date.parse(item.captured_at))
+          .filter((value) => Number.isFinite(value));
+        if (options.signal?.aborted) return;
         observations = seedCadenceObservations(observations, key, timestamps);
+        cache?.set(cacheScope, key, { fetchedAt: now, timestamps });
       } catch (error) {
         if (options.signal?.aborted) return;
         const status = (error as { status?: unknown } | null)?.status;

@@ -11,7 +11,7 @@ import {
   type LiveHistoryOrderingState,
   type LiveHistoryWindow,
 } from "@/features/live/live-history";
-import { probeLiveChannelCadence } from "@/features/live/cadence-probe";
+import { CadenceProbeCache, probeLiveChannelCadence } from "@/features/live/cadence-probe";
 import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
@@ -38,6 +38,8 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
+/** #1522: tab-scoped cache so reopening Live does not re-read history for every channel. */
+const liveCadenceProbeCache = new CadenceProbeCache();
 const MAX_STARTUP_LIVE_SAMPLES = 4_000;
 const MAX_LATEST_PAGES = 100;
 const LATEST_PAGE_SIZE = 1_000;
@@ -443,7 +445,11 @@ export function useLiveTelemetry({
         setHasCompleteInventory(true);
         // #1522: bootstrap per-channel cadence from the newest persisted samples
         // so slow channels do not flicker to stale right after the page opens.
-        void probeLiveChannelCadence(adapter, snapshot, { signal: controller.signal })
+        void probeLiveChannelCadence(adapter, snapshot, {
+          signal: controller.signal,
+          cache: liveCadenceProbeCache,
+          cacheScope: scopeKey,
+        })
           .then((probed) => {
             if (disposed) return;
             const current = storeRef.current;
