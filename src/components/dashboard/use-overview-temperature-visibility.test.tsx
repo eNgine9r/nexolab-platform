@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   filterOverviewTemperatureDiagnostics,
+  overviewTemperatureChannelFilter,
   useOverviewTemperatureVisibility,
 } from "./use-overview-temperature-visibility";
 
@@ -73,5 +74,22 @@ describe("useOverviewTemperatureVisibility", () => {
 
     act(() => result.current.showAll());
     expect(result.current.visibleChannelIds).toEqual(["104-03"]);
+  });
+});
+
+describe("overviewTemperatureChannelFilter", () => {
+  it("does not hide every live sample when the monitoring registry is unavailable", () => {
+    expect(
+      overviewTemperatureChannelFilter({ live: true, registryError: "HTTP 503", visibleChannelIds: [] }),
+    ).toBeNull();
+  });
+
+  it("applies the operator's visibility choice when the registry is readable", () => {
+    expect(
+      overviewTemperatureChannelFilter({ live: true, registryError: null, visibleChannelIds: ["2-01"] }),
+    ).toEqual(["2-01"]);
+    expect(
+      overviewTemperatureChannelFilter({ live: false, registryError: null, visibleChannelIds: [] }),
+    ).toBeNull();
   });
 });

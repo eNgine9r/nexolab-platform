@@ -3,7 +3,11 @@ interface SparklineProps {
   stroke?: string;
 }
 
-function createPath(points: number[]) {
+function createPath(input: number[]) {
+  const points = input.filter((point) => Number.isFinite(point));
+  if (points.length === 0) return "";
+  // A single point has no span on the x axis; draw it flat instead of producing NaN.
+  if (points.length === 1) return "M0 16 L88 16";
   const max = Math.max(...points);
   const min = Math.min(...points);
   const span = Math.max(max - min, 1);

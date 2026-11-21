@@ -23,6 +23,24 @@ function timestamp(sample: TelemetrySample): number {
   return Number.isFinite(value) ? value : Number.NaN;
 }
 
+/** Axis unit for the presentation-only HMI-informed estimate; never shares the calibrated °C axis. */
+export const EMBRACO_PROVISIONAL_UNIT = "°C (попередньо)";
+export const EMBRACO_PROVISIONAL_SUFFIX = " · попередня шкала";
+
+/**
+ * A sample that cannot be drawn (communication error, unconvertible reading) must
+ * still split the line, otherwise the renderer joins points across the outage.
+ */
+function breakMarker(sample: TelemetrySample, channelId: string, unit: string): TelemetrySample {
+  return {
+    ...sample,
+    value: null,
+    unit,
+    quality: sample.quality === "valid" ? "unknown" : sample.quality,
+    channel_id: channelId,
+  };
+}
+
 function reduced(segments: ChartSeries["segments"]): ChartSeries["segments"] {
   return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller");
 }
@@ -64,7 +82,7 @@ function seriesFromSamples(
     identity,
     name,
     colorToken: token.color,
-    dashStyle: name === "Setpoint" ? "dashed" : token.dashStyle,
+    dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
     freshness: online ? "live" : "offline",
     segments: reduced(segments),
@@ -106,31 +124,46 @@ export function buildEmbracoOperatorCelsiusScene(
     [EMBRACO_METRICS.evaporator, "Датчик відтайки"],
   ] as const;
   const series = probes.flatMap(([metric, name], index) => {
-    const displaySamples = (history.get(metric) ?? []).flatMap((sample) => {
+    const source = history.get(metric) ?? [];
+    const calibratedChannel = (sample: TelemetrySample) => sample.channel_id;
+    const provisionalChannel = (sample: TelemetrySample) => `${sample.channel_id}:operator-degC`;
+    const calibrated: TelemetrySample[] = [];
+    const provisional: TelemetrySample[] = [];
+    for (const sample of source) {
       const operatorCelsius = operatorEmbracoCelsius(sample);
-      if (operatorCelsius !== null) {
-        return [
-          {
-            ...sample,
-            value: operatorCelsius,
-            unit: "°C",
-            quality: "valid" as const,
-            channel_id: `${sample.channel_id}:operator-degC`,
-          },
-        ];
-      }
-      if (
+      const calibratedValue =
         sample.equipment_id === EMBRACO_KK1_CONTROLLER_ID &&
         sample.quality === "valid" &&
         sample.value !== null &&
-        Number.isFinite(sample.value)
-      ) {
-        return [{ ...sample, unit: "°C" }];
+        Number.isFinite(sample.value);
+      if (operatorCelsius !== null) {
+        provisional.push({
+          ...sample,
+          value: operatorCelsius,
+          unit: EMBRACO_PROVISIONAL_UNIT,
+          quality: "valid" as const,
+          channel_id: provisionalChannel(sample),
+        });
+        calibrated.push(breakMarker(sample, calibratedChannel(sample), "°C"));
+      } else if (calibratedValue) {
+        calibrated.push({ ...sample, unit: "°C" });
+        provisional.push(breakMarker(sample, provisionalChannel(sample), EMBRACO_PROVISIONAL_UNIT));
+      } else if (sample.equipment_id === EMBRACO_KK1_CONTROLLER_ID) {
+        calibrated.push(breakMarker(sample, calibratedChannel(sample), "°C"));
+        provisional.push(breakMarker(sample, provisionalChannel(sample), EMBRACO_PROVISIONAL_UNIT));
       }
-      return [];
-    });
-    const built = seriesFromSamples(displaySamples, name, index, online);
-    return built ? [{ ...built, displayPrecision: 2 }] : [];
+    }
+    const visualIndex = index * 2;
+    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online);
+    const provisionalSeries = seriesFromSamples(
+      provisional,
+      `${name}${EMBRACO_PROVISIONAL_SUFFIX}`,
+      visualIndex + 1,
+      online,
+    );
+    return [calibratedSeries, provisionalSeries].flatMap((built) =>
+      built ? [{ ...built, displayPrecision: 2 }] : [],
+    );
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
 }
@@ -150,23 +183,22 @@ export function buildEmbracoProbeRawScene(
     [EMBRACO_METRICS.evaporator, "Датчик відтайки · raw"],
   ] as const;
   const series = probes.flatMap(([metric, name], index) => {
-    const rawSamples = (history.get(metric) ?? [])
-      .filter(
-        (sample) =>
-          (sample.quality === "valid" || sample.quality === "unknown") &&
-          sample.raw_value !== null &&
-          Number.isInteger(sample.raw_value) &&
-          sample.raw_value >= 0 &&
-          sample.raw_value <= 65535,
-      )
-      .map((sample) => ({
-        ...sample,
-        value: sample.raw_value! >= 32768 ? sample.raw_value! - 65536 : sample.raw_value!,
-        unit: "raw",
-        // The validated raw reading is distinct from the unverified Celsius value.
-        quality: "valid" as const,
-        channel_id: `${sample.channel_id}:raw`,
-      }));
+    const rawSamples = (history.get(metric) ?? []).map((sample) =>
+      (sample.quality === "valid" || sample.quality === "unknown") &&
+      sample.raw_value !== null &&
+      Number.isInteger(sample.raw_value) &&
+      sample.raw_value >= 0 &&
+      sample.raw_value <= 65535
+        ? {
+            ...sample,
+            value: sample.raw_value >= 32768 ? sample.raw_value - 65536 : sample.raw_value,
+            unit: "raw",
+            // The validated raw reading is distinct from the unverified Celsius value.
+            quality: "valid" as const,
+            channel_id: `${sample.channel_id}:raw`,
+          }
+        : breakMarker(sample, `${sample.channel_id}:raw`, "raw"),
+    );
     const built = seriesFromSamples(rawSamples, name, index, online);
     return built ? [{ ...built, displayPrecision: 0 }] : [];
   });

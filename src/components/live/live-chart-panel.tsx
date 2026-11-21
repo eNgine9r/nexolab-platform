@@ -40,6 +40,7 @@ export function LiveChartPanel({
       title={`Live Data · ${group.equipmentId}`}
       context={`${unitLabel} · ${axisCount} dynamic Y ${axisCount === 1 ? "axis" : "axes"}`}
       selectedRange={rangeLabel}
+      locale="uk"
       series={group.scene.series}
       inspection={inspection}
       onToggleSeries={onToggleSeries}

@@ -1,5 +1,6 @@
 "use client";
 
+import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
@@ -720,25 +721,21 @@ function DateTimeInput({
   value: Date;
   onChange: (value: Date) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <label className="flex items-center gap-2 text-[10px] text-slate-500">
       {label}
       <input
         type="datetime-local"
-        value={toLocalInput(value)}
+        value={toZonedInputValue(value.getTime(), displayTimeZone)}
         onChange={(event) => {
-          const next = new Date(event.target.value);
-          if (Number.isFinite(next.getTime())) onChange(next);
+          const nextMs = fromZonedInputValue(event.target.value, displayTimeZone);
+          if (nextMs !== null) onChange(new Date(nextMs));
         }}
         className="min-h-9 rounded-xl border border-white/[0.08] bg-[#06142a] px-2 text-xs text-slate-200 outline-none focus:border-cyan-300/30"
       />
     </label>
   );
-}
-
-function toLocalInput(value: Date): string {
-  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
 }
 
 function clampAnalysisDomain(domain: ChartXDomain | null, loaded: ChartXDomain): ChartXDomain {

@@ -1,5 +1,6 @@
 "use client";
 
+import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
@@ -264,6 +265,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setClock(Date.now());
     };
 
+    const observeReconnect = createReconnectBackfillObserver(() => {
+      if (!disposed) setHistoryGeneration((value) => value + 1);
+    });
     const connectLive = () => {
       subscription = adapter.subscribe(
         {},
@@ -272,6 +276,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
           onStateChange: (state) => {
             if (disposed) return;
             setConnectionState(state);
+            observeReconnect(state);
             if (state === "connected") setError(null);
           },
           onError: (nextError) => {

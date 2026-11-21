@@ -82,6 +82,20 @@ describe("Overview canonical chart mapping", () => {
     expect(series.segments[1].precedingBreak?.reason).toBe("source_gap");
   });
 
+  it("disambiguates series names when the same channel id exists on two nodes", () => {
+    const groups = buildOverviewChartGroups({
+      samples: [
+        sample("a", 0, 4.1, "valid", "104-03"),
+        sample("b", 0, 5.2, "valid", "104-03", { node_id: "edge-02" }),
+        sample("c", 0, 6.3, "valid", "104-04"),
+      ],
+      status: "live",
+      xDomain: { fromMs: BASE, toMs: BASE + 60_000 },
+    });
+    const names = groups.flatMap((group) => group.scene.series.map((series) => series.name)).sort();
+    expect(names).toEqual(["104-03 · edge-01 · K104", "104-03 · edge-02 · K104", "104-04"]);
+  });
+
   it("deduplicates the same event when history and the latest tail overlap", () => {
     const duplicate = sample("same-event", 10_000, 4.2);
     const series = onlySeries([sample("before", 0, 4.1), duplicate, { ...duplicate }]);

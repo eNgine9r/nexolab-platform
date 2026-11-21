@@ -49,6 +49,7 @@ export function DashboardChartPanel({
           group.nativeUnits.length === 1 ? "динамічна вісь Y" : "динамічні осі Y"
         }`}
         selectedRange={rangeLabel}
+        locale="uk"
         series={group.scene.series}
         inspection={inspection}
         legend={

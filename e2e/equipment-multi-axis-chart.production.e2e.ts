@@ -226,8 +226,8 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
 
     const summary = page.getByTestId("chart-accessible-summary");
     await expect(summary).toHaveCount(1);
-    await expect(summary).toContainText("3 series visible");
-    await expect(summary).toContainText("Axes 3");
+    await expect(summary).toContainText("Видимих серій 3");
+    await expect(summary).toContainText("Осей 3");
     for (const unit of ["V", "A", "W"]) await expect(summary).toContainText(unit);
 
     const rendererHost = page.getByTestId("chart-renderer-host");
@@ -238,23 +238,23 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
     await page.mouse.move(box.x + box.width * 0.72, box.y + box.height * 0.5);
 
     const inspector = page.getByTestId("chart-inspector");
-    await expect(inspector).toContainText("Nearest measured sample per visible series");
+    await expect(inspector).toContainText("Найближче виміряне значення для кожної видимої серії");
     await expect(inspector.getByRole("row")).toHaveCount(CHANNELS.length + 1);
     for (const channel of CHANNELS) {
       await expect(inspector).toContainText(channel.channelId);
       await expect(inspector).toContainText(channel.unit);
     }
 
-    await page.getByRole("button", { name: "Hide" }).first().click();
-    await expect(summary).toContainText("2 series visible");
-    await expect(summary).toContainText("Axes 2");
-    await page.getByRole("button", { name: "Show" }).first().click();
-    await expect(summary).toContainText("3 series visible");
-    await expect(summary).toContainText("Axes 3");
+    await page.getByRole("button", { name: "Приховати" }).first().click();
+    await expect(summary).toContainText("Видимих серій 2");
+    await expect(summary).toContainText("Осей 2");
+    await page.getByRole("button", { name: "Показати" }).first().click();
+    await expect(summary).toContainText("Видимих серій 3");
+    await expect(summary).toContainText("Осей 3");
 
-    await page.getByRole("button", { name: "Solo" }).first().click();
-    await expect(summary).toContainText("1 series visible");
-    await expect(summary).toContainText("Axes 1");
+    await page.getByRole("button", { name: "Лише цей" }).first().click();
+    await expect(summary).toContainText("Видимих серій 1");
+    await expect(summary).toContainText("Осей 1");
     await expect(inspector.getByRole("row")).toHaveCount(2);
 
     for (const viewport of [

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatRelativeAge } from "@/features/display-time/relative-age";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import {
@@ -101,13 +102,7 @@ function ageLabel(ageMs: number | null): string {
   if (ageMs === null) {
     return "даних ще немає";
   }
-  if (ageMs < 1_000) {
-    return "щойно";
-  }
-  if (ageMs < 60_000) {
-    return `${Math.floor(ageMs / 1_000)} с тому`;
-  }
-  return `${Math.floor(ageMs / 60_000)} хв тому`;
+  return formatRelativeAge(ageMs);
 }
 
 function timestampLabel(value: string | null, displayTimeZone: string): string {

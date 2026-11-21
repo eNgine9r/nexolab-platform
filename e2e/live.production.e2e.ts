@@ -676,7 +676,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     const panel = page.getByTestId("saved-dashboard-chart-panel");
     await expect(panel).toHaveCount(1);
     await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
-    await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
+    await expect(panel.getByTestId("chart-accessible-summary")).toContainText("Видимих серій 2");
     const surface = panel.getByTestId("chart-renderer-surface");
     await expect.poll(() => surface.locator("canvas").count()).toBeGreaterThan(0);
     await expect(surface.locator("svg")).toHaveCount(0);
@@ -794,7 +794,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await page.mouse.down();
     await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.5, { steps: 5 });
     await page.mouse.up();
-    await panel.getByRole("button", { name: "Reset zoom" }).click();
+    await panel.getByRole("button", { name: "Скинути масштаб" }).click();
     await expect(host).toBeVisible();
 
     for (const width of [360, 1440, 1920]) {

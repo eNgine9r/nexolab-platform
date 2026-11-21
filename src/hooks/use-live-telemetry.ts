@@ -1,5 +1,6 @@
 "use client";
 
+import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -401,6 +402,9 @@ export function useLiveTelemetry({
       setClock(now);
     };
 
+    const observeReconnect = createReconnectBackfillObserver(() => {
+      if (!disposed) setHistoryGeneration((value) => value + 1);
+    });
     subscription = adapter.subscribe(
       {},
       {
@@ -417,6 +421,7 @@ export function useLiveTelemetry({
         onStateChange: (state) => {
           if (disposed) return;
           setConnectionState(state);
+          observeReconnect(state);
           if (state === "connected") {
             setLiveCoverageScopeKey(scopeKey);
             resolveLiveReady();

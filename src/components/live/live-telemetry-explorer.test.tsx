@@ -222,16 +222,16 @@ describe("LiveTelemetryExplorer viewport semantics", () => {
     const setHistoryRange = telemetry.setHistoryRange as ReturnType<typeof vi.fn>;
     render(<LiveTelemetryExplorer telemetry={telemetry} />);
 
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     fireEvent.click(screen.getByTestId("mock-reset-view"));
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     expect(setHistoryRange).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId("mock-manual-zoom"));
-    expect(screen.getByText("Paused view", { exact: true })).toBeVisible();
+    expect(screen.getByText("Призупинений перегляд", { exact: true })).toBeVisible();
 
     fireEvent.click(screen.getByTestId("mock-reset-view"));
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     expect(setHistoryRange).not.toHaveBeenCalled();
   });
 });

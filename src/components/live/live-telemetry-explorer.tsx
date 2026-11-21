@@ -1,5 +1,6 @@
 "use client";
 
+import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
@@ -125,15 +126,12 @@ function formatTimestamp(value: string, displayTimeZone: string): string {
   });
 }
 
-function toLocalInput(timestampMs: number): string {
-  const date = new Date(timestampMs);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(timestampMs - offsetMs).toISOString().slice(0, 16);
+function toLocalInput(timestampMs: number, displayTimeZone: string): string {
+  return toZonedInputValue(timestampMs, displayTimeZone);
 }
 
-function fromLocalInput(value: string): number | null {
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function fromLocalInput(value: string, displayTimeZone: string): number | null {
+  return fromZonedInputValue(value, displayTimeZone);
 }
 
 function statusMessage(status: LiveTelemetryStatus): {
@@ -262,9 +260,11 @@ export function LiveTelemetryExplorer({
   );
   const [initialTo] = useState(() => Date.now());
   const [customFrom, setCustomFrom] = useState(
-    () => searchParams.get("from") ?? toLocalInput(initialTo - 60 * 60_000),
+    () => searchParams.get("from") ?? toLocalInput(initialTo - 60 * 60_000, displayTimeZone),
   );
-  const [customTo, setCustomTo] = useState(() => searchParams.get("to") ?? toLocalInput(initialTo));
+  const [customTo, setCustomTo] = useState(
+    () => searchParams.get("to") ?? toLocalInput(initialTo, displayTimeZone),
+  );
   const [customError, setCustomError] = useState<string | null>(null);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
@@ -331,8 +331,8 @@ export function LiveTelemetryExplorer({
   const status = statusMessage(telemetry.status);
   const StatusIcon = status.icon;
   const historyToMs = telemetry.historyWindow?.to.getTime() ?? initialTo;
-  const customFromMs = fromLocalInput(customFrom);
-  const customToMs = fromLocalInput(customTo);
+  const customFromMs = fromLocalInput(customFrom, displayTimeZone);
+  const customToMs = fromLocalInput(customTo, displayTimeZone);
   const resetDomain = useMemo(
     () => deriveResetDomain(range, historyToMs, customFromMs, customToMs),
     [customFromMs, customToMs, historyToMs, range],
@@ -422,8 +422,8 @@ export function LiveTelemetryExplorer({
   };
 
   const applyCustomRange = () => {
-    const fromMs = fromLocalInput(customFrom);
-    const toMs = fromLocalInput(customTo);
+    const fromMs = fromLocalInput(customFrom, displayTimeZone);
+    const toMs = fromLocalInput(customTo, displayTimeZone);
     if (fromMs === null || toMs === null || fromMs >= toMs) {
       setCustomError("Вкажіть коректний початок і кінець інтервалу.");
       return;
@@ -643,10 +643,10 @@ export function LiveTelemetryExplorer({
             )}
             <span>
               {liveFollow && range === "live"
-                ? "Live Follow"
+                ? "Live-стеження"
                 : range !== "live" && viewportDomain === null
-                  ? "Rolling range"
-                  : "Paused view"}
+                  ? "Ковзний період"
+                  : "Призупинений перегляд"}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -673,7 +673,7 @@ export function LiveTelemetryExplorer({
                 }}
                 className="min-h-10 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Return to Live
+                Повернутися до Live
               </button>
             )}
           </div>
@@ -706,7 +706,7 @@ export function LiveTelemetryExplorer({
               onClick={telemetry.retryHistory}
               className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10 focus-visible:ring-2 focus-visible:ring-red-300"
             >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити history
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити завантаження історії
             </button>
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatRelativeAge } from "@/features/display-time/relative-age";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { useMemo, useState } from "react";
@@ -117,9 +118,7 @@ function statusTone(status: EnergyTelemetryModel["status"]): string {
 
 function ageCopy(ageMs: number | null): string {
   if (ageMs === null) return "Останній пакет відсутній";
-  if (ageMs < 1_000) return "Оновлено щойно";
-  if (ageMs < 60_000) return `Оновлено ${Math.round(ageMs / 1_000)} с тому`;
-  return `Оновлено ${Math.round(ageMs / 60_000)} хв тому`;
+  return `Оновлено ${formatRelativeAge(ageMs)}`;
 }
 
 function cadenceAwareEnergySampleState(

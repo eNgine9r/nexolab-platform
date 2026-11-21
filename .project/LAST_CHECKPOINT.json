@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T20:40:00Z",
+  "timestamp": "2026-11-21T22:45:00Z",
   "actor": "Claude",
-  "event": "1522_frontend_only_lan_https_activated_green",
+  "event": "1638_chart_audit_p1_merged_followups_in_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5434,7 +5434,7 @@
       }
     }
   ],
-  "next_action": "#1522 frontend release ACTIVE on LAN+HTTPS (469485b0): owner to confirm in a signed-in browser that a 60 s channel stays Live between polls and turns stale after ~105 s when stopped; Overview follow-up #1634. #1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
+  "next_action": "Merge the #1638 chart-audit follow-up PR after exact-head Merge Gate. Any frontend site release of the chart fixes needs separate Product Owner approval. Previous next action (unchanged priority): #1522 frontend release ACTIVE on LAN+HTTPS (469485b0): owner to confirm in a signed-in browser that a 60 s channel stays Live between polls and turns stale after ~105 s when stopped; Overview follow-up #1634. #1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

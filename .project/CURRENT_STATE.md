@@ -1,3 +1,23 @@
+## 2026-11-21 — #1638 chart-system audit: P1 merged (#1639), follow-ups in review (source only, not installed)
+
+Product Owner asked for an audit of the chart system on the running monitoring and for every finding to be fixed. The read-only audit used the owner's own signed-in browser session; no site change was made.
+
+- **Merged (#1639, merge `e0b41350`, Merge Gate green):** the Live 7 d range no longer fails when continuity segments outnumber the 240-point budget; freshness is per series, with an explicit `invalid` state and a no-valid-points notice, so empty charts are never labelled Live; session «Історія вимірювань» uses the canonical time-axis chart; Saved Dashboard and Overview windows follow the clock; display units are °C and µA.
+- **Follow-up PR (same Issue):**
+  - Overview "0 channels" root cause: the device-agent `acquisition-registry` proxy returns 503 on the site, which produced an empty allow-list. The Overview now shows all probes with a visible notice.
+  - Refrigeration: communication errors break the line; provisional Embraco °C has its own series and axis; the setpoint is drawn dashed.
+  - Custom ranges use the display time zone. CSV export already carried UTC and display-zone columns.
+  - Chart history reloads after a WebSocket outage recovers.
+  - P3 polish: humanised data ages, sparkline single point, dedup keeps the newest `captured_at`, axes show the date across midnight, Overview names disambiguated.
+  - Ukrainian Live and Saved Dashboard chart controls, with E2E assertions updated.
+- **Not fixed here:**
+  - backend endpoint parity (commissioned-channels / controller-binding 404, device-agent proxy 503, slow sessions request);
+  - unified range presets (a product decision);
+  - Live table raw units;
+  - remaining history-ingest performance work.
+
+**Not installed and not verified on site.** The Pi still serves `469485b0`; a frontend release needs separate approval. No backend, database, Docker, OS or Modbus change.
+
 ## 2026-11-21 — #1522 cadence-aware Live/Stale frontends SITE ACTIVE on LAN + HTTPS (frontend only)
 
 Product Owner approved updating the Raspberry Pi after merging #1627/#1635/#1636. GitHub Actions run 44944285348 built LAN and protected HTTPS ARM64 artifacts for `main@469485b0`; ZIP digests matched GitHub, and package, artifact and runtime file SHA-256 (865 LAN / 17,613 HTTPS) and public contracts (identical to #1625) were verified on the Pi. The LAN image `sha256:ec4d14d3…` was built offline on the Pi from the #1625 base (dependencies unchanged). Isolated previews on 3125/3126 passed identity and route checks. The proven #1625 guarded scripts were reused with only release constants changed (new HTTPS drop-in `99-release-1522-live-freshness.conf`, ordered after the #1625 drop-in) and printed `NEXOLAB_1522_BOTH_FRONTENDS_ACTIVATED_GREEN`. Independent post-check: LAN `:3000` and HTTPS `:3105` serve `469485b0` (`kyL7Lcf5PwHm2I6LA24-V` / `smzu8X7Xp7vPyf3va7lJ7`), all five backend container IDs identical to the pre-release snapshot, OAuth gate 302 unchanged, telemetry ready (lag 0.09 s), previews removed, 27.2 GiB free. Rollback assets (#1625 image and HTTPS release) retained. **Not yet verified:** a signed-in owner browser check of Live/Stale on a 60 s channel; offline reboot. No backend, database, Docker engine, OS or Modbus change.
