@@ -132,6 +132,27 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 
+    def test_scheduled_encrypted_backup_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-stream.py",
+            "scripts/nexolab-dr-scheduled-backup.py",
+            "tests/test_nexolab_dr_stream.py",
+            "tests/test_nexolab_dr_scheduled_backup.py",
+            "tests/test_nexolab_dr_backup_review_fixes.py",
+            "infrastructure/systemd/nexolab-dr-backup.service",
+            "infrastructure/systemd/nexolab-dr-backup.timer",
+            "infrastructure/systemd/nexolab-dr-backup.example.json",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        workflow = (ROOT / ".github/workflows/disaster-recovery-acceptance.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  push:", 1)[0]
+        for path in paths[:5]:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
     def test_dr_readonly_health_monitor_is_offline_routed(self) -> None:
         paths = [
             "scripts/nexolab-dr-readonly-health.py",
