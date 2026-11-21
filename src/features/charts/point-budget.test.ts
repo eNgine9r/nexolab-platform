@@ -59,4 +59,21 @@ describe("canonical chart point-budget policy", () => {
 
     expect(reduced.flatMap((item) => item.points)).toHaveLength(241);
   });
+
+  it("widens only to the evidence minimum when segments outnumber the budget (no full-source fallback)", () => {
+    // 300 segments x 10 points: one-point-per-segment cannot fit 240, but boundaries need only 600 points.
+    const segments: ChartSegment[] = Array.from({ length: 300 }, (_, s) => ({
+      id: `segment-${s}`,
+      seriesKey: "series-1",
+      points: Array.from({ length: 10 }, (_, p) => point(`s${s}-p${p}`, s * 1_000 + p, (s * 7 + p) % 13)),
+    }));
+    const reduced = reduceChartSegmentsToPointBudget(segments, "live-history");
+    const points = reduced.flatMap((item) => item.points);
+
+    expect(reduced).toHaveLength(300); // every continuity segment (and therefore every gap) is kept
+    expect(points).toHaveLength(600); // first + last of each segment, interior thinned (was 3000)
+    expect(
+      reduced.every((item) => item.points[0].id.endsWith("-p0") && item.points.at(-1)!.id.endsWith("-p9")),
+    ).toBe(true);
+  });
 });

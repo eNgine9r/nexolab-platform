@@ -2,7 +2,18 @@ import type { TelemetryQuality } from "@/lib/telemetry/types";
 
 export type ChartMeasurementQuality = TelemetryQuality;
 
-export type ChartFreshnessState = "live" | "stale" | "connecting" | "reconnecting" | "offline";
+/**
+ * "invalid" = the channel is reporting, but its newest sample has no valid measurement
+ * (unknown / sensor_error / communication_error). It must never be presented as "live".
+ */
+export type ChartFreshnessState = "live" | "stale" | "invalid" | "connecting" | "reconnecting" | "offline";
+
+/** The true newest sample of a series, including non-plottable quality (legend/inspector truth). */
+export interface ChartSeriesLatest {
+  timestampMs: number;
+  value: number | null;
+  quality: ChartMeasurementQuality;
+}
 
 export interface ChartSeriesIdentity {
   nodeId: string;
@@ -57,6 +68,8 @@ export interface ChartSeries {
   semanticMode: "instantaneous" | "cumulative_counter";
   areaFillOpacity?: number;
   displayPrecision?: number;
+  /** Newest sample regardless of quality; when absent the legend falls back to the last plotted point. */
+  latest?: ChartSeriesLatest;
 }
 
 export interface ChartThreshold {

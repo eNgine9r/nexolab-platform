@@ -323,7 +323,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(summary).toContainText("Range Live");
     await expect(summary).toContainText("8 series visible");
     await expect(summary).toContainText("Axes 2");
-    await expect(summary).toContainText("degC");
+    await expect(summary).toContainText("°C");
     await expect(summary).toContainText("V");
     await expect(summary).toContainText("Continuity breaks 1");
     await expect(page.getByText(/Alarm context/)).toHaveCount(0);
@@ -342,7 +342,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(inspector).toContainText("Nearest measured sample per visible series");
     await expect(inspector.getByRole("row")).toHaveCount(9);
     for (const channelId of fixture.channels) await expect(inspector).toContainText(channelId);
-    await expect(inspector).toContainText(/\d+\.\d{2} degC/);
+    await expect(inspector).toContainText(/\d+\.\d{2} °C/);
     await expect(inspector).toContainText(/\d+\.\d{2} V/);
 
     const inspectorTimestamp = inspector.locator("p").nth(1);

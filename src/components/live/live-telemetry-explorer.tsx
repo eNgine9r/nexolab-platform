@@ -338,6 +338,10 @@ export function LiveTelemetryExplorer({
     [customFromMs, customToMs, historyToMs, range],
   );
   const effectiveDomain = liveFollow && range === "live" ? resetDomain : (viewportDomain ?? resetDomain);
+  const latestByKey = useMemo(
+    () => Object.fromEntries(telemetry.samples.map((sample) => [liveChannelKey(sample), sample])),
+    [telemetry.samples],
+  );
   const groups = useMemo(
     () =>
       buildLiveChartGroups({
@@ -348,13 +352,19 @@ export function LiveTelemetryExplorer({
         hiddenSeriesKeys,
         soloSeriesKey,
         displayNames: commissionedNames,
+        latestSamples: latestByKey,
+        cadenceObservations: telemetry.cadenceObservations,
+        now: telemetry.clock,
       }),
     [
       commissionedNames,
       effectiveDomain,
       hiddenSeriesKeys,
+      latestByKey,
       selected,
       soloSeriesKey,
+      telemetry.cadenceObservations,
+      telemetry.clock,
       telemetry.historySamples,
       telemetry.status,
     ],

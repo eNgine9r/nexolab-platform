@@ -5,7 +5,7 @@ import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartExactTimestamp, formatChartValue } from "@/features/charts/format";
-import { buildChartYAxisModel } from "@/features/charts/units";
+import { buildChartYAxisModel, displayUnit } from "@/features/charts/units";
 
 function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "en"): string {
   const labels =
@@ -13,6 +13,7 @@ function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "
       ? {
           live: "Актуально",
           stale: "Застаріло",
+          invalid: "Немає валідних даних",
           connecting: "Підключення",
           reconnecting: "Перепідключення",
           offline: "Офлайн",
@@ -20,11 +21,33 @@ function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "
       : {
           live: "Live",
           stale: "Stale",
+          invalid: "No valid data",
           connecting: "Connecting",
           reconnecting: "Reconnecting",
           offline: "Offline",
         };
   return labels[state];
+}
+
+function qualityLabel(quality: string, locale: "en" | "uk"): string {
+  if (locale !== "uk") return quality;
+  const labels: Record<string, string> = {
+    valid: "валідне",
+    unknown: "невідома якість",
+    sensor_error: "помилка датчика",
+    communication_error: "немає зв'язку",
+  };
+  return labels[quality] ?? quality;
+}
+
+function latestOf(item: ChartSeries): { value: number | null; quality: string } | null {
+  if (item.latest)
+    return {
+      value: item.latest.quality === "valid" ? item.latest.value : null,
+      quality: item.latest.quality,
+    };
+  const plotted = item.segments.at(-1)?.points.at(-1);
+  return plotted ? { value: plotted.value, quality: plotted.quality } : null;
 }
 
 export function ChartShell({
@@ -64,16 +87,18 @@ export function ChartShell({
     ? "offline"
     : freshnessSeries.some((item) => item.freshness === "stale")
       ? "stale"
-      : freshnessSeries.some((item) => item.freshness === "reconnecting")
-        ? "reconnecting"
-        : freshnessSeries.some((item) => item.freshness === "connecting")
-          ? "connecting"
-          : "live";
+      : freshnessSeries.some((item) => item.freshness === "invalid")
+        ? "invalid"
+        : freshnessSeries.some((item) => item.freshness === "reconnecting")
+          ? "reconnecting"
+          : freshnessSeries.some((item) => item.freshness === "connecting")
+            ? "connecting"
+            : "live";
   const inspectionBySeries = new Map(
     (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
   );
   const visibleAxes = buildChartYAxisModel(series).visibleAxes;
-  const units = [...new Set(visibleAxes.map((axis) => axis.nativeUnit))].join(", ");
+  const units = [...new Set(visibleAxes.map((axis) => displayUnit(axis.nativeUnit)))].join(", ");
   const continuityBreaks = visibleSeries.reduce(
     (total, item) => total + item.segments.filter((segment) => segment.precedingBreak).length,
     0,
@@ -100,6 +125,8 @@ export function ChartShell({
           value: "Значення",
           quality: "Якість",
           freshness: "Актуальність",
+          noValidPoints: "Немає валідних точок для відображення у вибраному періоді",
+          noSamples: "немає збережених вимірювань",
         }
       : {
           resetZoom: "Reset zoom",
@@ -116,7 +143,13 @@ export function ChartShell({
           value: "Value",
           quality: "Quality",
           freshness: "Freshness",
+          noValidPoints: "No valid points to plot in the selected range",
+          noSamples: "no persisted samples",
         };
+  // Series that are visible but have nothing plottable: say why instead of drawing empty axes.
+  const emptySeries = visibleSeries.filter((item) =>
+    item.segments.every((segment) => segment.points.length === 0),
+  );
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
@@ -143,7 +176,25 @@ export function ChartShell({
       <p className="sr-only" data-testid="chart-accessible-summary">
         {summary}
       </p>
-      <div className="min-w-0 p-3 sm:p-4">{children}</div>
+      <div className="min-w-0 p-3 sm:p-4">
+        {emptySeries.length > 0 ? (
+          <div
+            role="status"
+            data-testid="chart-no-valid-points"
+            className="mb-3 rounded-xl border border-amber-300/30 bg-amber-300/[0.06] px-3 py-2 text-xs text-amber-100"
+          >
+            <p className="font-medium">{copy.noValidPoints}</p>
+            <ul className="mt-1 space-y-0.5 text-amber-100/80">
+              {emptySeries.map((item) => (
+                <li key={chartSeriesKey(item.identity)}>
+                  {item.name}: {item.latest ? qualityLabel(item.latest.quality, locale) : copy.noSamples}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {children}
+      </div>
 
       <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
         <div
@@ -153,9 +204,9 @@ export function ChartShell({
           {legend ??
             series.map((item) => {
               const key = chartSeriesKey(item.identity);
-              const latest = item.segments.at(-1)?.points.at(-1);
-              const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
-              const quality = latest?.quality ?? "unknown";
+              const latest = latestOf(item);
+              const latestValue = `${latest && latest.value !== null ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${displayUnit(item.identity.nativeUnit)}`;
+              const quality = qualityLabel(latest?.quality ?? "unknown", locale);
               const itemFreshness = freshnessLabel(item.freshness, locale);
               const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
               return (
@@ -237,7 +288,7 @@ export function ChartShell({
                   const point = inspected?.point ?? null;
                   const sampleTimestamp = point ? timestampFormatter(point.timestampMs) : "—";
                   const value = point
-                    ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
+                    ? `${formatChartValue(point.value, item.displayPrecision)} ${displayUnit(item.identity.nativeUnit)}`
                     : "—";
                   return (
                     <tr key={key} className="border-t border-white/[0.05]">
@@ -248,7 +299,9 @@ export function ChartShell({
                         {sampleTimestamp}
                       </td>
                       <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
-                      <td className="min-w-0 truncate py-1.5 pr-2">{point?.quality ?? "—"}</td>
+                      <td className="min-w-0 truncate py-1.5 pr-2">
+                        {point ? qualityLabel(point.quality, locale) : "—"}
+                      </td>
                       <td className="min-w-0 truncate py-1.5">
                         {freshnessLabel(inspected?.freshness ?? item.freshness, locale)}
                       </td>

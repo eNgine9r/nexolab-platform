@@ -84,6 +84,8 @@ export interface LiveTelemetryModel {
   lastCapturedAt: string | null;
   /** Per-channel observed cadence; absent means the default threshold applies. */
   cadenceObservations?: CadenceObservations;
+  /** Render clock (5 s tick) used for time-dependent freshness. */
+  clock?: number;
   selectedKeys: string[];
   /** A complete authenticated inventory is available for selection persistence. */
   selectionReady?: boolean;
@@ -656,6 +658,7 @@ export function useLiveTelemetry({
     freshSamples: view.freshSamples,
     lastCapturedAt: view.lastCapturedAt,
     cadenceObservations: store.cadence,
+    clock,
     selectedKeys: hasCompleteInventory ? reconciledSelectedKeys : selectedKeys,
     selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,
     setSelectedKeys,

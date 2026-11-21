@@ -35,7 +35,7 @@ import type {
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
-import { advanceLiveHistoryWindow } from "@/features/live/live-history";
+import { advanceLiveHistoryWindow, advanceWindowToClock } from "@/features/live/live-history";
 import { createRuntimeCredentialProvider } from "@/features/security/auth-runtime";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -302,7 +302,19 @@ export function useLiveDashboardTelemetry({
   }, [active, dashboard, organizationId]);
 
   useEffect(() => {
-    const interval = globalThis.setInterval(() => setClock(Date.now()), 5_000);
+    const interval = globalThis.setInterval(() => {
+      const now = Date.now();
+      setClock(now);
+      // Rolling ranges follow wall-clock time even when no sample arrives, so a silent
+      // series visibly stops before "now" instead of looking live at the right edge.
+      const selection = historySelectionRef.current;
+      if (selection.kind === "custom") return;
+      const current = historyWindowRef.current;
+      const next = advanceWindowToClock(current, now);
+      if (next === current) return;
+      historyWindowRef.current = next;
+      setHistoryWindow(serializedWindow(next, selection.kind, selection.label));
+    }, 5_000);
     return () => globalThis.clearInterval(interval);
   }, []);
 
