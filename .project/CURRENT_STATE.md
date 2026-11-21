@@ -1,3 +1,7 @@
+## 2026-11-21 — #1629 state reconciliation: eight merged Work Packages marked completed
+
+State-only. #1581, #1575, #1335, #1315, #1390, #1516, #1560 and #1562 moved from `review` to `completed` via `scripts/project-state.py` (record-evidence + complete) after re-verifying for each: Issue closed as completed, PR merged, exact-head `NEXOLAB Merge Gate` success and merge commit present in `main`. This records **source** completion only; existing site evidence (e.g. #1560 `site_frontend_handoff=NOT_PERFORMED`, #1562 `protected_site_installed=false`) is preserved and site gates remain on #1564/#1587. #1611 is intentionally unchanged (`needs_validation` may only return to `ready`). Baselines and Sprint selection unchanged; no runtime, site or hardware action.
+
 ## 2026-11-21 — #1522 cadence-aware Live/Stale freshness: PR #1627 exact-head CI GREEN, in review (not merged, not installed)
 
 Independent review (2026-11-21) found and fixed a **P1**: Live seeded cadence from the chart-reduced history series (240-point budget), so a dead 60 s channel could show Live for minutes (24 h range) or ~29 min (7 d). Cadence is now seeded only from the raw newest history tail returned with the already-loaded history. A **P2** malformed `stale_after_seconds` no longer rejects telemetry. Code head `e35ccaba` exact-head CI GREEN incl. authenticated-dashboard request budgets. Overview still uses fixed 30 s → follow-up #1634.
