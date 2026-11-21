@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  EMBRACO_PROVISIONAL_UNIT,
   buildEmbracoOperatorCelsiusScene,
   buildEmbracoProbeRawScene,
   buildEmbracoTemperatureScene,
@@ -157,8 +158,15 @@ describe("buildEmbracoOperatorCelsiusScene", () => {
       true,
       "EMBRACO-2",
     );
-    expect(scene.series.map((series) => series.name)).toEqual(["Температура в об’ємі", "Датчик відтайки"]);
-    expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual(["°C", "°C"]);
+    expect(scene.series.map((series) => series.name)).toEqual([
+      "Температура в об’ємі · попередня шкала",
+      "Датчик відтайки · попередня шкала",
+    ]);
+    // Provisional estimates never share the calibrated °C axis.
+    expect(scene.series.map((series) => series.identity.nativeUnit)).toEqual([
+      EMBRACO_PROVISIONAL_UNIT,
+      EMBRACO_PROVISIONAL_UNIT,
+    ]);
     expect(scene.series.map((series) => series.displayPrecision)).toEqual([2, 2]);
     expect(scene.series.map((series) => series.segments[0]?.points[0]?.value)).toEqual([0.42, -0.26]);
     expect(cabinet.quality).toBe("unknown");
@@ -194,5 +202,77 @@ describe("buildEmbracoOperatorCelsiusScene", () => {
       "EMBRACO-2",
     );
     expect(scene.series[0]?.segments[0]?.points[0]?.value).toBe(3.7);
+    expect(scene.series[0]?.identity.nativeUnit).toBe("°C");
+    expect(scene.series[0]?.name).toBe("Температура в об’ємі");
+  });
+
+  it("breaks the operator line across a communication error instead of joining it", () => {
+    const at = (iso: string, raw: number | null, quality: TelemetrySample["quality"] = "unknown") => ({
+      ...input(EMBRACO_METRICS.cabinet, raw, quality),
+      event_id: `cab-${iso}`,
+      captured_at: iso,
+    });
+    const scene = buildEmbracoOperatorCelsiusScene(
+      new Map([
+        [
+          EMBRACO_METRICS.cabinet,
+          [
+            at("2026-11-19T15:00:00Z", 40),
+            at("2026-11-19T15:00:05Z", 41),
+            at("2026-11-19T15:00:10Z", null, "communication_error"),
+            at("2026-11-19T15:00:15Z", 42),
+            at("2026-11-19T15:00:20Z", 43),
+          ],
+        ],
+      ]),
+      range,
+      true,
+      "EMBRACO-2",
+    );
+    expect(scene.series).toHaveLength(1);
+    expect(scene.series[0]?.segments).toHaveLength(2);
+    expect(scene.series[0]?.segments[1]?.precedingBreak?.reason).toBe("invalid_quality");
+  });
+});
+
+describe("buildEmbracoProbeRawScene continuity", () => {
+  it("breaks the raw line across a communication error", () => {
+    const range = { from: new Date("2026-11-19T15:00:00Z"), to: new Date("2026-11-19T15:05:00Z") };
+    const at = (iso: string, raw: number | null, quality: TelemetrySample["quality"] = "unknown") => ({
+      ...sample(quality, null),
+      raw_value: raw,
+      event_id: `raw-${iso}`,
+      captured_at: iso,
+    });
+    const scene = buildEmbracoProbeRawScene(
+      new Map([
+        [
+          EMBRACO_METRICS.cabinet,
+          [
+            at("2026-11-19T15:00:00Z", 40),
+            at("2026-11-19T15:00:05Z", 41),
+            at("2026-11-19T15:00:10Z", null, "communication_error"),
+            at("2026-11-19T15:00:15Z", 42),
+          ],
+        ],
+      ]),
+      range,
+      true,
+    );
+    expect(scene.series[0]?.segments).toHaveLength(2);
+  });
+});
+
+describe("Embraco setpoint styling", () => {
+  it("draws the setpoint dashed", () => {
+    const range = { from: new Date("2026-08-28T17:00:00.000Z"), to: new Date("2026-08-28T18:00:00.000Z") };
+    const setpoint = { ...sample("valid", 4), metric: EMBRACO_METRICS.setpoint, channel_id: "2-setpoint" };
+    const scene = buildEmbracoTemperatureScene(
+      new Map([[EMBRACO_METRICS.setpoint, [setpoint]]]),
+      range,
+      true,
+    );
+    expect(scene.series[0]?.name).toBe("Уставка");
+    expect(scene.series[0]?.dashStyle).toBe("dashed");
   });
 });

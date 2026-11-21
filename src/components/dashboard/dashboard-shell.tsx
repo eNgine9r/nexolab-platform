@@ -29,6 +29,7 @@ import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
 import {
   filterOverviewTemperatureDiagnostics,
+  overviewTemperatureChannelFilter,
   useOverviewTemperatureVisibility,
 } from "./use-overview-temperature-visibility";
 
@@ -64,10 +65,18 @@ export function DashboardShell() {
     organizationId,
     monitoredChannelIds: monitored.channelIds,
   });
+  // When the monitoring registry cannot be read, an empty allow-list would hide every
+  // real temperature sample and show "0 channels". Fall back to all commissioned
+  // temperature probes and say so explicitly instead of silently hiding live data.
+  const monitoringRegistryUnavailable = security.mode === "live" && monitored.error !== null;
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
     organizationId,
-    temperatureChannelIds: security.mode === "live" ? temperatureVisibility.visibleChannelIds : null,
+    temperatureChannelIds: overviewTemperatureChannelFilter({
+      live: security.mode === "live",
+      registryError: monitored.error,
+      visibleChannelIds: temperatureVisibility.visibleChannelIds,
+    }),
   });
 
   if (
@@ -201,6 +210,16 @@ export function DashboardShell() {
                   }
                   className="min-w-0"
                 >
+                  {monitoringRegistryUnavailable ? (
+                    <p
+                      role="status"
+                      data-testid="overview-monitoring-registry-unavailable"
+                      className="mb-3 rounded-lg border border-amber-300/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100"
+                    >
+                      ⚠ Реєстр моніторингу недоступний ({monitored.error}). Показано всі температурні канали
+                      XJP60D без фільтра відображення.
+                    </p>
+                  ) : null}
                   <TemperatureChart
                     mode={telemetry.mode}
                     status={telemetry.status}
@@ -212,10 +231,14 @@ export function DashboardShell() {
                     historyError={telemetry.historyError}
                     onHistoryRangeChange={telemetry.setHistoryRange}
                     onHistoryRetry={telemetry.retryHistory}
-                    targetDiagnostics={filterOverviewTemperatureDiagnostics(
-                      monitoring.configuration?.target_diagnostics ?? [],
-                      temperatureVisibility.visibleChannelIds,
-                    )}
+                    targetDiagnostics={
+                      monitoringRegistryUnavailable
+                        ? (monitoring.configuration?.target_diagnostics ?? [])
+                        : filterOverviewTemperatureDiagnostics(
+                            monitoring.configuration?.target_diagnostics ?? [],
+                            temperatureVisibility.visibleChannelIds,
+                          )
+                    }
                     allMonitoredChannelsHidden={
                       temperatureVisibility.loaded &&
                       monitored.channelIds.length > 0 &&

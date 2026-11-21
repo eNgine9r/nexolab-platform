@@ -1,5 +1,6 @@
 "use client";
 
+import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
@@ -201,10 +202,7 @@ export function DashboardLiveView({
   };
 
   const localInputValue = (value: string): string => {
-    const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) return "";
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-    return local.toISOString().slice(0, 16);
+    return toZonedInputValue(Date.parse(value), displayTimeZone);
   };
 
   const openCustomRange = () => {
@@ -216,7 +214,9 @@ export function DashboardLiveView({
 
   const applyCustomRange = () => {
     try {
-      telemetry.applyCustomHistoryRange(new Date(customFrom), new Date(customTo));
+      const fromMs = fromZonedInputValue(customFrom, displayTimeZone);
+      const toMs = fromZonedInputValue(customTo, displayTimeZone);
+      telemetry.applyCustomHistoryRange(new Date(fromMs ?? Number.NaN), new Date(toMs ?? Number.NaN));
       setCustomError(null);
       setCustomOpen(false);
     } catch (error) {

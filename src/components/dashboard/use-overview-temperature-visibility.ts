@@ -112,3 +112,18 @@ export function useOverviewTemperatureVisibility(options: Options): OverviewTemp
 
   return { visibleChannelIds, loaded, setVisibleChannelIds, showAll };
 }
+
+/**
+ * The Overview allow-list for temperature samples. When the monitoring registry
+ * cannot be read the visible list is empty only because of that failure; filtering
+ * with it would hide every real sample and claim "0 channels". Return null (no
+ * filter) so the page shows all commissioned probes with an explicit notice.
+ */
+export function overviewTemperatureChannelFilter(input: {
+  live: boolean;
+  registryError: string | null;
+  visibleChannelIds: readonly string[];
+}): readonly string[] | null {
+  if (!input.live || input.registryError !== null) return null;
+  return input.visibleChannelIds;
+}

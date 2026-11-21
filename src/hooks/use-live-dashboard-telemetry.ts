@@ -1,5 +1,6 @@
 "use client";
 
+import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -411,13 +412,26 @@ export function useLiveDashboardTelemetry({
       scheduleFlush(dashboard.refresh_seconds, immediate || Object.keys(latestRef.current).length === 1);
     };
 
+    // One subscription per item reconnects independently; coalesce their
+    // recoveries into a single history reload for the current window.
+    let backfillQueued = false;
+    const requestBackfill = () => {
+      if (backfillQueued) return;
+      backfillQueued = true;
+      setTimeout(() => {
+        backfillQueued = false;
+        if (!disposed) setHistoryGeneration((value) => value + 1);
+      }, 1_000);
+    };
     for (const item of dashboard.items) {
+      const observeReconnect = createReconnectBackfillObserver(requestBackfill);
       subscriptions.push(
         adapter.subscribe(dashboardSeriesQuery(item), {
           onSample: (sample) => commitSample(item, sample),
           onStateChange: (state) => {
             if (disposed) return;
             setConnectionState(state);
+            observeReconnect(state);
             if (state === "connected") setError(null);
           },
           onError: (nextError) => {
