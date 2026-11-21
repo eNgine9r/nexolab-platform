@@ -794,7 +794,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await page.mouse.down();
     await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.5, { steps: 5 });
     await page.mouse.up();
-    await panel.getByRole("button", { name: "Reset zoom" }).click();
+    await panel.getByRole("button", { name: "Скинути масштаб" }).click();
     await expect(host).toBeVisible();
 
     for (const width of [360, 1440, 1920]) {

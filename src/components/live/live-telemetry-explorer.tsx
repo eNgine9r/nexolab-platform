@@ -643,10 +643,10 @@ export function LiveTelemetryExplorer({
             )}
             <span>
               {liveFollow && range === "live"
-                ? "Live Follow"
+                ? "Live-стеження"
                 : range !== "live" && viewportDomain === null
-                  ? "Rolling range"
-                  : "Paused view"}
+                  ? "Ковзний період"
+                  : "Призупинений перегляд"}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -673,7 +673,7 @@ export function LiveTelemetryExplorer({
                 }}
                 className="min-h-10 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Return to Live
+                Повернутися до Live
               </button>
             )}
           </div>
@@ -706,7 +706,7 @@ export function LiveTelemetryExplorer({
               onClick={telemetry.retryHistory}
               className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10 focus-visible:ring-2 focus-visible:ring-red-300"
             >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити history
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити завантаження історії
             </button>
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (

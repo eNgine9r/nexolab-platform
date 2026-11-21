@@ -320,12 +320,12 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     ).toBeVisible();
     const summary = page.getByTestId("chart-accessible-summary");
     await expect(summary).toHaveCount(1);
-    await expect(summary).toContainText("Range Live");
-    await expect(summary).toContainText("8 series visible");
-    await expect(summary).toContainText("Axes 2");
+    await expect(summary).toContainText("Період Live");
+    await expect(summary).toContainText("Видимих серій 8");
+    await expect(summary).toContainText("Осей 2");
     await expect(summary).toContainText("°C");
     await expect(summary).toContainText("V");
-    await expect(summary).toContainText("Continuity breaks 1");
+    await expect(summary).toContainText("Розривів безперервності 1");
     await expect(page.getByText(/Alarm context/)).toHaveCount(0);
 
     const rendererHosts = page.getByTestId("chart-renderer-host");
@@ -339,7 +339,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       equipmentBox.y + equipmentBox.height * 0.5,
     );
     const inspector = page.getByTestId("chart-inspector").first();
-    await expect(inspector).toContainText("Nearest measured sample per visible series");
+    await expect(inspector).toContainText("Найближче виміряне значення для кожної видимої серії");
     await expect(inspector.getByRole("row")).toHaveCount(9);
     for (const channelId of fixture.channels) await expect(inspector).toContainText(channelId);
     await expect(inspector).toContainText(/\d+\.\d{2} °C/);
@@ -382,7 +382,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     });
 
     await page.mouse.wheel(0, -600);
-    await expect(page.getByText("Paused view", { exact: true })).toBeVisible();
+    await expect(page.getByText("Призупинений перегляд", { exact: true })).toBeVisible();
     await expect
       .poll(async () => {
         const domain = await readDomain();
@@ -418,9 +418,9 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())
       .not.toBe(resumedInspectorTimestamp);
 
-    await page.getByRole("button", { name: "Reset zoom" }).click();
+    await page.getByRole("button", { name: "Скинути масштаб" }).click();
     await expect.poll(readDomain).toEqual(initialDomain);
-    await expect(page.getByText("Live Follow", { exact: true })).toBeVisible();
+    await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
     await page.mouse.move(panProbe.x, panProbe.y);
     await expect
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())
@@ -478,25 +478,25 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
         }),
     ).toBe(true);
 
-    await page.getByRole("button", { name: "Hide" }).first().click();
-    await expect(page.getByRole("button", { name: "Show" }).first()).toBeVisible();
-    await expect(summary).toContainText("7 series visible");
-    await expect(summary).toContainText("Axes 2");
-    await page.getByRole("button", { name: "Show" }).first().click();
-    await expect(summary).toContainText("8 series visible");
-    await page.getByRole("button", { name: "Solo" }).first().click();
-    await expect(summary).toContainText("1 series visible");
-    await expect(summary).toContainText("Axes 1");
+    await page.getByRole("button", { name: "Приховати" }).first().click();
+    await expect(page.getByRole("button", { name: "Показати" }).first()).toBeVisible();
+    await expect(summary).toContainText("Видимих серій 7");
+    await expect(summary).toContainText("Осей 2");
+    await page.getByRole("button", { name: "Показати" }).first().click();
+    await expect(summary).toContainText("Видимих серій 8");
+    await page.getByRole("button", { name: "Лише цей" }).first().click();
+    await expect(summary).toContainText("Видимих серій 1");
+    await expect(summary).toContainText("Осей 1");
     await expect(inspector.getByRole("row")).toHaveCount(2);
-    await expect(page.getByRole("button", { name: "Reset zoom" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Скинути масштаб" })).toHaveCount(1);
 
     await page.getByRole("button", { name: "5 min", exact: true }).click();
-    await expect(summary).toContainText("Range 5 min");
-    await page.getByRole("button", { name: "Return to Live", exact: true }).click();
-    await expect(page.getByText("Live Follow", { exact: true })).toBeVisible();
+    await expect(summary).toContainText("Період 5 min");
+    await page.getByRole("button", { name: "Повернутися до Live", exact: true }).click();
+    await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Pause View", exact: true }).click();
-    await expect(page.getByText("Paused view", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Return to Live", exact: true }).click();
+    await expect(page.getByText("Призупинений перегляд", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Повернутися до Live", exact: true }).click();
 
     for (const viewport of [
       { width: 320, height: 800 },
