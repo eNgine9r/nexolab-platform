@@ -64,6 +64,19 @@ const UNIT_QUANTITIES: Readonly<Record<string, ChartPhysicalQuantity>> = {
   Wh: "cumulative_energy",
 };
 
+const DISPLAY_UNITS: Readonly<Record<string, string>> = {
+  degC: "°C",
+  degF: "°F",
+  uA: "µA",
+  bitfield: "біти",
+  percent: "%",
+};
+
+/** Presentation label for a telemetry unit code (identity and data are never changed). */
+export function displayUnit(nativeUnit: string): string {
+  return DISPLAY_UNITS[nativeUnit] ?? nativeUnit;
+}
+
 function quantity(identity: ChartSeriesIdentity): ChartPhysicalQuantity {
   const unitQuantity = UNIT_QUANTITIES[identity.nativeUnit];
   if (unitQuantity) return unitQuantity;

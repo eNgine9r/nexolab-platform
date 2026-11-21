@@ -19,6 +19,7 @@ import type {
 
 import {
   advanceLiveHistoryWindow,
+  advanceWindowToClock,
   downsampleLiveHistory,
   isLiveHistorySegmentStart,
   liveHistorySegments,
@@ -217,6 +218,34 @@ describe("live history loading", () => {
 });
 
 describe("live history downsampling", () => {
+  it("does not fail a long range whose continuity segments outnumber the point budget (7 d site defect)", () => {
+    // 60 s cadence with an outage every 20 minutes: many short segments, as seen on the 7 d Live range.
+    const samples: TelemetrySample[] = [];
+    let at = window.from.getTime();
+    for (let segment = 0; segment < 30; segment += 1) {
+      for (let point = 0; point < 3; point += 1) {
+        samples.push(
+          sample({
+            event_id: `s${segment}-p${point}`,
+            captured_at: new Date(at).toISOString(),
+            value: segment + point,
+          }),
+        );
+        at += 60_000;
+      }
+      at += 20 * 60_000; // explicit gap, longer than the derived source gap
+    }
+
+    // Budget (10) < segments (30): previously threw "The point budget cannot preserve one point per continuity segment".
+    const result = downsampleLiveHistory(samples, { from: window.from, to: new Date(at) }, 10);
+
+    const starts = result.filter((item) => isLiveHistorySegmentStart(item)).length;
+    expect(starts).toBe(29); // every gap after the first segment is still drawn as a break
+    expect(result[0].event_id).toBe("s0-p0");
+    expect(result.at(-1)?.event_id).toBe("s29-p2");
+    expect(result.length).toBeLessThan(samples.length); // still reduced: boundaries kept, interior thinned
+  });
+
   it("keeps first and last samples after bounded downsampling", () => {
     const samples = Array.from({ length: 20 }, (_, index) =>
       sample({
@@ -333,5 +362,20 @@ describe("live history downsampling", () => {
   it("does not move the live window backwards for delayed replay", () => {
     const delayed = sample({ event_id: "delayed", captured_at: "2026-08-03T21:09:00.000Z" });
     expect(advanceLiveHistoryWindow(window, [delayed])).toBe(window);
+  });
+});
+
+describe("advanceWindowToClock (chart audit 2026-11-21)", () => {
+  const rolling = { from: new Date("2026-11-21T10:00:00Z"), to: new Date("2026-11-21T11:00:00Z") };
+
+  it("moves a rolling window with wall-clock time while keeping its duration", () => {
+    const next = advanceWindowToClock(rolling, Date.parse("2026-11-21T11:10:00Z"));
+    expect(next.to.toISOString()).toBe("2026-11-21T11:10:00.000Z");
+    expect(next.to.getTime() - next.from.getTime()).toBe(60 * 60 * 1_000);
+  });
+
+  it("returns the same window when time has not passed its end or input is invalid", () => {
+    expect(advanceWindowToClock(rolling, Date.parse("2026-11-21T10:59:00Z"))).toBe(rolling);
+    expect(advanceWindowToClock(rolling, Number.NaN)).toBe(rolling);
   });
 });

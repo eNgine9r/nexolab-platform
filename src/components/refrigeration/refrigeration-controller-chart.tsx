@@ -81,6 +81,7 @@ export function RefrigerationControllerChart({
   return (
     <div data-testid="refrigeration-controller-chart" data-chart-title={title}>
       <ChartShell
+        locale="uk"
         title={title}
         context={context}
         selectedRange={rangeLabel}

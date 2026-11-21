@@ -302,3 +302,41 @@ describe("ChartShell accessibility contract", () => {
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Період 1г");
   });
 });
+
+describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)", () => {
+  it("explains a visible series without valid points instead of drawing silent empty axes", () => {
+    const scene = createBenchmarkScene(1);
+    const series = [
+      {
+        ...scene.series[0],
+        name: "K106 · 106-01",
+        identity: { ...scene.series[0].identity, nativeUnit: "degC" },
+        segments: [],
+        freshness: "invalid" as const,
+        latest: { timestampMs: Date.parse("2026-11-21T20:00:00Z"), value: null, quality: "unknown" as const },
+      },
+    ];
+    render(
+      <ChartShell
+        locale="uk"
+        title="Live дані · K106"
+        context="°C"
+        selectedRange="24 h"
+        series={series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+    const notice = screen.getByTestId("chart-no-valid-points");
+    expect(notice).toHaveTextContent("Немає валідних точок");
+    expect(notice).toHaveTextContent("K106 · 106-01: невідома якість");
+    expect(screen.getAllByText("Немає валідних даних").length).toBeGreaterThan(0); // never "Актуально"
+    expect(screen.queryByText("Актуально")).toBeNull();
+    expect(screen.getByText("— °C")).toBeInTheDocument(); // display unit, no stale value
+    expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeInTheDocument();
+  });
+});

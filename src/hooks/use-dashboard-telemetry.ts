@@ -25,6 +25,7 @@ import {
   type TelemetryHistoryWindow,
 } from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import { advanceWindowToClock } from "@/features/live/live-history";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type {
   TelemetryAdapter,
@@ -218,7 +219,19 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setClock(now);
+      // The Overview history window follows wall-clock time even when telemetry is silent,
+      // so a stopped series ends visibly before "now" (chart audit 2026-11-21).
+      const context = historyTailContextRef.current;
+      if (!context) return;
+      const nextWindow = advanceWindowToClock(context.window, now);
+      if (nextWindow === context.window) return;
+      historyTailContextRef.current = { ...context, window: nextWindow };
+      setHistorySamples((current) => samplesInsideHistoryWindow(current, nextWindow));
+      setHistoryWindow(serializedHistoryWindow(nextWindow));
+    }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
   }, []);
 

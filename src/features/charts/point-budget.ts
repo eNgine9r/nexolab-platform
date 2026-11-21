@@ -1,5 +1,5 @@
 import type { ChartSegment } from "./domain";
-import { ChartReductionBudgetError, reduceChartSegments } from "./reduction";
+import { reduceChartSegmentsPreservingEvidence } from "./reduction";
 
 export const CHART_POINT_BUDGET_DEFAULT = 240;
 
@@ -34,13 +34,7 @@ export function reduceChartSegmentsToPointBudget(
   const sourcePointCount = segments.reduce((sum, segment) => sum + segment.points.length, 0);
   if (sourcePointCount <= maximumPoints) return [...segments];
 
-  try {
-    return reduceChartSegments(segments, { maximumPoints, ...options });
-  } catch (error) {
-    if (!(error instanceof ChartReductionBudgetError)) throw error;
-    // The budget is a performance target, never permission to discard required
-    // continuity boundaries or pinned evidence. Preserve the complete evidence set
-    // when the reducer proves that the target budget cannot represent it truthfully.
-    return reduceChartSegments(segments, { maximumPoints: sourcePointCount, ...options });
-  }
+  // The budget is a performance target, never permission to discard required continuity
+  // boundaries or pinned evidence: widen it only to the minimum that keeps them.
+  return reduceChartSegmentsPreservingEvidence(segments, { maximumPoints, ...options });
 }

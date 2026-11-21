@@ -1,7 +1,7 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { chartPointBudget } from "@/features/charts/point-budget";
-import { reduceChartSegments } from "@/features/charts/reduction";
+import { reduceChartSegmentsPreservingEvidence } from "@/features/charts/reduction";
 import {
   CADENCE_OBSERVATION_LIMIT,
   seedCadenceFromSamples,
@@ -70,6 +70,18 @@ function isRenderable(sample: TelemetrySample): boolean {
 function acceptedSample(sample: TelemetrySample, now = Date.now()): boolean {
   const capturedAt = parsedTimestamp(sample.captured_at);
   return Number.isFinite(capturedAt) && capturedAt <= now + LIVE_HISTORY_MAX_FUTURE_SKEW_MS;
+}
+
+/**
+ * Moves a rolling window forward with wall-clock time, keeping its duration. Without this a
+ * silent channel's last line would keep reaching the right edge and look live (chart audit
+ * 2026-11-21). Returns the same object when no move is needed.
+ */
+export function advanceWindowToClock(current: LiveHistoryWindow, nowMs: number): LiveHistoryWindow {
+  const fromMs = current.from.getTime();
+  const toMs = current.to.getTime();
+  if (!Number.isFinite(nowMs) || !(toMs > fromMs) || nowMs <= toMs) return current;
+  return { from: new Date(nowMs - (toMs - fromMs)), to: new Date(nowMs) };
 }
 
 export function advanceLiveHistoryWindow(
@@ -191,7 +203,7 @@ function downsampleChannel(
     };
   });
 
-  const reduced = reduceChartSegments(segments, {
+  const reduced = reduceChartSegmentsPreservingEvidence(segments, {
     maximumPoints,
     bucketOriginMs: window.from.getTime(),
   });

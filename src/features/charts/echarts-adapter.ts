@@ -17,7 +17,7 @@ import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene
 import { formatChartAxisTimestamp } from "./format";
 import { inspectChartAtTimestamp } from "./inspection";
 import { chartPointBudget } from "./point-budget";
-import { buildChartYAxisModel } from "./units";
+import { buildChartYAxisModel, displayUnit } from "./units";
 
 registerEChartsModules([
   LineChart,
@@ -300,7 +300,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
             scale: true,
             position: axis.position,
             offset: axis.offset,
-            name: axis.nativeUnit,
+            name: displayUnit(axis.nativeUnit),
             nameLocation: "middle" as const,
             nameGap: 38,
             nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },

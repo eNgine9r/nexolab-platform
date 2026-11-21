@@ -6,6 +6,7 @@ import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
+import { displayUnit } from "@/features/charts/units";
 import type { LiveChartGroup } from "@/features/live/live-chart";
 
 export function LiveChartPanel({
@@ -31,12 +32,13 @@ export function LiveChartPanel({
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
-  const unitLabel = group.nativeUnits.join(" · ") || "no units";
+  const unitLabel = group.nativeUnits.map(displayUnit).join(" · ") || "no units";
+  const axisCount = group.nativeUnits.length;
 
   return (
     <ChartShell
       title={`Live Data · ${group.equipmentId}`}
-      context={`${unitLabel} · ${group.nativeUnits.length} dynamic Y ${group.nativeUnits.length === 1 ? "axis" : "axes"}`}
+      context={`${unitLabel} · ${axisCount} dynamic Y ${axisCount === 1 ? "axis" : "axes"}`}
       selectedRange={rangeLabel}
       series={group.scene.series}
       inspection={inspection}
