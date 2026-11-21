@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  CADENCE_OBSERVATION_LIMIT,
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
   recordCadenceObservation,
+  seedCadenceObservations,
   type CadenceObservations,
 } from "@/features/live/freshness";
 import {
@@ -495,6 +497,14 @@ export function useLiveDashboardTelemetry({
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
         reducedBySeries[key] = reduceHistory(item, samples, requestedWindow);
+        if (requestedRange.kind !== "custom") {
+          // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
+          cadenceRef.current = seedCadenceObservations(
+            cadenceRef.current,
+            key,
+            samples.slice(-CADENCE_OBSERVATION_LIMIT).map(sampleTimestamp),
+          );
+        }
         const tail = samples.at(-1);
         if (tail) {
           sourceTails.push(tail);
@@ -531,6 +541,7 @@ export function useLiveDashboardTelemetry({
       historyWindowRef.current = finalWindow;
       historyRef.current = reducedBySeries;
       setLatest({ ...latestRef.current });
+      setCadence(cadenceRef.current);
       setHistory({ ...reducedBySeries });
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
       setHistoryStatus("ready");

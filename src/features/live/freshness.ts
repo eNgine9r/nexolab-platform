@@ -137,3 +137,25 @@ export function formatFreshnessBasis(freshness: LiveFreshness): string {
   }
   return `Поріг свіжості ${seconds} с · інтервал опитування ще не визначено`;
 }
+
+/** Records several acquisition timestamps for one channel (bounded, idempotent). */
+export function seedCadenceObservations(
+  observations: CadenceObservations,
+  key: string,
+  capturedAtMs: Iterable<number>,
+): CadenceObservations {
+  let next = observations;
+  for (const value of capturedAtMs) next = recordCadenceObservation(next, key, value);
+  return next;
+}
+
+/** Merges independently gathered observations without losing either side. */
+export function mergeCadenceObservations(
+  base: CadenceObservations,
+  extra: CadenceObservations,
+): CadenceObservations {
+  let next = base;
+  for (const [key, timestamps] of Object.entries(extra))
+    next = seedCadenceObservations(next, key, timestamps);
+  return next;
+}

@@ -11,10 +11,12 @@ import {
   type LiveHistoryOrderingState,
   type LiveHistoryWindow,
 } from "@/features/live/live-history";
+import { probeLiveChannelCadence } from "@/features/live/cadence-probe";
 import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
+  mergeCadenceObservations,
   recordCadenceObservation,
   type CadenceObservations,
 } from "@/features/live/freshness";
@@ -439,6 +441,19 @@ export function useLiveTelemetry({
         commit([...snapshot, ...buffered]);
         setHasLoadedSnapshot(true);
         setHasCompleteInventory(true);
+        // #1522: bootstrap per-channel cadence from the newest persisted samples
+        // so slow channels do not flicker to stale right after the page opens.
+        void probeLiveChannelCadence(adapter, snapshot, { signal: controller.signal })
+          .then((probed) => {
+            if (disposed) return;
+            const current = storeRef.current;
+            const cadence = mergeCadenceObservations(current.cadence, probed);
+            if (cadence === current.cadence) return;
+            const nextStore = { ...current, cadence };
+            storeRef.current = nextStore;
+            setStore(nextStore);
+          })
+          .catch(() => undefined);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
