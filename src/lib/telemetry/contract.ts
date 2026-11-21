@@ -102,6 +102,12 @@ function asNullableEnum<T extends string>(value: unknown, allowed: readonly T[],
 export function parseTelemetrySample(value: unknown, path = "sample"): TelemetrySample {
   const record = asRecord(value, path);
   const receivedAt = record.received_at;
+  // Optional server freshness contract (#1522). `null`/absent means the
+  // Telemetry Service has no authoritative threshold for this sample.
+  const staleAfterSeconds =
+    record.stale_after_seconds === undefined || record.stale_after_seconds === null
+      ? null
+      : asNumber(record.stale_after_seconds, `${path}.stale_after_seconds`);
 
   return {
     event_id: asString(record.event_id, `${path}.event_id`),
@@ -118,6 +124,9 @@ export function parseTelemetrySample(value: unknown, path = "sample"): Telemetry
     raw_value: asNullableNumber(record.raw_value, `${path}.raw_value`),
     raw_status: asNullableNumber(record.raw_status, `${path}.raw_status`),
     ...(receivedAt === undefined ? {} : { received_at: asTimestamp(receivedAt, `${path}.received_at`) }),
+    ...(staleAfterSeconds !== null && staleAfterSeconds > 0
+      ? { stale_after_seconds: staleAfterSeconds }
+      : {}),
   };
 }
 

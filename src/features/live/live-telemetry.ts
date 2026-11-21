@@ -1,7 +1,9 @@
+import { DEFAULT_LIVE_STALE_AFTER_MS, resolveLiveFreshness } from "@/features/live/freshness";
 import type { TelemetryAlarm, TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 
 export const LIVE_SELECTION_LIMIT = 8;
-export const LIVE_STALE_AFTER_MS = 30_000;
+/** Default only; per-channel thresholds come from `@/features/live/freshness` (#1522). */
+export const LIVE_STALE_AFTER_MS = DEFAULT_LIVE_STALE_AFTER_MS;
 
 export type LiveAlarmFilter = "all" | "active" | "none" | TelemetryAlarm;
 export type LiveTelemetryState = "live" | "stale" | "sensor_error" | "communication_error" | "unknown";
@@ -104,7 +106,7 @@ export function selectLatestLiveSamples(samples: readonly TelemetrySample[]): Te
 export function liveTelemetryState(
   sample: TelemetrySample,
   now = Date.now(),
-  staleAfterMs = LIVE_STALE_AFTER_MS,
+  staleAfterMs = resolveLiveFreshness(sample).staleAfterMs,
 ): LiveTelemetryState {
   if (sample.quality !== "valid") return sample.quality;
   const capturedAt = timestamp(sample.captured_at);

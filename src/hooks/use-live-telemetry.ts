@@ -12,6 +12,13 @@ import {
   type LiveHistoryWindow,
 } from "@/features/live/live-history";
 import {
+  EMPTY_CADENCE_OBSERVATIONS,
+  isLiveSampleFresh,
+  liveFreshnessFor,
+  recordCadenceObservation,
+  type CadenceObservations,
+} from "@/features/live/freshness";
+import {
   liveChannelKey,
   reconcileLiveSelection,
   selectLatestLiveSamples,
@@ -29,7 +36,6 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
-const STALE_AFTER_MS = 30_000;
 const MAX_STARTUP_LIVE_SAMPLES = 4_000;
 const MAX_LATEST_PAGES = 100;
 const LATEST_PAGE_SIZE = 1_000;
@@ -64,6 +70,8 @@ interface LatestStore {
   samples: Record<string, TelemetrySample>;
   seenEventIds: string[];
   rejectedFutureSamples: number;
+  /** Observed per-channel acquisition timestamps for cadence-aware freshness (#1522). */
+  cadence: CadenceObservations;
 }
 
 export interface LiveTelemetryModel {
@@ -73,6 +81,8 @@ export interface LiveTelemetryModel {
   samples: TelemetrySample[];
   freshSamples: TelemetrySample[];
   lastCapturedAt: string | null;
+  /** Per-channel observed cadence; absent means the default threshold applies. */
+  cadenceObservations?: CadenceObservations;
   selectedKeys: string[];
   /** A complete authenticated inventory is available for selection persistence. */
   selectionReady?: boolean;
@@ -110,7 +120,7 @@ function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string |
 }
 
 function emptyLatestStore(): LatestStore {
-  return { samples: {}, seenEventIds: [], rejectedFutureSamples: 0 };
+  return { samples: {}, seenEventIds: [], rejectedFutureSamples: 0, cadence: EMPTY_CADENCE_OBSERVATIONS };
 }
 
 function capturedAt(sample: TelemetrySample): number {
@@ -126,6 +136,7 @@ function mergeLatestStore(
   const seen = new Set(current.seenEventIds);
   const seenEventIds = [...current.seenEventIds];
   let rejectedFutureSamples = current.rejectedFutureSamples;
+  let cadence = current.cadence;
   let changed = false;
 
   for (const sample of incoming) {
@@ -141,12 +152,13 @@ function mergeLatestStore(
     seenEventIds.push(sample.event_id);
     changed = true;
     const key = liveChannelKey(sample);
+    cadence = recordCadenceObservation(cadence, key, timestamp);
     const currentSample = samples[key];
     if (!currentSample || capturedAt(currentSample) <= timestamp) samples[key] = sample;
   }
 
   while (seenEventIds.length > 20_000) seenEventIds.shift();
-  return changed ? { samples, seenEventIds, rejectedFutureSamples } : current;
+  return changed ? { samples, seenEventIds, rejectedFutureSamples, cadence } : current;
 }
 
 async function loadCompleteLatestInventory(
@@ -180,7 +192,9 @@ function deriveStatus(
   lastCapturedAt: string | null;
 } {
   const samples = selectLatestLiveSamples(Object.values(store.samples));
-  const freshSamples = samples.filter((sample) => now - capturedAt(sample) <= STALE_AFTER_MS);
+  const freshSamples = samples.filter((sample) =>
+    isLiveSampleFresh(sample, now, liveFreshnessFor(sample, liveChannelKey(sample), store.cadence)),
+  );
   const lastCapturedAt =
     [...samples].sort((left, right) => capturedAt(right) - capturedAt(left))[0]?.captured_at ?? null;
 
@@ -630,6 +644,7 @@ export function useLiveTelemetry({
     samples: view.samples,
     freshSamples: view.freshSamples,
     lastCapturedAt: view.lastCapturedAt,
+    cadenceObservations: store.cadence,
     selectedKeys: hasCompleteInventory ? reconciledSelectedKeys : selectedKeys,
     selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,
     setSelectedKeys,

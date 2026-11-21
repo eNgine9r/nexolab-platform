@@ -30,7 +30,9 @@ import {
 } from "@/features/live-dashboards/embraco-series";
 import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
 import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
+import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
+import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
 
 function formatValue(series: LiveDashboardTelemetryModel["series"][number]): string {
@@ -108,12 +110,16 @@ function statusPresentation(status: LiveDashboardTelemetryStatus): {
   };
 }
 
-function seriesState(series: LiveDashboardTelemetryModel["series"][number]): string {
+function seriesState(
+  series: LiveDashboardTelemetryModel["series"][number],
+  cadence: CadenceObservations | undefined,
+): string {
   if (!series.latest) return "Немає persisted sample";
   if (savedDashboardDisplaySample(series.item, series.latest)?.operatorDerived) {
     return "Попередня оцінка °C ×0,01 · датчик на дисплеї не підтверджено";
   }
-  const state = liveTelemetryState(series.latest);
+  const freshness = liveFreshnessFor(series.latest, dashboardItemIdentity(series.item), cadence);
+  const state = liveTelemetryState(series.latest, undefined, freshness.staleAfterMs);
   if (state === "live") return "Live";
   if (state === "stale") return "Застарілі";
   if (state === "sensor_error") return "Помилка датчика";
@@ -338,7 +344,9 @@ export function DashboardLiveView({
                 {savedDashboardSeriesLabel(item.item)}
               </h2>
               <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{formatValue(item)}</p>
-              <p className="mt-3 text-xs text-slate-500">{seriesState(item)}</p>
+              <p className="mt-3 text-xs text-slate-500">
+                {seriesState(item, telemetry.cadenceObservations)}
+              </p>
               <p className="mt-1 text-xs text-slate-600">
                 {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
               </p>
@@ -507,7 +515,7 @@ export function DashboardLiveView({
                   </td>
                   <td className="px-5 py-3">{item.item.metric}</td>
                   <td className="px-5 py-3 font-semibold text-white">{formatValue(item)}</td>
-                  <td className="px-5 py-3">{seriesState(item)}</td>
+                  <td className="px-5 py-3">{seriesState(item, telemetry.cadenceObservations)}</td>
                   <td className="px-5 py-3 text-slate-500">
                     {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
                   </td>

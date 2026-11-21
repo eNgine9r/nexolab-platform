@@ -33,6 +33,7 @@ import {
   type CanonicalChartTimeRangeId,
   type ChartXDomain,
 } from "@/features/charts";
+import { formatFreshnessBasis, liveFreshnessFor } from "@/features/live/freshness";
 import { buildLiveChartGroups, liveSampleChartIdentity } from "@/features/live/live-chart";
 import {
   defaultLiveTelemetryFilters,
@@ -943,7 +944,8 @@ export function LiveTelemetryExplorer({
                   const key = liveChannelKey(sample);
                   const friendlyName = commissionedNames[sample.node_id + "/" + sample.channel_id];
                   const selectedNow = telemetry.selectedKeys.includes(key);
-                  const state = liveTelemetryState(sample);
+                  const freshness = liveFreshnessFor(sample, key, telemetry.cadenceObservations);
+                  const state = liveTelemetryState(sample, undefined, freshness.staleAfterMs);
                   return (
                     <tr
                       role="row"
@@ -1006,9 +1008,13 @@ export function LiveTelemetryExplorer({
                       </td>
                       <td role="cell" className="col-start-2 row-start-2 min-w-0 lg:px-3 lg:py-3">
                         <span
+                          data-testid="live-channel-state"
+                          data-freshness-basis={freshness.basis}
+                          title={formatFreshnessBasis(freshness)}
                           className={`inline-flex rounded-lg border px-2 py-1 text-xs ${stateClasses(state)}`}
                         >
                           {stateCopy(state)}
+                          <span className="sr-only"> · {formatFreshnessBasis(freshness)}</span>
                         </span>
                       </td>
                       <td role="cell" className="col-start-2 row-start-3 min-w-0 lg:px-3 lg:py-3">
