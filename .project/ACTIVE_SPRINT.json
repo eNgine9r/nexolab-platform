@@ -116,12 +116,12 @@
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
-        "site_cutover": false,
+        "site_cutover": "frontend-only completed 2026-11-21 (LAN+HTTPS, source 469485b0)",
         "planned_branch_only": true,
         "autonomous_start_requires_current_review_clearance": true,
         "review_clearance": "2026-11-21 product owner authorized autonomous source-only #1522 branch+PR; #1460 verified merged (PR #1461), no file overlap",
         "persisted_cadence_bootstrap": "seeded only from history already loaded for selected Live channels and Saved Dashboard series; zero additional /history requests (network probe from patch 0002 removed after E2E request-budget failure on PR #1627)",
-        "site_acceptance": "NOT_PERFORMED",
+        "site_acceptance": "PENDING_AUTHENTICATED_OWNER_BROWSER",
         "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
         "pull_request": 1627,
         "checks": {
