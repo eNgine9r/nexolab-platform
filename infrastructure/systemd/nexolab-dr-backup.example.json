@@ -64,7 +64,7 @@
       "method": "sqlite_online",
       "format": "sqlite",
       "entry_path": "edge/outbox.sqlite",
-      "max_bytes": 268435456,
+      "max_bytes": 201326592,
       "path": "/var/lib/docker/volumes/CONFIRM-nexolab-edge-device-agent-data/_data/CONFIRM-outbox.sqlite"
     },
     {
@@ -72,7 +72,7 @@
       "method": "sqlite_online",
       "format": "sqlite",
       "entry_path": "central/ingestion-spool.sqlite",
-      "max_bytes": 268435456,
+      "max_bytes": 201326592,
       "path": "/var/lib/docker/volumes/CONFIRM-nexolab-central-ingestion-spool/_data/CONFIRM-spool.sqlite"
     },
     {

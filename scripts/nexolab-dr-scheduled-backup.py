@@ -73,14 +73,25 @@ CONSISTENCY = {
     "file_snapshot": "verified_unchanged_during_capture",
 }
 # Capture order: small, quickly verifiable stores first; the long pg_dump last.
-ORDER = {name: index for index, name in enumerate((
+# Capture order (review P1-3): object storage is captured AFTER the PostgreSQL snapshot.
+# The application writes the object first and commits the referencing `equipment_images`
+# row afterwards, and never deletes an object once its row is committed
+# (services/telemetry-service/app/refrigeration/api.py). Capturing objects after the pg_dump
+# snapshot point therefore contains every object the dump references; objects present before
+# the snapshot that disappear before the object capture fail the run (dangling-reference guard).
+CAPTURE_SEQUENCE = (
     "local-auth-private-key", "local-auth-public-key", "mqtt-dynamic-security",
-    "edge-mqtt-persistence", "object-storage", "edge-sqlite-outbox",
-    "central-ingestion-spool", "postgresql"))}
+    "edge-mqtt-persistence", "edge-sqlite-outbox", "central-ingestion-spool",
+    "postgresql", "object-storage",
+)
+ORDER = {name: index for index, name in enumerate(CAPTURE_SEQUENCE)}
 CONTAINER = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$")
 FORBIDDEN_DOCKER_TOKENS = {"stop", "restart", "kill", "rm", "pause", "down", "up", "create", "run",
                            "update", "--privileged", "-i", "--interactive", "-t", "--tty", "-e", "--env"}
-SQLITE_MAX_DEFAULT = 512 * MiB
+# Review P2-4: the online backup into ":memory:" plus serialize() holds ~2x the database
+# (measured RSS growth 2.25x at 190 MiB, 2.66x at 34 MiB incl. fixed overhead). 192 MiB keeps
+# the worst case (~0.5 GiB) well under MemoryMax=768M; larger databases are refused before copying.
+SQLITE_MAX_DEFAULT = 192 * MiB
 
 
 class Blocked(Exception):
@@ -146,6 +157,42 @@ def _absolute(value: Any, label: str) -> Path:
     return path
 
 
+PG_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
+# Strict allowlist: every pg_dump token must match exactly one of these. Anything else
+# (-f/--file, -F<other>, --format=, -h/--host, -j, filters, --clean/-c/-C ...) is refused, so
+# the dump can only be a custom-format archive written to stdout of the local server.
+PG_FLAG_TOKENS = {"-Fc", "-w", "--no-password"}
+PG_VALUE_OPTIONS = {
+    "-U": lambda value: bool(PG_IDENTIFIER.fullmatch(value)),
+    "-d": lambda value: bool(PG_IDENTIFIER.fullmatch(value)),
+    "-Z": lambda value: value.isdigit() and 0 <= int(value) <= 9 and value == str(int(value)),
+}
+
+
+def validate_pg_dump_command(command: list[str]) -> None:
+    if not command or command[0] != "pg_dump":
+        raise Blocked("postgresql: command must start with pg_dump")
+    seen: set[str] = set()
+    index = 1
+    while index < len(command):
+        token = command[index]
+        if token in seen:
+            raise Blocked(f"postgresql: duplicate pg_dump option {token}")
+        if token in PG_FLAG_TOKENS:
+            seen.add(token)
+            index += 1
+        elif token in PG_VALUE_OPTIONS:
+            if index + 1 >= len(command) or not PG_VALUE_OPTIONS[token](command[index + 1]):
+                raise Blocked(f"postgresql: invalid value for pg_dump {token}")
+            seen.add(token)
+            index += 2
+        else:
+            raise Blocked(f"postgresql: pg_dump option {token!r} is not allowed (stdout-only custom dump)")
+    missing = {"-Fc", "-U", "-d"} - seen
+    if missing:
+        raise Blocked(f"postgresql: pg_dump requires {', '.join(sorted(missing))}")
+
+
 def validate_docker_argv(argv: Any, store_id: str) -> list[str]:
     if not isinstance(argv, list) or not all(isinstance(item, str) and item for item in argv):
         raise Blocked(f"{store_id}: argv must be a list of non-empty strings")
@@ -161,10 +208,7 @@ def validate_docker_argv(argv: Any, store_id: str) -> list[str]:
     if command[:3] == ["nice", "-n", "19"]:
         command = command[3:]
     if store_id == "postgresql":
-        if not command or command[0] != "pg_dump" or "-Fc" not in command:
-            raise Blocked("postgresql: command must be 'pg_dump ... -Fc' (custom format)")
-        if any(token.startswith(("--clean", "-c", "-C", "--create")) for token in command[1:]):
-            raise Blocked("postgresql: destructive restore options are not allowed in a dump")
+        validate_pg_dump_command(command)
     else:
         if len(command) != 2 or command[0] != "cat" or not command[1].startswith("/"):
             raise Blocked(f"{store_id}: command must be 'cat <absolute path>'")
@@ -195,6 +239,10 @@ def load_config(path: Path) -> Config:
         raise Blocked("reserve_free_bytes must be an integer >= 20 GiB")
     if type(maximum) is not int or not 1 * MiB <= maximum <= 512 * GiB:
         raise Blocked("max_backup_bytes must be an integer between 1 MiB and 512 GiB")
+
+    # Review P1-2: a run may only report success after full cryptographic verification.
+    if raw.get("verify_after_capture", True) is not True:
+        raise Blocked("verify_after_capture cannot be disabled: every bundle must be verified before it is kept")
 
     stores_raw = raw.get("stores")
     if not isinstance(stores_raw, list):
@@ -249,7 +297,7 @@ def load_config(path: Path) -> Config:
         metrics_file=_absolute(metrics, "metrics_file") if metrics is not None else None,
         reserve_free_bytes=reserve,
         max_backup_bytes=maximum,
-        verify_after_capture=raw.get("verify_after_capture", True) is True,
+        verify_after_capture=True,
         stores=tuple(sorted(stores, key=lambda store: ORDER[store.id])),
     )
 
@@ -307,6 +355,13 @@ def _signature(root: Path) -> tuple:
         st = path.lstat()
         entries.append((path.relative_to(root).as_posix(), st.st_size, st.st_mtime_ns, st.st_ino, st.st_mode))
     return tuple(entries)
+
+
+def object_paths(root: Path) -> set[str]:
+    """Relative paths of regular files in an object tree (metadata only, no content read)."""
+    if not root.is_dir():
+        raise CaptureFailed(f"object tree is missing: {root}")
+    return {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
 
 
 def capture_directory(root: Path, sink: Any) -> None:
@@ -381,12 +436,15 @@ def capture_sqlite(path: Path, sink: Any, max_bytes: int) -> None:
                 raise CaptureFailed("sqlite online backup failed integrity_check")
             image = memory.serialize()
         finally:
-            memory.close()
+            memory.close()  # free the page cache before streaming: peak is ~2x only during serialize()
     except sqlite3.Error as exc:
         raise CaptureFailed("sqlite online backup failed") from exc
     finally:
         source.close()
+    if len(image) > min(max_bytes, SQLITE_MAX_DEFAULT):  # the database may have grown during backup
+        raise CaptureFailed("sqlite database exceeds the in-memory capture cap")
     sink.write(image)
+    del image
 
 
 def capture_docker_exec(argv: list[str], sink: Any) -> None:
@@ -487,16 +545,23 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
     if final_path.exists():
         raise Blocked("a bundle with this timestamp already exists")
 
-    check_every = 64 * MiB
+    check_every = 16 * MiB
     next_check = [check_every]
 
+    def require_reserve(moment: str) -> None:
+        if free(config.output_dir) < config.reserve_free_bytes:
+            raise CaptureFailed(f"free space fell below the protected reserve {moment}")
+
     def guard(written: int) -> None:
-        if written > config.max_backup_bytes + 64 * MiB:
+        # Review P2-6: the bundle cap is exact (ciphertext bytes on disk), no tolerance.
+        if written > config.max_backup_bytes:
             raise CaptureFailed("bundle exceeds max_backup_bytes")
         if written >= next_check[0]:
             next_check[0] += check_every
-            if free(config.output_dir) < config.reserve_free_bytes:
-                raise CaptureFailed("free space fell below the protected reserve during capture")
+            require_reserve("during capture")
+
+    object_store = next((s for s in config.stores if s.id == "object-storage" and s.disposition == "capture"), None)
+    objects_at_db_snapshot: set[str] | None = None
 
     header = drs.build_header(repository=config.repository, commit=config.commit, created_at=created_at,
                               key=key, chunk_size=drs.DEFAULT_CHUNK_SIZE, nonce_prefix=drs.new_nonce_prefix())
@@ -512,6 +577,9 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
                                           "reason": store.params["reason"]})
                     continue
                 store_started = clock()
+                if store.id == "postgresql" and object_store is not None:
+                    # Taken before pg_dump starts, i.e. before its MVCC snapshot point.
+                    objects_at_db_snapshot = object_paths(Path(object_store.params["path"]))
                 sink = builder.begin_entry(path=store.entry_path, store=store.id,
                                            content_format=store.content_format, max_bytes=store.max_bytes)
                 try:
@@ -520,6 +588,13 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
                     raise CaptureFailed(f"{store.id}: {exc}") from exc
                 except CaptureFailed as exc:
                     raise CaptureFailed(f"{store.id}: {exc}") from exc
+                if store is object_store and objects_at_db_snapshot is not None:
+                    vanished = objects_at_db_snapshot - object_paths(Path(store.params["path"]))
+                    if vanished:
+                        raise CaptureFailed(
+                            f"object-storage: {len(vanished)} object(s) deleted after the database snapshot; "
+                            "the dump may reference missing objects"
+                        )
                 entry = sink.close()
                 store_results.append({
                     "id": store.id, "disposition": "capture", "method": store.method,
@@ -534,16 +609,17 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
             bundle_sha256 = writer.close()
             output.flush()
             os.fsync(output.fileno())
+        # Review P2-5/P2-6: re-check the reserve and authenticate the complete partial file
+        # BEFORE it becomes a final-looking .nxs; on any failure the partial is removed.
+        require_reserve("before finalization")
+        drs.verify_file(partial_path, key)
         os.replace(partial_path, final_path)
     except BaseException:
         with contextlib.suppress(FileNotFoundError):
             partial_path.unlink()  # only the exact partial file created above
         raise
 
-    verified = None
-    if config.verify_after_capture:
-        drs.verify_file(final_path, key)
-        verified = True
+    verified = True
     completed = clock()
     receipt = {
         "schema_version": 1,
@@ -562,6 +638,19 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
         "capacity": {"free_before": free_before, "free_after": free(config.output_dir),
                      "reserve": config.reserve_free_bytes, "max_backup_bytes": config.max_backup_bytes},
         "stores": store_results,
+        "cross_store_consistency": {
+            "postgresql_object_storage": {
+                "status": "ORDERED_NO_DELETIONS_RESTORE_REFERENCE_CHECK_UNVERIFIED",
+                "method": "object storage captured after the pg_dump snapshot; no object present before "
+                          "the snapshot was deleted before the object capture",
+                "basis": "application writes the object before committing the referencing row and never "
+                         "deletes committed objects (refrigeration/api.py)",
+                "residual": "a future code path that deletes committed objects within the dump window "
+                            "would not be fully covered; equipment_images.storage_key -> object/checksum "
+                            "must be verified on an isolated restore",
+                "site_acceptance": "BLOCKED_UNTIL_1632_REFERENCE_CHECK",
+            },
+        },
         "isolated_restore_verified": False,
         "off_device_copy_verified": False,
     }

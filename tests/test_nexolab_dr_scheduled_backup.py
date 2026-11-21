@@ -443,4 +443,5 @@ def test_example_configuration_is_structurally_valid(tmp_path):
     config = bk.load_config(path)
     assert {s.id for s in config.stores} == set(bk.V2_STORES)
     assert config.reserve_free_bytes >= 20 * GiB
-    assert [s.id for s in config.stores][-1] == "postgresql"  # long dump runs last
+    seq = [s.id for s in config.stores]
+    assert seq.index("postgresql") < seq.index("object-storage") == len(seq) - 1  # objects after DB snapshot

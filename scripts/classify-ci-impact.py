@@ -309,6 +309,7 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/nexolab-dr-scheduled-backup.py",
     "tests/test_nexolab_dr_stream.py",
     "tests/test_nexolab_dr_scheduled_backup.py",
+    "tests/test_nexolab_dr_backup_review_fixes.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {

@@ -24,15 +24,24 @@ of v1-stream are tar streams compatible with `scripts/nexolab-volume-archive.py 
 
 ## Safety properties (enforced in code and tests)
 
-- **No service interruption.** The only Docker verb is `docker exec` with an allowlist: `pg_dump … -Fc` (optionally behind
-  `nice -n 19`) or `cat <absolute path>`. The following are rejected at config load: `stop`, `restart`, `rm`, `kill`,
-  `pause`, `run`, interactive or privileged exec, `psql`, and `pg_dump --clean/-c/-C`.
-- **No plaintext on disk.** Every byte is encrypted in 1 MiB chunks and written to `.<name>.partial` (0600), then
-  atomically renamed. SQLite stores are captured into memory with the online backup API (capped at 512 MiB, plus
-  `integrity_check`).
+- **No service interruption.** The only Docker verb is `docker exec` with an allowlist: `pg_dump` (optionally behind
+  `nice -n 19`) or `cat <absolute path>`. `pg_dump` tokens must match a strict allowlist — exactly `-Fc`, `-U <ident>`,
+  `-d <ident>`, optional `-Z <0-9>`, `-w`/`--no-password`, each at most once — so the dump can only be a custom-format
+  archive on stdout from the local server. Everything else is rejected at config load, including `-f`/`--file`, other
+  formats, `-h`/`--host`, `-j`, filters, `--clean`/`-c`/`-C`, as well as `stop`, `restart`, `rm`, `kill`, `pause`,
+  `run`, interactive or privileged exec and `psql`.
+- **No plaintext on disk.** Every byte is encrypted in 1 MiB chunks and written to `.<name>.partial` (0600). SQLite stores
+  are captured into memory with the online backup API plus `integrity_check`. They are capped at **192 MiB**: the
+  measured RSS growth is ~2.25–2.66× the database size, so the worst case is ~0.5 GiB under `MemoryMax=768M`. Larger
+  databases are refused before copying.
+- **Verified before it exists.** Cryptographic verification is mandatory: `verify_after_capture=false` is rejected.
+  The complete partial file is authenticated and the reserve re-checked **before** the atomic rename. A failure removes
+  the partial file, so an unverified `.nxs` never appears.
 - **Capacity fail-closed.** The run refuses to start unless `free − max_backup_bytes ≥ reserve`, where the reserve is
-  ≥ 20 GiB and cannot be configured lower. During the run it aborts if the bundle cap or the reserve would be crossed.
-  Per-store caps are enforced while streaming.
+  ≥ 20 GiB and cannot be configured lower. While writing, the bundle cap is exact (ciphertext bytes, no tolerance) and
+  the reserve is checked every 16 MiB and once more before finalization. Per-store caps are enforced while streaming.
+- **Extract never leaves secrets behind.** If `extract` fails, the destination it created is removed completely,
+  including any partially decrypted files.
 - **One run at a time.** An overlapping start exits `75` (`SuccessExitStatus`) and sets `nexolab_dr_backup_overlap_skipped`.
 - **No deletion.** On failure, only the run's own partial file is removed. There is no automatic retention or pruning
   in this Work Package; capacity alerts and the fail-closed preflight protect the disk instead.
@@ -50,6 +59,33 @@ of v1-stream are tar streams compatible with `scripts/nexolab-volume-archive.py 
 
 `central-ingestion-spool` and `edge-mqtt-persistence` are rebuildable. They may be set to
 `"disposition": "rebuildable_excluded"`, but only with an explicit reason.
+
+### Cross-store consistency: PostgreSQL ↔ object storage (review P1-3)
+
+The risk: `equipment_images.storage_key` references objects. If objects were captured **before** the database, an image
+uploaded in between would be referenced by the dump but missing from the object copy.
+
+How the application behaves (`services/telemetry-service/app/refrigeration/api.py`):
+
+- the upload writes the object **first** and commits the referencing row afterwards;
+- an object is deleted only as compensation when that row insert fails;
+- keys are unique UUIDs and are never overwritten;
+- there is no endpoint that deletes committed images.
+
+The solution implemented here:
+
+1. **Capture order:** keys, MQTT, SQLite stores, then `postgresql`, then **`object-storage` last**. Every object
+   referenced by the pg_dump snapshot therefore already exists when the object tree is captured. Orphan objects from
+   in-flight uploads are harmless.
+2. **Deletion guard:** the object paths are recorded just before `pg_dump` starts, i.e. before its snapshot point. If any
+   of them is missing when the object tree is captured, the run fails (`deleted after the database snapshot`) and
+   keeps no bundle.
+3. **Honest status:** the receipt records `cross_store_consistency.postgresql_object_storage.status =
+ORDERED_NO_DELETIONS_RESTORE_REFERENCE_CHECK_UNVERIFIED`.
+
+Residual risk: a future code path that deletes committed objects during the dump window would not be fully covered.
+**Site acceptance of #1630 is therefore BLOCKED** until #1632 verifies, on an isolated restore, that every
+`equipment_images.storage_key` resolves to an object with the recorded `checksum_sha256`.
 
 ## Bundle format `nexolab-dr-stream-v1`
 
@@ -110,9 +146,10 @@ if it was enabled.
 
 ## Evidence status (this Work Package)
 
-| Item                                                                                                                                                                                   | Status                                      |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Unit, integration and negative tests (synthetic)                                                                                                                                       | CI                                          |
-| Local **dev** integration: real `pg_dump` from a dev PostgreSQL → bundle → `pg_restore` into an isolated temporary PostgreSQL, identical row counts in 44 tables, containers unchanged | Recorded in PR                              |
-| Site timer installed / real production backup / disruption measurement on the Pi                                                                                                       | **NOT PERFORMED — owner approval required** |
-| Off-device copy (#1631), isolated restore (#1632)                                                                                                                                      | **UNVERIFIED**                              |
+| Item                                                                                                                                                                                   | Status                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Unit, integration and negative tests (synthetic)                                                                                                                                       | CI                                              |
+| Local **dev** integration: real `pg_dump` from a dev PostgreSQL → bundle → `pg_restore` into an isolated temporary PostgreSQL, identical row counts in 44 tables, containers unchanged | Recorded in PR                                  |
+| Site timer installed / real production backup / disruption measurement on the Pi                                                                                                       | **NOT PERFORMED — owner approval required**     |
+| Off-device copy (#1631), isolated restore (#1632)                                                                                                                                      | **UNVERIFIED**                                  |
+| PostgreSQL ↔ object-storage reference integrity on restore (`storage_key` → object + checksum)                                                                                         | **UNVERIFIED — blocks site acceptance (#1632)** |

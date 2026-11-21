@@ -138,6 +138,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             "scripts/nexolab-dr-scheduled-backup.py",
             "tests/test_nexolab_dr_stream.py",
             "tests/test_nexolab_dr_scheduled_backup.py",
+            "tests/test_nexolab_dr_backup_review_fixes.py",
             "infrastructure/systemd/nexolab-dr-backup.service",
             "infrastructure/systemd/nexolab-dr-backup.timer",
             "infrastructure/systemd/nexolab-dr-backup.example.json",
@@ -148,7 +149,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertIn("deployment_runtime", result["classes"])
         workflow = (ROOT / ".github/workflows/disaster-recovery-acceptance.yml").read_text(encoding="utf-8")
         triggers = workflow.split("  pull_request:", 1)[1].split("  push:", 1)[0]
-        for path in paths[:4]:
+        for path in paths[:5]:
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 

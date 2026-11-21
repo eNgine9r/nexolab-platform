@@ -22,11 +22,13 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import hashlib
 import json
 import os
 import re
 import secrets
+import shutil
 import stat
 import struct
 import sys
@@ -475,11 +477,27 @@ def extract_file(path: Path, key: bytes, output_dir: Path) -> VerifyResult:
         descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         return os.fdopen(descriptor, "wb")
 
-    with path.open("rb") as source:
-        result = walk(source, key, sink)
-    for child in staging.iterdir():
-        child.rename(output_dir / child.name)
-    staging.rmdir()
+    open_sinks: list[BinaryIO] = []
+
+    def tracked_sink(entry: dict[str, Any]) -> BinaryIO:
+        handle = sink(entry)
+        open_sinks.append(handle)
+        return handle
+
+    try:
+        with path.open("rb") as source:
+            result = walk(source, key, tracked_sink)
+        for child in staging.iterdir():
+            child.rename(output_dir / child.name)
+        staging.rmdir()
+    except BaseException:
+        # Review P2-7: never leave partially decrypted material behind. The destination
+        # did not exist before this call, so removing it deletes only what we wrote.
+        for handle in open_sinks:
+            with contextlib.suppress(Exception):
+                handle.close()
+        shutil.rmtree(output_dir, ignore_errors=True)
+        raise
     return result
 
 

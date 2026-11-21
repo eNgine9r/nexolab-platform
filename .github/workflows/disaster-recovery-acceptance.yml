@@ -18,6 +18,7 @@ on:
       - "scripts/nexolab-dr-scheduled-backup.py"
       - "tests/test_nexolab_dr_stream.py"
       - "tests/test_nexolab_dr_scheduled_backup.py"
+      - "tests/test_nexolab_dr_backup_review_fixes.py"
       - "infrastructure/systemd/nexolab-dr-backup.service"
       - "infrastructure/systemd/nexolab-dr-backup.timer"
       - "infrastructure/systemd/nexolab-dr-backup.example.json"
@@ -44,6 +45,7 @@ on:
       - "scripts/nexolab-dr-scheduled-backup.py"
       - "tests/test_nexolab_dr_stream.py"
       - "tests/test_nexolab_dr_scheduled_backup.py"
+      - "tests/test_nexolab_dr_backup_review_fixes.py"
       - "infrastructure/systemd/nexolab-dr-backup.service"
       - "infrastructure/systemd/nexolab-dr-backup.timer"
       - "infrastructure/systemd/nexolab-dr-backup.example.json"
@@ -122,7 +124,8 @@ jobs:
             tests/test_nexolab_backup_bundle_archive_validation.py \
             tests/test_nexolab_volume_archive.py \
             tests/test_nexolab_dr_stream.py \
-            tests/test_nexolab_dr_scheduled_backup.py
+            tests/test_nexolab_dr_scheduled_backup.py \
+            tests/test_nexolab_dr_backup_review_fixes.py
 
       - name: Reject secret-like versioned material
         run: |
