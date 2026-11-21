@@ -68,11 +68,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1460
+      "issue": 1522,
+      "title": "Cadence-aware Live/Stale telemetry",
+      "branch": "fix/1522-cadence-aware-live-freshness"
     },
-    "next_work_package": {
-      "issue": 1522
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -110,7 +110,7 @@
     {
       "issue": 1522,
       "title": "Cadence-aware Live/Stale telemetry",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "priority": "high",
       "scope": "Independent focused source-only freshness contract and targeted tests; no hardware or site mutation.",
       "depends_on": [],
@@ -118,13 +118,31 @@
         "hardware_verified": false,
         "site_cutover": false,
         "planned_branch_only": true,
-        "autonomous_start_requires_current_review_clearance": true
+        "autonomous_start_requires_current_review_clearance": true,
+        "review_clearance": "2026-11-21 product owner authorized autonomous source-only #1522 branch+PR; #1460 verified merged (PR #1461), no file overlap",
+        "persisted_cadence_bootstrap": "seeded only from history already loaded for selected Live channels and Saved Dashboard series; zero additional /history requests (network probe from patch 0002 removed after E2E request-budget failure on PR #1627)",
+        "site_acceptance": "NOT_PERFORMED",
+        "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
+        "pull_request": 1627,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "JWT REST history WebSocket and acquisition invariant": "SUCCESS",
+          "Unit and component tests": "SUCCESS",
+          "Static quality and build": "SUCCESS"
+        },
+        "review_fix_head_sha": "e35ccabaa718f81bfd858472533552be043c7f5f",
+        "review_fix_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E request budgets SUCCESS",
+        "independent_review_2026_11_21": "P1 cadence from chart-reduced history fixed; P2 malformed stale_after_seconds tolerated; Overview fixed-30s follow-up #1634"
       },
       "branch": "fix/1522-cadence-aware-live-freshness",
       "permitted_paths": [
         "src/features/live/",
         "src/components/live/",
         "src/features/acquisition/ (read-only cadence contract if required)",
+        "src/hooks/use-live-telemetry.ts (shared Live freshness consumer; justified expansion)",
+        "src/hooks/use-live-dashboard-telemetry.ts (Saved Dashboard shares the same 30 s defect; justified expansion)",
+        "src/components/live-dashboards/dashboard-live-view.tsx (Saved Dashboard series state; justified expansion)",
+        "src/lib/telemetry/contract.ts and types.ts (optional stale_after_seconds runtime-validated field; justified expansion)",
         "focused Live tests",
         "four canonical .project state files"
       ],
@@ -154,7 +172,7 @@
     {
       "issue": 1460,
       "title": "Read-only complete backup inventory and capacity preflight",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "critical",
       "scope": "Source-only read-only complete-backup policy and protected storage-capacity preflight; standalone pytest, exact-head CI, no production backup/restore or site actions.",
       "depends_on": [],
@@ -171,7 +189,12 @@
         "actual_backup": "NOT_PERFORMED",
         "actual_restore": "NOT_PERFORMED",
         "offline_hardware_verified": false,
-        "required_exact_head_ci": "PENDING"
+        "required_exact_head_ci": "SUCCESS (PR #1461 merged 2026-11-19; Issue closed COMPLETED)",
+        "verified_head_sha": "7c7bc70e74aba4f11dbef5fff5517565b8419550",
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "c8c57505bfd47b9e9243515c91511dd92e506141"
+        }
       },
       "branch": "feature/1460-offline-backup-preflight",
       "permitted_paths": [

@@ -3,6 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  CADENCE_OBSERVATION_LIMIT,
+  EMPTY_CADENCE_OBSERVATIONS,
+  isLiveSampleFresh,
+  liveFreshnessFor,
+  recordCadenceObservation,
+  seedCadenceObservations,
+  type CadenceObservations,
+} from "@/features/live/freshness";
+import {
   createLiveDashboardApiClient,
   type LiveDashboardCsvDownload,
 } from "@/features/live-dashboards/api-client";
@@ -65,7 +74,6 @@ function dashboardSeriesMatches(item: LiveDashboardItem, sample: TelemetrySample
   );
 }
 
-const STALE_AFTER_MS = 30_000;
 const RENDERED_POINTS_PER_SERIES = 240;
 const DEFAULT_SCOPE = "__default_organization__";
 
@@ -82,6 +90,8 @@ export interface LiveDashboardTelemetryModel {
   connectionState: TelemetryConnectionState;
   series: LiveDashboardSeries[];
   lastCapturedAt: string | null;
+  /** Per-series observed acquisition cadence keyed by dashboard item identity (#1522). */
+  cadenceObservations?: CadenceObservations;
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -169,10 +179,12 @@ function reduceHistory(
 function deriveStatus(
   connectionState: TelemetryConnectionState,
   loaded: boolean,
-  samples: readonly TelemetrySample[],
+  entries: ReadonlyArray<{ key: string; sample: TelemetrySample }>,
+  cadence: CadenceObservations,
   error: Error | null,
   now: number,
 ): LiveDashboardTelemetryStatus {
+  const samples = entries.map((entry) => entry.sample);
   if (connectionState === "unauthorized") return "unauthorized";
   if (connectionState === "forbidden") return "forbidden";
   if (connectionState === "configuration_error") return "configuration_error";
@@ -180,7 +192,9 @@ function deriveStatus(
   if (connectionState === "reconnecting") return "reconnecting";
   if (connectionState === "offline" || connectionState === "idle") return "offline";
   if (error && samples.length === 0) return "error";
-  const hasFresh = samples.some((sample) => now - sampleTimestamp(sample) <= STALE_AFTER_MS);
+  const hasFresh = entries.some(({ key, sample }) =>
+    isLiveSampleFresh(sample, now, liveFreshnessFor(sample, key, cadence)),
+  );
   return hasFresh ? "live" : "stale";
 }
 
@@ -198,6 +212,7 @@ export function useLiveDashboardTelemetry({
   const [runtime] = useState<RuntimeResult>(runtimeResult);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [latest, setLatest] = useState<Record<string, TelemetrySample>>({});
+  const [cadence, setCadence] = useState<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const [history, setHistory] = useState<Record<string, TelemetrySample[]>>({});
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>("idle");
   const [loaded, setLoaded] = useState(false);
@@ -214,6 +229,7 @@ export function useLiveDashboardTelemetry({
   const [exportStatus, setExportStatus] = useState<LiveDashboardExportStatus>("idle");
   const [exportError, setExportError] = useState<Error | null>(null);
   const latestRef = useRef<Record<string, TelemetrySample>>({});
+  const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
@@ -225,6 +241,7 @@ export function useLiveDashboardTelemetry({
 
   const flush = useCallback(() => {
     setLatest({ ...latestRef.current });
+    setCadence(cadenceRef.current);
     setHistory({ ...historyRef.current });
     setClock(Date.now());
     renderTimerRef.current = null;
@@ -311,6 +328,7 @@ export function useLiveDashboardTelemetry({
     const config = runtime.config;
     if (!active || !dashboard || scopeKey === null) {
       latestRef.current = {};
+      cadenceRef.current = EMPTY_CADENCE_OBSERVATIONS;
       historyRef.current = {};
       historyOrderingRef.current = null;
       historyPendingLiveRef.current = [];
@@ -320,11 +338,13 @@ export function useLiveDashboardTelemetry({
     const controller = new AbortController();
     let disposed = false;
     latestRef.current = {};
+    cadenceRef.current = EMPTY_CADENCE_OBSERVATIONS;
 
     void Promise.resolve().then(() => {
       if (disposed || controller.signal.aborted) return;
       setActiveScopeKey(scopeKey);
       setLatest({});
+      setCadence(EMPTY_CADENCE_OBSERVATIONS);
       setLoaded(false);
       if (!config || config.mode !== "live") {
         setError(runtime.error ?? new Error("Selected-series telemetry requires live mode."));
@@ -374,6 +394,7 @@ export function useLiveDashboardTelemetry({
       if (!dashboardSeriesMatches(item, sample)) return;
       const key = dashboardItemIdentity(item);
       latestRef.current[key] = newestSample(latestRef.current[key], sample);
+      cadenceRef.current = recordCadenceObservation(cadenceRef.current, key, sampleTimestamp(sample));
       commitHistoryTail(key, item, sample);
       scheduleFlush(dashboard.refresh_seconds, immediate || Object.keys(latestRef.current).length === 1);
     };
@@ -476,6 +497,14 @@ export function useLiveDashboardTelemetry({
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
         reducedBySeries[key] = reduceHistory(item, samples, requestedWindow);
+        if (requestedRange.kind !== "custom") {
+          // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
+          cadenceRef.current = seedCadenceObservations(
+            cadenceRef.current,
+            key,
+            samples.slice(-CADENCE_OBSERVATION_LIMIT).map(sampleTimestamp),
+          );
+        }
         const tail = samples.at(-1);
         if (tail) {
           sourceTails.push(tail);
@@ -512,6 +541,7 @@ export function useLiveDashboardTelemetry({
       historyWindowRef.current = finalWindow;
       historyRef.current = reducedBySeries;
       setLatest({ ...latestRef.current });
+      setCadence(cadenceRef.current);
       setHistory({ ...reducedBySeries });
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
       setHistoryStatus("ready");
@@ -553,7 +583,11 @@ export function useLiveDashboardTelemetry({
 
   const visible = active && scopeKey !== null && activeScopeKey === scopeKey;
   const series = visible ? storedSeries : [];
-  const samples = series.flatMap((item) => (item.latest ? [item.latest] : []));
+  const entries = series.flatMap((item) =>
+    item.latest ? [{ key: dashboardItemIdentity(item.item), sample: item.latest }] : [],
+  );
+  const samples = entries.map((entry) => entry.sample);
+  const visibleCadence = visible ? cadence : EMPTY_CADENCE_OBSERVATIONS;
   const lastCapturedAt =
     [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]?.captured_at ??
     null;
@@ -562,11 +596,19 @@ export function useLiveDashboardTelemetry({
 
   return {
     status: active
-      ? deriveStatus(visibleConnectionState, visible ? loaded : false, samples, visibleError, clock)
+      ? deriveStatus(
+          visibleConnectionState,
+          visible ? loaded : false,
+          entries,
+          visibleCadence,
+          visibleError,
+          clock,
+        )
       : "idle",
     connectionState: visibleConnectionState,
     series,
     lastCapturedAt,
+    cadenceObservations: visibleCadence,
     historyRange,
     historyWindow,
     historyStatus,
