@@ -2,6 +2,11 @@ import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { chartPointBudget } from "@/features/charts/point-budget";
 import { reduceChartSegments } from "@/features/charts/reduction";
+import {
+  CADENCE_OBSERVATION_LIMIT,
+  seedCadenceFromSamples,
+  type CadenceObservations,
+} from "@/features/live/freshness";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
@@ -14,8 +19,15 @@ export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 export type LiveHistoryWindow = TelemetryHistoryWindow;
 
 export interface LiveHistoryResult {
+  /** Chart series, reduced to the chart point budget. Never use for cadence. */
   samples: TelemetrySample[];
   snapshotAt: string;
+  /**
+   * #1522: newest raw (pre-reduction) accepted samples per channel, bounded to
+   * the cadence observation window. Reduced chart points are spaced by bucket
+   * width, not by acquisition cadence, and would hide stale data.
+   */
+  cadenceSamples: TelemetrySample[];
 }
 
 export interface LiveHistoryOrderingState {
@@ -292,7 +304,35 @@ export async function loadCompleteLiveHistory(
   return {
     samples: downsampleLiveHistory(allSamples, window),
     snapshotAt: snapshotAt!,
+    cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
   };
+}
+
+/**
+ * #1522: seeds cadence from a history load. Accepts only the raw cadence tail
+ * by type, so the chart-reduced `samples` can never be used by mistake.
+ */
+export function seedCadenceFromHistoryLoad(
+  observations: CadenceObservations,
+  result: Pick<LiveHistoryResult, "cadenceSamples">,
+): CadenceObservations {
+  return seedCadenceFromSamples(observations, result.cadenceSamples, liveChannelKey);
+}
+
+function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: number): TelemetrySample[] {
+  const groups = new Map<string, TelemetrySample[]>();
+  for (const sample of samples) {
+    if (!acceptedSample(sample)) continue;
+    const key = liveChannelKey(sample);
+    const current = groups.get(key);
+    if (current) current.push(sample);
+    else groups.set(key, [sample]);
+  }
+  return [...groups.values()].flatMap((channelSamples) =>
+    channelSamples
+      .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at))
+      .slice(-limit),
+  );
 }
 
 export function mergeLiveHistoryTail(
