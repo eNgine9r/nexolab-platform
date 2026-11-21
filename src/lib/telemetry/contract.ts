@@ -103,11 +103,13 @@ export function parseTelemetrySample(value: unknown, path = "sample"): Telemetry
   const record = asRecord(value, path);
   const receivedAt = record.received_at;
   // Optional server freshness contract (#1522). `null`/absent means the
-  // Telemetry Service has no authoritative threshold for this sample.
+  // Telemetry Service has no authoritative threshold for this sample. An
+  // unrecognised value is ignored rather than rejecting the whole sample:
+  // this advisory field must never take the Live stream down, and ignoring it
+  // falls back to the conservative client-side threshold.
+  const rawStaleAfter = record.stale_after_seconds;
   const staleAfterSeconds =
-    record.stale_after_seconds === undefined || record.stale_after_seconds === null
-      ? null
-      : asNumber(record.stale_after_seconds, `${path}.stale_after_seconds`);
+    typeof rawStaleAfter === "number" && Number.isFinite(rawStaleAfter) ? rawStaleAfter : null;
 
   return {
     event_id: asString(record.event_id, `${path}.event_id`),

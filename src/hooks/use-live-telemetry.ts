@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
+  seedCadenceFromHistoryLoad,
   mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
   seedLiveHistoryOrderingState,
@@ -16,7 +17,6 @@ import {
   isLiveSampleFresh,
   liveFreshnessFor,
   recordCadenceObservation,
-  seedCadenceFromSamples,
   type CadenceObservations,
 } from "@/features/live/freshness";
 import {
@@ -529,7 +529,9 @@ export function useLiveTelemetry({
         if (disposed) return;
         // #1522: seed per-channel cadence from the persisted history that was
         // already requested for the selected channels; no additional requests.
-        const seeded = seedCadenceFromSamples(storeRef.current.cadence, result.samples, liveChannelKey);
+        // Use the raw tail, never the chart-reduced series (bucket spacing would
+        // inflate the threshold and show stale data as Live).
+        const seeded = seedCadenceFromHistoryLoad(storeRef.current.cadence, result);
         if (seeded !== storeRef.current.cadence) {
           const nextStore = { ...storeRef.current, cadence: seeded };
           storeRef.current = nextStore;
