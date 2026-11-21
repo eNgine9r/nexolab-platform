@@ -44,11 +44,12 @@ function orderedUniqueSamples(samples: readonly ChartContinuitySample[]): ChartC
   const ordered = samples
     .filter((sample) => Number.isFinite(sample.timestampMs))
     .sort((left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id));
+  // A repeated event identity is one measurement; the newest captured_at wins
+  // (repository invariant), so later occurrences replace earlier ones.
   const byId = new Map<string, ChartContinuitySample>();
-  for (const sample of ordered) {
-    if (!byId.has(sample.id)) byId.set(sample.id, sample);
-  }
-  return [...byId.values()];
+  for (const sample of ordered) byId.set(sample.id, sample);
+  const survivors = new Set(byId.values());
+  return ordered.filter((sample) => survivors.has(sample));
 }
 
 /**

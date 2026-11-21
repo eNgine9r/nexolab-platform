@@ -121,22 +121,35 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
   for (const sample of options.samples.filter(isTemperatureProbeSample)) {
     const identity = overviewChartIdentity(sample);
     const key = chartSeriesKey(identity);
-    groupedSamples.set(key, [...(groupedSamples.get(key) ?? []), sample]);
+    const group = groupedSamples.get(key);
+    if (group) group.push(sample);
+    else groupedSamples.set(key, [sample]);
     identities.set(key, identity);
   }
 
   const orderedKeys = [...groupedSamples.keys()].sort((left, right) => left.localeCompare(right, "en"));
-  const entries = orderedKeys.map((key, index) => ({
-    key,
-    index,
-    chartSeries: buildSeries(
+  // The same channel id can exist on several nodes/controllers; a bare channel id
+  // would then label two different lines identically in the legend and inspector.
+  const channelIdCounts = new Map<string, number>();
+  for (const identity of identities.values()) {
+    channelIdCounts.set(identity.channelId, (channelIdCounts.get(identity.channelId) ?? 0) + 1);
+  }
+  const entries = orderedKeys.map((key, index) => {
+    const built = buildSeries(
       groupedSamples.get(key) ?? [],
       options.status,
       index,
       hiddenSeriesKeys,
       soloSeriesKey,
-    ),
-  }));
+    );
+    const { channelId, nodeId, equipmentId } = built.identity;
+    const ambiguous = (channelIdCounts.get(channelId) ?? 0) > 1;
+    return {
+      key,
+      index,
+      chartSeries: ambiguous ? { ...built, name: `${channelId} · ${nodeId} · ${equipmentId}` } : built,
+    };
+  });
   const byKey = new Map(entries.map((entry) => [entry.key, entry]));
   const unitGroups = groupCompatibleChartUnits(
     orderedKeys.flatMap((key) => {
