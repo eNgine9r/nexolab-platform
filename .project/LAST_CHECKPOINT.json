@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T22:45:00Z",
+  "timestamp": "2026-11-21T22:30:00Z",
   "actor": "Claude",
-  "event": "1638_chart_audit_p1_merged_followups_in_review",
+  "event": "1638_frontend_only_lan_https_activated_green",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_compatibility_source_sha": "469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
-    "frontend_build_id": "kyL7Lcf5PwHm2I6LA24-V",
-    "frontend_release": "docker:nexolab/dashboard:issue-1522-469485b0-arm64@sha256:ec4d14d34a41e4573c67cc18759a0ae29890928c89f0358eca7d351976d97715",
-    "frontend_rollback_release": "docker:nexolab/dashboard:issue-1625-8854fae2-arm64@sha256:3fd6453f3d99e7972f9108c89479c4c87716bdf3fb37773a93732ca464acf42f; https external-ui/8854fae2fd40f4706e30a4ab2cd4183452fc753e",
-    "frontend_runtime_evidence": "private /home/nexolab/commander-workspaces/nexolab-1522-release-469485b0/site-activation-report-1522.json",
+    "frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "frontend_build_id": "PyM62Vg07TywCAwHY6JjL",
+    "frontend_release": "docker:nexolab/dashboard:issue-1638-f0295409-arm64@sha256:c6c5ae801e658d544f65e8e64330f789a8347baaa8e049addb83f687e05fc76a",
+    "frontend_rollback_release": "docker:nexolab/dashboard:issue-1522-469485b0-arm64@sha256:ec4d14d34a41e4573c67cc18759a0ae29890928c89f0358eca7d351976d97715; https external-ui/469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
+    "frontend_runtime_evidence": "private /home/nexolab/commander-workspaces/nexolab-1638-release-f0295409/site-activation-report-1638.json",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -27,8 +27,8 @@
     "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
-    "protected_frontend_build_id": "smzu8X7Xp7vPyf3va7lJ7"
+    "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
     "issue": 1522,
@@ -3804,6 +3804,29 @@
       "not_verified": "authenticated owner browser check of Live/Stale on a 60 s channel; offline reboot",
       "backend_changed": false,
       "modbus_write": false
+    },
+    "issue_1638_frontend_site_release": {
+      "source": "f02954091bfa3113c2f435b71d8a7189967b4865",
+      "artifact_run": "https://github.com/eNgine9r/nexolab-platform/actions/runs/44954810847",
+      "artifact_zip_sha256": {
+        "lan": "8144a043442360b69003ad4b8b61b6b5bb8fa76d6efae270b17c2c25abac3a84",
+        "https": "278de5e0542255ef43b1e019154adb9be30e982debf95b274280f7eb4349b695"
+      },
+      "verified": "zip digests == GitHub; package/artifact/runtime file SHA256 (LAN 871 extracted, HTTPS 17619); public/runtime contracts and lockfile identical to #1522",
+      "lan": {
+        "image": "sha256:c6c5ae801e658d544f65e8e64330f789a8347baaa8e049addb83f687e05fc76a",
+        "build": "PyM62Vg07TywCAwHY6JjL",
+        "built_offline_on_pi": true,
+        "build_note": "first two builds reused stale #1522 .next via BuildKit context sync (identical size + normalised mtime); rebuilt from a tar-streamed context and verified file-by-file (849 files) against the artifact; bad images removed before activation"
+      },
+      "https": {
+        "build": "U_-FTp6Unq2wciBPuPq1f",
+        "dropin": "99-release-1638-chart-audit.conf"
+      },
+      "result": "NEXOLAB_1638_BOTH_FRONTENDS_ACTIVATED_GREEN; backend container IDs identical; OAuth gate 302 unchanged; telemetry ready; LAN+HTTPS routes 200; served HTML carries new build ids",
+      "not_verified": "signed-in owner browser check of the chart pages; offline reboot",
+      "backend_changed": false,
+      "modbus_write": false
     }
   },
   "observations": [
@@ -5434,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "Merge the #1638 chart-audit follow-up PR after exact-head Merge Gate. Any frontend site release of the chart fixes needs separate Product Owner approval. Previous next action (unchanged priority): #1522 frontend release ACTIVE on LAN+HTTPS (469485b0): owner to confirm in a signed-in browser that a 60 s channel stays Live between polls and turns stale after ~105 s when stopped; Overview follow-up #1634. #1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
+  "next_action": "#1638 chart fixes ACTIVE on LAN+HTTPS (f0295409): owner to check chart pages in a signed-in browser. Merge the #1638 chart-audit follow-up PR after exact-head Merge Gate. Any frontend site release of the chart fixes needs separate Product Owner approval. Previous next action (unchanged priority): #1522 frontend release ACTIVE on LAN+HTTPS (469485b0): owner to confirm in a signed-in browser that a 60 s channel stays Live between polls and turns stale after ~105 s when stopped; Overview follow-up #1634. #1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
