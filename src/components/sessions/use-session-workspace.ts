@@ -39,6 +39,8 @@ export interface SessionWorkspaceData {
   history: AttributedTelemetrySample[];
   /** True when the session history exceeded the safety page cap, so the chart is incomplete (#1649). */
   historyTruncated: boolean;
+  /** Requested history window (ms), used as the chart x domain (#1662); null without a started session. */
+  historyWindow?: { fromMs: number; toMs: number } | null;
 }
 
 export interface SessionWorkspaceModel {
@@ -120,6 +122,7 @@ export function useSessionWorkspace(
           latest: latest.items,
           history: history.items,
           historyTruncated: history.truncated,
+          historyWindow: historyFrom ? { fromMs: historyFrom.getTime(), toMs: historyTo.getTime() } : null,
         });
         setError(null);
         setClock(Date.now());
