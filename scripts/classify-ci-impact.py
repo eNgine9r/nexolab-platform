@@ -142,7 +142,6 @@ DASHBOARD_SHARED_PATTERNS = (
     "e2e/authenticated-dashboard.production.e2e.ts",
     "e2e/telemetry-acquisition-invariant.production.e2e.ts",
     "e2e/telemetry-navigation.production.e2e.ts",
-    "e2e/custom-range.production.e2e.ts",
     "infrastructure/compose/compose.browser-acceptance.yaml",
     "infrastructure/compose/compose.central.yaml",
     "infrastructure/object-storage/**",
