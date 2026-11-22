@@ -1,3 +1,7 @@
+## 2026-11-22 — update: #1428 source complete, evidence owner-only
+
+All three DR leaves and the health-gate integration are merged and rehearsed on synthetic data (latest REHEARSAL_PASS_WITH_WAIVERS on main). Still unproven and still a HARD gate for any backend/migration release: a real encrypted backup, an off-device copy with the internet disconnected, an independent isolated restore from that copy, key custody. Requires the owner's media, custodians and an isolated host. Also open: #1606, #1409/#1399. CVE-2026-124709 exceptions (to 2026-12-15) and 18 telemetry exceptions (to 2026-11-30) are Product Owner decisions already recorded.
+
 ## 2026-11-22 — update: CVE-2026-124709 decision package ready
 
 Evidence and the exact proposed exception scope are in docs/security/cve-2026-124709-assessment.md (merged, PR #1686). Upstream fix release 2026-12-01; Debian trixie unfixed; no QUIC server use; unused openssl CLI removal in draft PR #1687. Still blocked pending the Product Owner's decision; 18 existing telemetry exceptions expire 2026-11-23.

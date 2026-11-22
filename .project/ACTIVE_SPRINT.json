@@ -9575,7 +9575,7 @@
       "priority": "critical",
       "lifecycle": "blocked",
       "depends_on": [],
-      "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft.",
+      "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft. Update 2026-11-22: all three source leaves are merged (A #1630/#1697, C #1693, B #1695, health gate #1698) and rehearsed on synthetic data; the hard gate remains the owner's real backup, off-device copy and independent restore.",
       "permitted_paths": [
         "scripts/nexolab-safe-pg-incident-backup.sh",
         "scripts/tests/test_nexolab_incident_pg_backup.py",
@@ -11923,9 +11923,9 @@
     {
       "issue": 1667,
       "title": "Saved analysis view settings in the Telemetry API (WP-L backend)",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "priority": "high",
-      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration. Update 2026-11-22: real-stack acceptance on PostgreSQL is green (saved view round trip, RBAC, compatibility, corrupted values) and found two frontend defects fixed by #1690; only the container vulnerability policy blocks the merge. See docs/security/cve-2026-124709-assessment.md.",
+      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration. Update 2026-11-22: real-stack acceptance on PostgreSQL is green (saved view round trip, RBAC, compatibility, corrupted values) and found two frontend defects fixed by #1690; only the container vulnerability policy blocks the merge. See docs/security/cve-2026-124709-assessment.md. Merged 2026-11-22 (PR #1667, 7db6e1a8) after the Product Owner's exact-exception decision; every exact-head gate green.",
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
@@ -11933,16 +11933,16 @@
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "backend 17 view-settings tests + 48-test Saved Dashboard suite PASS on isolated PostgreSQL 16 with the real Alembic chain; 9/9 migration scenarios; real-stack browser acceptance GREEN on PR #1667; Merge Gate red only for the container vulnerability policy",
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
-        "source_merge": "not merged"
+        "source_merge": "PR #1667 7db6e1a8; source-only, no production migration"
       },
       "branch": "feat/1666-saved-analysis-views-api"
     },
     {
       "issue": 1685,
       "title": "CVE-2026-124709 (OpenSSL QUIC) blocks every backend-classified PR",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "priority": "high",
-      "scope": "Exposure assessment (docs/security/cve-2026-124709-assessment.md, PR #1686 merged), unused openssl CLI removed from telemetry-service (draft PR #1687), exact time-limited exception scope prepared for the Product Owner's decision. No patched OpenSSL exists before 2026-12-01 and Debian trixie is unfixed; bookworm bases are not viable today. No exception added, no gate bypassed.",
+      "scope": "Exposure assessment (docs/security/cve-2026-124709-assessment.md, PR #1686 merged), unused openssl CLI removed from telemetry-service (draft PR #1687), exact time-limited exception scope prepared for the Product Owner's decision. No patched OpenSSL exists before 2026-12-01 and Debian trixie is unfixed; bookworm bases are not viable today. No exception added, no gate bypassed. Resolved: assessment #1686, hardening and exact approved exceptions #1687; retirement tracked in #1692.",
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
@@ -11950,9 +11950,111 @@
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "libssl consumer inventory of the three images (no QUIC server API references); local Trivy 0.70.0 and CI evidence show the telemetry scope reduced to libssl3t64 only after #1687",
         "review_clearance": "Product Owner decision required for any exception (not self-approvable)",
-        "source_merge": "PR #1686 merged; PR #1687 draft"
+        "source_merge": "PR #1686, PR #1687; exceptions expire 2026-12-15 (#1692)"
       },
       "branch": "security/1685-telemetry-drop-openssl-cli"
+    },
+    {
+      "issue": 1630,
+      "title": "DR leaf A: scheduled encrypted complete backup of all eight stores (source) and object metadata fidelity",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Streaming AES-256-GCM container, orchestrator, hardened timer templates (#1635) and the VersityGW user.* xattr preservation fix (#1697). Site timer install and a real backup are owner steps; nothing was run on the Pi.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "198 tests in a Linux container; rehearsal on synthetic data: restored HEAD ETag/Content-Type equal to source",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1635, PR #1697 (5dc35eb0)"
+      },
+      "branch": "fix/dr-object-metadata-xattrs"
+    },
+    {
+      "issue": 1631,
+      "title": "DR leaf C: verified off-device copy with custody receipt and key custody",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "nexolab-dr-offdevice-copy.py (copy, enroll, retention report-only, verify-destination), custody receipt v1, key-custody procedure. Needs the owner's media, key custodians and a real copy with the internet disconnected.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "36 tests + related suites 336 passed on Linux",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1693 (2f12002d)"
+      },
+      "branch": "feat/1631-dr-offdevice-copy"
+    },
+    {
+      "issue": 1632,
+      "title": "DR leaf B: independent isolated restore, verification receipt and health-gate integration",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "nexolab-dr-isolated-restore.py (+ rehearsal driver), v2 inventory restore fields, and the health gate that re-verifies a strict site-mode receipt (#1698). Latest full rehearsal on main: REHEARSAL_PASS_WITH_WAIVERS, 30 checks, 0 failed, RTO 28.4 s, RPO gap 74.9 s (not site evidence). Needs an isolated host and the leaf-C media.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "41 + health-gate tests; 285 combined DR/classifier tests passed on Linux",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1695 (94f8f9cb), PR #1698 (09fd371b)"
+      },
+      "branch": "feat/1632-dr-isolated-restore"
+    },
+    {
+      "issue": 1692,
+      "title": "Retire the CVE-2026-124709 exceptions: OpenSSL 3.5.10 (2026-12-01) and Debian fix",
+      "lifecycle": "queued",
+      "priority": "high",
+      "scope": "Check OpenSSL 3.5.10 and the Debian trixie fix; rebuild and verify amd64 and arm64; delete the three exceptions immediately when a fix exists; fresh Product Owner decision if none by 2026-12-15.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "tracked issue; 18 telemetry exceptions renewed only to 2026-11-30",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "n/a"
+      },
+      "branch": ""
+    },
+    {
+      "issue": 1699,
+      "title": "Reconcile the unmerged RS-485 onboarding stack (#1483→#1521) with main",
+      "lifecycle": "queued",
+      "priority": "high",
+      "scope": "Site/main drift: the commissioned runtime lineage is not in main; hardware acceptance stays with the owner. Not required by the XWEB release.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "read-only triage 2026-11-22",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "n/a"
+      },
+      "branch": ""
+    },
+    {
+      "issue": 1700,
+      "title": "Refresh the stale Dependabot batch after the XWEB release",
+      "lifecycle": "queued",
+      "priority": "high",
+      "scope": "next 16.4.6 with eslint-config-next, lucide-react, supabase-js, tailwind, actions/cache; deliberately deferred until after the release.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "read-only triage 2026-11-22",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "n/a"
+      },
+      "branch": ""
     }
   ],
   "maintenance_actions": [
