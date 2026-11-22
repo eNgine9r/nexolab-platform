@@ -1,3 +1,7 @@
+## 2026-11-22 — #1645 Interval statistics from raw persisted samples (WP-B) is source-only, not installed
+
+Saved Dashboards show exact Min/Max/Average/sample count/coverage/gaps for the whole requested interval or the zoomed viewport, computed from raw pre-reduction measurements (never reduced render points); average withheld below 80 % coverage or under 3 samples; non-valid samples counted separately and never treated as zero. AGENTS.md now records the Product Owner autonomous-execution authorization and its unchanged safety boundaries. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-21 — #1643 per-series chart freshness is source-only, not installed
 
 Chart-programme WP-A (XWEB-level analysis workspace): Saved Dashboard charts now evaluate Live/Stale/Invalid **per series** from each item's own newest sample with the #1522 contract (server `stale_after_seconds` → observed cadence → 30 s), instead of one page-wide state; the wall clock is exposed so a silent series turns stale without a new sample. #1634: the main dashboard/Overview KPI freshness now uses the same cadence-aware threshold (cadence seeded from raw persisted samples, never chart-reduced data; no extra API requests). Still page-level (next WP): Overview chart, Energy and Refrigeration series freshness. Local evidence only (vitest 1402/1402, eslint, tsc, prettier, next build); exact-head CI and any site release are separate. No Modbus/hardware write, no polling change.

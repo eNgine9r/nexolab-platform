@@ -331,6 +331,8 @@ Rules:
 - statistics from reduced render points must never be labelled as full-window statistics;
 - if both full-window and visible-viewport statistics exist, the UI distinguishes them explicitly.
 
+Implementation (#1645): `src/features/charts/interval-statistics.ts` keeps a compact raw (pre-reduction) column store and computes min/max/average/count/coverage/gaps for any sub-interval. The average is withheld (`insufficient_coverage`) below 80 % coverage or under three samples; non-valid samples are counted separately and never treated as zero. Saved Dashboards show the result with an explicit scope label (whole requested interval vs visible viewport).
+
 ## 7. Units and y-axis policy
 
 ### 7.1 Unit compatibility

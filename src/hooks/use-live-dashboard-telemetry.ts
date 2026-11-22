@@ -24,6 +24,15 @@ import {
   type LiveDashboardHistoryPreset,
   type LiveDashboardHistoryRange,
 } from "@/features/live-dashboards/history-range";
+import {
+  appendIntervalSample,
+  computeIntervalStatistics,
+  createIntervalSampleColumns,
+  pruneIntervalSamplesBefore,
+  type IntervalSampleColumns,
+  type IntervalStatistics,
+} from "@/features/charts/interval-statistics";
+import { savedDashboardDisplaySample } from "@/features/live-dashboards/embraco-series";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import {
   operatorHistoryPreview,
@@ -86,6 +95,13 @@ interface RuntimeResult {
 export type LiveDashboardHistoryStatus = "idle" | "loading" | "ready" | "error";
 export type LiveDashboardExportStatus = "idle" | "exporting" | "error";
 
+/** Exact statistics for [fromMs, toMs] of one dashboard item, from raw persisted samples (#1645). */
+export type LiveDashboardIntervalStatistics = (
+  itemIdentity: string,
+  fromMs: number,
+  toMs: number,
+) => IntervalStatistics | null;
+
 export interface LiveDashboardTelemetryModel {
   status: LiveDashboardTelemetryStatus;
   connectionState: TelemetryConnectionState;
@@ -95,6 +111,8 @@ export interface LiveDashboardTelemetryModel {
   cadenceObservations?: CadenceObservations;
   /** Wall-clock tick (epoch ms) used for freshness, so a silent series goes stale without a new sample (#1643). */
   now?: number;
+  /** Raw-sample interval statistics provider; results change only when `series` changes. */
+  intervalStatistics?: LiveDashboardIntervalStatistics;
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -126,6 +144,20 @@ function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string |
     rest: { fetch: createAuthenticatedFetch(fetch.bind(globalThis), credentials) },
     websocket: { credentials },
   });
+}
+
+/** Records raw samples (pre-reduction) with the operator-visible display value (#1645). */
+function recordIntervalSamples(
+  store: Record<string, IntervalSampleColumns>,
+  key: string,
+  item: LiveDashboardItem,
+  samples: readonly TelemetrySample[],
+): void {
+  const columns = (store[key] ??= createIntervalSampleColumns());
+  for (const sample of samples) {
+    const display = savedDashboardDisplaySample(item, sample);
+    appendIntervalSample(columns, Date.parse(sample.captured_at), display ? display.value : null);
+  }
 }
 
 function sampleTimestamp(sample: TelemetrySample): number {
@@ -234,6 +266,7 @@ export function useLiveDashboardTelemetry({
   const latestRef = useRef<Record<string, TelemetrySample>>({});
   const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
+  const statsRef = useRef<Record<string, IntervalSampleColumns>>({});
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
   const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
@@ -345,6 +378,7 @@ export function useLiveDashboardTelemetry({
       latestRef.current = {};
       cadenceRef.current = EMPTY_CADENCE_OBSERVATIONS;
       historyRef.current = {};
+      statsRef.current = {};
       historyOrderingRef.current = null;
       historyPendingLiveRef.current = [];
       return;
@@ -396,6 +430,11 @@ export function useLiveDashboardTelemetry({
       const nextWindow =
         selection.kind === "custom" ? currentWindow : advanceLiveHistoryWindow(currentWindow, sourceSamples);
       historyWindowRef.current = nextWindow;
+      recordIntervalSamples(statsRef.current, key, item, sourceSamples);
+      if (selection.kind !== "custom") {
+        const columns = statsRef.current[key];
+        if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime());
+      }
       historyRef.current[key] = reduceHistory(
         item,
         [...(historyRef.current[key] ?? []), ...sourceSamples],
@@ -479,6 +518,7 @@ export function useLiveDashboardTelemetry({
     const config = runtime.config;
     if (!active || !dashboard || scopeKey === null || !config || config.mode !== "live") {
       historyRef.current = {};
+      statsRef.current = {};
       historyOrderingRef.current = null;
       historyPendingLiveRef.current = [];
       let disposed = false;
@@ -497,6 +537,7 @@ export function useLiveDashboardTelemetry({
     historySelectionRef.current = requestedRange;
     historyWindowRef.current = requestedWindow;
     historyRef.current = {};
+    statsRef.current = {};
     historyOrderingRef.current = null;
     historyPendingLiveRef.current = [];
 
@@ -524,6 +565,7 @@ export function useLiveDashboardTelemetry({
         snapshotAt = result.snapshotAt;
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
+        recordIntervalSamples(statsRef.current, key, item, samples);
         reducedBySeries[key] = reduceHistory(item, samples, requestedWindow);
         if (requestedRange.kind !== "custom") {
           // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
@@ -559,6 +601,7 @@ export function useLiveDashboardTelemetry({
         for (const item of dashboard.items) {
           if (!dashboardSeriesMatches(item, sample)) continue;
           const key = dashboardItemIdentity(item);
+          recordIntervalSamples(statsRef.current, key, item, [sample]);
           reducedBySeries[key] = reduceHistory(item, [...reducedBySeries[key], sample], finalWindow);
           latestRef.current[key] = newestSample(latestRef.current[key], sample);
         }
@@ -579,6 +622,7 @@ export function useLiveDashboardTelemetry({
       historyOrderingRef.current = null;
       historyPendingLiveRef.current = [];
       historyRef.current = {};
+      statsRef.current = {};
       setHistory({});
       setHistoryStatus("error");
       setHistoryError(
@@ -609,6 +653,12 @@ export function useLiveDashboardTelemetry({
     });
   }, [dashboard, history, latest]);
 
+  // Reads the raw column store; consumers recompute when `series` changes (every flush).
+  const intervalStatistics = useCallback<LiveDashboardIntervalStatistics>((itemIdentity, fromMs, toMs) => {
+    const columns = statsRef.current[itemIdentity];
+    return columns ? computeIntervalStatistics(columns, fromMs, toMs) : null;
+  }, []);
+
   const visible = active && scopeKey !== null && activeScopeKey === scopeKey;
   const series = visible ? storedSeries : [];
   const entries = series.flatMap((item) =>
@@ -638,6 +688,7 @@ export function useLiveDashboardTelemetry({
     lastCapturedAt,
     cadenceObservations: visibleCadence,
     now: clock,
+    intervalStatistics,
     historyRange,
     historyWindow,
     historyStatus,

@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1643,
-      "title": "Per-series truthful freshness for Saved Dashboards and main dashboard",
-      "branch": "fix/1643-per-series-dashboard-freshness"
+      "issue": 1645,
+      "title": "Interval statistics from raw persisted samples (WP-B)",
+      "branch": "feat/1645-interval-statistics"
     },
     "next_work_package": null
   },
@@ -11600,6 +11600,22 @@
         "src/features/live/freshness.ts",
         ".project/"
       ]
+    },
+    {
+      "issue": 1645,
+      "title": "Interval statistics from raw persisted samples (WP-B)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Saved Dashboards show exact Min/Max/Average/sample count/coverage/gaps for the whole requested interval or the zoomed viewport, computed from raw pre-reduction measurements (never reduced render points); average withheld below 80 % coverage or under 3 samples; non-valid samples counted separately and never treated as zero. AGENTS.md now records the Product Owner autonomous-execution authorization and its unchanged safety boundaries.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 218 files/1417 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1645-interval-statistics"
     }
   ],
   "maintenance_actions": [
