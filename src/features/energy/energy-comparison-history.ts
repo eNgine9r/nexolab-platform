@@ -80,9 +80,10 @@ export function mergeEnergyComparisonHistory(
   window: EnergyComparisonWindow,
   metrics: readonly EnergyMetricId[],
   cadenceAuthority: EnergyCadenceAuthority | null,
+  maximumPoints?: number,
 ): TelemetrySample[] {
   return metrics.flatMap((metric) =>
-    mergeEnergyHistoryTail(existing, incoming, { ...window, metric }, cadenceAuthority),
+    mergeEnergyHistoryTail(existing, incoming, { ...window, metric }, cadenceAuthority, maximumPoints),
   );
 }
 
@@ -93,6 +94,7 @@ export async function loadEnergyComparisonHistory(
   metrics: readonly EnergyMetricId[],
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  maximumPoints?: number,
 ): Promise<EnergyComparisonHistory> {
   const selected = normalizeEnergyMetrics(metrics);
   if (selected.length === 0) return { samples: [], errors: {} };
@@ -103,6 +105,8 @@ export async function loadEnergyComparisonHistory(
         { ...window, metric: selected[0] },
         signal,
         cadenceAuthority,
+        undefined,
+        maximumPoints,
       ),
       errors: {},
     };
@@ -142,6 +146,7 @@ export async function loadEnergyComparisonHistory(
           signal,
           cadenceAuthority,
           snapshot,
+          maximumPoints,
         );
         results.set(metric, samples);
       } catch (error) {
