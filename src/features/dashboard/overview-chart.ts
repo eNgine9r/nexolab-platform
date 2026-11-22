@@ -24,6 +24,7 @@ const HISTORY_RANGE_MS = {
   "1h": 60 * 60 * 1_000,
   "6h": 6 * 60 * 60 * 1_000,
   "24h": 24 * 60 * 60 * 1_000,
+  "7d": 7 * 24 * 60 * 60 * 1_000,
 } as const;
 
 export type OverviewHistoryRange = keyof typeof HISTORY_RANGE_MS;

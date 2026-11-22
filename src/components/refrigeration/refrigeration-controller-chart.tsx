@@ -95,6 +95,7 @@ export function RefrigerationControllerChart({
         context={context}
         selectedRange={rangeLabel}
         series={scene.series}
+        requestedWindow={baseScene.xDomain}
         inspection={inspection}
         onToggleSeries={(key) => {
           setSolo(null);

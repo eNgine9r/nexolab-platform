@@ -44,6 +44,7 @@ export function LiveChartPanel({
       selectedRange={rangeLabel}
       locale="uk"
       series={group.scene.series}
+      requestedWindow={resetDomain}
       inspection={inspection}
       onToggleSeries={onToggleSeries}
       onSoloSeries={onSoloSeries}

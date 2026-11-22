@@ -5,6 +5,7 @@ import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartExactTimestamp, formatChartValue } from "@/features/charts/format";
+import { assessHistoryCoverage } from "@/features/charts/history-coverage";
 import { buildChartYAxisModel, displayUnit } from "@/features/charts/units";
 
 function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "en"): string {
@@ -64,6 +65,7 @@ export function ChartShell({
   onExportImage,
   formatTimestamp,
   locale = "en",
+  requestedWindow,
 }: {
   title: string;
   context: string;
@@ -79,6 +81,8 @@ export function ChartShell({
   onExportImage?: () => void;
   formatTimestamp?: (timestampMs: number) => string;
   locale?: "en" | "uk";
+  /** The requested time window; enables the "history starts later than requested" notice. */
+  requestedWindow?: { fromMs: number; toMs: number };
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const timestampFormatter =
@@ -131,6 +135,7 @@ export function ChartShell({
           freshness: "Актуальність",
           noValidPoints: "Немає валідних точок для відображення у вибраному періоді",
           noSamples: "немає збережених вимірювань",
+          partialHistory: "Історія доступна не за весь період",
         }
       : {
           resetZoom: "Reset zoom",
@@ -150,11 +155,20 @@ export function ChartShell({
           freshness: "Freshness",
           noValidPoints: "No valid points to plot in the selected range",
           noSamples: "no persisted samples",
+          partialHistory: "History does not cover the whole range",
         };
   // Series that are visible but have nothing plottable: say why instead of drawing empty axes.
   const emptySeries = visibleSeries.filter((item) =>
     item.segments.every((segment) => segment.points.length === 0),
   );
+
+  const coverage = requestedWindow ? assessHistoryCoverage(series, requestedWindow) : null;
+  const coverageDetail =
+    coverage?.kind === "partial" && coverage.availableFromMs !== null
+      ? locale === "uk"
+        ? `Перше збережене вимірювання: ${timestampFormatter(coverage.availableFromMs)}. Покрито ${Math.round(coverage.coverageRatio * 100)}% вибраного періоду; решта — немає даних, а не нулі.`
+        : `First stored measurement: ${timestampFormatter(coverage.availableFromMs)}. ${Math.round(coverage.coverageRatio * 100)}% of the range is covered; the rest is no data, not zero.`
+      : null;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
@@ -208,6 +222,16 @@ export function ChartShell({
                 </li>
               ))}
             </ul>
+          </div>
+        ) : null}
+        {coverageDetail ? (
+          <div
+            role="status"
+            data-testid="chart-partial-history"
+            className="mb-3 rounded-xl border border-sky-300/30 bg-sky-300/[0.06] px-3 py-2 text-xs text-sky-100"
+          >
+            <p className="font-medium">{copy.partialHistory}</p>
+            <p className="mt-1 text-sky-100/80">{coverageDetail}</p>
           </div>
         ) : null}
         {children}

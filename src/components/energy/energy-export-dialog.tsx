@@ -25,7 +25,7 @@ const PERIODS = [
   ["6h", "6 годин", 21600],
   ["12h", "12 годин", 43200],
   ["24h", "24 години", 86400],
-  ["7d", "7 діб", 604800],
+  ["7d", "7 днів", 604800],
   ["custom", "Власний період", 0],
 ] as const;
 const EMPTY_ITEMS: EnergyExportCatalogSeries[] = [];

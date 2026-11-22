@@ -55,10 +55,11 @@ import {
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 
 const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
-  { id: "1h", label: "1 год" },
-  { id: "12h", label: "12 год" },
-  { id: "24h", label: "24 год" },
-  { id: "custom", label: "Кастом" },
+  { id: "1h", label: "1 година" },
+  { id: "6h", label: "6 годин" },
+  { id: "24h", label: "24 години" },
+  { id: "7d", label: "7 днів" },
+  { id: "custom", label: "Власний період" },
 ];
 
 /** Upper bound of simultaneously plotted series: 2 operator-°C pairs, 2 raw probes, compressor. */

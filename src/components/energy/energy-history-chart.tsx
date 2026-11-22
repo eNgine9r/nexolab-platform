@@ -311,6 +311,7 @@ function EnergyChartPanel({
       context={`${units || "Параметри"} · Збережена історія`}
       selectedRange={range}
       series={series}
+      requestedWindow={interactionDomain}
       inspection={inspection}
       locale="uk"
       onToggleSeries={onToggle}

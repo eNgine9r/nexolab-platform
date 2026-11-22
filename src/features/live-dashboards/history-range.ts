@@ -64,7 +64,7 @@ export function liveDashboardCustomRange(from: Date | string, to: Date | string)
     kind: "custom",
     from: fromDate.toISOString(),
     to: toDate.toISOString(),
-    label: "Custom",
+    label: "Власний період",
   };
 }
 

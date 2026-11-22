@@ -397,7 +397,7 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await page.getByRole("button", { name: "Графіки", exact: true }).click();
   const history = page.getByTestId("refrigeration-controller-history");
   await expect(history).toBeVisible();
-  for (const period of ["1 год", "12 год", "24 год", "Кастом"]) {
+  for (const period of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
     await expect(history.getByRole("button", { name: period, exact: true })).toBeVisible();
   }
   // This equipment is bound *after* the preloaded controller samples were captured.

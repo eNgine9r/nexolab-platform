@@ -23,9 +23,10 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 const COMPACT_SENSOR_LIMIT = 8;
 
 const ranges: Array<{ value: DashboardHistoryRange; label: string }> = [
-  { value: "1h", label: "1г" },
-  { value: "6h", label: "6г" },
-  { value: "24h", label: "24г" },
+  { value: "1h", label: "1 година" },
+  { value: "6h", label: "6 годин" },
+  { value: "24h", label: "24 години" },
+  { value: "7d", label: "7 днів" },
 ];
 
 function compareChannels(left: string, right: string): number {
