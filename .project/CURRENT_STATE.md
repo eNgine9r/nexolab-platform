@@ -1,3 +1,7 @@
+## 2026-11-22 — #1652 Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F) is source-only, not installed
+
+Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1620 User-selectable chart detail with aggregate cap and benchmark (WP-E) is source-only, not installed
 
 Saved Dashboards get «Деталізація / точок на лінію» (Авто/250/500/1000/2500/5000): per-series maximum rendered points resolved under an aggregate cap (Auto target 3 840, manual cap 6 000), applied by reloading the same window and re-reducing with the evidence-preserving reducer, with a truth-in-presentation line (shown vs available measurements) and a note when the cap lowers a request; the reduction bad-sample scan is now O(n log n). A desktop headless-Chromium density matrix is recorded; Raspberry Pi timings are not measured. No Modbus/hardware write, no polling change, no site release.

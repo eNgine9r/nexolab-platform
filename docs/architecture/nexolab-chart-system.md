@@ -238,6 +238,8 @@ A new segment is required when:
 
 When continuity is uncertain, fail toward a visible break rather than invented continuity.
 
+Per-series freshness (#1643, #1652): freshness is evaluated from each series' own newest sample, never from the page. Builders record `ChartSeries.freshUntilMs` for a live series and `applyFreshnessClock` (src/features/charts/series-freshness.ts) flips expired series to stale on a clock tick without rebuilding scenes and without changing object identity when nothing changed. Saved Dashboards and Overview derive the threshold with the #1522 contract (server stale_after_seconds, observed raw cadence, 30 s); Energy and Refrigeration keep their own threshold owners but report `invalid` when a series' newest sample has no valid measurement.
+
 ## 5. Time semantics
 
 ### 5.1 Source time

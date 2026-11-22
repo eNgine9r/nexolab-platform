@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1620,
-      "title": "User-selectable chart detail with aggregate cap and benchmark (WP-E)",
-      "branch": "feat/1620-chart-density"
+      "issue": 1652,
+      "title": "Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F)",
+      "branch": "feat/1652-per-series-freshness"
     },
     "next_work_package": null
   },
@@ -11664,6 +11664,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1620-chart-density"
+    },
+    {
+      "issue": 1652,
+      "title": "Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1455 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1652-per-series-freshness"
     }
   ],
   "maintenance_actions": [

@@ -6,6 +6,7 @@ import { AlertTriangle, ChevronDown, ChevronUp, LoaderCircle, RotateCcw, Thermom
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
 import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain";
+import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
@@ -68,7 +69,12 @@ function HistoryChart({
     [historyWindow, range, samples],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
-  const groups = useMemo(
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
+  const builtGroups = useMemo(
     () =>
       buildOverviewChartGroups({
         samples,
@@ -79,6 +85,8 @@ function HistoryChart({
       }),
     [effectiveDomain, hiddenSeriesKeys, samples, soloSeriesKey, telemetryStatus],
   );
+  // The clock only flips silent series to stale; it never rebuilds scenes.
+  const groups = useMemo(() => applyFreshnessClock(builtGroups, clockMs), [builtGroups, clockMs]);
   const seriesCount = groups.reduce((count, group) => count + group.scene.series.length, 0);
   const renderedPointCount = groups.reduce(
     (count, group) =>

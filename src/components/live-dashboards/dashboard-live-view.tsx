@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
+import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import type { ChartDensityMode, ChartPointBudgetResolution } from "@/features/charts/density";
 import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
@@ -181,7 +182,7 @@ export function DashboardLiveView({
     enabled: dashboard.items.length > 0,
     rangeKey: `${dashboard.id}:${telemetry.historyRange.kind}:${telemetry.historyRange.from}:${telemetry.historyRange.to}`,
   });
-  const chartGroups = useMemo(
+  const builtChartGroups = useMemo(
     () =>
       buildSavedDashboardChartGroups({
         dashboardId: dashboard.id,
@@ -191,7 +192,6 @@ export function DashboardLiveView({
         hiddenSeriesKeys,
         soloSeriesKey,
         cadenceObservations: telemetry.cadenceObservations ?? EMPTY_CADENCE_OBSERVATIONS,
-        now: telemetry.now,
         alerts: alertEvents.alerts,
         pointsPerSeries: densityResolution.perSeries,
       }),
@@ -201,12 +201,17 @@ export function DashboardLiveView({
       hiddenSeriesKeys,
       soloSeriesKey,
       telemetry.cadenceObservations,
-      telemetry.now,
       telemetry.series,
       telemetry.status,
       alertEvents.alerts,
       densityResolution.perSeries,
     ],
+  );
+  // The clock only flips silent series to stale; it never rebuilds scenes (see series-freshness.ts).
+  const chartGroups = useMemo(
+    () =>
+      telemetry.now === undefined ? builtChartGroups : applyFreshnessClock(builtChartGroups, telemetry.now),
+    [builtChartGroups, telemetry.now],
   );
   const statisticsRows = useMemo(
     () =>
