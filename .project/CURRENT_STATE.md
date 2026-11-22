@@ -1,3 +1,7 @@
+## 2026-11-22 — final main b415985f: health gate accepts the restore tool's metadata fidelity OK (#1702)
+
+After the object-metadata fix (#1697) renamed the good fidelity value from PRESERVED to OK, the health gate merged in #1698 would have blocked every genuine receipt; #1702 accepts only the restore tool's own OK and still blocks DEGRADED, UNVERIFIED_NO_SOURCE_OBSERVATION and any non-zero mismatch counter. Release identity, gates and owner actions are unchanged (docs/operations/xweb-release-owner-runbook.md). Nothing was run on the site.
+
 ## 2026-11-22 — DR tooling complete in source; release prepared; signal withheld
 
 Merged: #1693 (off-device copy + custody), #1694 (offline bundle upgrade_from input), #1695 (isolated restore), #1697 (object metadata xattrs), #1698 (health gate consumes a verified restore receipt), #1696 and the runbook. Verified ARM64 offline bundle (run 45048496700, upgrade_from 20260908_0037, own verifier "verified"), standalone LAN/HTTPS frontend artifacts and published attested images for source 7db6e1a8; deployed→final migration chain rehearsed on isolated PostgreSQL. Latest full isolated rehearsal on main: REHEARSAL_PASS_WITH_WAIVERS (30 checks, 0 failed) — not site evidence. Not done and owner-only: real backup, off-device copy, independent restore (#1428), on-host preflight (no SSH access from the agent environment), site activation. Managed rollback after the migration is refused by design, so recovery depends on the verified backup. No Modbus/hardware write, no production migration, no site release.
