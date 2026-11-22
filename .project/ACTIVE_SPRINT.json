@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1647,
-      "title": "Alarm events, regions and threshold markers from canonical alerts (WP-C)",
-      "branch": "feat/1647-alert-event-markers"
+      "issue": 1649,
+      "title": "Preserve Energy extrema and stop silent session-history truncation (WP-D)",
+      "branch": "feat/1649-extrema-and-history"
     },
     "next_work_package": null
   },
@@ -11632,6 +11632,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1647-alert-event-markers"
+    },
+    {
+      "issue": 1649,
+      "title": "Preserve Energy extrema and stop silent session-history truncation (WP-D)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Energy charts keep each bucket's min and max for instantaneous metrics (spikes and dips survive reduction; counters and continuity markers unchanged); the session history now paginates completely, polls tail-only and states explicitly when the page cap truncates it.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 222 files/1435 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1649-extrema-and-history"
     }
   ],
   "maintenance_actions": [
