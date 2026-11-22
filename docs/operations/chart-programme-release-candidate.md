@@ -16,7 +16,8 @@
 | WP-H 24+ series                                                  | #1654        | #1657 (`a894f0d3`) | Live comparison limit 8 → 24 (Saved Dashboards already 64, grouped)                                                  |
 | WP-I export                                                      | #1658        | #1659 (`21a2da4a`) | Local «Зберегти PNG» on every chart; CSV uses the display time zone                                                  |
 | WP-J statistics on Live                                          | #1660        | #1661 (`533185c1`) | Same statistics table on Live Data                                                                                   |
-| WP-J session window + this document                              | #1662        | this PR            | Session chart domain = requested window                                                                              |
+| WP-J session window + this document                              | #1662        | #1663 (`126c4619`) | Session chart domain = requested window                                                                              |
+| WP-K density control on Live Data                                | #1664        | #1665 (this PR)    | Live gets the same capped detail control                                                                             |
 
 Documentation changed: `docs/architecture/nexolab-chart-system.md`, `docs/architecture/nexolab-chart-evidence-integrity.md`, `docs/audits/chart-density-benchmark-1620.md`, `AGENTS.md` (autonomous-execution authorisation and unchanged safety boundaries).
 
@@ -42,7 +43,7 @@ Documentation changed: `docs/architecture/nexolab-chart-system.md`, `docs/archit
 4. **Energy raw statistics / per-series staleness** — Energy history is reduced before the chart; needs its own raw columns and cadence source.
 5. **Server-side downsampled history** for very long ranges × many channels — backend decision; clients still load raw history per channel.
 6. **XLSX/PDF for Saved Dashboards** — unsupported by the existing code (Energy has its own XLSX export).
-7. **Density control on Live / Energy / Refrigeration** — `src/features/charts/density.ts` is shared; only Saved Dashboards use it today (#1620 stays open for this reason).
+7. **Density control on Energy / Refrigeration** — `src/features/charts/density.ts` is shared; Saved Dashboards (#1651) and Live Data (#1665) use it, while Energy (own reducer) and Refrigeration keep fixed budgets (#1620 stays open for this reason).
 8. **Pi measurement of the density matrix and 24-series Live**, and a signed-in browser acceptance pass.
 
 ## 5. Safe Raspberry Pi update procedure (frontend only, owner-run)

@@ -295,6 +295,7 @@ export async function loadCompleteLiveHistory(
   identities: readonly TelemetrySample[],
   window: LiveHistoryWindow,
   signal?: AbortSignal,
+  maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
 ): Promise<LiveHistoryResult> {
   if (identities.length === 0) {
     throw new Error("At least one channel identity is required for history loading");
@@ -325,7 +326,7 @@ export async function loadCompleteLiveHistory(
     allSamples.filter((sample) => acceptedSample(sample)),
   );
   return {
-    samples: downsampleLiveHistory(allSamples, window),
+    samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
     intervalColumns,
     snapshotAt: snapshotAt!,
     cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
@@ -364,6 +365,7 @@ export function mergeLiveHistoryTail(
   incoming: readonly TelemetrySample[],
   selectedKeys: ReadonlySet<string>,
   window: LiveHistoryWindow,
+  maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
@@ -386,7 +388,7 @@ export function mergeLiveHistoryTail(
     }
   }
 
-  return downsampleLiveHistory([...byEventId.values()], window);
+  return downsampleLiveHistory([...byEventId.values()], window, maximumPointsPerChannel);
 }
 
 export function liveHistorySegments(samples: readonly TelemetrySample[]): TelemetrySample[][] {

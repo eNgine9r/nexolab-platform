@@ -1,3 +1,7 @@
+## 2026-11-22 — #1664 Chart detail (point density) control on Live Data (WP-K) is source-only, not installed
+
+Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups). No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1662 Session chart window domain and consolidated release candidate (WP-J) is source-only, not installed
 
 The session history chart now uses the requested history window as its x domain so silent edges stay visible as gaps, and docs/operations/chart-programme-release-candidate.md records the consolidated programme release candidate: merged PRs, verification evidence, what is not proven (no Pi, site, hardware or signed-in browser evidence), classified follow-ups and the owner-run frontend-only Raspberry Pi update procedure. No deployment performed or authorised. No Modbus/hardware write, no polling change, no site release.

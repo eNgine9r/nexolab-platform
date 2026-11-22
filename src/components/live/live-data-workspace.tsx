@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LiveTelemetryExplorer } from "@/components/live/live-telemetry-explorer";
+import { readStoredChartDensity, storeChartDensity, type ChartDensityMode } from "@/features/charts/density";
 import { LIVE_SELECTION_LIMIT } from "@/features/live/live-telemetry";
 import {
   readLiveSelectionPreference,
@@ -30,11 +31,13 @@ function ScopedLiveDataWorkspace({ organizationId }: { organizationId: string })
       : readLiveSelectionPreference(organizationId),
   );
   const initialRange = initialHistoryRange(searchParams.get("range"));
+  const [density, setDensity] = useState<ChartDensityMode>(() => readStoredChartDensity("live"));
   const telemetry = useLiveTelemetry({
     enabled: true,
     organizationId,
     initialSelectedKeys,
     initialRange,
+    densityMode: density,
   });
   const selectionStamp = JSON.stringify(telemetry.selectedKeys);
   const selectionReady = telemetry.selectionReady === true;
@@ -44,5 +47,15 @@ function ScopedLiveDataWorkspace({ organizationId }: { organizationId: string })
     writeLiveSelectionPreference(organizationId, JSON.parse(selectionStamp) as string[]);
   }, [organizationId, selectionReady, selectionStamp]);
 
-  return <LiveTelemetryExplorer telemetry={telemetry} organizationId={organizationId} />;
+  return (
+    <LiveTelemetryExplorer
+      telemetry={telemetry}
+      organizationId={organizationId}
+      density={density}
+      onDensityChange={(next) => {
+        setDensity(next);
+        storeChartDensity("live", next);
+      }}
+    />
+  );
 }

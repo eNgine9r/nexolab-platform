@@ -4,6 +4,7 @@ import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backf
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
   seedCadenceFromHistoryLoad,
@@ -26,6 +27,11 @@ import {
   reconcileLiveSelection,
   selectLatestLiveSamples,
 } from "@/features/live/live-telemetry";
+import {
+  resolveChartPointBudget,
+  type ChartDensityMode,
+  type ChartPointBudgetResolution,
+} from "@/features/charts/density";
 import type { IntervalStatistics } from "@/features/charts/interval-statistics";
 import {
   liveIntervalStatistics,
@@ -91,6 +97,8 @@ export interface LiveTelemetryModel {
   samples: TelemetrySample[];
   freshSamples: TelemetrySample[];
   lastCapturedAt: string | null;
+  /** Resolved chart detail budget for the current selection (#1620). */
+  densityResolution?: ChartPointBudgetResolution;
   /** Exact interval statistics from raw persisted samples (#1660); consumers recompute when historySamples changes. */
   intervalStatistics?: (channelKey: string, fromMs: number, toMs: number) => IntervalStatistics | null;
   /** Per-channel observed cadence; absent means the default threshold applies. */
@@ -252,11 +260,14 @@ export function useLiveTelemetry({
   organizationId = null,
   initialSelectedKeys = [],
   initialRange = "1h",
+  densityMode = "auto",
 }: {
   enabled?: boolean;
   organizationId?: string | null;
   initialSelectedKeys?: string[];
   initialRange?: LiveHistoryRange;
+  /** User-selected chart detail (#1620); the per-channel budget also depends on the selection size. */
+  densityMode?: ChartDensityMode;
 } = {}): LiveTelemetryModel {
   const selectedOrganizationId = organizationId?.trim() || null;
   const scopeKey = enabled ? (selectedOrganizationId ?? DEFAULT_SCOPE) : null;
@@ -280,6 +291,16 @@ export function useLiveTelemetry({
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const storeRef = useRef(store);
+  const pointsPerChannelRef = useRef<number>(LIVE_HISTORY_MAX_POINTS_PER_CHANNEL);
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(densityMode, Math.max(1, selectedKeys.length)),
+    [densityMode, selectedKeys.length],
+  );
+  const pointsPerChannel = densityResolution.perSeries;
+  // Declared before the history effect so a density change is visible to its reload.
+  useEffect(() => {
+    pointsPerChannelRef.current = pointsPerChannel;
+  }, [pointsPerChannel]);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
   const intervalStatistics = useCallback(
     (channelKey: string, fromMs: number, toMs: number) =>
@@ -340,7 +361,13 @@ export function useLiveTelemetry({
       historyWindowRef.current = nextWindow;
       setHistoryWindow(nextWindow);
       setHistorySamples((current) => {
-        const next = mergeLiveHistoryTail(current, [], new Set(selectedKeysRef.current), nextWindow);
+        const next = mergeLiveHistoryTail(
+          current,
+          [],
+          new Set(selectedKeysRef.current),
+          nextWindow,
+          pointsPerChannelRef.current,
+        );
         historySamplesRef.current = next;
         return next;
       });
@@ -409,7 +436,13 @@ export function useLiveTelemetry({
           recordLiveIntervalSamples(intervalColumnsRef.current, reconciliation.samples);
           pruneLiveIntervalSamples(intervalColumnsRef.current, nextWindow.from.getTime());
           setHistorySamples((current) => {
-            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);
+            const next = mergeLiveHistoryTail(
+              current,
+              reconciliation.samples,
+              selected,
+              nextWindow,
+              pointsPerChannelRef.current,
+            );
             historySamplesRef.current = next;
             return next;
           });
@@ -549,7 +582,13 @@ export function useLiveTelemetry({
       setHistoryError(null);
     });
 
-    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)
+    void loadCompleteLiveHistory(
+      adapter,
+      historyIdentities,
+      requestedWindow,
+      controller.signal,
+      pointsPerChannelRef.current,
+    )
       .then((result) => {
         if (disposed) return;
         // #1522: seed per-channel cadence from the persisted history that was
@@ -563,7 +602,13 @@ export function useLiveTelemetry({
           setStore(nextStore);
         }
         setHistorySamples((current) => {
-          const next = mergeLiveHistoryTail(result.samples, current, selected, requestedWindow);
+          const next = mergeLiveHistoryTail(
+            result.samples,
+            current,
+            selected,
+            requestedWindow,
+            pointsPerChannelRef.current,
+          );
           historySamplesRef.current = next;
           // Raw columns from the load, plus live samples that arrived while it was loading.
           intervalColumnsRef.current = result.intervalColumns;
@@ -592,6 +637,7 @@ export function useLiveTelemetry({
     historyGeneration,
     historyRange,
     liveCoverageScopeKey,
+    pointsPerChannel,
     runtime.config,
     scopeKey,
     selectedKey,
@@ -685,6 +731,7 @@ export function useLiveTelemetry({
     lastCapturedAt: view.lastCapturedAt,
     cadenceObservations: store.cadence,
     intervalStatistics,
+    densityResolution,
     clock,
     selectedKeys: hasCompleteInventory ? reconciledSelectedKeys : selectedKeys,
     selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,
