@@ -69,7 +69,7 @@ export function Topbar({
   return (
     <header
       data-testid="platform-topbar"
-      className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6"
+      className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6 print:hidden"
     >
       <button
         type="button"

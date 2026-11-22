@@ -6,6 +6,7 @@ import {
   type ChartSeries,
   type ChartSeriesIdentity,
 } from "@/features/charts";
+import { buildRawStatisticsRows, type RawStatisticsRow } from "@/features/charts/raw-sample-statistics";
 import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -228,4 +229,45 @@ export function buildEmbracoCompressorScene(
     series: series ? [series] : [],
     xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() },
   };
+}
+
+/**
+ * Exact statistics for the Embraco KK1 probe series of {@link buildEmbracoOperatorCelsiusScene},
+ * computed from the RAW history (never from the reduced chart series) with the same value rules:
+ * the provisional operator scale yields a valid value only for the two operator probes, the
+ * calibrated series only for samples that are genuinely valid °C, everything else is a non-valid poll.
+ */
+export function buildEmbracoTemperatureStatisticsRows(
+  history: ReadonlyMap<string, readonly TelemetrySample[]>,
+  scene: ChartRendererScene,
+  domain: { fromMs: number; toMs: number },
+): RawStatisticsRow[] {
+  const probes = [
+    [EMBRACO_METRICS.cabinet, "Температура в об’ємі"],
+    [EMBRACO_METRICS.evaporator, "Датчик відтайки"],
+  ] as const;
+  const sources = new Map<string, TelemetrySample[]>();
+  for (const [metric, name] of probes) {
+    const calibrated: TelemetrySample[] = [];
+    const provisional: TelemetrySample[] = [];
+    for (const sample of history.get(metric) ?? []) {
+      if (sample.equipment_id !== EMBRACO_KK1_CONTROLLER_ID) continue;
+      const operatorCelsius = operatorEmbracoCelsius(sample);
+      const calibratedValid =
+        sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
+      if (operatorCelsius !== null) {
+        provisional.push({ ...sample, value: operatorCelsius, quality: "valid" });
+        calibrated.push({ ...sample, value: null, quality: "unknown" });
+      } else if (calibratedValid) {
+        calibrated.push(sample);
+        provisional.push({ ...sample, value: null, quality: "unknown" });
+      } else {
+        calibrated.push({ ...sample, value: null, quality: "unknown" });
+        provisional.push({ ...sample, value: null, quality: "unknown" });
+      }
+    }
+    sources.set(name, calibrated);
+    sources.set(`${name}${EMBRACO_PROVISIONAL_SUFFIX}`, provisional);
+  }
+  return buildRawStatisticsRows(scene.series, (_identity, series) => sources.get(series.name) ?? [], domain);
 }
