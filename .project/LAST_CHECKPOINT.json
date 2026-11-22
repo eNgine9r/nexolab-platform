@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T06:12:15Z",
+  "timestamp": "2026-11-22T06:27:13Z",
   "actor": "Claude",
-  "event": "1660_live_statistics_source_pr",
+  "event": "1664_live_density_source_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1660,
-    "branch": "feat/1660-live-statistics",
+    "issue": 1664,
+    "branch": "feat/1664-live-density",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1660 merges: session window domain and release-candidate documentation (#1662), then remaining classified follow-ups. No site release authorized.",
+  "next_action": "After #1664 and #1662 merge: only the classified follow-ups in docs/operations/chart-programme-release-candidate.md remain (shared saved analysis views, Saved Dashboard state lanes, Live device-grouped table, Energy raw statistics and density, Pi measurements, signed-in browser acceptance). Any site release needs separate owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

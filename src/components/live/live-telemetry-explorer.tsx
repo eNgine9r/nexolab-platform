@@ -23,6 +23,8 @@ import {
   WifiOff,
 } from "lucide-react";
 
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import type { ChartDensityMode } from "@/features/charts/density";
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { buildLiveStatisticsRows } from "@/features/live/live-interval-statistics";
@@ -237,9 +239,14 @@ function deriveResetDomain(
 export function LiveTelemetryExplorer({
   telemetry,
   organizationId,
+  density,
+  onDensityChange,
 }: {
   telemetry: LiveTelemetryModel;
   organizationId?: string;
+  /** Chart detail control (#1620); rendered only when both props are supplied. */
+  density?: ChartDensityMode;
+  onDensityChange?: (mode: ChartDensityMode) => void;
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
@@ -378,6 +385,30 @@ export function LiveTelemetryExplorer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [effectiveDomain, groups, selected, telemetry.intervalStatistics, telemetry.historySamples],
   );
+  const densityCounts = useMemo(() => {
+    const fullRows = buildLiveStatisticsRows(groups, selected, resetDomain, telemetry.intervalStatistics);
+    if (fullRows.length === 0 || fullRows.some((row) => row.statistics === null)) {
+      return { displayed: null, available: null };
+    }
+    const displayed = groups.reduce(
+      (total, group) =>
+        total +
+        group.scene.series
+          .filter((entry) => entry.visible)
+          .reduce(
+            (sum, entry) =>
+              sum + entry.segments.reduce((points, segment) => points + segment.points.length, 0),
+            0,
+          ),
+      0,
+    );
+    return {
+      displayed,
+      available: fullRows.reduce((total, row) => total + (row.statistics?.validCount ?? 0), 0),
+    };
+    // historySamples changes whenever raw history or live tail is recorded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, resetDomain, selected, telemetry.intervalStatistics, telemetry.historySamples]);
   const rangeLabel = CANONICAL_CHART_TIME_RANGES.find((item) => item.id === range)?.label ?? range;
 
   const syncUrl = (
@@ -720,6 +751,15 @@ export function LiveTelemetryExplorer({
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (
           <div className="mt-5 min-w-0 space-y-4">
+            {density !== undefined && onDensityChange && telemetry.densityResolution ? (
+              <ChartDensityControl
+                mode={density}
+                resolution={telemetry.densityResolution}
+                onChange={onDensityChange}
+                displayedPoints={densityCounts.displayed}
+                availableMeasurements={densityCounts.available}
+              />
+            ) : null}
             {groups.map((group) => (
               <LiveChartPanel
                 key={group.id}

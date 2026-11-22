@@ -1,3 +1,7 @@
+## 2026-11-22 — #1664 Chart detail (point density) control on Live Data (WP-K) is source-only, not installed
+
+Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups). No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1660 Interval statistics on Live Data from raw history (WP-J) is source-only, not installed
 
 Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns. No Modbus/hardware write, no polling change, no site release.

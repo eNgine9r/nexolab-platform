@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1660,
-      "title": "Interval statistics on Live Data from raw history (WP-J)",
-      "branch": "feat/1660-live-statistics"
+      "issue": 1664,
+      "title": "Chart detail (point density) control on Live Data (WP-K)",
+      "branch": "feat/1664-live-density"
     },
     "next_work_package": null
   },
@@ -11744,6 +11744,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1660-live-statistics"
+    },
+    {
+      "issue": 1664,
+      "title": "Chart detail (point density) control on Live Data (WP-K)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 228 files/1471 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1664-live-density"
     }
   ],
   "maintenance_actions": [
