@@ -157,3 +157,54 @@ export function buildAlertChartAnnotations(
   alarmRegions.sort((left, right) => left.fromMs - right.fromMs || left.id.localeCompare(right.id));
   return { events, alarmRegions, thresholds: [...thresholds.values()] };
 }
+
+interface AnnotatableScene {
+  series: readonly { identity: ChartSeriesIdentity }[];
+  xDomain: ChartXDomain;
+  events?: readonly ChartEventMarker[];
+  thresholds?: readonly ChartThreshold[];
+  alarmRegions?: readonly ChartAlarmRegion[];
+}
+
+type AnnotationFields = Pick<AnnotatableScene, "events" | "thresholds" | "alarmRegions">;
+
+/**
+ * Returns the scene with canonical alert markers, alarm regions and threshold lines for ITS series
+ * (#1677). The same scene object is returned when nothing matches, so surfaces keep render identity.
+ * Only canonical alert entities annotate a chart; telemetry-sample alarm context never does.
+ */
+export function applyAlertAnnotations<S extends AnnotatableScene>(
+  scene: S,
+  alerts: readonly AlertInstance[],
+  nowMs: number,
+): S & AnnotationFields {
+  if (alerts.length === 0) return scene;
+  const built = buildAlertChartAnnotations(
+    alerts,
+    scene.series.map((entry) => entry.identity),
+    scene.xDomain,
+    nowMs,
+  );
+  if (built.events.length === 0 && built.thresholds.length === 0 && built.alarmRegions.length === 0) {
+    return scene;
+  }
+  return {
+    ...scene,
+    ...(built.events.length > 0 ? { events: built.events } : {}),
+    ...(built.thresholds.length > 0 ? { thresholds: built.thresholds } : {}),
+    ...(built.alarmRegions.length > 0 ? { alarmRegions: built.alarmRegions } : {}),
+  };
+}
+
+/** Applies {@link applyAlertAnnotations} to every group's scene; unchanged groups keep identity. */
+export function annotateChartGroups<G extends { scene: AnnotatableScene }>(
+  groups: readonly G[],
+  alerts: readonly AlertInstance[],
+  nowMs: number,
+): readonly G[] {
+  if (alerts.length === 0) return groups;
+  return groups.map((group) => {
+    const scene = applyAlertAnnotations(group.scene, alerts, nowMs);
+    return scene === group.scene ? group : { ...group, scene };
+  });
+}
