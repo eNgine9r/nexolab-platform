@@ -23,6 +23,8 @@ import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-char
 import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import type { ChartDensityMode, ChartPointBudgetResolution } from "@/features/charts/density";
+import { DashboardStateLanes } from "@/components/live-dashboards/dashboard-state-lanes";
+import { buildDashboardStateLanes } from "@/features/live-dashboards/state-lanes";
 import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
@@ -276,6 +278,10 @@ export function DashboardLiveView({
     const available = visibleRows.reduce((total, row) => total + (row.statistics?.validCount ?? 0), 0);
     return { displayed, available };
   }, [chartGroups, dashboard.id, resetDomain, telemetry.intervalStatistics, telemetry.series]);
+  const stateLanes = useMemo(
+    () => buildDashboardStateLanes(telemetry.series, telemetry.intervalColumns, effectiveDomain),
+    [effectiveDomain, telemetry.intervalColumns, telemetry.series],
+  );
   const containsOperatorTemperatures = dashboard.items.some(isOperatorEmbracoTemperature);
   const valueSeries = telemetry.series.filter(
     (item) => item.item.visualization === "value" || item.item.visualization === "gauge",
@@ -774,6 +780,13 @@ export function DashboardLiveView({
         toMs={effectiveDomain.toMs}
         isViewport={viewportDomain !== null}
         displayTimeZone={displayTimeZone}
+      />
+
+      <DashboardStateLanes
+        lanes={stateLanes}
+        fromMs={effectiveDomain.fromMs}
+        toMs={effectiveDomain.toMs}
+        cursorMs={sharedCursorMs}
       />
 
       <DashboardAlertEvents

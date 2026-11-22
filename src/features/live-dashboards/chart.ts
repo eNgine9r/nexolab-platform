@@ -18,6 +18,7 @@ import {
   savedDashboardSeriesLabel,
   savedDashboardSeriesUnit,
 } from "@/features/live-dashboards/embraco-series";
+import { isDigitalMetric } from "@/features/charts/digital-channels";
 import { buildAlertChartAnnotations } from "@/features/charts/alert-events";
 import { liveHistorySegments } from "@/features/live/live-history";
 import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
@@ -263,7 +264,12 @@ export function buildSavedDashboardChartGroups(
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const plotted = options.series
-    .filter((item) => item.item.visualization === "line" || item.item.visualization === "area")
+    // Known digital channels are state lanes (#1679), never numeric lines.
+    .filter(
+      (item) =>
+        (item.item.visualization === "line" || item.item.visualization === "area") &&
+        !isDigitalMetric(item.item.metric),
+    )
     .sort(
       (left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
     );
