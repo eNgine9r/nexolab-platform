@@ -599,7 +599,7 @@ test("opens a persisted selected-series dashboard after service restart without 
       .getByRole("row")
       .filter({ has: page.getByRole("cell", { name: "106-03", exact: true }) });
     await expect(selectedChannelRow).toBeVisible();
-    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)? degC/);
+    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)?\s(?:°C|degC)/);
     await expect.poll(() => sockets.maximum).toBe(1);
 
     await expect
@@ -690,20 +690,20 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThanOrEqual(4);
-    await expect(page.getByRole("button", { name: "1h", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "30d", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Custom", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "1 година", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "30 днів", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Власний період", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Export CSV", exact: true })).toBeEnabled();
 
     const historyRequestsBeforeRangeChange = requests.telemetry.filter((item) =>
       item.url.includes("/history"),
     ).length;
-    await page.getByRole("button", { name: "6h", exact: true }).click();
+    await page.getByRole("button", { name: "6 годин", exact: true }).click();
     await expect
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThan(historyRequestsBeforeRangeChange);
 
-    await page.getByRole("button", { name: "Custom", exact: true }).click();
+    await page.getByRole("button", { name: "Власний період", exact: true }).click();
     await expect(page.getByLabel("Від · локальний час")).toBeVisible();
     await expect(page.getByLabel("До · локальний час")).toBeVisible();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();

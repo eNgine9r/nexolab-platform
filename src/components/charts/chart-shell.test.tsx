@@ -339,4 +339,34 @@ describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)"
     expect(screen.getByText("— °C")).toBeInTheDocument(); // display unit, no stale value
     expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeInTheDocument();
   });
+
+  it("states when stored history starts later than the requested range (#1677)", () => {
+    const scene = createBenchmarkScene(1);
+    const first = Math.min(
+      ...scene.series[0].segments.flatMap((segment) => segment.points.map((point) => point.timestampMs)),
+    );
+    const day = 24 * 3_600_000;
+    const shell = (fromMs: number) => (
+      <ChartShell
+        title="Історія"
+        context="°C"
+        selectedRange="7 днів"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+        requestedWindow={{ fromMs, toMs: first + 7 * day }}
+      >
+        <div>plot</div>
+      </ChartShell>
+    );
+    const { rerender } = render(shell(first - 6 * day));
+    const notice = screen.getByTestId("chart-partial-history");
+    expect(notice).toHaveTextContent("Історія доступна не за весь період");
+    expect(notice).toHaveTextContent("немає даних, а не нулі");
+    rerender(shell(first));
+    expect(screen.queryByTestId("chart-partial-history")).toBeNull();
+  });
 });

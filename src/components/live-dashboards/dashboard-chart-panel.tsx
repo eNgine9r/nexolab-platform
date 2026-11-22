@@ -52,6 +52,7 @@ export function DashboardChartPanel({
         selectedRange={rangeLabel}
         locale="uk"
         series={group.scene.series}
+        requestedWindow={resetDomain}
         inspection={inspection}
         legend={
           <DashboardChartLegend

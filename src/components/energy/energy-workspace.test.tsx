@@ -109,7 +109,7 @@ describe("EnergyWorkspace comparison selection", () => {
     expect(screen.getByText(/1 вибрано/)).toBeVisible();
     expect(screen.getByLabelText("Вибрані параметри графіка")).toHaveTextContent("U, V");
     expect(screen.queryByRole("combobox", { name: "Показник" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "7 днів" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByText("Споживання", { exact: true })).toHaveLength(ENERGY_METERS.length);
     expect(telemetry.setSelectedMetric).not.toHaveBeenCalled();
     expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ it("permits empty selection and cancels draft changes", () => {
   fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
   expect(telemetry.setSelectedMetrics).toHaveBeenCalledWith([]);
   expect(screen.getByText("Додайте параметри для порівняння.")).toBeVisible();
-  expect(screen.getByRole("button", { name: "12 год" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "24 години" })).toBeVisible();
 });
 
 it("retains a hidden meter's distinct parameters when applying the dialog", () => {

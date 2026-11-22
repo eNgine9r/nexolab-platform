@@ -313,7 +313,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       expect(requests.every((item) => !item.url.includes("Bearer"))).toBe(true);
       expect(requests.every((item) => !item.url.includes("access_token"))).toBe(true);
 
-      await page.getByRole("button", { name: "1г", exact: true }).click();
+      await page.getByRole("button", { name: "1 година", exact: true }).click();
       await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(2);
       const oneHourRequest = requests.filter((item) => item.url.includes("/history")).at(-1);
       expect(oneHourRequest).toBeDefined();

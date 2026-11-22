@@ -48,7 +48,10 @@ import {
   savedDashboardDisplaySample,
   savedDashboardSeriesLabel,
 } from "@/features/live-dashboards/embraco-series";
-import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
+import {
+  LIVE_DASHBOARD_HISTORY_PRESETS,
+  LIVE_DASHBOARD_PRESET_LABELS,
+} from "@/features/live-dashboards/history-range";
 import type {
   LiveDashboard,
   LiveDashboardTelemetryStatus,
@@ -602,7 +605,7 @@ export function DashboardLiveView({
                       : "border-white/10 text-slate-400 hover:border-cyan-300/25 hover:text-slate-200"
                   }`}
                 >
-                  {preset}
+                  {LIVE_DASHBOARD_PRESET_LABELS[preset]}
                 </button>
               ))}
               <button
@@ -614,7 +617,7 @@ export function DashboardLiveView({
                     : "border-white/10 text-slate-400 hover:border-cyan-300/25 hover:text-slate-200"
                 }`}
               >
-                Custom
+                Власний період
               </button>
               <button
                 type="button"
