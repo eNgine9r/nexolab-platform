@@ -1,3 +1,7 @@
+## 2026-11-22 — #1658 PNG export of the visible plot and display-timezone CSV (WP-I) is source-only, not installed
+
+Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1654 Live comparison supports 24 series (WP-H) is source-only, not installed
 
 The Live Data comparison limit rises from 8 to 24 channels through the single shared constant (hook, URL restore, stored preference, message); 24 mixed-unit series across equipment produce valid scenes with at most five Y axes each, bounded by the aggregate point budget. Saved Dashboards already support 64 series with device-grouped picker and legend. A device-grouped selection table in Live and server-side downsampled history for very long ranges are classified as follow-ups (UI rework / backend decision). No Modbus/hardware write, no polling change, no site release.

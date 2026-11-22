@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartRendererScene } from "@/features/charts";
 import { chartSeriesKey, type ChartXDomain } from "@/features/charts/domain";
@@ -83,6 +84,7 @@ export function RefrigerationControllerChart({
       <ChartShell
         locale="uk"
         title={title}
+        onExportImage={() => void downloadChartPng(adapter, title)}
         context={context}
         selectedRange={rangeLabel}
         series={scene.series}

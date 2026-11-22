@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import {
   chartSeriesKey,
@@ -208,6 +209,7 @@ function EnergyChartPanel({
   return (
     <ChartShell
       title={title}
+      onExportImage={() => void downloadChartPng(adapter, title)}
       context={`${units || "Параметри"} · Збережена історія`}
       selectedRange={range}
       series={series}

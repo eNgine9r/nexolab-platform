@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
@@ -36,6 +37,7 @@ export function OverviewChartPanel({
     <div data-testid="overview-chart-panel">
       <ChartShell
         title={`Історія температур XJP60D · ${group.nativeUnit}`}
+        onExportImage={() => void downloadChartPng(adapter, `Історія температур XJP60D ${group.nativeUnit}`)}
         context="Температура · Огляд"
         selectedRange={rangeLabel}
         locale="uk"
