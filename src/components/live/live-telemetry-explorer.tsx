@@ -25,6 +25,7 @@ import {
 
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import type { ChartDensityMode } from "@/features/charts/density";
+import { LiveChannelPicker } from "@/components/live/live-channel-picker";
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { buildLiveStatisticsRows } from "@/features/live/live-interval-statistics";
@@ -923,6 +924,17 @@ export function LiveTelemetryExplorer({
           />
         </div>
       </section>
+
+      <LiveChannelPicker
+        samples={filtered}
+        selectedKeys={telemetry.selectedKeys}
+        names={commissionedNames}
+        onChange={(keys) => {
+          setSelectionMessage(null);
+          telemetry.setSelectedKeys(keys);
+          syncUrl(filters, keys, range);
+        }}
+      />
 
       <section
         data-testid="live-inventory-panel"
