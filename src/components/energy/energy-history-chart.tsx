@@ -13,6 +13,11 @@ import {
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import { inspectChartAtTimestamp } from "@/features/charts/inspection";
 import { displayUnit, partitionChartSeriesByAxisBudget } from "@/features/charts/units";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { applyAlertAnnotations } from "@/features/charts/alert-events";
+import { flipExpiredSeries } from "@/features/charts/series-freshness";
+import type { ChartRendererScene } from "@/features/charts/renderer-adapter";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { energySeriesStatisticsKey } from "@/features/energy/energy-raw-statistics";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
@@ -64,26 +69,42 @@ export function EnergyHistoryChart({
         selectedUnitIds,
         status: telemetry.status,
         historyWindow: telemetry.historyWindow,
+        cadenceAuthority: telemetry.cadenceAuthority,
       }),
     [
       selectedPairs,
       selectedUnitIds,
+      telemetry.cadenceAuthority,
       telemetry.historySamples,
       telemetry.historyWindow,
       telemetry.selectedMetrics,
       telemetry.status,
     ],
   );
+  // The clock only flips silent series to stale; it never rebuilds the scene (#1677).
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
+  const clockedSeries = useMemo(
+    () => flipExpiredSeries(baseScene.series, clockMs),
+    [baseScene.series, clockMs],
+  );
+  const alertEvents = useDashboardAlertEvents({
+    enabled: baseScene.series.length > 0,
+    rangeKey: `energy:${telemetry.historyRange}`,
+  });
   const scene = useMemo(
     () => ({
       ...baseScene,
       xDomain: viewportDomain ?? baseScene.xDomain,
-      series: baseScene.series.map((series) => {
+      series: clockedSeries.map((series) => {
         const key = chartSeriesKey(series.identity);
         return { ...series, visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key) };
       }),
     }),
-    [baseScene, hiddenSeriesKeys, soloSeriesKey, viewportDomain],
+    [baseScene, clockedSeries, hiddenSeriesKeys, soloSeriesKey, viewportDomain],
   );
   const panels = useMemo(
     () => partitionChartSeriesByAxisBudget(scene.series, axisBudget),
@@ -144,6 +165,16 @@ export function EnergyHistoryChart({
     };
   }, [visibilityRevision]);
 
+  const annotationsFor = (series: ChartSeries[], xDomain: ChartXDomain) => {
+    const annotated = applyAlertAnnotations({ series, xDomain }, alertEvents.alerts, clockMs);
+    return annotated.events || annotated.thresholds || annotated.alarmRegions
+      ? {
+          events: annotated.events,
+          thresholds: annotated.thresholds,
+          alarmRegions: annotated.alarmRegions,
+        }
+      : undefined;
+  };
   const toggleSeries = (key: string) => {
     setSoloSeriesKey(null);
     setHiddenSeriesKeys((current) => {
@@ -183,8 +214,15 @@ export function EnergyHistoryChart({
           onReset={resetZoom}
           onCursor={(next) => setSharedCursorMs(next?.timestampMs ?? null)}
           onDomainChange={changeDomain}
+          annotations={annotationsFor(series, scene.xDomain)}
         />
       ))}
+      <DashboardAlertEvents
+        events={panels.flatMap((series) => annotationsFor(series, scene.xDomain)?.events ?? [])}
+        status={alertEvents.status}
+        message={alertEvents.message}
+        displayTimeZone={displayTimeZone}
+      />
       {statisticsRows.length > 0 ? (
         <>
           {statisticsUnavailable ? (
@@ -234,6 +272,7 @@ function EnergyChartPanel({
   onReset,
   onCursor,
   onDomainChange,
+  annotations,
 }: {
   series: ChartSeries[];
   xDomain: ChartXDomain;
@@ -249,12 +288,14 @@ function EnergyChartPanel({
   onReset: () => void;
   onCursor: (inspection: ChartCursorInspection | null) => void;
   onDomainChange: (domain: ChartXDomain) => void;
+  /** Canonical alert markers/regions/thresholds for this panel's series (#1677). */
+  annotations?: Pick<ChartRendererScene, "events" | "thresholds" | "alarmRegions">;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   useEffect(() => {
     adapter.resetZoom();
   }, [adapter, resetRevision]);
-  const scene = useMemo(() => ({ series, xDomain }), [series, xDomain]);
+  const scene = useMemo(() => ({ series, xDomain, ...annotations }), [annotations, series, xDomain]);
   const metrics = ENERGY_METRICS.filter((metric) =>
     series.some((item) => item.identity.metric === metric.id),
   );

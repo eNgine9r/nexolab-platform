@@ -104,6 +104,8 @@ describe("Energy canonical chart scene", () => {
       selectedUnitIds: [200],
       status: "live",
       historyWindow: { from: "2026-08-18T23:00:00.000Z", to: "2026-08-19T01:00:00.000Z" },
+      // Freshness is judged per series at this clock: 5 s after the newest sample.
+      now: Date.parse(second.captured_at) + 5_000,
     });
     expect(scene.xDomain).toEqual({
       fromMs: Date.parse("2026-08-18T23:00:00.000Z"),
