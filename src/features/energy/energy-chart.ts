@@ -9,6 +9,8 @@ import {
   type ChartXDomain,
 } from "@/features/charts/domain";
 import {
+  historicalSeriesFreshness,
+  newestSampleValidity,
   resolveSeriesFreshness,
   withInvalidNewestSample,
   type SeriesFreshness,
@@ -171,6 +173,7 @@ export function buildEnergyChartScene({
   historyWindow,
   cadenceAuthority = null,
   now,
+  historical = false,
 }: {
   samples: readonly TelemetrySample[];
   selectedMetric?: EnergyMetricId;
@@ -183,6 +186,8 @@ export function buildEnergyChartScene({
   cadenceAuthority?: EnergyCadenceAuthority | null;
   /** Evaluation clock (epoch ms); defaults to `Date.now()` at build. A clock overlay handles later ticks. */
   now?: number;
+  /** A fixed custom period (#1683): series have no liveness and are labelled historical. */
+  historical?: boolean;
 }): EnergyChartScene {
   const metrics = new Set(selectedMetrics ?? [selectedMetric ?? ENERGY_METRICS[0].id]);
   const pairs = selectedPairs ? new Set(selectedPairs.map(energySeriesSelectionKey)) : null;
@@ -247,7 +252,9 @@ export function buildEnergyChartScene({
             : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
         dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
-        ...energySeriesFreshness(chartFreshness, group, cadenceAuthority, now ?? Date.now()),
+        ...(historical
+          ? historicalSeriesFreshness(newestSampleValidity(group.samples))
+          : energySeriesFreshness(chartFreshness, group, cadenceAuthority, now ?? Date.now())),
         segments: buildSegments(identity, group.samples),
         visible: true,
         semanticMode:

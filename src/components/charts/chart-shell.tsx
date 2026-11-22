@@ -18,6 +18,7 @@ function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "
           connecting: "Підключення",
           reconnecting: "Перепідключення",
           offline: "Офлайн",
+          historical: "Фіксований період",
         }
       : {
           live: "Live",
@@ -26,6 +27,7 @@ function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "
           connecting: "Connecting",
           reconnecting: "Reconnecting",
           offline: "Offline",
+          historical: "Fixed period",
         };
   return labels[state];
 }
@@ -100,7 +102,9 @@ export function ChartShell({
           ? "reconnecting"
           : freshnessSeries.some((item) => item.freshness === "connecting")
             ? "connecting"
-            : "live";
+            : freshnessSeries.some((item) => item.freshness === "historical")
+              ? "historical"
+              : "live";
   const inspectionBySeries = new Map(
     (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
   );

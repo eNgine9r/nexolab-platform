@@ -301,6 +301,29 @@ describe("ChartShell accessibility contract", () => {
     expect(screen.getByTestId("chart-inspector")).toHaveTextContent("Точні значення");
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Період 1г");
   });
+
+  it("labels a fixed custom period as such instead of claiming it is live (#1683)", () => {
+    const scene = createBenchmarkScene(1);
+    render(
+      <ChartShell
+        title="Історія температур"
+        context="Температура · Огляд"
+        selectedRange="Власний період"
+        series={scene.series.map((series) => ({ ...series, freshness: "historical" as const }))}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+
+    expect(screen.getByLabelText("Легенда графіка")).toHaveTextContent("Фіксований період");
+    expect(screen.getByLabelText("Легенда графіка")).not.toHaveTextContent("Актуально");
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Стан Фіксований період");
+  });
 });
 
 describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)", () => {

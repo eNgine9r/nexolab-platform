@@ -158,4 +158,25 @@ describe("Energy canonical chart scene", () => {
     expect(scene.series[0].name).toContain("200-active-power");
     expect(scene.series[0].freshness).toBe("reconnecting");
   });
+
+  it("keeps a fixed custom period exact and never live (#1683)", () => {
+    const now = Date.parse("2026-08-19T00:06:00Z");
+    const options = {
+      samples: [sample("recent", "2026-08-19T00:05:50Z")],
+      selectedMetric: "electrical.power.active" as const,
+      selectedUnitIds: [200],
+      status: "live" as const,
+      historyWindow: { from: "2026-08-18T22:00:00.000Z", to: "2026-08-19T00:06:00.000Z" },
+      now,
+    };
+    expect(buildEnergyChartScene(options).series[0].freshness).toBe("live");
+
+    const scene = buildEnergyChartScene({ ...options, historical: true });
+    expect(scene.series[0].freshness).toBe("historical");
+    expect(scene.series[0].freshUntilMs).toBeUndefined();
+    expect(scene.xDomain).toEqual({
+      fromMs: Date.parse("2026-08-18T22:00:00.000Z"),
+      toMs: Date.parse("2026-08-19T00:06:00.000Z"),
+    });
+  });
 });

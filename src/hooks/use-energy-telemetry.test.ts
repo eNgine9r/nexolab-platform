@@ -528,6 +528,62 @@ describe("useEnergyTelemetry startup coverage", () => {
     expect(to - from).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
     expect(to - from).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
   });
+  it("loads a custom period as a fixed window with exact raw statistics and no live tail (#1683)", async () => {
+    const toMs = Date.now() - 3 * 60 * 60 * 1000;
+    const fromMs = toMs - 2 * 60 * 60 * 1000;
+    const inside = [
+      { ...energySample("custom-a", new Date(fromMs + 60_000).toISOString()), value: 100 },
+      { ...energySample("custom-b", new Date(toMs - 60_000).toISOString()), value: 300 },
+    ];
+    adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => ({
+      ...emptyHistoryResponse(),
+      items: queryTime(query.to) === toMs ? inside : [],
+    }));
+    const { result } = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    const presetCalls = adapterState.history.mock.calls.length;
+
+    act(() => result.current.applyCustomHistoryRange(fromMs, toMs));
+    await waitFor(() => {
+      expect(result.current.historyRange).toBe("custom");
+      expect(result.current.historyStatus).toBe("ready");
+      expect(result.current.historySamples.length).toBeGreaterThan(0);
+    });
+    const query = adapterState.history.mock.calls[presetCalls][0] as TelemetryHistoryQuery;
+    expect(queryTime(query.from)).toBe(fromMs);
+    expect(queryTime(query.to)).toBe(toMs);
+    const expectedWindow = { from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() };
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+
+    const seriesKey = ["edge-01", "LE01MP-200", "200-power-active", "electrical.power.active", "W"]
+      .map((part) => encodeURIComponent(part))
+      .join("|");
+    const statistics = result.current.intervalStatistics?.(
+      seriesKey,
+      "electrical.power.active",
+      fromMs,
+      toMs,
+    );
+    expect(statistics).not.toBeNull();
+    expect(statistics?.min).toBe(100);
+    expect(statistics?.max).toBe(300);
+
+    const samplesBefore = result.current.historySamples;
+    act(() => {
+      adapterState.handlers?.onSample?.(energySample("live-now", new Date().toISOString()));
+    });
+    await waitFor(() => expect(result.current.samples.length).toBeGreaterThan(0));
+    expect(result.current.historySamples).toBe(samplesBefore);
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+    expect(
+      result.current.historySamples.some(
+        (sample) => energyHistorySourceEventId(sample.event_id) === "live-now",
+      ),
+    ).toBe(false);
+  });
+
   it("loads multiple metrics on one authenticated subscription and keeps live quality breaks independent", async () => {
     const now = Date.now();
     const voltage = {

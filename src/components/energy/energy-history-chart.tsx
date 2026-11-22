@@ -20,6 +20,7 @@ import type { ChartRendererScene } from "@/features/charts/renderer-adapter";
 import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { energySeriesStatisticsKey } from "@/features/energy/energy-raw-statistics";
+import { customHistoryRangeKey, formatCustomHistoryWindow } from "@/features/charts/custom-history-range";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { buildEnergyChartScene } from "@/features/energy/energy-chart";
 import {
@@ -60,6 +61,14 @@ export function EnergyHistoryChart({
   const [soloSeriesKey, setSoloSeriesKey] = useState<string | null>(null);
   const [resetRevision, setResetRevision] = useState(0);
   const axisBudget = useSyncExternalStore(subscribeAxisBudget, axisBudgetSnapshot, serverAxisBudgetSnapshot);
+  const displayTimeZone = useDisplayTimeZone();
+  const historical = telemetry.historyRange === "custom";
+  const customWindow = historical ? telemetry.historyWindow : null;
+  // Presets keep their bare range keys; a fixed custom window is identified by its bounds.
+  const rangeIdentity = customWindow ? customHistoryRangeKey(customWindow) : telemetry.historyRange;
+  const rangeLabel = customWindow
+    ? formatCustomHistoryWindow(customWindow, displayTimeZone)
+    : telemetry.historyRange;
   const baseScene = useMemo(
     () =>
       buildEnergyChartScene({
@@ -70,8 +79,10 @@ export function EnergyHistoryChart({
         status: telemetry.status,
         historyWindow: telemetry.historyWindow,
         cadenceAuthority: telemetry.cadenceAuthority,
+        historical,
       }),
     [
+      historical,
       selectedPairs,
       selectedUnitIds,
       telemetry.cadenceAuthority,
@@ -93,8 +104,11 @@ export function EnergyHistoryChart({
   );
   const alertEvents = useDashboardAlertEvents({
     enabled: baseScene.series.length > 0,
-    rangeKey: `energy:${telemetry.historyRange}`,
+    rangeKey: `energy:${rangeIdentity}`,
   });
+  // A fixed period ends at its own `to`: open alerts extend to the end of the shown window, not to now.
+  const fixedWindowEndMs = customWindow ? Date.parse(customWindow.to) : Number.NaN;
+  const annotationNowMs = Number.isFinite(fixedWindowEndMs) ? fixedWindowEndMs : clockMs;
   const scene = useMemo(
     () => ({
       ...baseScene,
@@ -136,7 +150,6 @@ export function EnergyHistoryChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scene, telemetry.intervalStatistics, telemetry.historySamples],
   );
-  const displayTimeZone = useDisplayTimeZone();
   const statisticsUnavailable = statisticsRows.some((row) => row.statistics === null);
 
   useEffect(() => {
@@ -152,7 +165,7 @@ export function EnergyHistoryChart({
     return () => {
       disposed = true;
     };
-  }, [telemetry.historyRange]);
+  }, [rangeIdentity]);
   useEffect(() => {
     let disposed = false;
     void Promise.resolve().then(() => {
@@ -166,7 +179,7 @@ export function EnergyHistoryChart({
   }, [visibilityRevision]);
 
   const annotationsFor = (series: ChartSeries[], xDomain: ChartXDomain) => {
-    const annotated = applyAlertAnnotations({ series, xDomain }, alertEvents.alerts, clockMs);
+    const annotated = applyAlertAnnotations({ series, xDomain }, alertEvents.alerts, annotationNowMs);
     return annotated.events || annotated.thresholds || annotated.alarmRegions
       ? {
           events: annotated.events,
@@ -203,7 +216,7 @@ export function EnergyHistoryChart({
           series={series}
           xDomain={scene.xDomain}
           interactionDomain={baseScene.xDomain}
-          range={telemetry.historyRange}
+          range={rangeLabel}
           panelIndex={index}
           panelCount={panels.length}
           inspection={inspection}

@@ -25,6 +25,7 @@
 | WP-Q alerts on Live                                        | #1677        | #1678 (`874215fa`) | Canonical alert markers/regions/thresholds and an events table on Live Data                                                                                       |
 | WP-O digital state lanes                                   | #1679        | #1680 (`fbcf62b1`) | Canonical digital-channel taxonomy; Saved Dashboard lanes (relay bits, compressor, evaporator fan, defrost, alarm); ON / OFF / UNKNOWN / NO DATA with cursor sync |
 | WP-Q per-series staleness, presets, coverage               | #1677        | #1681 (`d411df6d`) | Energy/Refrigeration per-series staleness; unified presets; partial-history notice; °C display unit                                                               |
+| WP-Q custom period (Overview, Energy)                      | #1683        | #1683 (PR)         | Fixed custom window with its own history key, no live tail, «historical» freshness                                                                                |
 | WP-S acceptance evidence + this document                   | #1682        | docs-only PR       | 27/27 real-browser checks, harness sources (`docs/audits/chart-system-acceptance-1682.md`)                                                                        |
 
 Documentation changed: `docs/architecture/nexolab-chart-system.md`, `docs/architecture/nexolab-chart-evidence-integrity.md`, `docs/audits/chart-density-benchmark-1620.md`, `docs/audits/chart-system-acceptance-1682.md`, `AGENTS.md` (autonomous-execution authorisation and unchanged safety boundaries).
@@ -41,7 +42,7 @@ Documentation changed: `docs/architecture/nexolab-chart-system.md`, `docs/archit
 | Per-series freshness                                                       | All chart surfaces (Saved Dashboards, Overview, Live, Energy, Refrigeration)                                                                  |
 | Canonical alarms/events on charts                                          | Saved Dashboards, Live, Energy, Refrigeration, Overview                                                                                       |
 | Device-grouped Live selection (24 channels)                                | Merged                                                                                                                                        |
-| Unified presets `1 година / 6 годин / 24 години / 7 днів / Власний період` | Live, Saved Dashboards, Refrigeration (all five); Overview and Energy history: presets only, **no custom range yet**                          |
+| Unified presets `1 година / 6 годин / 24 години / 7 днів / Власний період` | All chart surfaces. Overview and Energy custom periods are fixed windows (no live tail, series marked «Фіксований період»), max 31 days       |
 | Requested range vs available history notice                                | All `ChartShell` surfaces                                                                                                                     |
 | Exports                                                                    | CSV (display time zone), PNG (local canvas), XLSX (offline, Saved Dashboards), print-to-PDF report                                            |
 | Real-browser acceptance                                                    | 27/27 on a desktop (not Pi)                                                                                                                   |
@@ -56,7 +57,7 @@ Documentation changed: `docs/architecture/nexolab-chart-system.md`, `docs/archit
 ## 4. Blockers and honest gaps
 
 1. **Saved Analysis Views backend — PR #1667 (migration `20261122_0041`, 17 backend tests).** Not merged. The container vulnerability policy gate fails on HIGH CVE-2026-124709 in the Device Agent image (Debian `libssl3t64`, no fixed package). This is a Product Owner risk decision (`security/vulnerability-exceptions.json` entries are risk acceptances), a Debian fix, or an image change — the gate was **not** bypassed. The branch is kept current with `main`. The PostgreSQL migration has only been verified in CI-style tests, never on a production database; applying it needs separately approved release authority.
-2. **Custom period for Overview and Energy history.** Both pages are bound to fixed rolling presets with a live tail; a historical custom window needs its own no-tail mode in `use-dashboard-telemetry` / `use-energy-telemetry`. Not delivered; presets and labels are unified.
+2. **Custom period on Overview and Energy history (#1683)** is delivered as a fixed window (no live tail, never claims liveness, 31-day limit). It is covered by unit/hook tests only — it has not been exercised in a real browser against a seeded stack.
 3. **Server-side downsampling for very long ranges × many channels** is a backend decision; clients still load raw history per channel (7 d × 8 series ≈ 600 k raw samples: 2.7 s on a desktop).
 4. **Overview/Live/Energy/Refrigeration real-data acceptance** (alerts, lanes, scale) needs the site.
 

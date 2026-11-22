@@ -5,8 +5,11 @@ export type ChartMeasurementQuality = TelemetryQuality;
 /**
  * "invalid" = the channel is reporting, but its newest sample has no valid measurement
  * (unknown / sensor_error / communication_error). It must never be presented as "live".
+ * "historical" = the series belongs to a fixed custom period (#1683): it has no liveness at all,
+ * so it is neither "live" nor "stale".
  */
-export type ChartFreshnessState = "live" | "stale" | "invalid" | "connecting" | "reconnecting" | "offline";
+export type ChartFreshnessState =
+  "live" | "stale" | "invalid" | "connecting" | "reconnecting" | "offline" | "historical";
 
 /** The true newest sample of a series, including non-plottable quality (legend/inspector truth). */
 export interface ChartSeriesLatest {

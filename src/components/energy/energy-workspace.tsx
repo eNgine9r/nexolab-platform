@@ -44,10 +44,16 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
-import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
+import type { EnergyHistoryPreset, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
+import { CustomHistoryRangeForm } from "@/components/charts/custom-history-range-form";
+import {
+  CUSTOM_HISTORY_FIXED_NOTICE,
+  CUSTOM_HISTORY_RANGE_LABEL,
+  formatCustomHistoryWindow,
+} from "@/features/charts/custom-history-range";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
+const HISTORY_RANGES: Array<{ value: EnergyHistoryPreset; label: string }> = [
   { value: "1h", label: "1 година" },
   { value: "6h", label: "6 годин" },
   { value: "24h", label: "24 години" },
@@ -262,6 +268,11 @@ function HistoryPanel({
   onDensityChange?: (mode: ChartDensityMode) => void;
 }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const displayTimeZone = useDisplayTimeZone();
+  const customSelected = telemetry.historyRange === "custom";
+  const rangeButtonClass = (active: boolean) =>
+    `min-h-10 rounded-xl border px-3 py-2 text-[10px] transition ${active ? "border-blue-400/35 bg-blue-500/15 text-blue-200" : "border-white/[0.07] text-slate-500 hover:text-slate-200"}`;
   const visiblePairs = selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId));
   const validPairKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -312,16 +323,46 @@ function HistoryPanel({
               <button
                 key={range.value}
                 type="button"
-                onClick={() => telemetry.setHistoryRange(range.value)}
+                onClick={() => {
+                  setCustomOpen(false);
+                  telemetry.setHistoryRange(range.value);
+                }}
                 aria-pressed={telemetry.historyRange === range.value}
-                className={`min-h-10 rounded-xl border px-3 py-2 text-[10px] transition ${telemetry.historyRange === range.value ? "border-blue-400/35 bg-blue-500/15 text-blue-200" : "border-white/[0.07] text-slate-500 hover:text-slate-200"}`}
+                className={rangeButtonClass(telemetry.historyRange === range.value)}
               >
                 {range.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setCustomOpen(true)}
+              aria-pressed={customSelected}
+              className={rangeButtonClass(customSelected)}
+            >
+              {CUSTOM_HISTORY_RANGE_LABEL}
+            </button>
           </div>
         </div>
       </div>
+      {customOpen ? (
+        <CustomHistoryRangeForm
+          testId="energy-custom-range-form"
+          initialWindow={telemetry.historyWindow}
+          onApply={(fromMs, toMs) => {
+            telemetry.applyCustomHistoryRange(fromMs, toMs);
+            setCustomOpen(false);
+          }}
+          onCancel={() => setCustomOpen(false)}
+        />
+      ) : null}
+      {customSelected ? (
+        <p className="mt-3 text-xs text-slate-400" data-testid="energy-custom-range-notice">
+          {telemetry.historyWindow
+            ? `${formatCustomHistoryWindow(telemetry.historyWindow, displayTimeZone)} · `
+            : null}
+          {CUSTOM_HISTORY_FIXED_NOTICE}
+        </p>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-2" aria-label="Вибрані параметри графіка">
         {visiblePairs.map((pair) => {
           const metric = ENERGY_METRICS.find((item) => item.id === pair.metric)!;

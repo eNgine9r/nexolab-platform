@@ -177,4 +177,38 @@ describe("Overview canonical chart mapping", () => {
     expect(domain.toMs).toBe(BASE + 15_000);
     expect(domain.toMs - domain.fromMs).toBe(60 * 60 * 1_000);
   });
+
+  it("shows a custom period exactly as requested, never stretched by a later sample (#1683)", () => {
+    const window = {
+      from: new Date(BASE - 3 * 60 * 60 * 1_000).toISOString(),
+      to: new Date(BASE).toISOString(),
+    };
+    const domain = overviewResetDomain("custom", window, [sample("after-window", 15_000, 4.3)]);
+
+    expect(domain).toEqual({ fromMs: BASE - 3 * 60 * 60 * 1_000, toMs: BASE });
+  });
+
+  it("never labels a series of a fixed custom period as live, even when its last sample is recent", () => {
+    const build = (historical: boolean) =>
+      buildOverviewChartGroups({
+        samples: [sample("a", 0, 4.1), sample("b", 5_000, 4.2)],
+        status: "live",
+        xDomain: { fromMs: BASE - 60_000, toMs: BASE + 5_000 },
+        now: BASE + 6_000,
+        historical,
+      })[0].scene.series[0];
+
+    expect(build(false).freshness).toBe("live");
+    const historical = build(true);
+    expect(historical.freshness).toBe("historical");
+    expect(historical.freshUntilMs).toBeUndefined();
+
+    const invalidNewest = buildOverviewChartGroups({
+      samples: [sample("a", 0, 4.1), sample("err", 5_000, null, "sensor_error")],
+      status: "live",
+      xDomain: { fromMs: BASE - 60_000, toMs: BASE + 5_000 },
+      historical: true,
+    })[0].scene.series[0];
+    expect(invalidNewest.freshness).toBe("invalid");
+  });
 });

@@ -7,6 +7,11 @@ import {
   type EnergyCadenceAuthority,
 } from "@/features/energy/energy-cadence-authority";
 import type { IntervalStatistics } from "@/features/charts/interval-statistics";
+import {
+  customHistoryRangeKey,
+  resolveCustomHistoryWindow,
+  type CustomHistoryWindow,
+} from "@/features/charts/custom-history-range";
 import { EnergyRawStatistics } from "@/features/energy/energy-raw-statistics";
 import {
   resolveChartPointBudget,
@@ -78,7 +83,9 @@ const TERMINAL_STARTUP_STATES = new Set<TelemetryConnectionState>([
   "configuration_error",
 ]);
 
-export type EnergyHistoryRange = keyof typeof HISTORY_HOURS;
+export type EnergyHistoryPreset = keyof typeof HISTORY_HOURS;
+/** "custom" = a fixed operator-chosen window (#1683): no live tail, no advance, no retention cache. */
+export type EnergyHistoryRange = EnergyHistoryPreset | "custom";
 export type EnergyHistoryStatus = "idle" | "loading" | "ready" | "error";
 export interface EnergyHistoryWindow {
   from: string;
@@ -121,7 +128,12 @@ export interface EnergyTelemetryModel {
   selectedMetric: EnergyMetricId;
   setSelectedMetric: (metric: EnergyMetricId) => void;
   historyRange: EnergyHistoryRange;
-  setHistoryRange: (range: EnergyHistoryRange) => void;
+  setHistoryRange: (range: EnergyHistoryPreset) => void;
+  /**
+   * Selects a fixed custom period (#1683). Throws an operator-facing Ukrainian message when the
+   * period is invalid (start not before end, longer than 31 days, starting in the future).
+   */
+  applyCustomHistoryRange: (fromMs: number | null, toMs: number | null) => void;
   historyWindow: EnergyHistoryWindow | null;
   historySamples: TelemetrySample[];
   historyStatus: EnergyHistoryStatus;
@@ -152,7 +164,7 @@ function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string |
   });
 }
 
-function historyWindow(range: EnergyHistoryRange, to = new Date()): { from: Date; to: Date } {
+function historyWindow(range: EnergyHistoryPreset, to = new Date()): { from: Date; to: Date } {
   return {
     from: new Date(to.getTime() - HISTORY_HOURS[range] * 60 * 60 * 1000),
     to,
@@ -211,7 +223,19 @@ export function useEnergyTelemetry({
     [densityMode, selectedMetrics.length],
   );
   const pointsPerSeries = densityResolution.perSeries;
-  const [historyRange, setHistoryRange] = useState<EnergyHistoryRange>("24h");
+  const [historyRange, setHistoryRangeState] = useState<EnergyHistoryRange>("24h");
+  const [customWindow, setCustomWindow] = useState<CustomHistoryWindow | null>(null);
+  const setHistoryRange = useCallback((range: EnergyHistoryPreset) => setHistoryRangeState(range), []);
+  const applyCustomHistoryRange = useCallback((fromMs: number | null, toMs: number | null) => {
+    const next = resolveCustomHistoryWindow(fromMs, toMs);
+    setCustomWindow(next);
+    setHistoryRangeState("custom");
+  }, []);
+  const activeCustomWindow = historyRange === "custom" ? customWindow : null;
+  // Presets keep their bare keys (retention + raw statistics); a custom window gets its own key.
+  const historyRangeKey =
+    activeCustomWindow !== null ? customHistoryRangeKey(activeCustomWindow) : historyRange;
+  const historyFixed = historyRange === "custom";
   const [historyWindowState, setHistoryWindow] = useState<EnergyHistoryWindow | null>(null);
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
   const [historyStatus, setHistoryStatus] = useState<EnergyHistoryStatus>(
@@ -234,9 +258,9 @@ export function useEnergyTelemetry({
             nodeId: ENERGY_NODE_ID,
             metric: selectedMetrics.join("|"),
             // The reduced history depends on the budget, so it must never be reused across budgets.
-            range: `${historyRange}|p${pointsPerSeries}`,
+            range: `${historyRangeKey}|p${pointsPerSeries}`,
           },
-    [historyRange, pointsPerSeries, scopeKey, securityScopeKey, selectedMetrics],
+    [historyRangeKey, pointsPerSeries, scopeKey, securityScopeKey, selectedMetrics],
   );
   const historyKey = historyRetention === null ? null : energyHistoryRetentionKey(historyRetention);
   const storeRef = useRef(store);
@@ -248,10 +272,11 @@ export function useEnergyTelemetry({
   const historySamplesRef = useRef(historySamples);
   const selectedMetricsRef = useRef(selectedMetrics);
   const historyRangeRef = useRef(historyRange);
+  const historyRangeKeyRef = useRef(historyRangeKey);
   const rawStatisticsRef = useRef(new EnergyRawStatistics());
   const intervalStatistics = useCallback(
     (seriesKey: string, metric: string, fromMs: number, toMs: number) =>
-      rawStatisticsRef.current.statistics(historyRangeRef.current, seriesKey, metric, fromMs, toMs),
+      rawStatisticsRef.current.statistics(historyRangeKeyRef.current, seriesKey, metric, fromMs, toMs),
     [],
   );
   const historyKeyRef = useRef(historyKey);
@@ -404,6 +429,7 @@ export function useEnergyTelemetry({
     historySamplesRef.current = historySamples;
     selectedMetricsRef.current = selectedMetrics;
     historyRangeRef.current = historyRange;
+    historyRangeKeyRef.current = historyRangeKey;
     historyKeyRef.current = historyKey;
     historyRetentionRef.current = historyRetention;
     activeHistoryKeyRef.current = activeHistoryKey;
@@ -412,6 +438,7 @@ export function useEnergyTelemetry({
     activeHistoryKey,
     historyKey,
     historyRange,
+    historyRangeKey,
     historyRetention,
     historySamples,
     historyWindowState,
@@ -433,10 +460,14 @@ export function useEnergyTelemetry({
         return;
       }
 
+      // A fixed custom period never follows the wall clock and never drops its front.
+      const range = historyRangeRef.current;
+      if (range === "custom") return;
+
       const currentTo = Date.parse(currentWindow.to);
       if (!Number.isFinite(currentTo) || now <= currentTo) return;
 
-      const rangeMs = HISTORY_HOURS[historyRangeRef.current] * 60 * 60 * 1000;
+      const rangeMs = HISTORY_HOURS[range] * 60 * 60 * 1000;
       const nextWindow = {
         from: new Date(now - rangeMs).toISOString(),
         to: new Date(now).toISOString(),
@@ -547,7 +578,10 @@ export function useEnergyTelemetry({
         return reconciliation.samples;
       });
       const currentWindow = historyWindowRef.current;
+      const liveRange = historyRangeRef.current;
+      // A fixed custom period never receives live samples: no append, no advance, no prune.
       if (
+        liveRange !== "custom" &&
         tail.length > 0 &&
         currentWindow !== null &&
         activeHistoryKeyRef.current === historyKeyRef.current
@@ -556,15 +590,15 @@ export function useEnergyTelemetry({
         const capturedTimes = tail.map((sample) => Date.parse(sample.captured_at)).filter(Number.isFinite);
         const latestCapturedAt = capturedTimes.length > 0 ? Math.max(...capturedTimes) : currentTo;
         const nextTo = Math.max(currentTo, latestCapturedAt);
-        const rangeMs = HISTORY_HOURS[historyRangeRef.current] * 60 * 60 * 1000;
+        const rangeMs = HISTORY_HOURS[liveRange] * 60 * 60 * 1000;
         const nextWindow = {
           from: new Date(nextTo - rangeMs).toISOString(),
           to: new Date(nextTo).toISOString(),
         };
         historyWindowRef.current = nextWindow;
         setHistoryWindow(nextWindow);
-        rawStatisticsRef.current.append(historyRangeRef.current, tail);
-        rawStatisticsRef.current.prune(historyRangeRef.current, Date.parse(nextWindow.from));
+        rawStatisticsRef.current.append(liveRange, tail);
+        rawStatisticsRef.current.prune(liveRange, Date.parse(nextWindow.from));
         setHistorySamples((current) => {
           const activeCadenceAuthority =
             cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
@@ -675,20 +709,28 @@ export function useEnergyTelemetry({
       selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
     const adapter = securedAdapter(config, resolvedOrganizationId);
     const cadenceAuthority = cadenceAuthorityState.authority;
-    const requested = historyWindow(historyRange);
+    // A custom period is loaded exactly as requested, in full, every time: it never seeds from or
+    // writes to the retention cache, so its raw statistics always cover the whole window.
+    let requested: { from: Date; to: Date };
+    if (historyRange !== "custom") requested = historyWindow(historyRange);
+    else if (activeCustomWindow !== null) {
+      requested = { from: new Date(activeCustomWindow.from), to: new Date(activeCustomWindow.to) };
+    } else return;
     const requestedWindow = { from: requested.from.toISOString(), to: requested.to.toISOString() };
     const cadenceAuthorityFingerprint = cadenceAuthority?.fingerprint ?? null;
     // Only this authenticated scope's metric caches may seed a changed selection.
-    const seededSamples = selectedMetrics.flatMap((metric) => {
-      const key = { ...historyRetention, metric };
-      const entry = readRetainedEnergyHistory(key);
-      if (entry && entry.cadenceAuthorityFingerprint !== cadenceAuthorityFingerprint) {
-        invalidateEnergyComparisonHistory(key, [metric]);
-        return [];
-      }
-      return entry?.samples ?? [];
-    });
-    const retained = readEnergyComparisonHistory(historyRetention, selectedMetrics);
+    const seededSamples = historyFixed
+      ? []
+      : selectedMetrics.flatMap((metric) => {
+          const key = { ...historyRetention, metric };
+          const entry = readRetainedEnergyHistory(key);
+          if (entry && entry.cadenceAuthorityFingerprint !== cadenceAuthorityFingerprint) {
+            invalidateEnergyComparisonHistory(key, [metric]);
+            return [];
+          }
+          return entry?.samples ?? [];
+        });
+    const retained = historyFixed ? null : readEnergyComparisonHistory(historyRetention, selectedMetrics);
     const seed = mergeEnergyComparisonHistory(
       seededSamples,
       [],
@@ -750,14 +792,20 @@ export function useEnergyTelemetry({
         // existing base. Metrics whose read failed are never marked as covered.
         const coveredMetrics = selectedMetrics.filter((metric) => !errors[metric]);
         if (deltaFromMs === requested.from.getTime()) {
+          // Only the current custom period keeps a raw base; superseded ones are released.
+          if (historyFixed) {
+            rawStatisticsRef.current.discard(
+              (rangeKey) => rangeKey.startsWith("custom:") && rangeKey !== historyRangeKey,
+            );
+          }
           rawStatisticsRef.current.replace(
-            historyRange,
+            historyRangeKey,
             requested.from.getTime(),
             rawCollected,
             coveredMetrics,
           );
-        } else if (rawStatisticsRef.current.hasBase(historyRange)) {
-          rawStatisticsRef.current.append(historyRange, rawCollected);
+        } else if (rawStatisticsRef.current.hasBase(historyRangeKey)) {
+          rawStatisticsRef.current.append(historyRangeKey, rawCollected);
         }
         const currentWindow = historyWindowRef.current ?? requestedWindow;
         setHistorySamples((current) => {
@@ -770,17 +818,19 @@ export function useEnergyTelemetry({
             pointsPerSeriesRef.current,
           );
           historySamplesRef.current = next;
-          retainEnergyComparisonHistory(
-            historyRetention,
-            selectedMetrics,
-            {
-              window: currentWindow,
-              loadedThrough: requestedWindow.to,
-              cadenceAuthorityFingerprint,
-              samples: next,
-            },
-            errors,
-          );
+          if (!historyFixed) {
+            retainEnergyComparisonHistory(
+              historyRetention,
+              selectedMetrics,
+              {
+                window: currentWindow,
+                loadedThrough: requestedWindow.to,
+                cadenceAuthorityFingerprint,
+                samples: next,
+              },
+              errors,
+            );
+          }
           return next;
         });
         const failed = Object.keys(errors).length;
@@ -796,11 +846,14 @@ export function useEnergyTelemetry({
       });
     return cleanup;
   }, [
+    activeCustomWindow,
     cadenceAuthorityState,
     enabled,
+    historyFixed,
     historyGeneration,
     historyKey,
     historyRange,
+    historyRangeKey,
     historyRetention,
     liveCoverageScopeKey,
     runtime.config,
@@ -908,6 +961,7 @@ export function useEnergyTelemetry({
       setSelectedMetric,
       historyRange,
       setHistoryRange,
+      applyCustomHistoryRange,
       historyWindow: null,
       historySamples: [],
       historyStatus: "error",
@@ -933,6 +987,7 @@ export function useEnergyTelemetry({
       setSelectedMetric,
       historyRange,
       setHistoryRange,
+      applyCustomHistoryRange,
       historyWindow: null,
       historySamples: [],
       historyStatus: "idle",
@@ -991,6 +1046,7 @@ export function useEnergyTelemetry({
     setSelectedMetric,
     historyRange,
     setHistoryRange,
+    applyCustomHistoryRange,
     historyWindow: currentHistoryWindow,
     historySamples: currentHistorySamples,
     historyStatus: currentHistoryStatus,

@@ -58,6 +58,7 @@ function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
     setSelectedMetric: vi.fn(),
     historyRange: "7d",
     setHistoryRange: vi.fn(),
+    applyCustomHistoryRange: vi.fn(),
     historyWindow: null,
     historySamples: [],
     historyStatus: "ready",
@@ -240,4 +241,50 @@ it("removing the Solo parameter reveals the remaining selected series", async ()
   fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Прибрати W1 · Напруга" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
+});
+
+describe("Energy custom history period (#1683)", () => {
+  it("offers the unified presets plus a custom period and applies the entered window", () => {
+    const applyCustomHistoryRange = vi.fn();
+    setup({ applyCustomHistoryRange });
+
+    for (const label of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Власний період" }));
+    fireEvent.change(screen.getByLabelText("Від"), { target: { value: "2026-11-10T08:00" } });
+    fireEvent.change(screen.getByLabelText("До"), { target: { value: "2026-11-10T10:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    expect(applyCustomHistoryRange).toHaveBeenCalledOnce();
+    const [fromMs, toMs] = applyCustomHistoryRange.mock.calls[0] as [number, number];
+    expect(toMs - fromMs).toBe(2 * 60 * 60 * 1000);
+    expect(screen.queryByTestId("energy-custom-range-form")).not.toBeInTheDocument();
+  });
+
+  it("shows the validation message and keeps the form open when the period is rejected", () => {
+    const applyCustomHistoryRange = vi.fn(() => {
+      throw new Error("Діапазон не може перевищувати 31 день.");
+    });
+    setup({ applyCustomHistoryRange });
+
+    fireEvent.click(screen.getByRole("button", { name: "Власний період" }));
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Діапазон не може перевищувати 31 день.");
+    expect(screen.getByTestId("energy-custom-range-form")).toBeInTheDocument();
+  });
+
+  it("marks a selected custom period as fixed so no one expects live samples in it", () => {
+    setup({
+      historyRange: "custom",
+      historyWindow: { from: "2026-11-10T08:00:00.000Z", to: "2026-11-10T10:00:00.000Z" },
+    });
+
+    expect(screen.getByRole("button", { name: "Власний період" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "7 днів" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("energy-custom-range-notice")).toHaveTextContent(
+      "Фіксований період: нові вимірювання не додаються",
+    );
+  });
 });
