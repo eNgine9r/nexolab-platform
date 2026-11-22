@@ -11999,9 +11999,9 @@
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
-        "local_checks": "41 + health-gate tests; 285 combined DR/classifier tests passed on Linux",
+        "local_checks": "41 + health-gate tests; 285 combined DR/classifier tests passed on Linux; #1702 fixes the gate that still expected the legacy PRESERVED value (found after #1697)",
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
-        "source_merge": "PR #1695 (94f8f9cb), PR #1698 (09fd371b)"
+        "source_merge": "PR #1695 (94f8f9cb), PR #1698 (09fd371b), PR #1702 (b415985f: the gate accepts the restore tool's metadata fidelity OK)"
       },
       "branch": "feat/1632-dr-isolated-restore"
     },
