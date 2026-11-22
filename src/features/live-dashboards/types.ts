@@ -26,6 +26,18 @@ export interface LiveDashboardItem {
   display_unit: string | null;
 }
 
+/** Saved analysis view (#1666); mirrors the backend `view_settings` JSON. */
+export interface LiveDashboardViewSettings {
+  schema_version: number;
+  hidden_items: string[];
+  range_kind: "1h" | "6h" | "24h" | "7d" | "30d" | "custom" | null;
+  range_from: string | null;
+  range_to: string | null;
+  viewport_from: string | null;
+  viewport_to: string | null;
+  density: "auto" | 250 | 500 | 1000 | 2500 | 5000 | null;
+}
+
 export interface LiveDashboard {
   id: string;
   organization_id: string;
@@ -43,6 +55,7 @@ export interface LiveDashboard {
   archived_by: string | null;
   archived_at: string | null;
   items: LiveDashboardItem[];
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardCollection {
@@ -69,6 +82,8 @@ export interface LiveDashboardWrite {
   refresh_seconds: LiveDashboardRefreshSeconds;
   time_window: LiveDashboardTimeWindow;
   items: LiveDashboardItemWrite[];
+  /** Omitted keeps the stored view (older clients); null clears it. */
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardVersioned<T = LiveDashboard> {
@@ -93,6 +108,8 @@ export interface LiveDashboardDraft {
   items: LiveDashboardDraftItem[];
   version: number | null;
   etag: string | null;
+  /** Set only when the view is being saved or cleared; absent keeps the stored view. */
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardValidation {

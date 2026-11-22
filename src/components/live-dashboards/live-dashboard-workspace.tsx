@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
 
 import {
+  isChartDensityMode,
   readStoredChartDensity,
   resolveChartPointBudget,
   storeChartDensity,
@@ -15,6 +16,7 @@ import {
   validateLiveDashboardDraft,
 } from "@/features/live-dashboards/model";
 import type {
+  LiveDashboardViewSettings,
   LiveDashboard,
   LiveDashboardDraft,
   LiveDashboardWorkspaceMode,
@@ -60,6 +62,7 @@ export function LiveDashboardWorkspace({
     includeObserved: true,
     organizationId,
   });
+  const viewEtagRef = useRef<string | null>(null);
   const [density, setDensity] = useState<ChartDensityMode>(() => readStoredChartDensity("saved-dashboard"));
   const plottedSeriesCount =
     activeDashboard?.items.filter((item) => item.visualization === "line" || item.visualization === "area")
@@ -119,11 +122,28 @@ export function LiveDashboardWorkspace({
     try {
       const latest = await library.get(dashboard.id);
       setActiveDashboard(latest.value);
+      viewEtagRef.current = latest.etag;
+      // A saved analysis view carries its own chart detail; otherwise the per-browser preference stays.
+      const savedDensity = latest.value.view_settings?.density;
+      if (isChartDensityMode(savedDensity)) setDensity(savedDensity);
       setConflict(null);
       setMode("live");
     } catch (error) {
       setOperationError(error instanceof Error ? error : new Error("Dashboard не вдалося відкрити."));
     }
+  };
+
+  // Saving the analysis view bumps the server version. The live view is deliberately NOT re-created
+  // (it would reload telemetry and drop the current zoom), so the latest ETag is tracked here.
+  const saveAnalysisView = async (settings: LiveDashboardViewSettings | null) => {
+    if (!canManage || !activeDashboard) throw new Error("Немає прав для збереження вигляду.");
+    const draft = {
+      ...dashboardToDraft(activeDashboard, viewEtagRef.current ?? undefined),
+      view_settings: settings,
+    };
+    const result = await library.save(draft);
+    if (result.conflict || !result.saved) throw new Error("Dashboard змінено іншим оператором.");
+    viewEtagRef.current = result.saved.etag;
   };
 
   const saveDashboard = async () => {
@@ -297,6 +317,7 @@ export function LiveDashboardWorkspace({
           canManage={canManage}
           onBack={returnToLibrary}
           onEdit={() => void editDashboard(activeDashboard)}
+          onSaveView={saveAnalysisView}
         />
       ) : null}
     </div>
