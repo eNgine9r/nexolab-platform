@@ -8,6 +8,9 @@ import { CalendarRange, Download, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { useMemo, useState } from "react";
 
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { applyAlertAnnotations } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import {
@@ -52,10 +55,11 @@ import {
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 
 const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
-  { id: "1h", label: "1 год" },
-  { id: "12h", label: "12 год" },
-  { id: "24h", label: "24 год" },
-  { id: "custom", label: "Кастом" },
+  { id: "1h", label: "1 година" },
+  { id: "6h", label: "6 годин" },
+  { id: "24h", label: "24 години" },
+  { id: "7d", label: "7 днів" },
+  { id: "custom", label: "Власний період" },
 ];
 
 /** Upper bound of simultaneously plotted series: 2 operator-°C pairs, 2 raw probes, compressor. */
@@ -181,6 +185,24 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         pointsPerSeries,
       ),
     [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
+  );
+  const alertEvents = useDashboardAlertEvents({
+    enabled: controller.binding !== null,
+    rangeKey: `refrigeration:${controller.binding?.controllerEquipmentId ?? ""}:${controller.range.from.toISOString()}:${controller.range.to.toISOString()}`,
+  });
+  // Open alerts extend to the end of the shown range (deterministic, no wall clock in render).
+  const evaluationNowMs = controller.range.to.getTime();
+  const annotatedTemperatureScene = useMemo(
+    () => applyAlertAnnotations(temperatureScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, temperatureScene],
+  );
+  const annotatedProbeRawScene = useMemo(
+    () => applyAlertAnnotations(probeRawScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, probeRawScene],
+  );
+  const annotatedCompressorScene = useMemo(
+    () => applyAlertAnnotations(compressorScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, compressorScene],
   );
   // Exact statistics come from the RAW history, not from the reduced chart series (#1675).
   const temperatureStatisticsRows = useMemo(
@@ -540,7 +562,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         title="Температури контролера · °C"
         context="Температура в об’ємі · Датчик відтайки · попередній коефіцієнт 0,01"
         rangeLabel={chartRangeLabel}
-        scene={temperatureScene}
+        scene={annotatedTemperatureScene}
         afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
         {...chartInteractions}
         emptyMessage="У вибраному періоді немає показників двох датчиків для перерахунку °C."
@@ -568,7 +590,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         title="Діагностика · вихідні raw"
         context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"
         rangeLabel={chartRangeLabel}
-        scene={probeRawScene}
+        scene={annotatedProbeRawScene}
         {...chartInteractions}
         emptyMessage="За вибраний період немає вихідних регістрів двох датчиків."
       />
@@ -576,10 +598,19 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         title="Швидкість компресора"
         context="Embraco Sync · rpm"
         rangeLabel={chartRangeLabel}
-        scene={compressorScene}
+        scene={annotatedCompressorScene}
         afterPlot={temperatureScene.series.length ? undefined : timelineLanes}
         {...chartInteractions}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
+      />
+
+      <DashboardAlertEvents
+        events={[annotatedTemperatureScene, annotatedProbeRawScene, annotatedCompressorScene].flatMap(
+          (scene) => scene.events ?? [],
+        )}
+        status={alertEvents.status}
+        message={alertEvents.message}
+        displayTimeZone={displayTimeZone}
       />
 
       <section className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#081a32] px-4 pb-4">

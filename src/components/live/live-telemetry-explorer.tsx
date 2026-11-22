@@ -35,6 +35,7 @@ import { buildLiveStatisticsRows } from "@/features/live/live-interval-statistic
 import { HttpChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+import { displayUnit } from "@/features/charts/units";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import {
   CANONICAL_CHART_TIME_RANGES,
@@ -120,7 +121,7 @@ function formatValue(sample: TelemetrySample): string {
   if (sample.value === null || !Number.isFinite(sample.value)) return "—";
   const absolute = Math.abs(sample.value);
   const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
-  return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
+  return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${displayUnit(sample.unit)}`;
 }
 
 function formatTimestamp(value: string, displayTimeZone: string): string {
@@ -631,7 +632,7 @@ export function LiveTelemetryExplorer({
                 >
                   {sample.equipment_id} ·{" "}
                   {commissionedNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id} ·{" "}
-                  {sample.metric} · {sample.unit}
+                  {sample.metric} · {displayUnit(sample.unit)}
                 </span>
               ))}
               {selected.length > 6 ? (

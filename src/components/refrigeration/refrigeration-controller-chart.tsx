@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { flipExpiredSeries } from "@/features/charts/series-freshness";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { downloadChartPng } from "@/components/charts/chart-png-export";
@@ -41,18 +42,24 @@ export function RefrigerationControllerChart({
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [solo, setSolo] = useState<string | null>(null);
 
+  // The clock only flips silent series to stale; it never rebuilds the scene (#1677).
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
   const scene = useMemo(
     () => ({
       ...baseScene,
       xDomain: viewportDomain,
       rangeSelectionEnabled: true,
       rangeSelection,
-      series: baseScene.series.map((series) => {
+      series: flipExpiredSeries(baseScene.series, clockMs).map((series) => {
         const key = chartSeriesKey(series.identity);
         return { ...series, visible: solo ? key === solo : !hidden.has(key) };
       }),
     }),
-    [baseScene, hidden, rangeSelection, solo, viewportDomain],
+    [baseScene, clockMs, hidden, rangeSelection, solo, viewportDomain],
   );
   const inspection = useMemo(
     () =>
@@ -88,6 +95,7 @@ export function RefrigerationControllerChart({
         context={context}
         selectedRange={rangeLabel}
         series={scene.series}
+        requestedWindow={baseScene.xDomain}
         inspection={inspection}
         onToggleSeries={(key) => {
           setSolo(null);

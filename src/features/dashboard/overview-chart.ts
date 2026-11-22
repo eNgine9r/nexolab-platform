@@ -14,7 +14,11 @@ import {
   observedCadenceMs,
   resolveLiveFreshness,
 } from "@/features/live/freshness";
-import { resolveSeriesFreshness, type SeriesFreshness } from "@/features/charts/series-freshness";
+import {
+  historicalSeriesFreshness,
+  resolveSeriesFreshness,
+  type SeriesFreshness,
+} from "@/features/charts/series-freshness";
 import { groupCompatibleChartUnits, type ChartUnitGroup } from "@/features/charts/units";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
@@ -24,9 +28,12 @@ const HISTORY_RANGE_MS = {
   "1h": 60 * 60 * 1_000,
   "6h": 6 * 60 * 60 * 1_000,
   "24h": 24 * 60 * 60 * 1_000,
+  "7d": 7 * 24 * 60 * 60 * 1_000,
 } as const;
 
-export type OverviewHistoryRange = keyof typeof HISTORY_RANGE_MS;
+export type OverviewHistoryPreset = keyof typeof HISTORY_RANGE_MS;
+/** "custom" = a fixed operator-chosen window (#1683); its bounds come from the history window. */
+export type OverviewHistoryRange = OverviewHistoryPreset | "custom";
 
 export interface OverviewChartGroup {
   id: string;
@@ -43,6 +50,8 @@ export interface OverviewChartBuildOptions {
   soloSeriesKey?: string | null;
   /** Evaluation clock for per-series freshness (epoch ms). Defaults to `Date.now()` at build. */
   now?: number;
+  /** A fixed custom period (#1683): series have no liveness and are labelled historical. */
+  historical?: boolean;
 }
 
 function timestamp(sample: TelemetrySample): number {
@@ -79,8 +88,16 @@ function overviewSeriesFreshness(
   status: DashboardTelemetryStatus,
   samples: readonly TelemetrySample[],
   now: number,
+  historical: boolean,
 ): SeriesFreshness {
   const latest = samples.at(-1);
+  if (historical) {
+    return historicalSeriesFreshness(
+      latest
+        ? { valid: latest.quality === "valid" && latest.value !== null && Number.isFinite(latest.value) }
+        : null,
+    );
+  }
   const recent = [...new Set(samples.map(timestamp))].slice(-CADENCE_OBSERVATION_LIMIT);
   return resolveSeriesFreshness({
     page: overviewChartFreshness(status),
@@ -116,6 +133,7 @@ function buildSeries(
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
   now: number,
+  historical: boolean,
 ): ChartSeries {
   const samples = orderedUniqueSamples(source);
   const firstSample = samples[0];
@@ -140,7 +158,7 @@ function buildSeries(
     colorToken: token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
-    ...overviewSeriesFreshness(status, samples, now),
+    ...overviewSeriesFreshness(status, samples, now, historical),
     segments: reduceTruthfully(segments),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: "instantaneous",
@@ -178,6 +196,7 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
       hiddenSeriesKeys,
       soloSeriesKey,
       evaluationNow,
+      options.historical ?? false,
     );
     const { channelId, nodeId, equipmentId } = built.identity;
     const ambiguous = (channelIdCounts.get(channelId) ?? 0) > 1;
@@ -224,6 +243,14 @@ export function overviewResetDomain(
   historyWindow: { from: string; to: string } | null,
   samples: readonly TelemetrySample[],
 ): ChartXDomain {
+  if (range === "custom") {
+    // A fixed period is shown exactly as requested: no sample may stretch or shift it.
+    const fromMs = historyWindow ? Date.parse(historyWindow.from) : Number.NaN;
+    const toMs = historyWindow ? Date.parse(historyWindow.to) : Number.NaN;
+    if (Number.isFinite(fromMs) && Number.isFinite(toMs) && toMs > fromMs) return { fromMs, toMs };
+    const now = Date.now();
+    return { fromMs: now - HISTORY_RANGE_MS["1h"], toMs: now };
+  }
   const sampleAnchor = samples
     .filter(isTemperatureProbeSample)
     .reduce((latest, sample) => Math.max(latest, timestamp(sample)), Number.NEGATIVE_INFINITY);

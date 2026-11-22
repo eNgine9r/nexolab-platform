@@ -259,6 +259,56 @@ describe("useDashboardTelemetry", () => {
     expect(result.current.historySamples).toEqual([]);
   });
 
+  it("loads a custom period as a fixed window that live samples never extend (#1683)", async () => {
+    const toMs = Date.now() - 2 * 60 * 60 * 1000;
+    const fromMs = toMs - 3 * 60 * 60 * 1000;
+    const inside = {
+      ...sample,
+      event_id: "inside-custom",
+      captured_at: new Date(toMs - 60_000).toISOString(),
+    };
+    adapterState.history.mockResolvedValue(historyResponse([inside]));
+
+    const { result } = renderHook(() => useDashboardTelemetry());
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+
+    act(() => {
+      result.current.applyCustomHistoryRange(fromMs, toMs);
+    });
+    await waitFor(() => {
+      expect(result.current.historyRange).toBe("custom");
+      expect(result.current.historyStatus).toBe("ready");
+      expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["inside-custom"]);
+    });
+    const customQuery = adapterState.history.mock.calls.at(-1)?.[0] as TelemetryHistoryQuery;
+    expect(new Date(customQuery.from).getTime()).toBe(fromMs);
+    expect(new Date(customQuery.to).getTime()).toBe(toMs);
+    const expectedWindow = { from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() };
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+
+    const handlers = adapterState.handlers as TelemetryLiveHandlers;
+    act(() => {
+      handlers.onSample({ ...sample, event_id: "live-after-window", captured_at: new Date().toISOString() });
+    });
+    await waitFor(() => expect(result.current.status).toBe("live"));
+    expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["inside-custom"]);
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+  });
+
+  it("rejects an invalid custom period with an operator message and keeps the preset", async () => {
+    const { result } = renderHook(() => useDashboardTelemetry());
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    const now = Date.now();
+
+    expect(() => result.current.applyCustomHistoryRange(now - 1_000, now - 2_000)).toThrow(
+      "Початок діапазону має бути раніше завершення.",
+    );
+    expect(() => result.current.applyCustomHistoryRange(now - 32 * 24 * 60 * 60 * 1000, now)).toThrow(
+      "Діапазон не може перевищувати 31 день.",
+    );
+    expect(result.current.historyRange).toBe("24h");
+  });
+
   it("hides history immediately when the organization scope changes", async () => {
     const { result, rerender } = renderHook(
       ({ organizationId }) => useDashboardTelemetry({ enabled: true, organizationId }),

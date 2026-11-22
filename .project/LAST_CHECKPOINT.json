@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T07:26:21Z",
+  "timestamp": "2026-11-22T09:55:33Z",
   "actor": "Claude",
-  "event": "1668_energy_refrigeration_density_pr",
+  "event": "xweb_chart_programme_source_complete",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,12 +30,7 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": {
-    "issue": 1668,
-    "branch": "feat/1668-energy-refrigeration-density",
-    "status": "review",
-    "site_cutover": false
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -5457,7 +5452,7 @@
       }
     }
   ],
-  "next_action": "WP-N Energy raw statistics, WP-P Live device selection, WP-Q freshness/events/ranges, WP-R exports, WP-S acceptance. Backend-classified PRs wait for the HIGH CVE risk-owner decision (BLOCKERS).",
+  "next_action": "Product Owner decisions: (1) risk-owner decision for HIGH CVE-2026-124709 so PR #1667 (saved analysis view API) can merge, (2) approve a frontend-only Raspberry Pi release using docs/operations/chart-programme-release-candidate.md, then measure density on the Pi and run the signed-in browser acceptance. No deployment, migration or hardware action was performed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

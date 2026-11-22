@@ -230,6 +230,7 @@ export function DashboardShell() {
                     historyWindow={telemetry.historyWindow}
                     historyError={telemetry.historyError}
                     onHistoryRangeChange={telemetry.setHistoryRange}
+                    onHistoryCustomRange={telemetry.applyCustomHistoryRange}
                     onHistoryRetry={telemetry.retryHistory}
                     targetDiagnostics={
                       monitoringRegistryUnavailable

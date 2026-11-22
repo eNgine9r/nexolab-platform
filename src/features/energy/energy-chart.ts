@@ -8,7 +8,14 @@ import {
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts/domain";
-import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
+import {
+  historicalSeriesFreshness,
+  newestSampleValidity,
+  resolveSeriesFreshness,
+  withInvalidNewestSample,
+  type SeriesFreshness,
+} from "@/features/charts/series-freshness";
+import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
 import {
   energyHistorySourceEventId,
   isEnergyHistorySegmentStart,
@@ -44,6 +51,37 @@ function freshness(status: EnergyTelemetryModel["status"]): ChartFreshnessState 
   if (status === "connecting") return "connecting";
   if (status === "reconnecting") return "reconnecting";
   return "offline";
+}
+
+const ENERGY_DEFAULT_STALE_AFTER_MS = 30_000;
+
+/**
+ * Per-series freshness (#1677): the series' OWN newest sample decides, with the stale threshold the page
+ * status already uses (cadence authority per meter, else 30 s). A newest sample without a valid
+ * measurement is `invalid`; page connectivity states always win.
+ */
+function energySeriesFreshness(
+  page: ChartFreshnessState,
+  group: { meter: { unitId: number }; samples: readonly TelemetrySample[] },
+  authority: EnergyCadenceAuthority | null,
+  now: number,
+): SeriesFreshness {
+  let newest: TelemetrySample | null = null;
+  for (const sample of group.samples) {
+    if (newest === null || Date.parse(sample.captured_at) >= Date.parse(newest.captured_at)) newest = sample;
+  }
+  if (newest === null) return { freshness: withInvalidNewestSample(page, null) };
+  const timestampMs = Date.parse(newest.captured_at);
+  return resolveSeriesFreshness({
+    page,
+    latest: {
+      timestampMs,
+      valid: newest.quality === "valid" && newest.value !== null && Number.isFinite(newest.value),
+    },
+    staleAfterMs:
+      authority?.maximumSourceGapMs(group.meter.unitId, timestampMs, now) ?? ENERGY_DEFAULT_STALE_AFTER_MS,
+    now,
+  });
 }
 
 function fallbackDomain(samples: readonly TelemetrySample[]): ChartXDomain {
@@ -133,6 +171,9 @@ export function buildEnergyChartScene({
   selectedUnitIds,
   status,
   historyWindow,
+  cadenceAuthority = null,
+  now,
+  historical = false,
 }: {
   samples: readonly TelemetrySample[];
   selectedMetric?: EnergyMetricId;
@@ -141,6 +182,12 @@ export function buildEnergyChartScene({
   selectedUnitIds: readonly number[];
   status: EnergyTelemetryModel["status"];
   historyWindow: EnergyTelemetryModel["historyWindow"];
+  /** Per-meter stale threshold owner (same rule as the page status); 30 s default without one. */
+  cadenceAuthority?: EnergyCadenceAuthority | null;
+  /** Evaluation clock (epoch ms); defaults to `Date.now()` at build. A clock overlay handles later ticks. */
+  now?: number;
+  /** A fixed custom period (#1683): series have no liveness and are labelled historical. */
+  historical?: boolean;
 }): EnergyChartScene {
   const metrics = new Set(selectedMetrics ?? [selectedMetric ?? ENERGY_METRICS[0].id]);
   const pairs = selectedPairs ? new Set(selectedPairs.map(energySeriesSelectionKey)) : null;
@@ -205,7 +252,9 @@ export function buildEnergyChartScene({
             : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
         dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
-        freshness: withInvalidNewestSample(chartFreshness, newestSampleValidity(group.samples)),
+        ...(historical
+          ? historicalSeriesFreshness(newestSampleValidity(group.samples))
+          : energySeriesFreshness(chartFreshness, group, cadenceAuthority, now ?? Date.now())),
         segments: buildSegments(identity, group.samples),
         visible: true,
         semanticMode:
