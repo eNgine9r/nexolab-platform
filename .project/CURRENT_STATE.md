@@ -1,3 +1,7 @@
+## 2026-11-22 — #1647 Alarm events, regions and threshold markers from canonical alerts (WP-C) is source-only, not installed
+
+Saved Dashboard charts now draw canonical alert events (triggered/acknowledged/resolved/closed with time and source), alarm regions and threshold lines for plotted series only, from the read-only alerts API; an accessible events table lists them with text severity/state. Unavailable or forbidden alert logs degrade to an explicit note. Telemetry-sample alarm context still never creates markers. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1645 Interval statistics from raw persisted samples (WP-B) is source-only, not installed
 
 Saved Dashboards show exact Min/Max/Average/sample count/coverage/gaps for the whole requested interval or the zoomed viewport, computed from raw pre-reduction measurements (never reduced render points); average withheld below 80 % coverage or under 3 samples; non-valid samples counted separately and never treated as zero. AGENTS.md now records the Product Owner autonomous-execution authorization and its unchanged safety boundaries. No Modbus/hardware write, no polling change, no site release.

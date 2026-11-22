@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { buildDashboardStatisticsRows } from "@/features/live-dashboards/statistics-rows";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
@@ -167,6 +169,10 @@ export function DashboardLiveView({
     [telemetry.historyWindow.from, telemetry.historyWindow.to],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
+  const alertEvents = useDashboardAlertEvents({
+    enabled: dashboard.items.length > 0,
+    rangeKey: `${dashboard.id}:${telemetry.historyRange.kind}:${telemetry.historyRange.from}:${telemetry.historyRange.to}`,
+  });
   const chartGroups = useMemo(
     () =>
       buildSavedDashboardChartGroups({
@@ -178,6 +184,7 @@ export function DashboardLiveView({
         soloSeriesKey,
         cadenceObservations: telemetry.cadenceObservations ?? EMPTY_CADENCE_OBSERVATIONS,
         now: telemetry.now,
+        alerts: alertEvents.alerts,
       }),
     [
       dashboard.id,
@@ -188,6 +195,7 @@ export function DashboardLiveView({
       telemetry.now,
       telemetry.series,
       telemetry.status,
+      alertEvents.alerts,
     ],
   );
   const statisticsRows = useMemo(
@@ -522,6 +530,13 @@ export function DashboardLiveView({
         fromMs={effectiveDomain.fromMs}
         toMs={effectiveDomain.toMs}
         isViewport={viewportDomain !== null}
+        displayTimeZone={displayTimeZone}
+      />
+
+      <DashboardAlertEvents
+        events={chartGroups.flatMap((group) => group.scene.events ?? [])}
+        status={alertEvents.status}
+        message={alertEvents.message}
         displayTimeZone={displayTimeZone}
       />
 
