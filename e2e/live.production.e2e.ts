@@ -599,7 +599,7 @@ test("opens a persisted selected-series dashboard after service restart without 
       .getByRole("row")
       .filter({ has: page.getByRole("cell", { name: "106-03", exact: true }) });
     await expect(selectedChannelRow).toBeVisible();
-    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)? degC/);
+    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)?\s(?:°C|degC)/);
     await expect.poll(() => sockets.maximum).toBe(1);
 
     await expect

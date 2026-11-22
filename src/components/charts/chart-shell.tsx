@@ -224,17 +224,17 @@ export function ChartShell({
             </ul>
           </div>
         ) : null}
+        {children}
         {coverageDetail ? (
           <div
             role="status"
             data-testid="chart-partial-history"
-            className="mb-3 rounded-xl border border-sky-300/30 bg-sky-300/[0.06] px-3 py-2 text-xs text-sky-100"
+            className="mt-3 rounded-xl border border-sky-300/30 bg-sky-300/[0.06] px-3 py-2 text-xs text-sky-100"
           >
             <p className="font-medium">{copy.partialHistory}</p>
             <p className="mt-1 text-sky-100/80">{coverageDetail}</p>
           </div>
         ) : null}
-        {children}
       </div>
 
       <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
