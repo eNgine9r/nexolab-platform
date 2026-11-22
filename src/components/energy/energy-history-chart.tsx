@@ -12,7 +12,10 @@ import {
 } from "@/features/charts/domain";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import { inspectChartAtTimestamp } from "@/features/charts/inspection";
-import { partitionChartSeriesByAxisBudget } from "@/features/charts/units";
+import { displayUnit, partitionChartSeriesByAxisBudget } from "@/features/charts/units";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { energySeriesStatisticsKey } from "@/features/energy/energy-raw-statistics";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { buildEnergyChartScene } from "@/features/energy/energy-chart";
 import {
   energySeriesDisplayUnit,
@@ -90,6 +93,30 @@ export function EnergyHistoryChart({
     () => (sharedCursorMs === null ? null : inspectChartAtTimestamp(scene, sharedCursorMs)),
     [scene, sharedCursorMs],
   );
+  // Exact statistics come from raw measurements, never from the reduced chart series (#1675).
+  const statisticsRows = useMemo(
+    () =>
+      scene.series
+        .filter((series) => series.visible)
+        .map((series) => ({
+          seriesKey: chartSeriesKey(series.identity),
+          color: series.colorToken,
+          name: series.name,
+          unit: displayUnit(series.identity.nativeUnit),
+          statistics:
+            telemetry.intervalStatistics?.(
+              energySeriesStatisticsKey(series.identity),
+              series.identity.metric,
+              scene.xDomain.fromMs,
+              scene.xDomain.toMs,
+            ) ?? null,
+        })),
+    // historySamples changes whenever raw history or live tail is recorded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scene, telemetry.intervalStatistics, telemetry.historySamples],
+  );
+  const displayTimeZone = useDisplayTimeZone();
+  const statisticsUnavailable = statisticsRows.some((row) => row.statistics === null);
 
   useEffect(() => {
     let disposed = false;
@@ -158,6 +185,36 @@ export function EnergyHistoryChart({
           onDomainChange={changeDomain}
         />
       ))}
+      {statisticsRows.length > 0 ? (
+        <>
+          {statisticsUnavailable ? (
+            <div
+              role="status"
+              data-testid="energy-statistics-unavailable"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-100"
+            >
+              <span>
+                Точна статистика недоступна: історія взята з кешу або для цього інтервалу немає повного набору
+                вимірювань. Оновіть історію — статистика ніколи не рахується зі стиснутих точок графіка.
+              </span>
+              <button
+                type="button"
+                onClick={telemetry.retryHistory}
+                className="min-h-9 rounded-xl border border-amber-200/30 px-3 text-xs font-medium hover:bg-amber-200/10"
+              >
+                Оновити історію
+              </button>
+            </div>
+          ) : null}
+          <DashboardIntervalStatistics
+            rows={statisticsRows.filter((row) => row.statistics !== null)}
+            fromMs={scene.xDomain.fromMs}
+            toMs={scene.xDomain.toMs}
+            isViewport={viewportDomain !== null}
+            displayTimeZone={displayTimeZone}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
