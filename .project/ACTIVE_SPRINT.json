@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1645,
-      "title": "Interval statistics from raw persisted samples (WP-B)",
-      "branch": "feat/1645-interval-statistics"
+      "issue": 1647,
+      "title": "Alarm events, regions and threshold markers from canonical alerts (WP-C)",
+      "branch": "feat/1647-alert-event-markers"
     },
     "next_work_package": null
   },
@@ -11616,6 +11616,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1645-interval-statistics"
+    },
+    {
+      "issue": 1647,
+      "title": "Alarm events, regions and threshold markers from canonical alerts (WP-C)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Saved Dashboard charts now draw canonical alert events (triggered/acknowledged/resolved/closed with time and source), alarm regions and threshold lines for plotted series only, from the read-only alerts API; an accessible events table lists them with text severity/state. Unavailable or forbidden alert logs degrade to an explicit note. Telemetry-sample alarm context still never creates markers.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 220 files/1427 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1647-alert-event-markers"
     }
   ],
   "maintenance_actions": [

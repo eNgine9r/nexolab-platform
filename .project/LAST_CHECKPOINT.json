@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T04:49:32Z",
+  "timestamp": "2026-11-22T04:57:45Z",
   "actor": "Claude",
-  "event": "1645_interval_statistics_source_pr",
+  "event": "1647_alert_event_markers_source_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1645,
-    "branch": "feat/1645-interval-statistics",
+    "issue": 1647,
+    "branch": "feat/1647-alert-event-markers",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1645 merges: WP-C events/alarm/threshold markers, then WP-D extrema + history truncation, WP-E density control, WP-F freshness across modules, WP-G state lanes, WP-H 24+ series, WP-I export/PNG/saved views, WP-J acceptance. No site release authorized; #1428/#1409/#1399 gates unchanged.",
+  "next_action": "After #1647 merges: WP-D extrema preservation and history truncation (Energy reducer, session history 1000-row/24h truncation), WP-E density control, WP-F freshness across modules, WP-G state lanes, WP-H 24+ series, WP-I export/PNG/saved views, WP-J acceptance. No site release authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

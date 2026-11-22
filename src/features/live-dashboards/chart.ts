@@ -18,6 +18,7 @@ import {
   savedDashboardSeriesLabel,
   savedDashboardSeriesUnit,
 } from "@/features/live-dashboards/embraco-series";
+import { buildAlertChartAnnotations } from "@/features/charts/alert-events";
 import { liveHistorySegments } from "@/features/live/live-history";
 import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
@@ -26,6 +27,7 @@ import type {
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
+import type { AlertInstance } from "@/lib/alerts/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const SAVED_AREA_FILL_OPACITY = 0.14;
@@ -55,6 +57,11 @@ export interface SavedDashboardChartBuildOptions {
   cadenceObservations?: CadenceObservations;
   /** Evaluation clock (epoch ms) for per-series freshness. Defaults to `Date.now()`. */
   now?: number;
+  /**
+   * Canonical alert history (#1647). Only alerts matching a plotted series produce markers,
+   * alarm regions and threshold lines; telemetry-sample alarm context never does.
+   */
+  alerts?: readonly AlertInstance[];
 }
 
 function timestamp(sample: TelemetrySample): number {
@@ -216,6 +223,24 @@ function buildSeries(
   };
 }
 
+function annotations(
+  partition: readonly ChartSeries[],
+  options: SavedDashboardChartBuildOptions,
+): Pick<ChartRendererScene, "events" | "thresholds" | "alarmRegions"> {
+  if (!options.alerts || options.alerts.length === 0) return {};
+  const built = buildAlertChartAnnotations(
+    options.alerts,
+    partition.map((entry) => entry.identity),
+    options.xDomain,
+    options.now ?? Date.now(),
+  );
+  return {
+    ...(built.events.length > 0 ? { events: built.events } : {}),
+    ...(built.thresholds.length > 0 ? { thresholds: built.thresholds } : {}),
+    ...(built.alarmRegions.length > 0 ? { alarmRegions: built.alarmRegions } : {}),
+  };
+}
+
 export function buildSavedDashboardChartGroups(
   options: SavedDashboardChartBuildOptions,
 ): SavedDashboardChartGroup[] {
@@ -261,6 +286,7 @@ export function buildSavedDashboardChartGroups(
       scene: {
         series: partition,
         xDomain: options.xDomain,
+        ...annotations(partition, options),
       },
     };
   });
