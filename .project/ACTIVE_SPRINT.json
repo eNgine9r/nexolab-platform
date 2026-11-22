@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1664,
-      "title": "Chart detail (point density) control on Live Data (WP-K)",
-      "branch": "feat/1664-live-density"
+      "issue": 1671,
+      "title": "Device-grouped searchable channel selection on Live Data (WP-P)",
+      "branch": "feat/1671-live-device-picker"
     },
     "next_work_package": null
   },
@@ -11776,6 +11776,38 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1664-live-density"
+    },
+    {
+      "issue": 1666,
+      "title": "Saved analysis views: save and restore in the live view (WP-L, frontend)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "The Saved Dashboard live view can save the analysis view (hidden series, history range, zoom, chart detail) through the existing dashboard update path and restores it when reopened; unusable parts of a stored view are ignored, saving does not re-create the live view, and the UI refuses to report a save that an older API did not persist. The API half (#1667) is blocked by an unfixed HIGH CVE in the Device Agent image awaiting a risk-owner decision (see BLOCKERS).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 230 files/1480 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1666-saved-analysis-views-ui"
+    },
+    {
+      "issue": 1671,
+      "title": "Device-grouped searchable channel selection on Live Data (WP-P)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Live Data gets a panel that groups channels by device with operator-defined names, searchable and collapsible groups, per-device and global select/deselect (limited to found channels while searching), a visible n-of-24 counter and an explicit message when the limit truncates a bulk selection. It edits the same selection as the flat table; its accessible names differ so existing selectors stay unambiguous.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 230 files/1479 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1671-live-device-picker"
     }
   ],
   "maintenance_actions": [

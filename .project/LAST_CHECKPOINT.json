@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T06:33:01Z",
+  "timestamp": "2026-11-22T07:26:41Z",
   "actor": "Claude",
-  "event": "1664_live_density_source_pr",
+  "event": "1671_live_device_picker_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1664,
-    "branch": "feat/1664-live-density",
+    "issue": 1671,
+    "branch": "feat/1671-live-device-picker",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1664 merges: only the classified follow-ups in docs/operations/chart-programme-release-candidate.md remain (shared saved analysis views, Saved Dashboard state lanes, Live device-grouped table, Energy raw statistics and density, Pi measurements, signed-in browser acceptance). Any site release needs separate owner approval.",
+  "next_action": "WP-N Energy raw statistics, WP-Q freshness/events/ranges, WP-R exports, WP-S acceptance. Backend PR #1667 waits for the HIGH CVE decision (BLOCKERS).",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

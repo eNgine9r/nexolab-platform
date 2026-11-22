@@ -1,3 +1,11 @@
+## 2026-11-22 — #1671 Device-grouped searchable channel selection on Live Data (WP-P) is source-only, not installed
+
+Live Data gets a panel that groups channels by device with operator-defined names, searchable and collapsible groups, per-device and global select/deselect (limited to found channels while searching), a visible n-of-24 counter and an explicit message when the limit truncates a bulk selection. It edits the same selection as the flat table; its accessible names differ so existing selectors stay unambiguous. No Modbus/hardware write, no polling change, no site release.
+
+## 2026-11-22 — #1666 Saved analysis views: save and restore in the live view (WP-L, frontend) is source-only, not installed
+
+The Saved Dashboard live view can save the analysis view (hidden series, history range, zoom, chart detail) through the existing dashboard update path and restores it when reopened; unusable parts of a stored view are ignored, saving does not re-create the live view, and the UI refuses to report a save that an older API did not persist. The API half (#1667) is blocked by an unfixed HIGH CVE in the Device Agent image awaiting a risk-owner decision (see BLOCKERS). No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1664 Chart detail (point density) control on Live Data (WP-K) is source-only, not installed
 
 Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups). No Modbus/hardware write, no polling change, no site release.
