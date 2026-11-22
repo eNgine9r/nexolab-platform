@@ -50,12 +50,49 @@ of v1-stream are tar streams compatible with `scripts/nexolab-volume-archive.py 
 
 ## Consistency per store
 
-| Store                                                              | Method                                             | Boundary                                                                                                                                                                                                              |
-| ------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `postgresql`                                                       | `docker exec … pg_dump -Fc -Z 3`                   | Logical snapshot (single transaction, MVCC); acquisition continues                                                                                                                                                    |
-| `edge-sqlite-outbox`, `central-ingestion-spool`                    | `sqlite_online` (host read-only open + backup API) | Transactionally consistent; uncommitted writes excluded (tested)                                                                                                                                                      |
-| `object-storage`, `mqtt-dynamic-security`, `edge-mqtt-persistence` | `directory_snapshot`                               | **Verified unchanged during capture**: a full metadata signature before and after; any change fails the run (retried next schedule). This is _not_ the "separately approved quiesce" of #1439 — no service is stopped |
-| `local-auth-*-key`                                                 | `docker exec … cat` or `file_snapshot`             | Atomic read of an operator secret                                                                                                                                                                                     |
+| Store                                                              | Method                                             | Boundary                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `postgresql`                                                       | `docker exec … pg_dump -Fc -Z 3`                   | Logical snapshot (single transaction, MVCC); acquisition continues                                                                                                                                                                                                                                |
+| `edge-sqlite-outbox`, `central-ingestion-spool`                    | `sqlite_online` (host read-only open + backup API) | Transactionally consistent; uncommitted writes excluded (tested)                                                                                                                                                                                                                                  |
+| `object-storage`, `mqtt-dynamic-security`, `edge-mqtt-persistence` | `directory_snapshot`                               | **Verified unchanged during capture**: a full metadata signature (size, mtime, inode, mode and a digest of the `user.*` extended attributes) before and after; any change fails the run (retried next schedule). This is _not_ the "separately approved quiesce" of #1439 — no service is stopped |
+| `local-auth-*-key`                                                 | `docker exec … cat` or `file_snapshot`             | Atomic read of an operator secret                                                                                                                                                                                                                                                                 |
+
+### Object metadata (extended attributes)
+
+VersityGW's `posix` backend (the packaged `command: ["posix", "/data"]`) keeps each object's metadata in
+**extended attributes** of the object file: `user.etag`, `user.content-type`, `user.checksums`, user metadata, and on
+the bucket directory `user.acl` and `user.ownership`. A copy of the bytes alone restores objects without ETag and
+Content-Type (`HEAD` returns neither, `object-storage-s3.py stat-keys` fails). The sidecar mode (`--sidecar`) is not
+used: switching the running store would need a metadata migration and is not part of this backup.
+
+Directory snapshots therefore carry extended attributes (fix for the defect found by the #1632 rehearsal):
+
+- **What is captured:** only the `user.` namespace. `security.*`, `trusted.*` and `system.*` (SELinux labels,
+  overlay/POSIX ACL attributes) are never read. Each entry's attributes are written as GNU-tar compatible PAX records
+  `SCHILY.xattr.<name>` (raw bytes); the archive declares `NEXOLAB.volume.xattrs=user-v1` in its global header
+  (attributes of the root directory, if any, go to `NEXOLAB.volume.root.xattr.<name>`).
+- **Caps (fail closed, never truncated):** 255-byte names, 64 KiB per value, 64 attributes and 256 KiB per entry,
+  64 MiB per archive. A violation fails the run instead of dropping metadata.
+- **Read-only:** `listxattr`/`getxattr` only, symlinks not followed. A source file system without xattr support
+  yields no attributes.
+- **Part of the consistency signature (deliberate):** VersityGW rewrites metadata with `setxattr`, which changes
+  neither size nor mtime. The before/after signature includes a digest of each entry's `user.*` attributes, so a
+  metadata change during the capture fails the run like a content change.
+- **Manifest/receipt:** each `directory_snapshot` store gains an additive `xattrs` field with counts only
+  (`{"scheme": "user-v1", "entries": n, "attributes": n, "bytes": n}`); names and values stay inside the encrypted
+  stream. The `nexolab-dr-stream-v1` container format, magic and header are unchanged.
+- **Extract:** `nexolab-volume-archive.py extract` re-applies the attributes before ownership/mode. If the
+  destination cannot store them it **fails closed**; `--allow-xattr-loss` (used only by `mode=rehearsal` of #1632)
+  continues and reports the number of dropped attributes. Archives without the declaration (bundles written before
+  this fix) extract exactly as before and report `scheme: none`. Extractors older than this fix refuse new archives
+  (unknown `NEXOLAB.volume.*` key) instead of silently dropping the metadata: restore with the tooling of the same
+  or a newer release.
+
+> **Bundles taken before this fix lack the object metadata.** Their objects restore with correct bytes and SHA-256,
+> but without ETag/Content-Type, and the #1632 receipt reports `metadata_fidelity: DEGRADED`. After installing the
+> fixed scripts, take a fresh backup (manual run in an approved window, or wait for the next timer run), copy it
+> off-device (#1631), and treat that bundle as the first one with complete object metadata. Older bundles stay
+> usable for the database and object bytes only.
 
 `central-ingestion-spool` and `edge-mqtt-persistence` are rebuildable. They may be set to
 `"disposition": "rebuildable_excluded"`, but only with an explicit reason.
@@ -142,8 +179,10 @@ if it was enabled.
 
 - Integrity only: `nexolab-dr-stream.py verify` (no plaintext written).
 - Isolated restore (#1632 only, never on the production Pi): `nexolab-dr-stream.py extract --output-dir <new empty dir>`,
-  then `pg_restore` into a fresh PostgreSQL and `nexolab-volume-archive.py extract` for directory snapshots, then
-  `scripts/verify-restored-platform.sh`.
+  then `pg_restore` into a fresh PostgreSQL and `nexolab-volume-archive.py extract` for directory snapshots (as root,
+  onto a file system with `user.*` xattr support such as ext4/xfs, so the object metadata is restored), then
+  `scripts/verify-restored-platform.sh`. Manual fallback with GNU tar:
+  `tar --xattrs --xattrs-include='user.*' --numeric-owner -xpf objects.tar -C <empty dir>`.
 
 ## Evidence status (this Work Package)
 

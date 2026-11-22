@@ -872,9 +872,14 @@ def sha(path):
     return h.hexdigest()
 kind = op["op"]
 if kind == "extract_tar":
-    subprocess.run([sys.executable, "/opt/nexolab/scripts/nexolab-volume-archive.py", "extract",
-                    "--archive", "/restore/" + op["src"], "--destination", target], check=True)
-    print(json.dumps({"ok": True}))
+    argv = [sys.executable, "/opt/nexolab/scripts/nexolab-volume-archive.py", "extract",
+            "--archive", "/restore/" + op["src"], "--destination", target]
+    if op.get("allow_xattr_loss"):
+        argv.append("--allow-xattr-loss")
+    done = subprocess.run(argv, check=True, stdout=subprocess.PIPE)
+    lines = [l for l in done.stdout.decode("utf-8", "replace").splitlines() if l.startswith("{")]
+    report = json.loads(lines[-1]) if lines else {}
+    print(json.dumps({"ok": True, "xattrs": report.get("xattrs")}))
 elif kind == "install_file":
     dst = os.path.join(target, op["name"])
     if os.path.exists(dst):
@@ -1305,9 +1310,22 @@ class Restore:
         return (f"postgresql+psycopg://{self.config.pg_user}:{self.pg_password}@{self.containers['postgres']}:5432/"
                 f"{self.config.pg_database}")
 
+    def extract_tar(self, volume: str, src: str, plaintext: Path) -> dict[str, Any]:
+        """Extracts a volume tar; user.* xattr loss fails closed in site mode, is reported in rehearsal."""
+        done = self.helper(volume, {"op": "extract_tar", "src": src, "allow_xattr_loss": self.config.rehearsal},
+                           plaintext)
+        report = done.get("xattrs") or {"scheme": "unknown"}
+        if report.get("dropped"):
+            self.warnings.append(f"DEGRADED: {report['dropped']} extended attribute(s) of {src} could not be "
+                                 f"restored on this file system ({report.get('loss_reason')})")
+        return report
+
     def restore_objects(self, plaintext: Path, entry: dict[str, Any]) -> dict[str, Any]:
         volume = self.volumes["object-storage"]
-        self.helper(volume, {"op": "extract_tar", "src": entry["path"]}, plaintext)
+        self.object_xattrs = self.extract_tar(volume, entry["path"], plaintext)
+        if self.object_xattrs.get("scheme") == "none":
+            self.warnings.append("object-storage bundle predates object metadata capture (no user.* xattr records): "
+                                 "ETag/Content-Type cannot be restored; take a fresh backup after installing the fix")
         expected = tar_listing(plaintext / entry["path"])
         tree = self.helper(volume, {"op": "tree"})
         restored = {path: (size, digest) for path, size, digest in tree["files"]}
@@ -1336,6 +1354,7 @@ class Restore:
                 "referenced_objects": len(rows), "orphan_objects": len(set(bucket_objects) - referenced),
                 "missing_references": missing, "checksum_mismatches": mismatched,
                 "hash_sample": [{"path_sha256": sha256_bytes(p.encode()), "sha256": restored[p][1]} for p in sample],
+                "xattrs": self.object_xattrs,
                 "tree_sha256": sha256_bytes(canonical(sorted([p, *restored[p]] for p in restored)))}
 
     def _table_exists(self, table: str) -> bool:
@@ -1379,28 +1398,49 @@ class Restore:
             stats = json.loads(probe.stdout.decode().strip().splitlines()[-1]) if probe.returncode == 0 else []
             present = [s for s in stats if s["status"] == 200]
             ok = probe.returncode == 0 and len(present) == len(meta)
-            etag_bad = [s["key"] for s in present
-                        if (meta[s["key"]]["etag"] or "").strip('"') != (s.get("etag") or "").strip('"')]
-            type_bad = [s["key"] for s in present if meta[s["key"]]["media_type"] != s.get("content_type")]
-            result.update({"stat_checked": len(stats), "present": len(present), "etag_mismatches": len(etag_bad),
-                           "etag_missing": sum(1 for s in present if not s.get("etag")),
-                           "content_type_mismatches": len(type_bad),
-                           "metadata_fidelity": "PRESERVED" if not (etag_bad or type_bad) else "DEGRADED"})
             self.checks.add("object_storage.objects_present_via_s3", ok, {
                 "objects": len(present), "expected": len(meta), "exit": probe.returncode,
                 "stderr_tail": probe.stderr.decode("utf-8", "replace").strip().splitlines()[-3:]})
-            if etag_bad or type_bad:
+            observed = observation_objects(self._load_observation())
+            fidelity = evaluate_object_metadata(meta, stats, observed)
+            # The repository's own S3 helper must work on the restored store (it requires ETag).
+            stat_keys = self.docker(*base, "stat-keys", "--bucket", self.config.bucket, "--keys-file", "/dev/stdin",
+                                    input_bytes="".join(f"{key}\n" for key in sorted(meta)).encode(), check=False)
+            stat_lines = [line for line in stat_keys.stdout.decode("utf-8", "replace").splitlines()
+                          if line.startswith("{")]
+            stat_ok = stat_keys.returncode == 0 and len(stat_lines) == len(meta)
+            fidelity["stat_keys"] = {"exit": stat_keys.returncode, "objects": len(stat_lines), "passed": stat_ok}
+            result.update(fidelity)
+            self.checks.add("object_storage.stat_keys", stat_ok, {
+                "exit": stat_keys.returncode, "objects": len(stat_lines), "expected": len(meta),
+                "stderr_tail": [line[-160:] for line in
+                                stat_keys.stderr.decode("utf-8", "replace").strip().splitlines()[-2:]]})
+            self.checks.add("object_storage.metadata_fidelity", fidelity["metadata_fidelity"] == METADATA_OK,
+                            {k: fidelity[k] for k in ("metadata_fidelity", "metadata_basis", "degraded_objects",
+                                                      "etag_mismatches", "content_type_mismatches",
+                                                      "source_observation_mismatches")})
+            if fidelity["metadata_fidelity"] == METADATA_DEGRADED:
+                xattrs = getattr(self, "object_xattrs", None) or {}
+                if xattrs.get("scheme") == "none":
+                    cause = ("the bundle predates object metadata capture (no xattr records); take a fresh backup "
+                             "with the fixed leaf-A tool")
+                elif xattrs.get("dropped"):
+                    cause = f"{xattrs['dropped']} extended attribute(s) could not be restored on this file system"
+                else:
+                    cause = "restored metadata differs from the source"
                 self.warnings.append(
-                    f"FINDING: restored S3 metadata differs from the database for {len(set(etag_bad) | set(type_bad))} "
-                    "object(s) (ETag/Content-Type missing or different). VersityGW's posix backend keeps object "
-                    "metadata in extended attributes, which the leaf-A directory snapshot does not capture. Object "
-                    "bytes and SHA-256 are intact and the application serves them, but S3 clients that require "
+                    f"FINDING: restored S3 metadata (ETag/Content-Type) is missing or different for "
+                    f"{fidelity['degraded_objects']} object(s): {cause}. VersityGW keeps object metadata in user.* "
+                    "extended attributes. Object bytes and SHA-256 may still be intact, but S3 clients that require "
                     "ETag (e.g. object-storage-s3.py stat-keys) fail on the restored store")
+            elif fidelity["metadata_fidelity"] == METADATA_UNVERIFIED:
+                self.warnings.append("object metadata matches the database, but the source observation has no "
+                                     "'objects' (stat-keys) list, so fidelity against production is UNVERIFIED")
         return result
 
     def restore_mqtt(self, plaintext: Path, entry: dict[str, Any]) -> dict[str, Any]:
         volume = self.volumes["mqtt-dynamic-security"]
-        self.helper(volume, {"op": "extract_tar", "src": entry["path"]}, plaintext)
+        self.extract_tar(volume, entry["path"], plaintext)
         expected = tar_listing(plaintext / entry["path"])
         tree = self.helper(volume, {"op": "tree"})
         restored = {path: (size, digest) for path, size, digest in tree["files"]}
@@ -1426,7 +1466,7 @@ class Restore:
 
     def restore_tree_store(self, store: str, plaintext: Path, entry: dict[str, Any]) -> dict[str, Any]:
         volume = self.volumes[store]
-        self.helper(volume, {"op": "extract_tar", "src": entry["path"]}, plaintext)
+        self.extract_tar(volume, entry["path"], plaintext)
         expected = tar_listing(plaintext / entry["path"])
         tree = self.helper(volume, {"op": "tree"})
         restored = {path: (size, digest) for path, size, digest in tree["files"]}
@@ -1721,6 +1761,70 @@ class Restore:
 
     def teardown(self) -> dict[str, Any]:
         return teardown(self.docker, self.config.prefix)
+
+
+METADATA_OK = "OK"
+METADATA_DEGRADED = "DEGRADED"
+METADATA_UNVERIFIED = "UNVERIFIED_NO_SOURCE_OBSERVATION"
+
+
+def _etag(value: Any) -> str:
+    return str(value or "").strip().strip('"')
+
+
+def observation_objects(observation: dict[str, Any] | None) -> dict[str, dict[str, Any]] | None:
+    """Optional ``objects`` list of the source observation: read-only HEAD results from the
+    production gateway (``object-storage-s3.py stat-keys`` lines: key, etag, content_type)."""
+    if observation is None or observation.get("objects") is None:
+        return None
+    items = observation["objects"]
+    if not isinstance(items, list) or not all(isinstance(i, dict) and isinstance(i.get("key"), str) for i in items):
+        raise Refused("source observation objects must be a list of {key, etag, content_type}")
+    return {item["key"]: item for item in items}
+
+
+def evaluate_object_metadata(database: dict[str, dict[str, Any]], restored: list[dict[str, Any]],
+                             observed: dict[str, dict[str, Any]] | None) -> dict[str, Any]:
+    """S3 metadata fidelity of the restored gateway (counts only, no keys or values).
+
+    OK only when every object referenced by ``equipment_images`` answers HEAD with the ETag and
+    Content-Type recorded in the database AND observed on the source gateway. Any missing or
+    different ETag/Content-Type is DEGRADED. Matching the database without a source observation
+    of the objects is UNVERIFIED_NO_SOURCE_OBSERVATION (never OK).
+    """
+    present = {s["key"]: s for s in restored if s.get("status") == 200}
+    missing = [key for key in database if key not in present]
+    etag_bad = [key for key, row in database.items()
+                if key in present and (not present[key].get("etag")
+                                       or _etag(row.get("etag")) != _etag(present[key].get("etag")))]
+    type_bad = [key for key, row in database.items()
+                if key in present and (not present[key].get("content_type")
+                                       or row.get("media_type") != present[key].get("content_type"))]
+    source_bad: list[str] = []
+    if observed is not None:
+        for key, item in observed.items():
+            got = present.get(key)
+            if got is None or not item.get("etag") or _etag(item.get("etag")) != _etag(got.get("etag")) or \
+                    item.get("content_type") != got.get("content_type"):
+                source_bad.append(key)
+    degraded = bool(missing or etag_bad or type_bad or source_bad)
+    if degraded:
+        fidelity = METADATA_DEGRADED
+    elif observed is None:
+        fidelity = METADATA_UNVERIFIED
+    else:
+        fidelity = METADATA_OK
+    return {
+        "metadata_fidelity": fidelity,
+        "metadata_basis": ["database"] + (["source_observation"] if observed is not None else []),
+        "stat_checked": len(restored), "present": len(present), "missing": len(missing),
+        "etag_mismatches": len(etag_bad),
+        "etag_missing": sum(1 for key in database if key in present and not present[key].get("etag")),
+        "content_type_mismatches": len(type_bad),
+        "source_observation_objects": None if observed is None else len(observed),
+        "source_observation_mismatches": None if observed is None else len(source_bad),
+        "degraded_objects": len(set(missing) | set(etag_bad) | set(type_bad) | set(source_bad)),
+    }
 
 
 def tar_listing(path: Path) -> dict[str, tuple[int, str]]:
