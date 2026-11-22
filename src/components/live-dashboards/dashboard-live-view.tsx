@@ -31,7 +31,11 @@ import {
 } from "@/features/live-dashboards/embraco-series";
 import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
 import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
-import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
+import {
+  EMPTY_CADENCE_OBSERVATIONS,
+  liveFreshnessFor,
+  type CadenceObservations,
+} from "@/features/live/freshness";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
@@ -170,8 +174,19 @@ export function DashboardLiveView({
         xDomain: effectiveDomain,
         hiddenSeriesKeys,
         soloSeriesKey,
+        cadenceObservations: telemetry.cadenceObservations ?? EMPTY_CADENCE_OBSERVATIONS,
+        now: telemetry.now,
       }),
-    [dashboard.id, effectiveDomain, hiddenSeriesKeys, soloSeriesKey, telemetry.series, telemetry.status],
+    [
+      dashboard.id,
+      effectiveDomain,
+      hiddenSeriesKeys,
+      soloSeriesKey,
+      telemetry.cadenceObservations,
+      telemetry.now,
+      telemetry.series,
+      telemetry.status,
+    ],
   );
   const containsOperatorTemperatures = dashboard.items.some(isOperatorEmbracoTemperature);
   const valueSeries = telemetry.series.filter(

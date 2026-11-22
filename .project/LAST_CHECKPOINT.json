@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-21T22:30:00Z",
+  "timestamp": "2026-11-21T23:21:12Z",
   "actor": "Claude",
-  "event": "1638_frontend_only_lan_https_activated_green",
+  "event": "1643_per_series_freshness_source_pr_pending_ci",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1522,
-    "branch": "fix/1522-cadence-aware-live-freshness",
+    "issue": 1643,
+    "branch": "fix/1643-per-series-dashboard-freshness",
     "status": "review",
     "site_cutover": false
   },
@@ -3692,12 +3692,12 @@
       "scope": "edge-01 EMBRACO-2 cabinet, evaporator, compressor.speed",
       "window": "30 min; 12 min interarrival calculation",
       "per_metric_30_min_rows": 180,
-      "median_spacing_sec": 10.0,
+      "median_spacing_sec": 10,
       "observed_range_compressor_sec": [
         9.99,
         10.01
       ],
-      "observed_temperature_spacing_sec": 10.0,
+      "observed_temperature_spacing_sec": 10,
       "hardware_celsius_scale": "NOT verified",
       "sampling_runtime_mutation": "none; cadence was already verified 10 seconds, regardless of global SAMPLE_INTERVAL_SECONDS=5"
     },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "#1638 chart fixes ACTIVE on LAN+HTTPS (f0295409): owner to check chart pages in a signed-in browser. Merge the #1638 chart-audit follow-up PR after exact-head Merge Gate. Any frontend site release of the chart fixes needs separate Product Owner approval. Previous next action (unchanged priority): #1522 frontend release ACTIVE on LAN+HTTPS (469485b0): owner to confirm in a signed-in browser that a 60 s channel stays Live between polls and turns stale after ~105 s when stopped; Overview follow-up #1634. #1522: owner review/merge decision on PR #1627 (code head CI GREEN; final state-only head must also be GREEN); site acceptance needs a separately validated frontend release; Overview follow-up #1634. Still open from #1625: ask owner to refresh HTTPS KK1 graph and verify two °C lines and RPM visually on actual signed-in account. Need physically timestamp-correlated two-point HMI reading or vendor docs for actual scale calibration (#1603). Remain backend CSV source-only; #1428 full DR/restore gate blocks telemetry-service site activation. Independent reboot acceptance remains unverified.",
+  "next_action": "#1643 source PR: await exact-head CI + Merge Gate, then merge. No site release authorized. Next chart WPs (audit 2026-11-22): interval statistics UI, event/threshold markers fed from canonical events, point-density control #1620 with aggregate cap, per-series freshness for Energy/Refrigeration/Overview chart, PNG export, saved analysis views. Previous next_action items (#1638/#1522 owner browser checks, #1625, #1428 DR gate) are unchanged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5466,7 +5466,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Issue #1625: stateless LAN Docker Dashboard container-only replacement and HTTPS user systemd frontend-only restart; all five backend container IDs and images unchanged, OAuth gateway PID/topology unchanged, no hardware or Modbus writes.",
+  "runtime_mutation": "none (source-only #1643; no site, hardware or Modbus change)",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

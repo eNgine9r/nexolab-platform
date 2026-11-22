@@ -1,3 +1,7 @@
+## 2026-11-21 — #1643 per-series chart freshness is source-only, not installed
+
+Chart-programme WP-A (XWEB-level analysis workspace): Saved Dashboard charts now evaluate Live/Stale/Invalid **per series** from each item's own newest sample with the #1522 contract (server `stale_after_seconds` → observed cadence → 30 s), instead of one page-wide state; the wall clock is exposed so a silent series turns stale without a new sample. #1634: the main dashboard/Overview KPI freshness now uses the same cadence-aware threshold (cadence seeded from raw persisted samples, never chart-reduced data; no extra API requests). Still page-level (next WP): Overview chart, Energy and Refrigeration series freshness. Local evidence only (vitest 1402/1402, eslint, tsc, prettier, next build); exact-head CI and any site release are separate. No Modbus/hardware write, no polling change.
+
 ## 2026-11-21 — #1638 chart-audit fixes SITE ACTIVE on LAN + HTTPS (frontend only)
 
 Product Owner approved updating the Raspberry Pi after #1639/#1640 merged. GitHub Actions run 44954810847 built LAN and protected HTTPS ARM64 artifacts for `main@f0295409`. On the Pi, the ZIP digests matched GitHub; package, artifact and runtime file SHA-256 passed; and the public/runtime contracts and lockfile were identical to #1522.

@@ -27,6 +27,14 @@ import {
 } from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import { advanceWindowToClock } from "@/features/live/live-history";
+import {
+  EMPTY_CADENCE_OBSERVATIONS,
+  liveFreshnessFor,
+  recordCadenceObservation,
+  seedCadenceFromSamples,
+  type CadenceObservations,
+} from "@/features/live/freshness";
+import { liveChannelKey } from "@/features/live/live-telemetry";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type {
   TelemetryAdapter,
@@ -154,6 +162,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   );
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
+  // #1634: per-channel acquisition cadence from raw (never chart-reduced) timestamps.
+  const [cadence, setCadence] = useState<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
+  const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
     runtime.config?.mode === "live" ? "connecting" : "idle",
@@ -254,12 +265,26 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setHasLoadedSnapshot(false);
       setError(null);
       setStore(createDashboardTelemetryStore());
+      cadenceRef.current = EMPTY_CADENCE_OBSERVATIONS;
+      setCadence(EMPTY_CADENCE_OBSERVATIONS);
       setClock(Date.now());
     });
 
     const commit = (samples: readonly TelemetrySample[]) => {
       if (disposed) return;
       setStore((current) => mergeDashboardTelemetry(current, samples, { now: Date.now() }));
+      let nextCadence = cadenceRef.current;
+      for (const sample of samples) {
+        nextCadence = recordCadenceObservation(
+          nextCadence,
+          liveChannelKey(sample),
+          Date.parse(sample.captured_at),
+        );
+      }
+      if (nextCadence !== cadenceRef.current) {
+        cadenceRef.current = nextCadence;
+        setCadence(nextCadence);
+      }
       commitHistoryTail(samples, scopeKey);
       setError(null);
       setClock(Date.now());
@@ -349,6 +374,12 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
         if (disposed || !context || context.historyKey !== historyKey) return;
 
         const persisted = result.samples.filter(isTemperatureProbeSample);
+        // Raw persisted spacing bootstraps freshness before the live stream has seen two polls.
+        const seeded = seedCadenceFromSamples(cadenceRef.current, persisted, liveChannelKey);
+        if (seeded !== cadenceRef.current) {
+          cadenceRef.current = seeded;
+          setCadence(seeded);
+        }
         const ordering = seedTelemetryHistoryOrderingState(persisted);
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
@@ -401,12 +432,14 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     return deriveDashboardTelemetry(store, {
       now: clock,
       staleAfterMs: STALE_AFTER_MS,
+      staleAfterMsFor: (sample) => liveFreshnessFor(sample, liveChannelKey(sample), cadence).staleAfterMs,
       hasLoadedSnapshot,
       connectionState,
       error,
     });
   }, [
     activeScopeKey,
+    cadence,
     clock,
     connectionState,
     enabled,

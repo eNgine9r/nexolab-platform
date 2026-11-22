@@ -5,7 +5,9 @@ import {
   buildSavedDashboardChartGroups,
   savedDashboardChartIdentity,
   savedDashboardResetDomain,
+  savedDashboardSeriesFreshness,
 } from "@/features/live-dashboards/chart";
+import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type { LiveDashboardItem, LiveDashboardSeries } from "@/features/live-dashboards/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -300,5 +302,74 @@ describe("saved operator Embraco temperature with compressor RPM", () => {
     expect(a.value).toBeNull();
     expect(a.quality).toBe("unknown");
     expect(a.raw_value).toBe(65507);
+  });
+});
+
+function dashboardIdentityFor(entry: LiveDashboardItem): string {
+  return dashboardItemIdentity(entry);
+}
+
+describe("Saved Live Dashboard per-series freshness (#1643)", () => {
+  const NOW = START + 3_600_000;
+  const domain = { fromMs: START, toMs: NOW };
+  const fresh = item("fresh", 1, "T-1", "degC", "line", "#111111");
+  const silent = item("silent", 2, "T-2", "degC", "line", "#222222");
+  const broken = item("broken", 3, "T-3", "degC", "line", "#333333");
+  const empty = item("empty", 4, "T-4", "degC", "line", "#444444");
+
+  function freshnessByChannel(
+    status: "live" | "stale" | "offline" | "reconnecting",
+    now = NOW,
+    cadence: Record<string, number[]> | undefined = undefined,
+  ) {
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "d",
+      series: [
+        series(fresh, [sample("f1", "T-1", "degC", 3_590_000, 4)]),
+        series(silent, [sample("s1", "T-2", "degC", 1_000_000, 4)]),
+        series(broken, [sample("b1", "T-3", "degC", 3_595_000, null, "communication_error")]),
+        series(empty, []),
+      ],
+      status,
+      xDomain: domain,
+      now,
+      cadenceObservations: cadence,
+    });
+    return Object.fromEntries(
+      groups.flatMap((group) =>
+        group.scene.series.map((entry) => [entry.identity.channelId, entry.freshness]),
+      ),
+    );
+  }
+
+  it("marks only the channel with a recent valid sample as live", () => {
+    expect(freshnessByChannel("live")).toEqual({
+      "T-1": "live",
+      "T-2": "stale",
+      "T-3": "invalid",
+      "T-4": "stale",
+    });
+  });
+
+  it("lets page connectivity override per-series freshness", () => {
+    for (const status of ["offline", "reconnecting"] as const) {
+      const states = new Set(Object.values(freshnessByChannel(status)));
+      expect(states).not.toContain("live");
+      expect(states.size).toBe(1);
+    }
+  });
+
+  it("goes stale on a clock tick without any new sample", () => {
+    expect(freshnessByChannel("live", NOW)["T-1"]).toBe("live");
+    expect(freshnessByChannel("live", NOW + 60_000)["T-1"]).toBe("stale");
+  });
+
+  it("applies the observed cadence so a 60 s channel is live at 50 s and stale after 105 s", () => {
+    const source = series(fresh, [sample("f1", "T-1", "degC", 0, 4)]);
+    const cadence = { [dashboardIdentityFor(fresh)]: [START - 120_000, START - 60_000, START] };
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 50_000)).toBe("live");
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 104_000)).toBe("live");
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 106_000)).toBe("stale");
+    expect(savedDashboardSeriesFreshness("live", source, undefined, START + 50_000)).toBe("stale");
   });
 });
