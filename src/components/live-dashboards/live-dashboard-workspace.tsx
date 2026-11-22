@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
 
 import {
+  readStoredChartDensity,
+  resolveChartPointBudget,
+  storeChartDensity,
+  type ChartDensityMode,
+} from "@/features/charts/density";
+import {
   createEmptyLiveDashboardDraft,
   dashboardToDraft,
   validateLiveDashboardDraft,
@@ -54,7 +60,16 @@ export function LiveDashboardWorkspace({
     includeObserved: true,
     organizationId,
   });
+  const [density, setDensity] = useState<ChartDensityMode>(() => readStoredChartDensity("saved-dashboard"));
+  const plottedSeriesCount =
+    activeDashboard?.items.filter((item) => item.visualization === "line" || item.visualization === "area")
+      .length ?? 1;
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(density, plottedSeriesCount),
+    [density, plottedSeriesCount],
+  );
   const telemetry = useLiveDashboardTelemetry({
+    pointsPerSeries: densityResolution.perSeries,
     dashboard: mode === "live" ? activeDashboard : null,
     organizationId,
     enabled: mode === "live" && activeDashboard !== null,
@@ -273,6 +288,12 @@ export function LiveDashboardWorkspace({
         <DashboardLiveView
           dashboard={activeDashboard}
           telemetry={telemetry}
+          density={density}
+          densityResolution={densityResolution}
+          onDensityChange={(next) => {
+            setDensity(next);
+            storeChartDensity("saved-dashboard", next);
+          }}
           canManage={canManage}
           onBack={returnToLibrary}
           onEdit={() => void editDashboard(activeDashboard)}

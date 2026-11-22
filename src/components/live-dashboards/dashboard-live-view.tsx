@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import type { ChartDensityMode, ChartPointBudgetResolution } from "@/features/charts/density";
 import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
@@ -139,12 +141,18 @@ function seriesState(
 export function DashboardLiveView({
   dashboard,
   telemetry,
+  density,
+  densityResolution,
+  onDensityChange,
   canManage,
   onBack,
   onEdit,
 }: {
   dashboard: LiveDashboard;
   telemetry: LiveDashboardTelemetryModel;
+  density: ChartDensityMode;
+  densityResolution: ChartPointBudgetResolution;
+  onDensityChange: (mode: ChartDensityMode) => void;
   canManage: boolean;
   onBack: () => void;
   onEdit: () => void;
@@ -185,6 +193,7 @@ export function DashboardLiveView({
         cadenceObservations: telemetry.cadenceObservations ?? EMPTY_CADENCE_OBSERVATIONS,
         now: telemetry.now,
         alerts: alertEvents.alerts,
+        pointsPerSeries: densityResolution.perSeries,
       }),
     [
       dashboard.id,
@@ -196,6 +205,7 @@ export function DashboardLiveView({
       telemetry.series,
       telemetry.status,
       alertEvents.alerts,
+      densityResolution.perSeries,
     ],
   );
   const statisticsRows = useMemo(
@@ -209,6 +219,32 @@ export function DashboardLiveView({
       ),
     [chartGroups, dashboard.id, effectiveDomain, telemetry.intervalStatistics, telemetry.series],
   );
+  const densityCounts = useMemo(() => {
+    const visibleRows = buildDashboardStatisticsRows(
+      dashboard.id,
+      telemetry.series,
+      chartGroups,
+      resetDomain,
+      telemetry.intervalStatistics,
+    );
+    if (visibleRows.length === 0 || visibleRows.some((row) => row.statistics === null)) {
+      return { displayed: null, available: null };
+    }
+    const displayed = chartGroups.reduce(
+      (total, group) =>
+        total +
+        group.scene.series
+          .filter((entry) => entry.visible)
+          .reduce(
+            (sum, entry) =>
+              sum + entry.segments.reduce((points, segment) => points + segment.points.length, 0),
+            0,
+          ),
+      0,
+    );
+    const available = visibleRows.reduce((total, row) => total + (row.statistics?.validCount ?? 0), 0);
+    return { displayed, available };
+  }, [chartGroups, dashboard.id, resetDomain, telemetry.intervalStatistics, telemetry.series]);
   const containsOperatorTemperatures = dashboard.items.some(isOperatorEmbracoTemperature);
   const valueSeries = telemetry.series.filter(
     (item) => item.item.visualization === "value" || item.item.visualization === "gauge",
@@ -452,6 +488,16 @@ export function DashboardLiveView({
                 {telemetry.exportStatus === "exporting" ? "Експорт…" : "Export CSV"}
               </button>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <ChartDensityControl
+              mode={density}
+              resolution={densityResolution}
+              onChange={onDensityChange}
+              displayedPoints={densityCounts.displayed}
+              availableMeasurements={densityCounts.available}
+            />
           </div>
 
           {customOpen ? (

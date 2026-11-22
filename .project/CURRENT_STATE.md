@@ -1,3 +1,7 @@
+## 2026-11-22 — #1620 User-selectable chart detail with aggregate cap and benchmark (WP-E) is source-only, not installed
+
+Saved Dashboards get «Деталізація / точок на лінію» (Авто/250/500/1000/2500/5000): per-series maximum rendered points resolved under an aggregate cap (Auto target 3 840, manual cap 6 000), applied by reloading the same window and re-reducing with the evidence-preserving reducer, with a truth-in-presentation line (shown vs available measurements) and a note when the cap lowers a request; the reduction bad-sample scan is now O(n log n). A desktop headless-Chromium density matrix is recorded; Raspberry Pi timings are not measured. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1649 Preserve Energy extrema and stop silent session-history truncation (WP-D) is source-only, not installed
 
 Energy charts keep each bucket's min and max for instantaneous metrics (spikes and dips survive reduction; counters and continuity markers unchanged); the session history now paginates completely, polls tail-only and states explicitly when the page cap truncates it. No Modbus/hardware write, no polling change, no site release.

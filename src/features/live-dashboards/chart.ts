@@ -57,6 +57,8 @@ export interface SavedDashboardChartBuildOptions {
   cadenceObservations?: CadenceObservations;
   /** Evaluation clock (epoch ms) for per-series freshness. Defaults to `Date.now()`. */
   now?: number;
+  /** User-selected maximum rendered points per series (#1620); defaults to the surface budget. */
+  pointsPerSeries?: number;
   /**
    * Canonical alert history (#1647). Only alerts matching a plotted series produce markers,
    * alarm regions and threshold lines; telemetry-sample alarm context never does.
@@ -155,8 +157,11 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
     : "instantaneous";
 }
 
-function reduceTruthfully(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  return reduceChartSegmentsToPointBudget(segments, "saved-dashboard");
+function reduceTruthfully(
+  segments: ChartSeries["segments"],
+  maximumPoints?: number,
+): ChartSeries["segments"] {
+  return reduceChartSegmentsToPointBudget(segments, "saved-dashboard", { maximumPoints });
 }
 
 function buildSeries(
@@ -166,7 +171,10 @@ function buildSeries(
   visualIndex: number,
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
-  perSeries: Pick<SavedDashboardChartBuildOptions, "cadenceObservations" | "now"> | null = null,
+  perSeries: Pick<
+    SavedDashboardChartBuildOptions,
+    "cadenceObservations" | "now" | "pointsPerSeries"
+  > | null = null,
 ): ChartSeries {
   const identity = savedDashboardChartIdentity(dashboardId, source);
   const key = chartSeriesKey(identity);
@@ -213,7 +221,7 @@ function buildSeries(
           perSeries.now ?? Date.now(),
         )
       : savedDashboardChartFreshness(status),
-    segments: reduceTruthfully(segments),
+    segments: reduceTruthfully(segments, perSeries?.pointsPerSeries),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
     ...(identity.nativeUnit === "°C" && source.item.equipment_id === "EMBRACO-2"
@@ -259,7 +267,11 @@ export function buildSavedDashboardChartGroups(
       index,
       hiddenSeriesKeys,
       soloSeriesKey,
-      options.now !== undefined || options.cadenceObservations !== undefined ? options : null,
+      options.now !== undefined ||
+        options.cadenceObservations !== undefined ||
+        options.pointsPerSeries !== undefined
+        ? options
+        : null,
     ),
   );
   if (chartSeries.length === 0) return [];
