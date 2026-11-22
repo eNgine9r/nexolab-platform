@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1664,
-      "title": "Chart detail (point density) control on Live Data (WP-K)",
-      "branch": "feat/1664-live-density"
+      "issue": 1666,
+      "title": "Saved analysis views: persisted view settings API (WP-L, backend)",
+      "branch": "feat/1666-saved-analysis-views-api"
     },
     "next_work_package": null
   },
@@ -11776,6 +11776,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1664-live-density"
+    },
+    {
+      "issue": 1666,
+      "title": "Saved analysis views: persisted view settings API (WP-L, backend)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Saved Live Dashboards gain an additive nullable view_settings JSON column (Alembic 20261122_0041; downgrade refuses to drop saved views) carrying hidden series, history range (preset or custom), zoom viewport and chart detail. The API accepts and returns it with strict validation; omitted keeps the stored view (older clients stay compatible) and explicit null clears it; unreadable stored values are ignored on read. ETag, RBAC and audit are unchanged. Verified with 17 SQLite-backed tests; the PostgreSQL migration is verified by CI only; no production migration was performed.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "backend: 17 new tests + dashboard suites pass locally on SQLite (Windows-only failures pre-exist); PostgreSQL migration verified by CI",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1666-saved-analysis-views-api"
     }
   ],
   "maintenance_actions": [

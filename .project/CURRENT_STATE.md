@@ -1,3 +1,7 @@
+## 2026-11-22 — #1666 Saved analysis views: persisted view settings API (WP-L, backend) is source-only, not installed
+
+Saved Live Dashboards gain an additive nullable view_settings JSON column (Alembic 20261122_0041; downgrade refuses to drop saved views) carrying hidden series, history range (preset or custom), zoom viewport and chart detail. The API accepts and returns it with strict validation; omitted keeps the stored view (older clients stay compatible) and explicit null clears it; unreadable stored values are ignored on read. ETag, RBAC and audit are unchanged. Verified with 17 SQLite-backed tests; the PostgreSQL migration is verified by CI only; no production migration was performed. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1664 Chart detail (point density) control on Live Data (WP-K) is source-only, not installed
 
 Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups). No Modbus/hardware write, no polling change, no site release.
