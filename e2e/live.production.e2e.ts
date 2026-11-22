@@ -876,7 +876,7 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     for (const width of [320, 360, 390, 430]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(compare).toBeVisible();
-      await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 8 точок");
+      await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 24 точок");
       await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 64 точок");
       await expect(page.getByRole("button", { name: "Відкрити збережені панелі" })).toBeVisible();
       await expect(row.locator("time")).toBeVisible();
