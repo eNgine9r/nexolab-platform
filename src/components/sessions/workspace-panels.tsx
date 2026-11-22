@@ -186,6 +186,15 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             Alarm markers: {history.filter((item) => item.alarm).length}
           </span>
         </div>
+        {data.historyTruncated ? (
+          <p
+            className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100"
+            role="status"
+            data-testid="session-history-truncated"
+          >
+            Історія сесії перевищує безпечний ліміт сторінок: на графіку показано неповний набір вимірювань.
+          </p>
+        ) : null}
         <SessionTemperatureHistory samples={chartHistory} />
       </div>
     </section>

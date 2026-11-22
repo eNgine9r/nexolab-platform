@@ -1,3 +1,7 @@
+## 2026-11-22 — #1649 Preserve Energy extrema and stop silent session-history truncation (WP-D) is source-only, not installed
+
+Energy charts keep each bucket's min and max for instantaneous metrics (spikes and dips survive reduction; counters and continuity markers unchanged); the session history now paginates completely, polls tail-only and states explicitly when the page cap truncates it. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1647 Alarm events, regions and threshold markers from canonical alerts (WP-C) is source-only, not installed
 
 Saved Dashboard charts now draw canonical alert events (triggered/acknowledged/resolved/closed with time and source), alarm regions and threshold lines for plotted series only, from the read-only alerts API; an accessible events table lists them with text severity/state. Unavailable or forbidden alert logs degrade to an explicit note. Telemetry-sample alarm context still never creates markers. No Modbus/hardware write, no polling change, no site release.

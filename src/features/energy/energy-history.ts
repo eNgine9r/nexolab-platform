@@ -256,6 +256,8 @@ function applyPendingBreak(samples: readonly TelemetrySample[], breakPending: bo
   return marked;
 }
 
+const CUMULATIVE_ENERGY_METRIC = "electrical.energy.active";
+
 function bucketDownsampleAnnotated(
   samples: readonly TelemetrySample[],
   maximumPoints: number,
@@ -273,14 +275,29 @@ function bucketDownsampleAnnotated(
   const from = window?.from.getTime() ?? sampleFrom;
   const to = window?.to.getTime() ?? sampleTo;
   const rangeMs = Math.max(1, to - from);
-  const bucketMs = Math.max(1, Math.ceil(rangeMs / (maximumPoints - 2)));
+  // Instantaneous metrics (W, V, A, …) keep each bucket's minimum and maximum so a short
+  // excursion survives reduction (#1649). Cumulative counters are monotonic: first/last
+  // already carry their extrema, so they keep the full bucket resolution.
+  const preserveExtrema = !sorted.some((sample) => sample.metric === CUMULATIVE_ENERGY_METRIC);
+  const bucketBudget = preserveExtrema ? Math.max(1, Math.floor((maximumPoints - 2) / 3)) : maximumPoints - 2;
+  const bucketMs = Math.max(1, Math.ceil(rangeMs / bucketBudget));
   const buckets = new Map<number, TelemetrySample>();
+  const extrema = new Map<number, { min: TelemetrySample; max: TelemetrySample; marked: boolean }>();
 
   for (const sample of sorted) {
     const capturedAt = Date.parse(sample.captured_at);
     if (!Number.isFinite(capturedAt)) continue;
     const bucket = Math.floor(capturedAt / bucketMs);
     buckets.set(bucket, mergeBucketSample(buckets.get(bucket), sample));
+    if (preserveExtrema) {
+      const entry = extrema.get(bucket) ?? { min: sample, max: sample, marked: false };
+      if (isEnergyHistorySegmentStart(sample.event_id)) entry.marked = true;
+      if (sample.value !== null && Number.isFinite(sample.value)) {
+        if (entry.min.value === null || sample.value < entry.min.value) entry.min = sample;
+        if (entry.max.value === null || sample.value > entry.max.value) entry.max = sample;
+      }
+      extrema.set(bucket, entry);
+    }
   }
 
   const first = sorted[0];
@@ -299,7 +316,19 @@ function bucketDownsampleAnnotated(
   buckets.set(firstBucket, first);
   buckets.set(lastBucket, mergeBucketSample(buckets.get(lastBucket), last));
 
-  const sampled = [...buckets.values()]
+  const retained = new Set([...buckets.values()].map((sample) => sample.event_id));
+  const extras: TelemetrySample[] = [];
+  for (const entry of extrema.values()) {
+    // Buckets that contain a continuity marker keep their established behaviour.
+    if (entry.marked) continue;
+    for (const candidate of [entry.min, entry.max]) {
+      if (retained.has(candidate.event_id)) continue;
+      retained.add(candidate.event_id);
+      extras.push(candidate);
+    }
+  }
+
+  const sampled = [...buckets.values(), ...extras]
     .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at))
     .slice(-maximumPoints);
 
