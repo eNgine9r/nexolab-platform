@@ -27,9 +27,18 @@ import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-ale
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { buildDashboardStatisticsRows } from "@/features/live-dashboards/statistics-rows";
-import type { ChartXDomain } from "@/features/charts/domain";
+import { chartSeriesKey, type ChartXDomain } from "@/features/charts/domain";
+import {
+  captureViewSettings,
+  rangeMatches,
+  resolveViewSettings,
+  viewportOverlapsWindow,
+} from "@/features/live-dashboards/view-settings";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
-import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
+import {
+  buildSavedDashboardChartGroups,
+  savedDashboardChartIdentity,
+} from "@/features/live-dashboards/chart";
 import {
   isOperatorEmbracoTemperature,
   savedDashboardChannelLabel,
@@ -37,7 +46,11 @@ import {
   savedDashboardSeriesLabel,
 } from "@/features/live-dashboards/embraco-series";
 import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
-import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
+import type {
+  LiveDashboard,
+  LiveDashboardTelemetryStatus,
+  LiveDashboardViewSettings,
+} from "@/features/live-dashboards/types";
 import {
   EMPTY_CADENCE_OBSERVATIONS,
   liveFreshnessFor,
@@ -148,6 +161,7 @@ export function DashboardLiveView({
   canManage,
   onBack,
   onEdit,
+  onSaveView,
 }: {
   dashboard: LiveDashboard;
   telemetry: LiveDashboardTelemetryModel;
@@ -157,6 +171,8 @@ export function DashboardLiveView({
   canManage: boolean;
   onBack: () => void;
   onEdit: () => void;
+  /** Persists (or with null clears) the saved analysis view of this dashboard (#1666). */
+  onSaveView?: (settings: LiveDashboardViewSettings | null) => Promise<void>;
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const status = statusPresentation(telemetry.status);
@@ -169,6 +185,15 @@ export function DashboardLiveView({
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
+  const restoredView = useMemo(
+    () => resolveViewSettings(dashboard.view_settings, dashboard.items),
+    [dashboard.items, dashboard.view_settings],
+  );
+  const [pendingRestore, setPendingRestore] = useState<boolean>(restoredView !== null);
+  const [viewSaveState, setViewSaveState] = useState<"idle" | "saving" | "saved" | "cleared" | "error">(
+    "idle",
+  );
+  const [viewSaved, setViewSaved] = useState<boolean>(Boolean(dashboard.view_settings));
   const dashboardViewKey = `${dashboard.id}:${dashboard.version}:${telemetry.historyRange.kind}:${telemetry.historyRange.from}:${telemetry.historyRange.to}`;
   const resetDomain = useMemo(
     () => ({
@@ -263,6 +288,82 @@ export function DashboardLiveView({
       setViewportDomain(null);
     });
   }, [dashboardViewKey]);
+
+  // Saved analysis view (#1666): re-apply the saved range once, then — after the range has settled and
+  // the window is loaded — the hidden series and the zoom (the range change resets both).
+  useEffect(() => {
+    const range = restoredView?.range;
+    if (!range || rangeMatches(range, telemetry.historyRange)) return;
+    void Promise.resolve().then(() => {
+      if (range.kind === "preset") telemetry.selectHistoryPreset(range.preset);
+      else telemetry.applyCustomHistoryRange(range.from, range.to);
+    });
+    // Mount-only on purpose: the saved view is applied when the dashboard is opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!pendingRestore || !restoredView) return;
+    if (restoredView.range && !rangeMatches(restoredView.range, telemetry.historyRange)) return;
+    if (telemetry.historyStatus !== "ready") return;
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      const hiddenIdentities = new Set(restoredView.hiddenItemIdentities);
+      setHiddenSeriesKeys(
+        new Set(
+          telemetry.series
+            .filter((entry) => hiddenIdentities.has(dashboardItemIdentity(entry.item)))
+            .map((entry) => chartSeriesKey(savedDashboardChartIdentity(dashboard.id, entry))),
+        ),
+      );
+      if (restoredView.viewport && viewportOverlapsWindow(restoredView.viewport, resetDomain)) {
+        setViewportDomain(restoredView.viewport);
+      }
+      setPendingRestore(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    dashboard.id,
+    pendingRestore,
+    resetDomain,
+    restoredView,
+    telemetry.historyRange,
+    telemetry.historyStatus,
+    telemetry.series,
+  ]);
+
+  const saveView = async (clear: boolean) => {
+    if (!onSaveView) return;
+    setViewSaveState("saving");
+    try {
+      if (clear) {
+        await onSaveView(null);
+        setViewSaved(false);
+        setViewSaveState("cleared");
+        return;
+      }
+      const hiddenItemIdentities = telemetry.series
+        .filter((entry) =>
+          hiddenSeriesKeys.has(chartSeriesKey(savedDashboardChartIdentity(dashboard.id, entry))),
+        )
+        .map((entry) => dashboardItemIdentity(entry.item));
+      await onSaveView(
+        captureViewSettings({
+          hiddenItemIdentities,
+          historyRange: telemetry.historyRange,
+          viewport: viewportDomain,
+          density,
+        }),
+      );
+      setViewSaved(true);
+      setViewSaveState("saved");
+    } catch {
+      setViewSaveState("error");
+    }
+  };
 
   const toggleSeries = (seriesKey: string) => {
     setSoloSeriesKey(null);
@@ -494,6 +595,45 @@ export function DashboardLiveView({
               </button>
             </div>
           </div>
+
+          {canManage && onSaveView ? (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-2"
+              data-testid="saved-analysis-view-controls"
+            >
+              <button
+                type="button"
+                onClick={() => void saveView(false)}
+                disabled={viewSaveState === "saving"}
+                className="min-h-9 rounded-xl border border-cyan-300/25 bg-cyan-400/[0.06] px-3 text-xs font-medium text-cyan-100 hover:bg-cyan-400/10 disabled:opacity-50"
+              >
+                Зберегти вигляд аналізу
+              </button>
+              {viewSaved ? (
+                <button
+                  type="button"
+                  onClick={() => void saveView(true)}
+                  disabled={viewSaveState === "saving"}
+                  className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-300 hover:border-cyan-300/25 disabled:opacity-50"
+                >
+                  Скинути збережений вигляд
+                </button>
+              ) : null}
+              <p className="text-xs text-slate-400" role="status" data-testid="saved-analysis-view-status">
+                {viewSaveState === "saving"
+                  ? "Збереження…"
+                  : viewSaveState === "saved"
+                    ? "Вигляд збережено: сховані серії, період, масштаб і деталізація відновляться при відкритті."
+                    : viewSaveState === "cleared"
+                      ? "Збережений вигляд скинуто."
+                      : viewSaveState === "error"
+                        ? "Не вдалося зберегти вигляд (можливий конфлікт версій або немає прав)."
+                        : viewSaved
+                          ? "Збережений вигляд застосовується при відкритті."
+                          : "Вигляд ще не збережено."}
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-4">
             <ChartDensityControl
