@@ -692,7 +692,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
       .toBeGreaterThanOrEqual(4);
     await expect(page.getByRole("button", { name: "1h", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "30d", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Custom", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Власний період", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Export CSV", exact: true })).toBeEnabled();
 
     const historyRequestsBeforeRangeChange = requests.telemetry.filter((item) =>
@@ -703,7 +703,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThan(historyRequestsBeforeRangeChange);
 
-    await page.getByRole("button", { name: "Custom", exact: true }).click();
+    await page.getByRole("button", { name: "Власний період", exact: true }).click();
     await expect(page.getByLabel("Від · локальний час")).toBeVisible();
     await expect(page.getByLabel("До · локальний час")).toBeVisible();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
