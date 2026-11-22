@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T07:18:57Z",
+  "timestamp": "2026-11-22T07:26:21Z",
   "actor": "Claude",
-  "event": "1666_saved_analysis_views_ui_pr",
+  "event": "1668_energy_refrigeration_density_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1666,
-    "branch": "feat/1666-saved-analysis-views-ui",
+    "issue": 1668,
+    "branch": "feat/1668-energy-refrigeration-density",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "Backend #1667 waits for the CVE decision; continue with the remaining independent work packages (WP-M, WP-N, WP-P, WP-Q, WP-R client-side, WP-S).",
+  "next_action": "WP-N Energy raw statistics, WP-P Live device selection, WP-Q freshness/events/ranges, WP-R exports, WP-S acceptance. Backend-classified PRs wait for the HIGH CVE risk-owner decision (BLOCKERS).",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -42,8 +42,8 @@ function breakMarker(sample: TelemetrySample, channelId: string, unit: string): 
   };
 }
 
-function reduced(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller");
+function reduced(segments: ChartSeries["segments"], maximumPoints?: number): ChartSeries["segments"] {
+  return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller", { maximumPoints });
 }
 
 function seriesFromSamples(
@@ -51,6 +51,7 @@ function seriesFromSamples(
   name: string,
   visualIndex: number,
   online: boolean,
+  maximumPoints?: number,
 ): ChartSeries | null {
   const ordered = [...samples]
     .filter((sample) => Number.isFinite(timestamp(sample)))
@@ -86,7 +87,7 @@ function seriesFromSamples(
     dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
     freshness: withInvalidNewestSample(online ? "live" : "offline", newestSampleValidity(ordered)),
-    segments: reduced(segments),
+    segments: reduced(segments, maximumPoints),
     visible: true,
     semanticMode: "instantaneous",
     displayPrecision: first.unit === "rpm" ? 0 : 1,
@@ -97,9 +98,10 @@ export function buildEmbracoTemperatureScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const series = [...TEMPERATURE_NAMES.entries()].flatMap(([metric, name], index) => {
-    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online);
+    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online, maximumPoints);
     return built ? [built] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -116,6 +118,7 @@ export function buildEmbracoOperatorCelsiusScene(
   range: RefrigerationHistoryRange,
   online: boolean,
   controllerEquipmentId: string,
+  maximumPoints?: number,
 ): ChartRendererScene {
   if (controllerEquipmentId !== EMBRACO_KK1_CONTROLLER_ID) {
     return { series: [], xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -155,12 +158,13 @@ export function buildEmbracoOperatorCelsiusScene(
       }
     }
     const visualIndex = index * 2;
-    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online);
+    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online, maximumPoints);
     const provisionalSeries = seriesFromSamples(
       provisional,
       `${name}${EMBRACO_PROVISIONAL_SUFFIX}`,
       visualIndex + 1,
       online,
+      maximumPoints,
     );
     return [calibratedSeries, provisionalSeries].flatMap((built) =>
       built ? [{ ...built, displayPrecision: 2 }] : [],
@@ -178,6 +182,7 @@ export function buildEmbracoProbeRawScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const probes = [
     [EMBRACO_METRICS.cabinet, "Температура в об’ємі · raw"],
@@ -200,7 +205,7 @@ export function buildEmbracoProbeRawScene(
           }
         : breakMarker(sample, `${sample.channel_id}:raw`, "raw"),
     );
-    const built = seriesFromSamples(rawSamples, name, index, online);
+    const built = seriesFromSamples(rawSamples, name, index, online, maximumPoints);
     return built ? [{ ...built, displayPrecision: 0 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -210,12 +215,14 @@ export function buildEmbracoCompressorScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const series = seriesFromSamples(
     history.get(EMBRACO_METRICS.compressorSpeed) ?? [],
     "Compressor speed",
     0,
     online,
+    maximumPoints,
   );
   return {
     series: series ? [series] : [],

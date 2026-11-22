@@ -1,3 +1,7 @@
+## 2026-11-22 — #1668 Chart detail control on Energy and Refrigeration (WP-M, completes #1620) is source-only, not installed
+
+Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1666 Saved analysis views: save and restore in the live view (WP-L, frontend) is source-only, not installed
 
 The Saved Dashboard live view can save the analysis view (hidden series, history range, zoom, chart detail) through the existing dashboard update path and restores it when reopened; unusable parts of a stored view are ignored, saving does not re-create the live view, and the UI refuses to report a save that an older API did not persist. The API half (#1667) is blocked by an unfixed HIGH CVE in the Device Agent image awaiting a risk-owner decision (see BLOCKERS). No Modbus/hardware write, no polling change, no site release.
