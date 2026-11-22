@@ -114,6 +114,8 @@ export interface LiveDashboardTelemetryModel {
   now?: number;
   /** Raw-sample interval statistics provider; results change only when `series` changes. */
   intervalStatistics?: LiveDashboardIntervalStatistics;
+  /** Raw measurement columns of one item (for exact digital state lanes, #1679); recompute when `series` changes. */
+  intervalColumns?: (itemIdentity: string) => IntervalSampleColumns | undefined;
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -678,6 +680,11 @@ export function useLiveDashboardTelemetry({
     return columns ? computeIntervalStatistics(columns, fromMs, toMs) : null;
   }, []);
 
+  const intervalColumns = useCallback(
+    (itemIdentity: string): IntervalSampleColumns | undefined => statsRef.current[itemIdentity],
+    [],
+  );
+
   const visible = active && scopeKey !== null && activeScopeKey === scopeKey;
   const series = visible ? storedSeries : [];
   const entries = series.flatMap((item) =>
@@ -708,6 +715,7 @@ export function useLiveDashboardTelemetry({
     cadenceObservations: visibleCadence,
     now: clock,
     intervalStatistics,
+    intervalColumns,
     historyRange,
     historyWindow,
     historyStatus,
