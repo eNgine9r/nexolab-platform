@@ -116,6 +116,21 @@ def _load_stream_module():
 drs = _load_stream_module()
 
 
+def _load_volume_archive_module():
+    """Single source of the volume tar contract (root metadata + user.* xattr records)."""
+    path = Path(__file__).with_name("nexolab-volume-archive.py")
+    spec = importlib.util.spec_from_file_location("nexolab_volume_archive", path)
+    if spec is None or spec.loader is None:
+        raise Blocked("nexolab-volume-archive.py is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+vat = _load_volume_archive_module()
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -346,14 +361,26 @@ class OverlapError(Exception):
 # ----------------------------------------------------------------- store capture
 
 
+def _xattr_state(path: Path, label: str) -> str:
+    """Digest of the user.* xattrs (read-only). Part of the signature: VersityGW rewrites
+    metadata (ETag/Content-Type) via setxattr, which changes neither size nor mtime."""
+    try:
+        return vat.xattr_digest(vat.read_user_xattrs(path, label))
+    except vat.VolumeArchiveFailure as exc:
+        raise CaptureFailed(str(exc)) from exc
+
+
 def _signature(root: Path) -> tuple:
+    """Metadata signature compared before/after a snapshot: size, mtime, inode, mode and the
+    digest of the user.* extended attributes of every entry (and of the root directory)."""
     if root.is_file():
         st = root.stat()
-        return (("", st.st_size, st.st_mtime_ns, st.st_ino, st.st_mode),)
-    entries = []
+        return (("", st.st_size, st.st_mtime_ns, st.st_ino, st.st_mode, _xattr_state(root, "file")),)
+    entries = [("", _xattr_state(root, "root"))]
     for path in sorted(root.rglob("*")):
         st = path.lstat()
-        entries.append((path.relative_to(root).as_posix(), st.st_size, st.st_mtime_ns, st.st_ino, st.st_mode))
+        relative = path.relative_to(root).as_posix()
+        entries.append((relative, st.st_size, st.st_mtime_ns, st.st_ino, st.st_mode, _xattr_state(path, relative)))
     return tuple(entries)
 
 
@@ -364,8 +391,14 @@ def object_paths(root: Path) -> set[str]:
     return {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
 
 
-def capture_directory(root: Path, sink: Any) -> None:
-    """Streams a deterministic tar compatible with nexolab-volume-archive.py extract."""
+def capture_directory(root: Path, sink: Any) -> dict[str, Any]:
+    """Streams a deterministic tar compatible with nexolab-volume-archive.py extract.
+
+    The user.* extended attributes of every entry are captured as SCHILY.xattr.* PAX records
+    (VersityGW object metadata: ETag, Content-Type, checksums, bucket ACL/ownership) and the
+    archive declares NEXOLAB.volume.xattrs=user-v1. Reads are strictly read-only. Returns the
+    attribute summary (counts only; names and values never leave the encrypted stream).
+    """
     try:
         root_meta = root.lstat()
     except OSError as exc:
@@ -373,13 +406,15 @@ def capture_directory(root: Path, sink: Any) -> None:
     if stat.S_ISLNK(root_meta.st_mode) or not stat.S_ISDIR(root_meta.st_mode):
         raise CaptureFailed("source must be a non-symlink directory")
     before = _signature(root)
-    pax = {
-        "NEXOLAB.volume.schema": "1",
-        "NEXOLAB.volume.root.mode": f"{stat.S_IMODE(root_meta.st_mode):04o}",
-        "NEXOLAB.volume.root.uid": str(root_meta.st_uid),
-        "NEXOLAB.volume.root.gid": str(root_meta.st_gid),
-    }
-    with tarfile.open(fileobj=sink, mode="w|", format=tarfile.PAX_FORMAT, pax_headers=pax) as archive:
+    budget = vat.XattrBudget()
+    try:
+        root_xattrs = vat.read_user_xattrs(root, "root")
+        budget.add(root_xattrs, "root")
+        pax = vat.global_pax_headers(root_meta, root_xattrs)
+    except vat.VolumeArchiveFailure as exc:
+        raise CaptureFailed(str(exc)) from exc
+    with tarfile.open(fileobj=sink, mode="w|", format=tarfile.PAX_FORMAT, pax_headers=pax,
+                      encoding=vat.TAR_ENCODING, errors=vat.TAR_ERRORS) as archive:
         for path in sorted(root.rglob("*")):
             relative = path.relative_to(root).as_posix()
             meta = path.lstat()
@@ -389,6 +424,12 @@ def capture_directory(root: Path, sink: Any) -> None:
             info.mode, info.uid, info.gid = stat.S_IMODE(meta.st_mode), meta.st_uid, meta.st_gid
             info.uname = info.gname = ""
             info.mtime = 0
+            try:
+                xattrs = vat.read_user_xattrs(path, relative)
+                budget.add(xattrs, relative)
+                info.pax_headers = vat.xattr_pax_headers(xattrs)
+            except vat.VolumeArchiveFailure as exc:
+                raise CaptureFailed(str(exc)) from exc
             if stat.S_ISDIR(meta.st_mode):
                 info.type, info.size = tarfile.DIRTYPE, 0
                 archive.addfile(info)
@@ -400,6 +441,7 @@ def capture_directory(root: Path, sink: Any) -> None:
                 raise CaptureFailed(f"special file in source is not allowed: {relative}")
     if _signature(root) != before:
         raise CaptureFailed("source changed during capture (not a consistent snapshot); run will retry later")
+    return budget.summary()
 
 
 def capture_file(path: Path, sink: Any) -> None:
@@ -476,17 +518,19 @@ def capture_docker_exec(argv: list[str], sink: Any) -> None:
         raise CaptureFailed(f"docker exec exited {code}: {message[0][:200]}")
 
 
-def capture_store(store: StoreConfig, sink: Any) -> None:
+def capture_store(store: StoreConfig, sink: Any) -> dict[str, Any] | None:
+    """Captures one store; directory snapshots return their xattr summary (counts only)."""
     if store.method == "docker_exec_stream":
         capture_docker_exec(store.params["argv"], sink)
     elif store.method == "directory_snapshot":
-        capture_directory(Path(store.params["path"]), sink)
+        return capture_directory(Path(store.params["path"]), sink)
     elif store.method == "file_snapshot":
         capture_file(Path(store.params["path"]), sink)
     elif store.method == "sqlite_online":
         capture_sqlite(Path(store.params["path"]), sink, store.max_bytes)
     else:  # pragma: no cover - rejected by load_config
         raise CaptureFailed("unsupported method")
+    return None
 
 
 # ----------------------------------------------------------------- run
@@ -530,7 +574,7 @@ def _last_success(config: Config) -> float:
 
 def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
                clock: Callable[[], float] = time.time,
-               capture: Callable[[StoreConfig, Any], None] | None = None) -> dict[str, Any]:
+               capture: Callable[[StoreConfig, Any], dict[str, Any] | None] | None = None) -> dict[str, Any]:
     free = free or free_bytes
     capture = capture or capture_store
     started = clock()
@@ -583,7 +627,7 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
                 sink = builder.begin_entry(path=store.entry_path, store=store.id,
                                            content_format=store.content_format, max_bytes=store.max_bytes)
                 try:
-                    capture(store, sink)
+                    captured = capture(store, sink)
                 except drs.StreamFailure as exc:
                     raise CaptureFailed(f"{store.id}: {exc}") from exc
                 except CaptureFailed as exc:
@@ -596,12 +640,17 @@ def run_backup(config: Config, *, free: Callable[[Path], int] | None = None,
                             "the dump may reference missing objects"
                         )
                 entry = sink.close()
-                store_results.append({
+                result = {
                     "id": store.id, "disposition": "capture", "method": store.method,
                     "consistency": CONSISTENCY[store.method], "entry_path": entry.path,
                     "format": entry.content_format, "size": entry.size, "sha256": entry.sha256,
                     "duration_seconds": round(clock() - store_started, 3),
-                })
+                }
+                if store.method == "directory_snapshot" and isinstance(captured, dict):
+                    # Explicit, additive manifest/receipt field (#1630 object-metadata fix): the tar
+                    # carries user.* xattrs as SCHILY.xattr.* records (counts only, never values).
+                    result["xattrs"] = captured
+                store_results.append(result)
             builder.finish({"schema_version": 1, "kind": "nexolab-dr-stream-manifest", "issue": 1630,
                             "created_at": created_at, "commit": config.commit,
                             "stores": [{k: v for k, v in result.items() if k != "duration_seconds"}

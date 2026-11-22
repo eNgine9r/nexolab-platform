@@ -460,6 +460,9 @@ class Rehearsal:
                       "-c", restore_tool.S3_HEAD_PROBE, f"http://{self.ctr['object-storage']}:9000", BUCKET,
                       input_bytes=json.dumps(keys).encode())
         self.source_s3_head = json.loads(head.stdout.decode().strip().splitlines()[-1])
+        # Read-only HEAD results of the source gateway: the restore compares ETag/Content-Type against them.
+        observation["objects"] = [{"key": s["key"], "etag": s.get("etag"), "content_type": s.get("content_type")}
+                                  for s in self.source_s3_head if s.get("status") == 200]
         path = self.ws / "observation" / "source-observation.json"
         path.parent.mkdir()
         path.write_text(json.dumps(observation, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -492,6 +495,39 @@ class Rehearsal:
         path = self.ws / f"{name}-config.json"
         path.write_text(json.dumps(config, indent=2), encoding="utf-8")
         return path
+
+    def restored_s3_head(self, keys: list[str]) -> dict[str, Any]:
+        """Independent check of the RESTORED object volume: a second VersityGW (labelled with the restore
+        prefix, internal network, rehearsal credentials) answers HEAD and stat-keys for the source keys."""
+        prefix = self.args.restore_prefix
+        name, network, volume = f"{prefix}-verify-gw", f"{prefix}-net", f"{prefix}-object-storage-data"
+        access, secret = "nxdrverify" + secrets.token_hex(4), secrets.token_urlsafe(24)
+        gw_env = self.env_file("verify-gw.env", {"ROOT_ACCESS_KEY_ID": access, "ROOT_SECRET_ACCESS_KEY": secret,
+                                                 "VGW_PORT": ":9000", "VGW_REGION": "us-east-1",
+                                                 "VGW_HEALTH": "/health", "VGW_QUIET": "true"})
+        s3_env = self.env_file("verify-s3.env", {"OBJECT_STORAGE_ACCESS_KEY_ID": access,
+                                                 "OBJECT_STORAGE_SECRET_ACCESS_KEY": secret,
+                                                 "OBJECT_STORAGE_REGION": "us-east-1"})
+        docker("run", "-d", "--pull", "never", "--name", name, "--network", network, "--label",
+               f"{restore_tool.LABEL}={prefix}", "--env-file", str(gw_env), "--read-only", "-v", f"{volume}:/data",
+               self.args.object_storage_image, "posix", "/data")
+        endpoint = f"http://{name}:9000"
+        client = ["run", "--rm", "-i", "--pull", "never", "--network", network, "--label",
+                  f"{restore_tool.LABEL}={prefix}", "--env-file", str(s3_env), "-v", f"{SCRIPTS}:/opt/nexolab/scripts:ro",
+                  "--entrypoint", "python", self.args.telemetry_image]
+        try:
+            docker(*client, "/opt/nexolab/scripts/object-storage-s3.py", "--endpoint", endpoint, "wait", timeout=120)
+            head = docker(*client, "-c", restore_tool.S3_HEAD_PROBE, endpoint, BUCKET,
+                          input_bytes=json.dumps(keys).encode())
+            stat = docker(*client, "/opt/nexolab/scripts/object-storage-s3.py", "--endpoint", endpoint, "stat-keys",
+                          "--bucket", BUCKET, "--keys-file", "/dev/stdin",
+                          input_bytes="".join(f"{key}\n" for key in keys).encode(), check=False)
+        finally:
+            docker("rm", "-f", name, check=False)
+        return {"head": json.loads(head.stdout.decode().strip().splitlines()[-1]),
+                "stat_keys_exit": stat.returncode,
+                "stat_keys": [json.loads(line) for line in stat.stdout.decode().splitlines() if line.startswith("{")],
+                "stat_keys_stderr_tail": stat.stderr.decode("utf-8", "replace").strip().splitlines()[-1:]}
 
     def run_restore(self, config: Path, *extra: str) -> tuple[int, str]:
         result = subprocess.run([sys.executable, str(SCRIPTS / "nexolab-dr-isolated-restore.py"), "restore",
@@ -571,6 +607,18 @@ def main(argv: list[str] | None = None) -> int:
         receipt_path = args.workspace / "restore-evidence" / "nexolab-dr-isolated-restore-receipt.json"
         if receipt_path.exists():
             summary["receipt_verify"] = restore_tool.verify_receipt_file(receipt_path)
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            summary["restore_object_storage_s3"] = receipt.get("object_storage_s3")
+        if code == 0:
+            keys = [s["key"] for s in rehearsal.source_s3_head if s.get("status") == 200]
+            summary["restored_s3_head"] = rehearsal.restored_s3_head(keys)
+            source = {s["key"]: (s.get("etag"), s.get("content_type")) for s in rehearsal.source_s3_head}
+            restored = {s["key"]: (s.get("etag"), s.get("content_type")) for s in summary["restored_s3_head"]["head"]}
+            summary["metadata_equal_source"] = bool(source) and source == restored
+            log(f"object metadata source={source} restored={restored} "
+                f"stat-keys exit={summary['restored_s3_head']['stat_keys_exit']}")
+            if not summary["metadata_equal_source"] or summary["restored_s3_head"]["stat_keys_exit"] != 0:
+                code = 1
         negatives_ok = all(item["refused"] and not item["resources_created"] and not item["plaintext_dir_exists"]
                            for item in summary["negative"].values())
         code = 0 if code == 0 and negatives_ok else 1
