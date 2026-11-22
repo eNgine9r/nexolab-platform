@@ -82,6 +82,23 @@ def verify_structural_contract(inventory: dict) -> None:
         raise HealthBlocked("8-store inventory does not satisfy v2 contract") from exc
 
 
+def offdevice_reverifier(destination: Path):
+    """#1631: returns a callable that RE-READS the newest bundle on a mounted destination and
+    compares it with its custody receipt. A receipt alone (a claim) never changes the gate."""
+    def run() -> dict:
+        script = Path(__file__).with_name("nexolab-dr-offdevice-copy.py")
+        spec = importlib.util.spec_from_file_location("nexolab_dr_offdevice_copy", script)
+        if spec is None or spec.loader is None:
+            raise HealthBlocked("local off-device copy contract unavailable")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        try:
+            return module.reverify_destination(destination)
+        except (module.Blocked, module.CopyFailed, OSError) as exc:
+            raise HealthBlocked(f"off-device copy not re-verified: {exc}") from exc
+    return run
+
+
 def parse_utc(value: object) -> datetime:
     if not isinstance(value, str) or not value.endswith("Z"):
         raise HealthBlocked("inventory timestamp missing UTC")
@@ -101,6 +118,7 @@ def assess(
     *,
     now: datetime | None = None,
     structural_validator=verify_structural_contract,
+    offdevice_verifier=None,
 ) -> dict:
     """Always fail closed for independent site recovery; do not treat claims as proof."""
     now = now or datetime.now(timezone.utc)
@@ -151,7 +169,18 @@ def assess(
             gate("multi_store_inventory", "BLOCKED", "complete v2 protected receipt invalid or partial")
             gate("backup_freshness", "BLOCKED", "valid complete backup capture time not established")
 
-    gate("encrypted_off_device_copy", "UNVERIFIED", "claim cannot prove independent off-device encrypted custody")
+    if offdevice_verifier is None:
+        gate("encrypted_off_device_copy", "UNVERIFIED", "claim cannot prove independent off-device encrypted custody")
+    else:
+        try:
+            copy = offdevice_verifier()
+            if not isinstance(copy, dict) or copy.get("status") != "READBACK_REVERIFIED":
+                raise HealthBlocked("off-device re-verification returned no evidence")
+            gate("encrypted_off_device_copy", "REPORTED_OK",
+                 f"newest bundle re-read on the enrolled independent {copy.get('destination_kind')} matches its "
+                 "custody receipt; key custody, offline proof and restore are NOT proven by this probe")
+        except Exception:  # any failure keeps the gate closed
+            gate("encrypted_off_device_copy", "BLOCKED", "supplied off-device destination did not re-verify")
     gate("isolated_restore", "UNVERIFIED", "claim cannot prove actual fresh-volume isolated restore")
     gate("hardware_acceptance", "UNVERIFIED", "no real equipment evidence")
     return {
@@ -168,6 +197,8 @@ def assess(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inventory", type=Path, help="optional mode-0600 sanitized v2 DR receipt")
+    parser.add_argument("--offdevice-destination", type=Path,
+                        help="optional mounted #1631 destination; its newest bundle is re-read (read-only)")
     args = parser.parse_args()
     inventory: dict | None = None
     timer: dict[str, str] | None = None
@@ -184,7 +215,8 @@ def main() -> int:
         free = shutil.disk_usage("/").free
     except OSError:
         free = None
-    print(json.dumps(assess(inventory, timer, free), sort_keys=True))
+    verifier = offdevice_reverifier(args.offdevice_destination) if args.offdevice_destination else None
+    print(json.dumps(assess(inventory, timer, free, offdevice_verifier=verifier), sort_keys=True))
     return 78  # No in-chat structural evidence authorizes a real site restore.
 
 
