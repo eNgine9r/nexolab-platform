@@ -143,6 +143,11 @@ export function LiveDashboardWorkspace({
     };
     const result = await library.save(draft);
     if (result.conflict || !result.saved) throw new Error("Dashboard змінено іншим оператором.");
+    // An older Telemetry Service ignores the unknown field and would answer without it: refuse to
+    // report a save that was not persisted (release-order skew between frontend and API).
+    if (settings !== null && !result.saved.value.view_settings) {
+      throw new Error("Сервер не підтримує збереження вигляду аналізу.");
+    }
     viewEtagRef.current = result.saved.etag;
   };
 
