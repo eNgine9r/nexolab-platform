@@ -26,7 +26,9 @@ import {
   type RefrigerationHistoryPreset,
 } from "@/features/refrigeration/controller-monitoring";
 import {
+  buildCompressorTimeline,
   buildControlStateTimeline,
+  buildUnknownTimeline,
   buildDefrostTimeline,
   buildRelayTimeline,
   buildRelayTransitions,
@@ -179,9 +181,32 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
     [viewportRange, controller.history],
   );
+  const stateTimelineWithUnknown = useMemo(
+    () =>
+      [
+        ...stateTimeline,
+        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
+      ].sort((left, right) => left.fromMs - right.fromMs),
+    [stateTimeline, viewportRange, controller.history],
+  );
   const defrostTimeline = useMemo(
     () => buildDefrostTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
     [controller.history, controller.range],
+  );
+  const compressorLane = useMemo(() => {
+    const speed = controller.history.get(EMBRACO_METRICS.compressorSpeed) ?? [];
+    return [
+      ...buildCompressorTimeline(speed, viewportRange),
+      ...buildUnknownTimeline(speed, viewportRange),
+    ].sort((left, right) => left.fromMs - right.fromMs);
+  }, [controller.history, viewportRange]);
+  const defrostLane = useMemo(
+    () =>
+      [
+        ...defrostTimeline,
+        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
+      ].sort((left, right) => left.fromMs - right.fromMs),
+    [defrostTimeline, controller.history, controller.range],
   );
   const defrost = useMemo(
     () => summarizeActiveTimeline(defrostTimeline, analysisRange),
@@ -190,7 +215,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   const relayTimelines = useMemo(
     () =>
       [0, 1, 2, 3].map((relay) =>
-        buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, viewportRange),
+        [
+          ...buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, viewportRange),
+          ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], viewportRange),
+        ].sort((left, right) => left.fromMs - right.fromMs),
       ),
     [viewportRange, controller.history],
   );
@@ -238,6 +266,16 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     <section className="mt-2 border-t border-white/[0.07] pt-3">
       <h2 className="text-sm font-semibold text-white">Режими та реле</h2>
       <p className="mt-1 text-xs text-slate-400">Позначка на доріжках відповідає часу курсора графіка.</p>
+      <ul
+        className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-400"
+        data-testid="timeline-state-legend"
+        aria-label="Позначення станів доріжок"
+      >
+        <li>OFF — вимкнено</li>
+        <li>ON — увімкнено (компресор: швидкість &gt; 0 об/хв)</li>
+        <li>Невідомо (штрихування) — опитування було, але валідного стану немає</li>
+        <li>Немає даних (порожньо) — опитування відсутнє</li>
+      </ul>
       <div
         className="mt-4 grid gap-2"
         style={{ paddingRight: CHART_GRID_INSETS.right }}
@@ -247,14 +285,22 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       >
         <TimelineRow
           label="Режим"
-          intervals={stateTimeline}
+          intervals={stateTimelineWithUnknown}
           range={viewportRange}
           cursorMs={sharedCursorMs}
           selection={selectedAnalysisDomain}
         />
         <TimelineRow
+          label="Компресор"
+          intervals={compressorLane}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+          binary
+        />
+        <TimelineRow
           label="Відтайка"
-          intervals={defrostTimeline}
+          intervals={defrostLane}
           range={viewportRange}
           cursorMs={sharedCursorMs}
           selection={selectedAnalysisDomain}
@@ -499,7 +545,12 @@ function TimelineRow({
       const to = Math.min(item.toMs, toMs);
       if (to <= from) continue;
       const previous = result.at(-1);
-      if (previous?.toMs === from && previous.label === item.label && previous.active === item.active) {
+      if (
+        previous?.toMs === from &&
+        previous.label === item.label &&
+        previous.active === item.active &&
+        previous.kind === item.kind
+      ) {
         previous.toMs = to;
       } else {
         result.push({ ...item, fromMs: from, toMs: to });
@@ -547,7 +598,11 @@ function TimelineRow({
             tabIndex={binary ? 0 : undefined}
             className={clsx(
               "absolute inset-y-1 min-w-px rounded",
-              item.active ? "bg-cyan-400/55" : "bg-slate-500/25",
+              item.kind === "unknown"
+                ? "border border-dashed border-amber-300/60 bg-[repeating-linear-gradient(135deg,rgba(245,179,1,.22)_0_4px,transparent_4px_8px)]"
+                : item.active
+                  ? "bg-cyan-400/55"
+                  : "bg-slate-500/25",
               binary &&
                 "flex items-center justify-center overflow-hidden text-[8px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
             )}
