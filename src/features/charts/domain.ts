@@ -63,6 +63,11 @@ export interface ChartSeries {
   dashStyle: "solid" | "dashed" | "dotted";
   markerShape: "circle" | "diamond" | "triangle" | "rect";
   freshness: ChartFreshnessState;
+  /**
+   * While `freshness === "live"`: the instant (epoch ms) the series turns stale, so surfaces can
+   * flip a silent series on a clock tick without rebuilding the scene (see series-freshness.ts).
+   */
+  freshUntilMs?: number;
   segments: readonly ChartSegment[];
   visible: boolean;
   semanticMode: "instantaneous" | "cumulative_counter";

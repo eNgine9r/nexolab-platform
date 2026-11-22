@@ -9,6 +9,12 @@ import {
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts";
+import {
+  CADENCE_OBSERVATION_LIMIT,
+  observedCadenceMs,
+  resolveLiveFreshness,
+} from "@/features/live/freshness";
+import { resolveSeriesFreshness, type SeriesFreshness } from "@/features/charts/series-freshness";
 import { groupCompatibleChartUnits, type ChartUnitGroup } from "@/features/charts/units";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
@@ -35,6 +41,8 @@ export interface OverviewChartBuildOptions {
   xDomain: ChartXDomain;
   hiddenSeriesKeys?: ReadonlySet<string>;
   soloSeriesKey?: string | null;
+  /** Evaluation clock for per-series freshness (epoch ms). Defaults to `Date.now()` at build. */
+  now?: number;
 }
 
 function timestamp(sample: TelemetrySample): number {
@@ -61,6 +69,32 @@ export function overviewChartFreshness(status: DashboardTelemetryStatus): ChartF
   return "offline";
 }
 
+/**
+ * Per-series freshness from the series' own newest RAW sample (history is not reduced before
+ * this builder). The stale threshold is cadence-aware (#1522): server `stale_after_seconds`, else
+ * the shortest recent spacing of this series' distinct timestamps, else 30 s. Page connectivity
+ * (connecting/reconnecting/offline) always wins.
+ */
+function overviewSeriesFreshness(
+  status: DashboardTelemetryStatus,
+  samples: readonly TelemetrySample[],
+  now: number,
+): SeriesFreshness {
+  const latest = samples.at(-1);
+  const recent = [...new Set(samples.map(timestamp))].slice(-CADENCE_OBSERVATION_LIMIT);
+  return resolveSeriesFreshness({
+    page: overviewChartFreshness(status),
+    latest: latest
+      ? {
+          timestampMs: timestamp(latest),
+          valid: latest.quality === "valid" && latest.value !== null && Number.isFinite(latest.value),
+        }
+      : null,
+    staleAfterMs: latest ? resolveLiveFreshness(latest, observedCadenceMs(recent)).staleAfterMs : 0,
+    now,
+  });
+}
+
 export function overviewChartIdentity(sample: TelemetrySample): ChartSeriesIdentity {
   return {
     nodeId: sample.node_id,
@@ -81,6 +115,7 @@ function buildSeries(
   visualIndex: number,
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
+  now: number,
 ): ChartSeries {
   const samples = orderedUniqueSamples(source);
   const firstSample = samples[0];
@@ -105,7 +140,7 @@ function buildSeries(
     colorToken: token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
-    freshness: overviewChartFreshness(status),
+    ...overviewSeriesFreshness(status, samples, now),
     segments: reduceTruthfully(segments),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: "instantaneous",
@@ -134,6 +169,7 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
   for (const identity of identities.values()) {
     channelIdCounts.set(identity.channelId, (channelIdCounts.get(identity.channelId) ?? 0) + 1);
   }
+  const evaluationNow = options.now ?? Date.now();
   const entries = orderedKeys.map((key, index) => {
     const built = buildSeries(
       groupedSamples.get(key) ?? [],
@@ -141,6 +177,7 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
       index,
       hiddenSeriesKeys,
       soloSeriesKey,
+      evaluationNow,
     );
     const { channelId, nodeId, equipmentId } = built.identity;
     const ambiguous = (channelIdCounts.get(channelId) ?? 0) > 1;

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T05:13:43Z",
+  "timestamp": "2026-11-22T05:33:21Z",
   "actor": "Claude",
-  "event": "1620_chart_density_source_pr",
+  "event": "1652_per_series_freshness_source_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1620,
-    "branch": "feat/1620-chart-density",
+    "issue": 1652,
+    "branch": "feat/1652-per-series-freshness",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1620 PR merges: WP-F per-series freshness for Overview/Energy/Refrigeration, WP-G state lanes, WP-H 24+ series and device grouping, WP-I export/PNG/saved views, WP-J acceptance (incl. density on Live/Energy/Refrigeration). No site release authorized.",
+  "next_action": "After #1652 merges: WP-G synchronized digital state lanes (OFF/ON/UNKNOWN/NO DATA), WP-H 24+ series and device grouping, WP-I export/PNG/saved views, WP-J cross-module acceptance incl. density on Live/Energy/Refrigeration. No site release authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

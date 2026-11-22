@@ -6,6 +6,7 @@ import {
   type ChartSeries,
   type ChartSeriesIdentity,
 } from "@/features/charts";
+import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { EMBRACO_METRICS, type RefrigerationHistoryRange } from "./controller-monitoring";
@@ -84,7 +85,7 @@ function seriesFromSamples(
     colorToken: token.color,
     dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
-    freshness: online ? "live" : "offline",
+    freshness: withInvalidNewestSample(online ? "live" : "offline", newestSampleValidity(ordered)),
     segments: reduced(segments),
     visible: true,
     semanticMode: "instantaneous",

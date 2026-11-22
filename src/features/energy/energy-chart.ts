@@ -8,6 +8,7 @@ import {
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts/domain";
+import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
 import {
   energyHistorySourceEventId,
   isEnergyHistorySegmentStart,
@@ -204,7 +205,7 @@ export function buildEnergyChartScene({
             : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
         dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
-        freshness: chartFreshness,
+        freshness: withInvalidNewestSample(chartFreshness, newestSampleValidity(group.samples)),
         segments: buildSegments(identity, group.samples),
         visible: true,
         semanticMode:

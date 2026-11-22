@@ -21,7 +21,7 @@ import {
 import { buildAlertChartAnnotations } from "@/features/charts/alert-events";
 import { liveHistorySegments } from "@/features/live/live-history";
 import { liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
-import { liveTelemetryState } from "@/features/live/live-telemetry";
+import { resolveSeriesFreshness, type SeriesFreshness } from "@/features/charts/series-freshness";
 import type {
   LiveDashboard,
   LiveDashboardSeries,
@@ -92,25 +92,33 @@ export function savedDashboardChartFreshness(status: LiveDashboardTelemetryStatu
  * The Embraco operator-derived °C display keeps persisted quality `unknown`, so for it only
  * age decides (its provisional labelling is handled elsewhere and is never hidden here).
  */
+export function savedDashboardSeriesFreshnessDetail(
+  status: LiveDashboardTelemetryStatus,
+  source: LiveDashboardSeries,
+  cadence: CadenceObservations | undefined,
+  now: number,
+): SeriesFreshness {
+  const page = savedDashboardChartFreshness(status);
+  const latest = source.latest;
+  if (!latest) return resolveSeriesFreshness({ page, latest: null, staleAfterMs: 0, now });
+  const operatorDerived = savedDashboardDisplaySample(source.item, latest)?.operatorDerived === true;
+  const valid =
+    operatorDerived || (latest.quality === "valid" && latest.value !== null && Number.isFinite(latest.value));
+  return resolveSeriesFreshness({
+    page,
+    latest: { timestampMs: timestamp(latest), valid },
+    staleAfterMs: liveFreshnessFor(latest, dashboardItemIdentity(source.item), cadence).staleAfterMs,
+    now,
+  });
+}
+
 export function savedDashboardSeriesFreshness(
   status: LiveDashboardTelemetryStatus,
   source: LiveDashboardSeries,
   cadence: CadenceObservations | undefined,
   now: number,
 ): ChartFreshnessState {
-  if (status !== "live" && status !== "stale") return savedDashboardChartFreshness(status);
-  const latest = source.latest;
-  if (!latest) return "stale";
-  const staleAfterMs = liveFreshnessFor(latest, dashboardItemIdentity(source.item), cadence).staleAfterMs;
-  const operatorDerived = savedDashboardDisplaySample(source.item, latest)?.operatorDerived === true;
-  const state = liveTelemetryState(
-    operatorDerived ? { ...latest, quality: "valid" } : latest,
-    now,
-    staleAfterMs,
-  );
-  if (state === "live") return "live";
-  if (state === "stale") return "stale";
-  return "invalid";
+  return savedDashboardSeriesFreshnessDetail(status, source, cadence, now).freshness;
 }
 
 export function savedDashboardChartIdentity(
@@ -213,14 +221,14 @@ function buildSeries(
     colorToken: source.item.color ?? token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
-    freshness: perSeries
-      ? savedDashboardSeriesFreshness(
+    ...(perSeries
+      ? savedDashboardSeriesFreshnessDetail(
           status,
           source,
           perSeries.cadenceObservations,
           perSeries.now ?? Date.now(),
         )
-      : savedDashboardChartFreshness(status),
+      : { freshness: savedDashboardChartFreshness(status) }),
     segments: reduceTruthfully(segments, perSeries?.pointsPerSeries),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
