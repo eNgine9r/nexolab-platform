@@ -151,7 +151,7 @@ export function Sidebar({ open, onClose, security }: SidebarProps) {
       />
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-cyan-300/[0.08] bg-[linear-gradient(180deg,#07182f_0%,#06142a_58%,#061329_100%)] shadow-[20px_0_60px_rgba(0,0,0,.24)] transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-cyan-300/[0.08] bg-[linear-gradient(180deg,#07182f_0%,#06142a_58%,#061329_100%)] shadow-[20px_0_60px_rgba(0,0,0,.24)] transition-transform duration-300 lg:translate-x-0 print:hidden",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >

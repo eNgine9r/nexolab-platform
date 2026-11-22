@@ -307,3 +307,23 @@ button {
     transition: none;
   }
 }
+
+/* Printable chart reports (#1673): the browser's "Save as PDF" produces the report offline.
+   Navigation and control strips use print:hidden; the content column loses the sidebar offset and
+   backgrounds/colours are kept so charts and tables look like the screen. */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  [class*="lg:pl-[264px]"] {
+    padding-left: 0 !important;
+  }
+
+  section,
+  table,
+  figure {
+    break-inside: avoid;
+  }
+}
