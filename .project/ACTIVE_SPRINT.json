@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1664,
-      "title": "Chart detail (point density) control on Live Data (WP-K)",
-      "branch": "feat/1664-live-density"
+      "issue": 1668,
+      "title": "Chart detail control on Energy and Refrigeration (WP-M, completes #1620)",
+      "branch": "feat/1668-energy-refrigeration-density"
     },
     "next_work_package": null
   },
@@ -11776,6 +11776,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1664-live-density"
+    },
+    {
+      "issue": 1668,
+      "title": "Chart detail control on Energy and Refrigeration (WP-M, completes #1620)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 230 files/1477 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1668-energy-refrigeration-density"
     }
   ],
   "maintenance_actions": [

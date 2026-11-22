@@ -1,3 +1,7 @@
+## 2026-11-22 — #1668 Chart detail control on Energy and Refrigeration (WP-M, completes #1620) is source-only, not installed
+
+Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1664 Chart detail (point density) control on Live Data (WP-K) is source-only, not installed
 
 Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups). No Modbus/hardware write, no polling change, no site release.
