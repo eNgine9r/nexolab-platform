@@ -764,7 +764,7 @@ test("energy nine-axis selection synchronizes panels, preserves zoom and traps m
   try {
     await page.goto("/energy", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("energy-history-chart")).toBeVisible();
-    await page.getByRole("button", { name: "1 год", exact: true }).click();
+    await page.getByRole("button", { name: "1 година", exact: true }).click();
     const labels = [
       "Активна потужність",
       "Накопичена активна енергія",

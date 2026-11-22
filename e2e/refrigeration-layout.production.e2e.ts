@@ -446,7 +446,7 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   }
   await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
 
-  await history.getByRole("button", { name: "Кастом", exact: true }).click();
+  await history.getByRole("button", { name: "Власний період", exact: true }).click();
   await expect(history.getByLabel("Від", { exact: true })).toBeVisible();
   await expect(history.getByLabel("До", { exact: true })).toBeVisible();
 
