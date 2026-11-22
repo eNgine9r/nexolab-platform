@@ -8,6 +8,12 @@ export type TimelineInterval = {
   toMs: number;
   label: string;
   active: boolean;
+  /**
+   * `unknown`: the controller WAS polled but the state cannot be established (non-valid sample at
+   * either end). Distinct from NO DATA, which is the absence of any interval (silent gap).
+   * Unknown intervals never count as ON, OFF or covered time.
+   */
+  kind?: "state" | "unknown";
 };
 
 export type RelayTransition = {
@@ -94,6 +100,23 @@ export function buildControlStateTimeline(
   );
 }
 
+/**
+ * Compressor ON/OFF derived from the measured compressor speed: ON when a valid speed is above
+ * 0 rpm, OFF when it is exactly 0 (the same definition as the runtime-duty and start counters).
+ * It is a derived lane, not a controller relay state.
+ */
+export function buildCompressorTimeline(
+  samples: readonly TelemetrySample[],
+  range: { from: Date; to: Date },
+): TimelineInterval[] {
+  return intervals(
+    samples,
+    range,
+    (value) => value,
+    (rpm) => (rpm < 0 ? null : { label: rpm > 0 ? "ON" : "OFF", active: rpm > 0 }),
+  );
+}
+
 export function buildDefrostTimeline(
   samples: readonly TelemetrySample[],
   range: { from: Date; to: Date },
@@ -110,6 +133,33 @@ export function buildDefrostTimeline(
   );
 }
 
+/**
+ * Intervals between consecutive polls (within the cadence tolerance) where at least one endpoint
+ * has no valid state: communication/sensor error or unknown quality. The state is UNKNOWN there —
+ * never inferred as OFF. Silent gaps beyond the tolerance stay empty (NO DATA).
+ */
+export function buildUnknownTimeline(
+  samples: readonly TelemetrySample[],
+  range: { from: Date; to: Date },
+): TimelineInterval[] {
+  const ordered = orderedEvidence(samples);
+  const threshold = sourceGapMs(ordered);
+  const fromBound = range.from.getTime();
+  const toBound = range.to.getTime();
+  const result: TimelineInterval[] = [];
+  for (let index = 0; index < ordered.length - 1; index += 1) {
+    const current = ordered[index];
+    const next = ordered[index + 1];
+    if (!current || !next || (current.usable && next.usable)) continue;
+    const sourceDurationMs = next.capturedAtMs - current.capturedAtMs;
+    if (sourceDurationMs <= 0 || sourceDurationMs > threshold) continue;
+    const fromMs = Math.max(fromBound, current.capturedAtMs);
+    const toMs = Math.min(toBound, next.capturedAtMs);
+    if (toMs > fromMs) result.push({ fromMs, toMs, label: "Невідомо", active: false, kind: "unknown" });
+  }
+  return result;
+}
+
 export function summarizeActiveTimeline(
   timeline: readonly TimelineInterval[],
   range: { from: Date; to: Date },
@@ -119,6 +169,7 @@ export function summarizeActiveTimeline(
   let activeMs = 0;
   let coveredMs = 0;
   for (const interval of timeline) {
+    if (interval.kind === "unknown") continue;
     const durationMs = Math.max(0, Math.min(toMs, interval.toMs) - Math.max(fromMs, interval.fromMs));
     coveredMs += durationMs;
     if (interval.active) activeMs += durationMs;
