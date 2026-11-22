@@ -586,4 +586,5 @@ def _response(record: DashboardRecord) -> LiveDashboardResponse:
             )
             for item in record.items
         ],
+        view_settings=record.view_settings,
     )

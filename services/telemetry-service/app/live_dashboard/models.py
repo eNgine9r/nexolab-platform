@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -106,6 +107,8 @@ class LiveDashboard(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Saved analysis view (#1666): nullable and additive, so older rows and clients are unaffected.
+    view_settings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class LiveDashboardItem(Base):
