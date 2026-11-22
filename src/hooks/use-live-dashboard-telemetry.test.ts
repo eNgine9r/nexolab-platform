@@ -176,6 +176,40 @@ describe("useLiveDashboardTelemetry persisted history", () => {
     expect(state.latest).toHaveBeenCalledTimes(1);
   });
 
+  it("opens with the saved analysis view range instead of the dashboard default (#1666)", async () => {
+    const { result } = renderHook(() =>
+      useLiveDashboardTelemetry({
+        dashboard: {
+          ...dashboard,
+          view_settings: {
+            schema_version: 1,
+            hidden_items: [],
+            range_kind: "6h",
+            range_from: null,
+            range_to: null,
+            viewport_from: null,
+            viewport_to: null,
+            density: null,
+          },
+        },
+        organizationId: "organization-1",
+        enabled: true,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.historyRange.kind).toBe("6h");
+      expect(result.current.historyStatus).toBe("ready");
+    });
+    // The first page of a load carries the full window; later pages only move `to` backwards.
+    const ranges = state.history.mock.calls.map(([query]) => {
+      const { from, to } = query as TelemetryHistoryQuery;
+      return Date.parse(String(to)) - Date.parse(String(from));
+    });
+    expect(ranges).toContain(6 * 60 * 60_000);
+    expect(ranges).not.toContain(24 * 60 * 60_000);
+  });
+
   it("queries and subscribes to the exact selected standalone series", async () => {
     const item = {
       ...dashboard.items[0],
