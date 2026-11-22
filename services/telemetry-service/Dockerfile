@@ -11,6 +11,9 @@ COPY bin/package-mosquitto-ctrl /tmp/package-mosquitto-ctrl
 # installing runtime additions. This keeps fixed Debian security updates in the
 # produced image instead of relying on a future upstream base-image rebuild.
 # Omit the broker and system login, mount and terminal tools from the runtime.
+# The `openssl` command-line tool and its legacy provider are not used by the
+# service (Python links libssl directly); removing them keeps CVE-2026-124709
+# scope to the shared library only. The CA bundle stays in place (#1685).
 RUN apt-get update \
     && apt-get upgrade --yes --no-install-recommends \
     && /bin/sh /tmp/package-mosquitto-ctrl /tmp/nexolab-mosquitto-ctrl.deb \
@@ -19,6 +22,10 @@ RUN apt-get update \
         /tmp/nexolab-mosquitto-ctrl.deb \
     && apt-get purge --yes --autoremove --allow-remove-essential \
         bsdutils login mount ncurses-bin perl-base util-linux \
+    && dpkg --purge --force-depends openssl openssl-provider-legacy \
+    && ! command -v openssl >/dev/null \
+    && ! dpkg -l openssl openssl-provider-legacy | grep -q "^ii" \
+    && test -s /etc/ssl/certs/ca-certificates.crt \
     && command -v mosquitto_ctrl >/dev/null \
     && ! command -v mosquitto_pub >/dev/null \
     && ! command -v mosquitto >/dev/null \
