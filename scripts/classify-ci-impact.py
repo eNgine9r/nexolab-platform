@@ -314,6 +314,12 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     # synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
     "scripts/nexolab-dr-offdevice-copy.py",
     "tests/test_ci_dr_offdevice_copy.py",
+    # #1632 isolated restore + verification receipt: source-only tooling (never run against
+    # production); synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
+    # The rehearsal driver is an opt-in, Docker-only local script with synthetic data.
+    "scripts/nexolab-dr-isolated-restore.py",
+    "scripts/nexolab-dr-isolated-restore-rehearsal.py",
+    "tests/test_ci_dr_isolated_restore.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
