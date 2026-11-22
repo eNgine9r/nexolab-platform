@@ -67,11 +67,7 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1668,
-      "title": "Chart detail control on Energy and Refrigeration (WP-M, completes #1620)",
-      "branch": "feat/1668-energy-refrigeration-density"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -11576,7 +11572,7 @@
     {
       "issue": 1643,
       "title": "Per-series truthful freshness for Saved Dashboards and main dashboard (XWEB chart programme WP-A)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Frontend-only source change: Saved Dashboard chart freshness per series (#1522 contract) and cadence-aware main-dashboard freshness (#1634). No backend, hardware, polling or site change.",
       "depends_on": [],
@@ -11588,7 +11584,8 @@
         "review_clearance": "No critical Ready software WP in sprint (all critical blocked on #1428/#1409/#1399 site gates); Product Owner requested XWEB-level chart programme 2026-11-22",
         "closes": [
           1634
-        ]
+        ],
+        "source_merge": "PR #1644 90d46905; source-only, no site deployment"
       },
       "branch": "fix/1643-per-series-dashboard-freshness",
       "permitted_paths": [
@@ -11604,7 +11601,7 @@
     {
       "issue": 1645,
       "title": "Interval statistics from raw persisted samples (WP-B)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Saved Dashboards show exact Min/Max/Average/sample count/coverage/gaps for the whole requested interval or the zoomed viewport, computed from raw pre-reduction measurements (never reduced render points); average withheld below 80 % coverage or under 3 samples; non-valid samples counted separately and never treated as zero. AGENTS.md now records the Product Owner autonomous-execution authorization and its unchanged safety boundaries.",
       "depends_on": [],
@@ -11613,14 +11610,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 218 files/1417 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1646 b7e4cbae; source-only, no site deployment"
       },
       "branch": "feat/1645-interval-statistics"
     },
     {
       "issue": 1647,
       "title": "Alarm events, regions and threshold markers from canonical alerts (WP-C)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Saved Dashboard charts now draw canonical alert events (triggered/acknowledged/resolved/closed with time and source), alarm regions and threshold lines for plotted series only, from the read-only alerts API; an accessible events table lists them with text severity/state. Unavailable or forbidden alert logs degrade to an explicit note. Telemetry-sample alarm context still never creates markers.",
       "depends_on": [],
@@ -11629,14 +11627,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 220 files/1427 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1648 805db348; source-only, no site deployment"
       },
       "branch": "feat/1647-alert-event-markers"
     },
     {
       "issue": 1649,
       "title": "Preserve Energy extrema and stop silent session-history truncation (WP-D)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Energy charts keep each bucket's min and max for instantaneous metrics (spikes and dips survive reduction; counters and continuity markers unchanged); the session history now paginates completely, polls tail-only and states explicitly when the page cap truncates it.",
       "depends_on": [],
@@ -11645,7 +11644,8 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 222 files/1435 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1650 aca7737f; source-only, no site deployment"
       },
       "branch": "feat/1649-extrema-and-history"
     },
@@ -11668,7 +11668,7 @@
     {
       "issue": 1652,
       "title": "Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open.",
       "depends_on": [],
@@ -11677,14 +11677,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 225 files/1455 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1653 2063d47d; source-only, no site deployment"
       },
       "branch": "feat/1652-per-series-freshness"
     },
     {
       "issue": 1655,
       "title": "Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Refrigeration controller lanes now distinguish UNKNOWN (polled, no valid state: hatched, text «Невідомо», never OFF and never counted as active or covered time) from NO DATA (silent gap, empty), add a compressor ON/OFF lane derived from measured speed (>0 rpm) and a state legend. Door/fan/status/alarm lanes and Saved Dashboard lanes are classified as needing a canonical digital-channel taxonomy / item decode schema.",
       "depends_on": [],
@@ -11693,14 +11694,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 225 files/1459 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1656 bfe8b4ce; source-only, no site deployment"
       },
       "branch": "feat/1655-state-lanes"
     },
     {
       "issue": 1654,
       "title": "Live comparison supports 24 series (WP-H)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "The Live Data comparison limit rises from 8 to 24 channels through the single shared constant (hook, URL restore, stored preference, message); 24 mixed-unit series across equipment produce valid scenes with at most five Y axes each, bounded by the aggregate point budget. Saved Dashboards already support 64 series with device-grouped picker and legend. A device-grouped selection table in Live and server-side downsampled history for very long ranges are classified as follow-ups (UI rework / backend decision).",
       "depends_on": [],
@@ -11709,14 +11711,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 225 files/1456 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local); e2e guidance assertion updated after CI",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1657 a894f0d3; source-only, no site deployment"
       },
       "branch": "feat/1654-live-24-series"
     },
     {
       "issue": 1658,
       "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code.",
       "depends_on": [],
@@ -11725,14 +11728,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 226 files/1460 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1659 21a2da4a; source-only, no site deployment"
       },
       "branch": "feat/1658-png-export"
     },
     {
       "issue": 1660,
       "title": "Interval statistics on Live Data from raw history (WP-J)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns.",
       "depends_on": [],
@@ -11741,14 +11745,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 226 files/1462 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1661 533185c1; source-only, no site deployment"
       },
       "branch": "feat/1660-live-statistics"
     },
     {
       "issue": 1662,
       "title": "Session chart window domain and consolidated release candidate (WP-J)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "The session history chart now uses the requested history window as its x domain so silent edges stay visible as gaps, and docs/operations/chart-programme-release-candidate.md records the consolidated programme release candidate: merged PRs, verification evidence, what is not proven (no Pi, site, hardware or signed-in browser evidence), classified follow-ups and the owner-run frontend-only Raspberry Pi update procedure. No deployment performed or authorised.",
       "depends_on": [],
@@ -11757,14 +11762,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 228 files/1470 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1663 126c4619; source-only, no site deployment"
       },
       "branch": "feat/1662-session-window-rc"
     },
     {
       "issue": 1664,
       "title": "Chart detail (point density) control on Live Data (WP-K)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups).",
       "depends_on": [],
@@ -11773,14 +11779,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 228 files/1471 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1665 9e601a57; source-only, no site deployment"
       },
       "branch": "feat/1664-live-density"
     },
     {
       "issue": 1666,
       "title": "Saved analysis views: save and restore in the live view (WP-L, frontend)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "The Saved Dashboard live view can save the analysis view (hidden series, history range, zoom, chart detail) through the existing dashboard update path and restores it when reopened; unusable parts of a stored view are ignored, saving does not re-create the live view, and the UI refuses to report a save that an older API did not persist. The API half (#1667) is blocked by an unfixed HIGH CVE in the Device Agent image awaiting a risk-owner decision (see BLOCKERS).",
       "depends_on": [],
@@ -11789,14 +11796,15 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 230 files/1480 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1669 c621a8ec; source-only, no site deployment"
       },
       "branch": "feat/1666-saved-analysis-views-ui"
     },
     {
       "issue": 1668,
       "title": "Chart detail control on Energy and Refrigeration (WP-M, completes #1620)",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history.",
       "depends_on": [],
@@ -11805,9 +11813,129 @@
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
         "local_checks": "vitest 230 files/1477 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
-        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1670 6a24635a; source-only, no site deployment"
       },
       "branch": "feat/1668-energy-refrigeration-density"
+    },
+    {
+      "issue": 1671,
+      "title": "Device-grouped searchable Live channel selection (WP-P)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Live channel picker grouped by device with search, collapse, select-all/none within the 24-series limit and operator names.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1672 5b3e4fa9; source-only"
+      },
+      "branch": "feat/1671-live-device-picker"
+    },
+    {
+      "issue": 1673,
+      "title": "Offline XLSX export and printable report for Saved Dashboards (WP-R)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Dependency-free OOXML XLSX writer, print-to-PDF report layout, authoritative CSV, local PNG; no cloud service.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1674 929a7823; source-only"
+      },
+      "branch": "feat/1673-lab-export"
+    },
+    {
+      "issue": 1675,
+      "title": "Exact interval statistics on Energy, Overview, session and Refrigeration (WP-N)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Statistics computed from raw measurement columns (never reduced vertices) on every surface; Energy raw store keyed per range.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1676 f80aa2d5; source-only"
+      },
+      "branch": "feat/1675-exact-statistics"
+    },
+    {
+      "issue": 1677,
+      "title": "Per-series staleness, canonical alerts, unified range presets and history coverage (WP-Q)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Energy/Refrigeration per-series staleness; canonical alert markers and events on Live; presets 1 година/6 годин/24 години/7 днів/Власний період on every surface; partial-history notice; °C display unit.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 237 files/1527 tests PASS; eslint, tsc, prettier PASS; exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1678 874215fa, PR #1681 d411df6d; source-only"
+      },
+      "branch": "feat/1677-staleness-presets"
+    },
+    {
+      "issue": 1679,
+      "title": "Digital state lanes with canonical taxonomy (WP-O)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Saved Dashboard lanes for relay bits, compressor, evaporator fan, defrost and alarm bits from raw columns; ON/OFF/UNKNOWN/NO DATA; no lanes where no source metric exists.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1680 fbcf62b1; source-only"
+      },
+      "branch": "feat/1679-digital-lanes"
+    },
+    {
+      "issue": 1683,
+      "title": "Custom period for Overview and Energy history (WP-Q)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Fixed custom window (no live tail, own history key, historical freshness, 31-day limit) on Overview and Energy.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 238 files/1545 tests PASS; eslint, tsc, prettier PASS; exact-head CI GREEN; unit tests only, no real-browser run",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1683 f3413284; source-only"
+      },
+      "branch": "feat/1683-custom-range-overview-energy"
+    },
+    {
+      "issue": 1667,
+      "title": "Saved analysis view settings in the Telemetry API (WP-L backend)",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "backend pytest 17 PASS locally; PostgreSQL migration verified only in CI-style tests; PR #1667 open",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "not merged"
+      },
+      "branch": "feat/1666-saved-analysis-views-api"
     }
   ],
   "maintenance_actions": [

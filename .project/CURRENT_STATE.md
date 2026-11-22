@@ -1,3 +1,7 @@
+## 2026-11-22 — XWEB Advanced Chart System: source complete on main, not installed
+
+Merged (all source-only): #1644 #1646 #1648 #1650 #1651 #1653 #1656 #1657 #1659 #1661 #1663 #1665 #1669 #1670 #1672 #1674 #1676 #1678 #1680 #1681 #1682 #1683. Real-browser desktop acceptance 27/27 (docs/audits/chart-system-acceptance-1682.md; not a Pi measurement). Open: PR #1667 (saved analysis view API) blocked by the unfixed HIGH CVE-2026-124709 awaiting a Product Owner risk decision (see BLOCKERS); no exception added. Not proven: Raspberry Pi performance, signed-in human review, real controller relay/defrost/alarm semantics, Embraco scale. No Modbus/hardware write, no polling change, no production migration, no site release.
+
 ## 2026-11-22 — #1668 Chart detail control on Energy and Refrigeration (WP-M, completes #1620) is source-only, not installed
 
 Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history. No Modbus/hardware write, no polling change, no site release.
