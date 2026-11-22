@@ -9,12 +9,14 @@ Parent: #1428. Order of the DR leaves: **A (#1630, backup) → C (#1631, off-dev
 
 ## Components
 
-| File                                                                                        | Purpose                                                                                                                                      |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/nexolab-dr-isolated-restore.py`                                                    | Isolation preflight, custody re-verification, isolated extract, restore of all eight stores into fresh volumes, offline start, receipt       |
-| `scripts/nexolab-dr-isolated-restore-rehearsal.py`                                          | Opt-in local end-to-end rehearsal (Docker): synthetic production → unmodified leaf A → leaf C `copy_bundle` → restore → teardown             |
-| `tests/test_ci_dr_isolated_restore.py`                                                      | Deterministic tests without Docker (refusals, custody binding, plaintext cleanup, diff detection, RPO/RTO, receipt hash, v2 field alignment) |
-| `scripts/nexolab-dr-stream.py`, `nexolab-dr-offdevice-copy.py`, `nexolab-volume-archive.py` | Reused unchanged: `verify`/isolated `extract`, the shared custody receipt validator, directory snapshot extract                              |
+| File                                                           | Purpose                                                                                                                                      |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/nexolab-dr-isolated-restore.py`                       | Isolation preflight, custody re-verification, isolated extract, restore of all eight stores into fresh volumes, offline start, receipt       |
+| `scripts/nexolab-dr-isolated-restore-rehearsal.py`             | Opt-in local end-to-end rehearsal (Docker): synthetic production → unmodified leaf A → leaf C `copy_bundle` → restore → teardown             |
+| `tests/test_ci_dr_isolated_restore.py`                         | Deterministic tests without Docker (refusals, custody binding, plaintext cleanup, diff detection, RPO/RTO, receipt hash, v2 field alignment) |
+| `tests/test_ci_dr_object_metadata_xattrs.py`                   | `user.*` xattr capture/extract round trip, allowlist, caps, unsupported file system, pre-fix archives, metadata fidelity evaluation          |
+| `scripts/nexolab-dr-stream.py`, `nexolab-dr-offdevice-copy.py` | Reused unchanged: `verify`/isolated `extract`, the shared custody receipt validator                                                          |
+| `scripts/nexolab-volume-archive.py`                            | Directory snapshot extract, including the object metadata (`user.*` extended attributes, see the leaf-A doc)                                 |
 
 No Compose file is used: the tool drives `docker` directly so that every resource is created with
 `--internal`, `--pull never`, no published ports and an `nx-dr-` name plus a run label.
@@ -42,18 +44,21 @@ No Compose file is used: the tool drives `docker` directly so that every resourc
    when supplied (`media.backup_receipt`) it must agree with the stream.
 3. **Isolated extract:** `extract_file` into `<work_dir>/plaintext` (new, `0700`). This directory is removed on
    success **and** on failure. The receipt records `plaintext.removed` (or `plaintext_removed_after_failure`).
-   Runtime secrets (random passwords, env files) are removed as well.
+   Runtime secrets (random passwords, env files) are removed as well. Directory snapshots are extracted into the
+   fresh volumes together with their `user.*` extended attributes (object metadata). In `mode=site` an extract onto
+   a volume that cannot store them **fails the restore**. In `mode=rehearsal` the loss is allowed but reported as a
+   `DEGRADED:` warning and in `stores.object-storage.verification.xattrs.dropped`.
 4. **Restore into fresh volumes** on a new `docker network create --internal` network:
 
-   | Store                     | Restore                                                                                             | Verification                                                                                                                                                                 |
-   | ------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `postgresql`              | fresh PostgreSQL, `pg_restore --exit-on-error --no-owner --no-privileges` from stdin                | exact per-table row counts against the archive's own data (`pg_restore --data-only` COPY rows), latest `captured_at` per channel against the archive, Alembic head           |
-   | `object-storage`          | `nexolab-volume-archive.py extract` into a fresh volume, VersityGW `posix /data` with new root keys | tree (path, size, SHA-256) equals the archive; every `equipment_images.storage_key` exists with its `checksum_sha256`; bucket still private; HEAD per object; API image read |
-   | `mqtt-dynamic-security`   | extract into a fresh volume, start the release Mosquitto Dynamic Security image                     | tree equals archive; clients/roles/ACLs present (counts and a hash of usernames); broker running                                                                             |
-   | `edge-mqtt-persistence`   | extract into a fresh volume (not started: the edge broker is not part of the central stack)         | tree equals archive                                                                                                                                                          |
-   | `edge-sqlite-outbox`      | file into a fresh volume (Device Agent not started: no hardware)                                    | `integrity_check`, table counts, SHA-256 equals manifest                                                                                                                     |
-   | `central-ingestion-spool` | `spool.db` into a fresh volume mounted into the restored telemetry service                          | `integrity_check`, table counts, SHA-256 equals manifest                                                                                                                     |
-   | `local-auth-*-key`        | `private.pem` (`0400`) / `public.pem` (`0444`, uid 10001) into a fresh volume                       | private key derives the public key; login works and the issued RS256 token verifies with the **restored** public key                                                         |
+   | Store                     | Restore                                                                                             | Verification                                                                                                                                                                                                                                                                       |
+   | ------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `postgresql`              | fresh PostgreSQL, `pg_restore --exit-on-error --no-owner --no-privileges` from stdin                | exact per-table row counts against the archive's own data (`pg_restore --data-only` COPY rows), latest `captured_at` per channel against the archive, Alembic head                                                                                                                 |
+   | `object-storage`          | `nexolab-volume-archive.py extract` into a fresh volume, VersityGW `posix /data` with new root keys | tree (path, size, SHA-256) equals the archive; every `equipment_images.storage_key` exists with its `checksum_sha256`; bucket still private; HEAD per object (ETag/Content-Type against the database and the source observation); `object-storage-s3.py stat-keys`; API image read |
+   | `mqtt-dynamic-security`   | extract into a fresh volume, start the release Mosquitto Dynamic Security image                     | tree equals archive; clients/roles/ACLs present (counts and a hash of usernames); broker running                                                                                                                                                                                   |
+   | `edge-mqtt-persistence`   | extract into a fresh volume (not started: the edge broker is not part of the central stack)         | tree equals archive                                                                                                                                                                                                                                                                |
+   | `edge-sqlite-outbox`      | file into a fresh volume (Device Agent not started: no hardware)                                    | `integrity_check`, table counts, SHA-256 equals manifest                                                                                                                                                                                                                           |
+   | `central-ingestion-spool` | `spool.db` into a fresh volume mounted into the restored telemetry service                          | `integrity_check`, table counts, SHA-256 equals manifest                                                                                                                                                                                                                           |
+   | `local-auth-*-key`        | `private.pem` (`0400`) / `public.pem` (`0444`, uid 10001) into a fresh volume                       | private key derives the public key; login works and the issued RS256 token verifies with the **restored** public key                                                                                                                                                               |
 
 5. **Migrations-to-ready:** `alembic upgrade head` with the supplied telemetry image (input, ideally a digest from
    the offline package), then `alembic heads` must equal `alembic_version`. Row-count changes caused by migrations
@@ -98,11 +103,38 @@ curl -fsS -H "Authorization: Bearer $TOKEN" -H "X-Organization-ID: $ORG" \
   'import sys,json,hashlib;d=json.load(sys.stdin);print(hashlib.sha256(json.dumps(d.get("view_settings"),sort_keys=True,separators=(",",":")).encode()).hexdigest())'
 ```
 
+Object metadata on the production gateway: one read-only `HEAD` per referenced object, using the existing helper
+with the object-storage credentials and endpoint the stack already uses:
+
+```sh
+docker exec nexolab-central-postgres-1 psql -X -At -U nexolab -d nexolab \
+  -c "SELECT storage_key FROM equipment_images ORDER BY 1" > /tmp/object-keys.txt
+python3 scripts/object-storage-s3.py stat-keys --bucket nexolab-equipment-images --keys-file /tmp/object-keys.txt \
+  > /tmp/objects.jsonl      # one {"key","etag","content_type",...} per line; these become "objects"
+```
+
 Combine these into a JSON file:
-`{"schema_version":1,"kind":"nexolab-dr-source-observation","observed_at":"…Z","table_counts":{…},"latest_captured_at":{…},"dashboards":[{"id":"…","from":"…Z","to":"…Z","timezone":"UTC","csv_sha256":"…","view_settings_sha256":"…"}]}`.
+`{"schema_version":1,"kind":"nexolab-dr-source-observation","observed_at":"…Z","table_counts":{…},"latest_captured_at":{…},"dashboards":[{"id":"…","from":"…Z","to":"…Z","timezone":"UTC","csv_sha256":"…","view_settings_sha256":"…"}],"objects":[{"key":"…","etag":"\"…\"","content_type":"image/png"}]}`.
+The schema treats `objects` as optional, but without it object metadata fidelity cannot be `OK` (see below).
 Restored counts lower than the observation are reported as "explained by the consistency boundary" (data written
 after the snapshot). Higher counts, or a different latest sample older than the backup point, fail. The dashboard
 CSV and view settings must be byte-identical.
+
+### Object metadata fidelity
+
+The receipt reports `object_storage_s3.metadata_fidelity` (counts only, no keys or values), and the
+`object_storage.metadata_fidelity` check is based on it:
+
+| Value                              | Meaning                                                                                                                                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OK`                               | every `equipment_images` object answers `HEAD` with the ETag and Content-Type recorded in the database **and** observed on the source gateway (`objects`) |
+| `DEGRADED`                         | an object is missing, or its ETag or Content-Type is missing or different (check fails, status `FAIL`)                                                    |
+| `UNVERIFIED_NO_SOURCE_OBSERVATION` | the database values match, but the observation has no `objects` list (check fails; never `OK`)                                                            |
+
+`object_storage.stat_keys` also runs `object-storage-s3.py stat-keys` against the restored gateway. It fails when an
+object has no ETag. The receipt keeps `schema_version: 1`: the new fields are additive, and the value `PRESERVED`
+(never reached before this fix) is replaced by `OK`. Before the fix, DEGRADED was only a warning. It is now a failed
+check, because a restore without object metadata is not faithful.
 
 ## Owner-run procedure on the isolated host (NOT executed by this work package)
 
@@ -207,7 +239,10 @@ Dashboard with `view_settings`, a local account and RS256 keys, an equipment ima
 VersityGW, Mosquitto Dynamic Security with ingestion and node clients, SQLite outbox/spool, edge MQTT files). It
 then runs the **unmodified** leaf-A orchestrator in a Linux container, runs leaf C's `copy_bundle` to a second
 directory (only the device-identity probe is simulated because a PC has one disk), runs two negative restores
-(tampered custody hash, wrong key) and the restore, and removes every `nx-dr-` resource it created.
+(tampered custody hash, wrong key) and the restore, and removes every `nx-dr-` resource it created. The source
+observation includes the source gateway's `HEAD` results (`objects`). After a successful restore, a second, labelled
+VersityGW on the restored object volume answers `HEAD` and `stat-keys`. The rehearsal fails unless ETag and
+Content-Type equal the source (`metadata_equal_source` in `rehearsal-summary.json`).
 
 The PR records the rehearsal output. The rehearsal machine can reach the real edge-01 over Tailscale and has
 internet access, so the restore runs with the explicit rehearsal waiver `isolation.production_unreachable`. The
@@ -216,12 +251,16 @@ status says `REHEARSAL_PASS_WITH_WAIVERS`, and the restored stack itself is stil
 
 ## Known gaps and findings
 
-- **VersityGW object metadata is not preserved by leaf A.** The posix backend keeps ETag/Content-Type in extended
-  attributes, which `directory_snapshot` does not capture. After restore, objects and SHA-256 are intact and the
-  application serves them, but `HEAD` returns no ETag, and `object-storage-s3.py stat-keys` fails on the restored
-  store. The receipt reports `metadata_fidelity: DEGRADED`, and the health gate then reports `isolated_restore`
-  `BLOCKED`. A fix belongs to leaf A: capture xattrs as PAX
-  `SCHILY.xattr.*` records and restore them, or run VersityGW with sidecar metadata.
+- **Resolved: VersityGW object metadata was not preserved by leaf A.** The posix backend keeps ETag/Content-Type in
+  `user.*` extended attributes, which the original `directory_snapshot` did not capture. After a restore, `HEAD`
+  returned no ETag or Content-Type and `object-storage-s3.py stat-keys` failed (`KeyError: 'ETag'`). Leaf A now
+  captures the attributes as `SCHILY.xattr.*` PAX records and the restore re-applies them (details in
+  [`dr-scheduled-backup-1630.md`](dr-scheduled-backup-1630.md#object-metadata-extended-attributes)).
+  **Bundles taken before the fix still lack the metadata.** Restoring one reports `scheme: none` for the object
+  archive, `metadata_fidelity: DEGRADED`, a failed `object_storage.metadata_fidelity` check and a warning. After
+  installing the fix, the owner should take a fresh backup and off-device copy, and use that bundle for the site proof.
+- The restore volumes must support `user.*` extended attributes (ext4 or xfs on the target; Docker named volumes on
+  those file systems do). `mode=site` stops the restore on a volume that cannot store them.
 - `scripts/verify-restored-platform.sh` and `disaster-recovery-domain-counts.sql` are bound to the synthetic CI
   fixture (organization `…0099`, fixed event ids, exactly 3 telemetry rows) and **cannot** be run against a real
   restore. This tool reuses the domain → table mapping of the SQL and compares full tables instead.
