@@ -61,6 +61,7 @@ export function ChartShell({
   onToggleSeries,
   onSoloSeries,
   onResetZoom,
+  onExportImage,
   formatTimestamp,
   locale = "en",
 }: {
@@ -74,6 +75,8 @@ export function ChartShell({
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
   onResetZoom: () => void;
+  /** When provided, shows a button that saves the visible plot as PNG (local renderer only). */
+  onExportImage?: () => void;
   formatTimestamp?: (timestampMs: number) => string;
   locale?: "en" | "uk";
 }) {
@@ -111,6 +114,7 @@ export function ChartShell({
     locale === "uk"
       ? {
           resetZoom: "Скинути масштаб",
+          exportImage: "Зберегти PNG",
           legend: "Легенда графіка",
           hide: "Приховати",
           show: "Показати",
@@ -130,6 +134,7 @@ export function ChartShell({
         }
       : {
           resetZoom: "Reset zoom",
+          exportImage: "Save PNG",
           legend: "Chart legend",
           hide: "Hide",
           show: "Show",
@@ -164,13 +169,25 @@ export function ChartShell({
             {selectedRange} · <span className="font-medium">{freshnessLabel(freshness, locale)}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onResetZoom}
-          className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-        >
-          {copy.resetZoom}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {onExportImage ? (
+            <button
+              type="button"
+              onClick={onExportImage}
+              data-testid="chart-export-png"
+              className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              {copy.exportImage}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onResetZoom}
+            className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            {copy.resetZoom}
+          </button>
+        </div>
       </header>
 
       <p className="sr-only" data-testid="chart-accessible-summary">

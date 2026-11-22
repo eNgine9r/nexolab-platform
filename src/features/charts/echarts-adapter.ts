@@ -44,6 +44,8 @@ interface EChartsInstancePort {
   containPixel(finder: object, value: [number, number]): boolean;
   convertFromPixel(finder: object, value: number | number[]): number | number[] | null | undefined;
   resize(): void;
+  /** Optional: only the real ECharts instance provides it; test doubles may omit it. */
+  getDataURL?(options: { type: "png"; pixelRatio: number; backgroundColor: string }): string;
   dispose(): void;
   isDisposed(): boolean;
 }
@@ -708,6 +710,16 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   resetZoom(): void {
     this.instance?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+  }
+
+  /**
+   * PNG of the currently visible plot (#1658): rendered locally from the mounted Canvas, so it
+   * works offline and never touches telemetry, acquisition or the network. Returns null when the
+   * renderer is disposed or cannot export.
+   */
+  exportImage(): string | null {
+    if (!this.instance || this.instance.isDisposed() || !this.instance.getDataURL) return null;
+    return this.instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#06142a" });
   }
 
   dispose(): void {

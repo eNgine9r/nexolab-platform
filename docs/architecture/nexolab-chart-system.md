@@ -240,6 +240,8 @@ When continuity is uncertain, fail toward a visible break rather than invented c
 
 Per-series freshness (#1643, #1652): freshness is evaluated from each series' own newest sample, never from the page. Builders record `ChartSeries.freshUntilMs` for a live series and `applyFreshnessClock` (src/features/charts/series-freshness.ts) flips expired series to stale on a clock tick without rebuilding scenes and without changing object identity when nothing changed. Saved Dashboards and Overview derive the threshold with the #1522 contract (server stale_after_seconds, observed raw cadence, 30 s); Energy and Refrigeration keep their own threshold owners but report `invalid` when a series' newest sample has no valid measurement.
 
+Image export (#1658): every chart surface offers «Зберегти PNG» (ChartShell onExportImage → EChartsRendererAdapter.exportImage). The PNG is rendered locally from the mounted Canvas (2× pixel ratio, dark background) and shows the visible plot only; it needs no network and never touches telemetry or acquisition. Saved Dashboard CSV remains the authoritative export: it is produced server-side from persisted rows, never from reduced chart vertices, and its local-time column follows the display time-zone preference.
+
 ## 5. Time semantics
 
 ### 5.1 Source time
@@ -639,7 +641,8 @@ The following are provisional implementation targets, not claims about current c
 
 ### 14.1 Bounded series
 
-- common interactive multi-series plot default: maximum eight visible series, preserving the current Live Data comparison contract;
+- Live Data comparison: maximum 24 channels (#1654, was eight). Scenes remain bounded by equipment/axis partitioning (≤ 5 Y axes) and the aggregate point budget of src/features/charts/density.ts; Saved Dashboards allow 64 series in device-grouped, searchable panels;
+- common interactive multi-series plot default (historical, superseded for Live Data by the line above): maximum eight visible series;
 - larger dashboards split compatible series into explicit groups instead of one unreadable plot;
 - compact single-series sparklines stay separately bounded.
 

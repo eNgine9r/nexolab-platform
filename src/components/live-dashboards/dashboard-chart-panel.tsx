@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { inspectChartAtTimestamp } from "@/features/charts/inspection";
@@ -62,6 +63,7 @@ export function DashboardChartPanel({
         }
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}
+        onExportImage={() => void downloadChartPng(adapter, group.title)}
         onResetZoom={() => {
           adapter.resetZoom();
           onXDomainChange(resetDomain);

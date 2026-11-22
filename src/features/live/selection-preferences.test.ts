@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { LIVE_SELECTION_LIMIT } from "./live-telemetry";
 import { readLiveSelectionPreference, writeLiveSelectionPreference } from "./selection-preferences";
 
 function memoryStorage() {
@@ -35,12 +36,12 @@ describe("organization-scoped Live selection preference", () => {
     expect(JSON.parse(storage.setItem.mock.calls.at(-1)![1])).toEqual({ version: 1, keys: [] });
   });
 
-  it("deduplicates writes and applies the existing eight-channel limit", () => {
+  it("deduplicates writes and applies the shared channel limit", () => {
     const storage = memoryStorage();
-    const keys = Array.from({ length: 10 }, (_, index) => `channel-${index}`);
+    const keys = Array.from({ length: LIVE_SELECTION_LIMIT + 2 }, (_, index) => `channel-${index}`);
     writeLiveSelectionPreference("org-a", ["", keys[0]!, ...keys], storage);
-    expect(readLiveSelectionPreference("org-a", storage)).toEqual(keys.slice(0, 8));
-    writeLiveSelectionPreference("org-a", keys.slice(0, 8), storage);
+    expect(readLiveSelectionPreference("org-a", storage)).toEqual(keys.slice(0, LIVE_SELECTION_LIMIT));
+    writeLiveSelectionPreference("org-a", keys.slice(0, LIVE_SELECTION_LIMIT), storage);
     expect(storage.setItem).toHaveBeenCalledTimes(1);
   });
 
@@ -52,7 +53,10 @@ describe("organization-scoped Live selection preference", () => {
     JSON.stringify({ version: 1, keys: [null] }),
     JSON.stringify({ version: 1, keys: [""] }),
     JSON.stringify({ version: 1, keys: ["a", "a"] }),
-    JSON.stringify({ version: 1, keys: Array.from({ length: 9 }, (_, index) => String(index)) }),
+    JSON.stringify({
+      version: 1,
+      keys: Array.from({ length: LIVE_SELECTION_LIMIT + 1 }, (_, index) => String(index)),
+    }),
     JSON.stringify({ version: 1, keys: ["x".repeat(2049)] }),
     "x".repeat(20_001),
   ])("ignores malformed or excessive stored data", (raw) => {

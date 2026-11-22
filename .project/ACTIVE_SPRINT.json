@@ -11698,6 +11698,38 @@
       "branch": "feat/1655-state-lanes"
     },
     {
+      "issue": 1654,
+      "title": "Live comparison supports 24 series (WP-H)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "The Live Data comparison limit rises from 8 to 24 channels through the single shared constant (hook, URL restore, stored preference, message); 24 mixed-unit series across equipment produce valid scenes with at most five Y axes each, bounded by the aggregate point budget. Saved Dashboards already support 64 series with device-grouped picker and legend. A device-grouped selection table in Live and server-side downsampled history for very long ranges are classified as follow-ups (UI rework / backend decision).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1456 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local); e2e guidance assertion updated after CI",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1654-live-24-series"
+    },
+    {
+      "issue": 1658,
+      "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 226 files/1460 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1658-png-export"
+    },
+    {
       "issue": 1660,
       "title": "Interval statistics on Live Data from raw history (WP-J)",
       "lifecycle": "review",
