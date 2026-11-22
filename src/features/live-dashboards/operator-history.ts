@@ -7,6 +7,23 @@ import type { LiveDashboardItem } from "./types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
 
+function identityKey(sample: TelemetrySample): string {
+  return JSON.stringify([sample.node_id, sample.equipment_id, sample.channel_id, sample.metric]);
+}
+
+/** True when the sorted `timestamps` contain a value strictly between `from` and `to`. */
+function hasTimestampBetween(timestamps: readonly number[] | undefined, from: number, to: number): boolean {
+  if (!timestamps || timestamps.length === 0 || !(to > from)) return false;
+  let low = 0;
+  let high = timestamps.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (timestamps[middle] <= from) low = middle + 1;
+    else high = middle;
+  }
+  return low < timestamps.length && timestamps[low] < to;
+}
+
 function unmarkedId(eventId: string): string {
   return eventId.startsWith(SEGMENT_PREFIX) ? eventId.slice(SEGMENT_PREFIX.length) : eventId;
 }
@@ -47,24 +64,25 @@ export function reduceSavedDashboardHistory(
   // false line when the generic reducer omits the invalid event itself.
   // All comparisons remain scoped to the selected channel and source times.
   if (restored.length < 2) return restored;
-  const sorted = preview.toSorted((a, b) => Date.parse(a.captured_at) - Date.parse(b.captured_at));
+  // Index non-valid samples per channel identity once (sorted timestamps), then answer each
+  // "was there a bad sample strictly between these two retained points" query by binary search.
+  // This keeps the check O(n log n) instead of O(n²), which matters at 5 000 points per series.
+  const badByIdentity = new Map<string, number[]>();
+  for (const candidate of preview) {
+    if (candidate.quality === "valid" && candidate.value !== null) continue;
+    const key = identityKey(candidate);
+    const list = badByIdentity.get(key);
+    const when = Date.parse(candidate.captured_at);
+    if (list) list.push(when);
+    else badByIdentity.set(key, [when]);
+  }
+  for (const list of badByIdentity.values()) list.sort((a, b) => a - b);
   return restored.map((sample, index) => {
     if (index === 0 || sample.event_id.startsWith(SEGMENT_PREFIX)) return sample;
     const previous = restored[index - 1];
     const from = Date.parse(previous.captured_at);
     const to = Date.parse(sample.captured_at);
-    const hadBadSample = sorted.some((candidate) => {
-      const when = Date.parse(candidate.captured_at);
-      return (
-        when > from &&
-        when < to &&
-        candidate.node_id === sample.node_id &&
-        candidate.equipment_id === sample.equipment_id &&
-        candidate.channel_id === sample.channel_id &&
-        candidate.metric === sample.metric &&
-        (candidate.quality !== "valid" || candidate.value === null)
-      );
-    });
+    const hadBadSample = hasTimestampBetween(badByIdentity.get(identityKey(sample)), from, to);
     return hadBadSample ? { ...sample, event_id: SEGMENT_PREFIX + unmarkedId(sample.event_id) } : sample;
   });
 }

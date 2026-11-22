@@ -650,6 +650,8 @@ The following are provisional implementation targets, not claims about current c
 - any ordinary increase requires measured Raspberry Pi browser evidence and the evidence-preserving reducer;
 - full raw history is not rendered merely because a client can temporarily handle it.
 
+User-selectable detail (#1620): Авто / 250 / 500 / 1 000 / 2 500 / 5 000 are maximum budgets per series resolved by src/features/charts/density.ts under an aggregate cap (Auto target 3 840, manual cap 6 000 total points). The measured density matrix, its method and what it does not prove (no Raspberry Pi measurement) are recorded in docs/audits/chart-density-benchmark-1620.md.
+
 ### 14.3 Provisional render targets
 
 For an already available normalized dataset of up to eight series at the accepted point budget:

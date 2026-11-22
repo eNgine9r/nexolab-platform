@@ -197,6 +197,7 @@ function reduceHistory(
   item: LiveDashboardItem,
   samples: readonly TelemetrySample[],
   window: TelemetryHistoryWindow,
+  maximumPoints: number,
 ): TelemetrySample[] {
   const fromMs = window.from.getTime();
   const toMs = window.to.getTime();
@@ -207,7 +208,7 @@ function reduceHistory(
       return capturedAt >= fromMs && capturedAt <= toMs;
     }),
     window,
-    RENDERED_POINTS_PER_SERIES,
+    maximumPoints,
   );
 }
 
@@ -237,10 +238,13 @@ export function useLiveDashboardTelemetry({
   dashboard,
   organizationId,
   enabled,
+  pointsPerSeries = RENDERED_POINTS_PER_SERIES,
 }: {
   dashboard: LiveDashboard | null;
   organizationId: string | null;
   enabled: boolean;
+  /** Maximum rendered points per series after the user-selected density (#1620). */
+  pointsPerSeries?: number;
 }): LiveDashboardTelemetryModel {
   const active = enabled && dashboard !== null && dashboard.status === "active";
   const scopeKey = active ? `${organizationId ?? DEFAULT_SCOPE}:${dashboard.id}:${dashboard.version}` : null;
@@ -267,6 +271,7 @@ export function useLiveDashboardTelemetry({
   const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
   const statsRef = useRef<Record<string, IntervalSampleColumns>>({});
+  const pointsPerSeriesRef = useRef(pointsPerSeries);
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
   const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
@@ -274,6 +279,11 @@ export function useLiveDashboardTelemetry({
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeScopeRef = useRef<string | null>(scopeKey);
   const historyKey = liveDashboardHistoryRangeKey(historyRange);
+
+  // Declared before the history effect so a density change is visible to its reload.
+  useEffect(() => {
+    pointsPerSeriesRef.current = pointsPerSeries;
+  }, [pointsPerSeries]);
 
   const flush = useCallback(() => {
     setLatest({ ...latestRef.current });
@@ -439,6 +449,7 @@ export function useLiveDashboardTelemetry({
         item,
         [...(historyRef.current[key] ?? []), ...sourceSamples],
         nextWindow,
+        pointsPerSeriesRef.current,
       );
       setHistoryWindow(serializedWindow(nextWindow, selection.kind, selection.label));
       scheduleFlush(dashboard.refresh_seconds);
@@ -566,7 +577,7 @@ export function useLiveDashboardTelemetry({
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
         recordIntervalSamples(statsRef.current, key, item, samples);
-        reducedBySeries[key] = reduceHistory(item, samples, requestedWindow);
+        reducedBySeries[key] = reduceHistory(item, samples, requestedWindow, pointsPerSeriesRef.current);
         if (requestedRange.kind !== "custom") {
           // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
           cadenceRef.current = seedCadenceObservations(
@@ -602,7 +613,12 @@ export function useLiveDashboardTelemetry({
           if (!dashboardSeriesMatches(item, sample)) continue;
           const key = dashboardItemIdentity(item);
           recordIntervalSamples(statsRef.current, key, item, [sample]);
-          reducedBySeries[key] = reduceHistory(item, [...reducedBySeries[key], sample], finalWindow);
+          reducedBySeries[key] = reduceHistory(
+            item,
+            [...reducedBySeries[key], sample],
+            finalWindow,
+            pointsPerSeriesRef.current,
+          );
           latestRef.current[key] = newestSample(latestRef.current[key], sample);
         }
       }
@@ -641,6 +657,7 @@ export function useLiveDashboardTelemetry({
     historyKey,
     historyRange,
     organizationId,
+    pointsPerSeries,
     runtime.config,
     scopeKey,
   ]);
