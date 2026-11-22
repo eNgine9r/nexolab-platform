@@ -34,6 +34,7 @@ import {
   resolveViewSettings,
   viewportOverlapsWindow,
 } from "@/features/live-dashboards/view-settings";
+import { XLSX_MEDIA_TYPE, dashboardCsvToXlsx, xlsxFilenameFromCsv } from "@/features/export/dashboard-xlsx";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import {
   buildSavedDashboardChartGroups,
@@ -402,6 +403,26 @@ export function DashboardLiveView({
     }
   };
 
+  const downloadXlsx = async () => {
+    try {
+      // The workbook is built from the SAME authoritative server export as the CSV.
+      const csv = await telemetry.exportCsv();
+      const bytes = dashboardCsvToXlsx(await csv.blob.text(), {
+        dashboardName: dashboard.name,
+        fromIso: telemetry.historyWindow.from,
+        toIso: telemetry.historyWindow.to,
+        displayTimeZone,
+        generatedAt: new Date(),
+      });
+      triggerBrowserBlobDownload({
+        blob: new Blob([bytes as BlobPart], { type: XLSX_MEDIA_TYPE }),
+        filename: xlsxFilenameFromCsv(csv.filename),
+      });
+    } catch {
+      // The hook owns the truthful export error state rendered below the controls.
+    }
+  };
+
   const downloadCsv = async () => {
     try {
       const download = await telemetry.exportCsv();
@@ -413,6 +434,15 @@ export function DashboardLiveView({
 
   return (
     <section className="min-w-0 space-y-5" aria-labelledby="live-dashboard-title">
+      <div className="hidden print:block" data-testid="dashboard-print-header">
+        <p className="text-lg font-semibold">{dashboard.name} — звіт про вимірювання</p>
+        <p className="text-xs">
+          Інтервал: {formatOperationalTimestamp(telemetry.historyWindow.from, displayTimeZone)} —{" "}
+          {formatOperationalTimestamp(telemetry.historyWindow.to, displayTimeZone)}. Сформовано:{" "}
+          {formatOperationalTimestamp(new Date(), displayTimeZone)}. Статистика і таблиці розраховані зі
+          збережених вимірювань; графік показує стиснуті точки.
+        </p>
+      </div>
       <div className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -541,7 +571,7 @@ export function DashboardLiveView({
 
       {dashboard.items.length > 0 ? (
         <section
-          className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"
+          className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5 print:hidden"
           aria-label="Saved Dashboard history range and export"
         >
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -592,6 +622,28 @@ export function DashboardLiveView({
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
                 {telemetry.exportStatus === "exporting" ? "Експорт…" : "Export CSV"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void downloadXlsx()}
+                disabled={
+                  telemetry.historyStatus === "loading" ||
+                  telemetry.exportStatus === "exporting" ||
+                  dashboard.items.length === 0
+                }
+                data-testid="dashboard-export-xlsx"
+                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-400/[0.06] px-3 text-xs font-medium text-emerald-100 hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Export XLSX
+              </button>
+              <button
+                type="button"
+                onClick={() => globalThis.print()}
+                data-testid="dashboard-print-report"
+                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-medium text-slate-200 hover:border-cyan-300/25"
+              >
+                Друк / PDF
               </button>
             </div>
           </div>
