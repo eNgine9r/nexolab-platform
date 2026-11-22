@@ -690,15 +690,15 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThanOrEqual(4);
-    await expect(page.getByRole("button", { name: "1h", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "30d", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "1 година", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "30 днів", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Власний період", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Export CSV", exact: true })).toBeEnabled();
 
     const historyRequestsBeforeRangeChange = requests.telemetry.filter((item) =>
       item.url.includes("/history"),
     ).length;
-    await page.getByRole("button", { name: "6h", exact: true }).click();
+    await page.getByRole("button", { name: "6 годин", exact: true }).click();
     await expect
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThan(historyRequestsBeforeRangeChange);
