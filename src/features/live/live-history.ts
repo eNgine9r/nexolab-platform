@@ -7,6 +7,7 @@ import {
   seedCadenceFromSamples,
   type CadenceObservations,
 } from "@/features/live/freshness";
+import { recordLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
@@ -28,6 +29,11 @@ export interface LiveHistoryResult {
    * width, not by acquisition cadence, and would hide stale data.
    */
   cadenceSamples: TelemetrySample[];
+  /**
+   * #1660: raw (pre-reduction) per-channel measurement columns for exact interval statistics.
+   * Compact numbers only (timestamp + value), never the reduced chart series.
+   */
+  intervalColumns: LiveIntervalColumns;
 }
 
 export interface LiveHistoryOrderingState {
@@ -313,8 +319,14 @@ export async function loadCompleteLiveHistory(
     allSamples.push(...result.samples);
   }
 
+  const intervalColumns: LiveIntervalColumns = {};
+  recordLiveIntervalSamples(
+    intervalColumns,
+    allSamples.filter((sample) => acceptedSample(sample)),
+  );
   return {
     samples: downsampleLiveHistory(allSamples, window),
+    intervalColumns,
     snapshotAt: snapshotAt!,
     cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
   };

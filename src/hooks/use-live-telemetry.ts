@@ -25,6 +25,13 @@ import {
   reconcileLiveSelection,
   selectLatestLiveSamples,
 } from "@/features/live/live-telemetry";
+import type { IntervalStatistics } from "@/features/charts/interval-statistics";
+import {
+  liveIntervalStatistics,
+  pruneLiveIntervalSamples,
+  recordLiveIntervalSamples,
+  type LiveIntervalColumns,
+} from "@/features/live/live-interval-columns";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -83,6 +90,8 @@ export interface LiveTelemetryModel {
   samples: TelemetrySample[];
   freshSamples: TelemetrySample[];
   lastCapturedAt: string | null;
+  /** Exact interval statistics from raw persisted samples (#1660); consumers recompute when historySamples changes. */
+  intervalStatistics?: (channelKey: string, fromMs: number, toMs: number) => IntervalStatistics | null;
   /** Per-channel observed cadence; absent means the default threshold applies. */
   cadenceObservations?: CadenceObservations;
   /** Render clock (5 s tick) used for time-dependent freshness. */
@@ -270,6 +279,12 @@ export function useLiveTelemetry({
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const storeRef = useRef(store);
+  const intervalColumnsRef = useRef<LiveIntervalColumns>({});
+  const intervalStatistics = useCallback(
+    (channelKey: string, fromMs: number, toMs: number) =>
+      liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs),
+    [],
+  );
   const selectedKeysRef = useRef(selectedKeys);
   const historyWindowRef = useRef(historyWindow);
   const historySamplesRef = useRef(historySamples);
@@ -390,6 +405,8 @@ export function useLiveTelemetry({
             historyWindowRef.current = nextWindow;
             setHistoryWindow(nextWindow);
           }
+          recordLiveIntervalSamples(intervalColumnsRef.current, reconciliation.samples);
+          pruneLiveIntervalSamples(intervalColumnsRef.current, nextWindow.from.getTime());
           setHistorySamples((current) => {
             const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);
             historySamplesRef.current = next;
@@ -547,6 +564,9 @@ export function useLiveTelemetry({
         setHistorySamples((current) => {
           const next = mergeLiveHistoryTail(result.samples, current, selected, requestedWindow);
           historySamplesRef.current = next;
+          // Raw columns from the load, plus live samples that arrived while it was loading.
+          intervalColumnsRef.current = result.intervalColumns;
+          recordLiveIntervalSamples(intervalColumnsRef.current, current);
           orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);
           return next;
         });
@@ -663,6 +683,7 @@ export function useLiveTelemetry({
     freshSamples: view.freshSamples,
     lastCapturedAt: view.lastCapturedAt,
     cadenceObservations: store.cadence,
+    intervalStatistics,
     clock,
     selectedKeys: hasCompleteInventory ? reconciledSelectedKeys : selectedKeys,
     selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,

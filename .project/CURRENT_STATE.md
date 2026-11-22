@@ -1,3 +1,7 @@
+## 2026-11-22 — #1660 Interval statistics on Live Data from raw history (WP-J) is source-only, not installed
+
+Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1655 Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G) is source-only, not installed
 
 Refrigeration controller lanes now distinguish UNKNOWN (polled, no valid state: hatched, text «Невідомо», never OFF and never counted as active or covered time) from NO DATA (silent gap, empty), add a compressor ON/OFF lane derived from measured speed (>0 rpm) and a state legend. Door/fan/status/alarm lanes and Saved Dashboard lanes are classified as needing a canonical digital-channel taxonomy / item decode schema. No Modbus/hardware write, no polling change, no site release.

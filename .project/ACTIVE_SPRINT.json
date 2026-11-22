@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1655,
-      "title": "Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G)",
-      "branch": "feat/1655-state-lanes"
+      "issue": 1660,
+      "title": "Interval statistics on Live Data from raw history (WP-J)",
+      "branch": "feat/1660-live-statistics"
     },
     "next_work_package": null
   },
@@ -11696,6 +11696,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1655-state-lanes"
+    },
+    {
+      "issue": 1660,
+      "title": "Interval statistics on Live Data from raw history (WP-J)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 226 files/1462 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1660-live-statistics"
     }
   ],
   "maintenance_actions": [

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T05:43:42Z",
+  "timestamp": "2026-11-22T05:58:49Z",
   "actor": "Claude",
-  "event": "1655_state_lanes_source_pr",
+  "event": "1660_live_statistics_source_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1655,
-    "branch": "feat/1655-state-lanes",
+    "issue": 1660,
+    "branch": "feat/wpj-live-statistics",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1655 merges: WP-H Live 24 series (#1654), WP-I export/PNG/saved views, WP-J cross-module acceptance incl. density on Live/Energy/Refrigeration. No site release authorized.",
+  "next_action": "After #1660 merges: WP-J release-candidate documentation and final programme report; then remaining classified follow-ups (shared saved analysis views, Saved Dashboard state lanes, Live device-grouped table, Energy raw statistics, Pi measurements). No site release authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

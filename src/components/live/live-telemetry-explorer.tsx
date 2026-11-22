@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { buildLiveStatisticsRows } from "@/features/live/live-interval-statistics";
 import { HttpChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
@@ -368,6 +370,12 @@ export function LiveTelemetryExplorer({
       telemetry.historySamples,
       telemetry.status,
     ],
+  );
+  const statisticsRows = useMemo(
+    () => buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
+    // historySamples changes whenever raw history or live tail is recorded, so stats stay current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveDomain, groups, selected, telemetry.intervalStatistics, telemetry.historySamples],
   );
   const rangeLabel = CANONICAL_CHART_TIME_RANGES.find((item) => item.id === range)?.label ?? range;
 
@@ -741,6 +749,13 @@ export function LiveTelemetryExplorer({
                 }}
               />
             ))}
+            <DashboardIntervalStatistics
+              rows={statisticsRows}
+              fromMs={effectiveDomain.fromMs}
+              toMs={effectiveDomain.toMs}
+              isViewport={viewportDomain !== null && !(liveFollow && range === "live")}
+              displayTimeZone={displayTimeZone}
+            />
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
               <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>
