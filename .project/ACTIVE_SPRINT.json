@@ -11925,17 +11925,34 @@
       "title": "Saved analysis view settings in the Telemetry API (WP-L backend)",
       "lifecycle": "blocked",
       "priority": "high",
-      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration.",
+      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration. Update 2026-11-22: real-stack acceptance on PostgreSQL is green (saved view round trip, RBAC, compatibility, corrupted values) and found two frontend defects fixed by #1690; only the container vulnerability policy blocks the merge. See docs/security/cve-2026-124709-assessment.md.",
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
-        "local_checks": "backend pytest 17 PASS locally; PostgreSQL migration verified only in CI-style tests; PR #1667 open",
+        "local_checks": "backend 17 view-settings tests + 48-test Saved Dashboard suite PASS on isolated PostgreSQL 16 with the real Alembic chain; 9/9 migration scenarios; real-stack browser acceptance GREEN on PR #1667; Merge Gate red only for the container vulnerability policy",
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
         "source_merge": "not merged"
       },
       "branch": "feat/1666-saved-analysis-views-api"
+    },
+    {
+      "issue": 1685,
+      "title": "CVE-2026-124709 (OpenSSL QUIC) blocks every backend-classified PR",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "Exposure assessment (docs/security/cve-2026-124709-assessment.md, PR #1686 merged), unused openssl CLI removed from telemetry-service (draft PR #1687), exact time-limited exception scope prepared for the Product Owner's decision. No patched OpenSSL exists before 2026-12-01 and Debian trixie is unfixed; bookworm bases are not viable today. No exception added, no gate bypassed.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "libssl consumer inventory of the three images (no QUIC server API references); local Trivy 0.70.0 and CI evidence show the telemetry scope reduced to libssl3t64 only after #1687",
+        "review_clearance": "Product Owner decision required for any exception (not self-approvable)",
+        "source_merge": "PR #1686 merged; PR #1687 draft"
+      },
+      "branch": "security/1685-telemetry-drop-openssl-cli"
     }
   ],
   "maintenance_actions": [
