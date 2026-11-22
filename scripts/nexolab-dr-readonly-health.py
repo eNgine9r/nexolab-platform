@@ -249,14 +249,21 @@ def _check_receipt_mode_and_checks(receipt: dict, ir) -> list:
     return checks
 
 
-def _check_fidelity(receipt: dict) -> None:
+def _check_fidelity(receipt: dict, ir) -> None:
     s3 = receipt["object_storage_s3"]
     if s3.get("bucket_private") is not True:
         raise HealthBlocked("restored bucket privacy not recorded")
+    # Only the restore tool's METADATA_OK (database AND source observation agree) is accepted;
+    # DEGRADED and UNVERIFIED_NO_SOURCE_OBSERVATION never yield REPORTED_OK.
+    ok = getattr(ir, "METADATA_OK", None)
     fidelity = s3.get("metadata_fidelity")
-    if fidelity not in (None, "PRESERVED") or (s3.get("stat_checked", 0) and fidelity != "PRESERVED") \
-            or any(s3.get(k, 0) != 0 for k in ("etag_mismatches", "etag_missing", "content_type_mismatches")):
-        raise HealthBlocked("object metadata fidelity is not PRESERVED (a degraded restore is not accepted)")
+    counters = ("missing", "etag_mismatches", "etag_missing", "content_type_mismatches",
+                "source_observation_mismatches")
+    if ok is None or fidelity not in (None, ok) or (s3.get("stat_checked", 0) and fidelity != ok) \
+            or any(s3.get(k) not in (None, 0) for k in counters):
+        shown = fidelity if isinstance(fidelity, str) and re.fullmatch(r"[A-Z_]{1,64}", fidelity) else "unknown"
+        raise HealthBlocked(f"object metadata fidelity is {shown}, not {ok} (a degraded or unverified "
+                            "restore is not accepted)")
     for warning in receipt["warnings"]:
         lowered = warning.lower()
         if "same filesystem" in lowered:
@@ -345,7 +352,7 @@ def verify_restore_receipt(
     # 3. site mode, no waivers, isolation and every verification check strictly PASS
     checks = _check_receipt_mode_and_checks(receipt, ir)
     # 4. fidelity: degraded object metadata or any warning never yields REPORTED_OK (strict default)
-    _check_fidelity(receipt)
+    _check_fidelity(receipt, ir)
 
     # 5. custody binding: restored copy == custody-verified off-device copy; target != destination
     inputs = receipt["inputs"]
