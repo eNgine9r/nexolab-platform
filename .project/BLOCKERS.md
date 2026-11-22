@@ -1,3 +1,7 @@
+## 2026-11-22 — update: CVE-2026-124709 decision package ready
+
+Evidence and the exact proposed exception scope are in docs/security/cve-2026-124709-assessment.md (merged, PR #1686). Upstream fix release 2026-12-01; Debian trixie unfixed; no QUIC server use; unused openssl CLI removal in draft PR #1687. Still blocked pending the Product Owner's decision; 18 existing telemetry exceptions expire 2026-11-23.
+
 ## 2026-11-22 — new unfixed HIGH CVE blocks every backend-classified PR (WP-L backend #1667)
 
 Container Supply Chain job on PR #1667 (run on head `4905e504`) blocked **HIGH CVE-2026-124709** in `libssl3t64 3.5.7-1~deb13u3` of the Device Agent image (Debian 13.7, **no fixed version** published; layer `sha256:2cef49ad…`; no Device Agent source was changed by the PR). `security/vulnerability-exceptions.json` entries are explicit Product Owner / platform-security risk acceptances, so this is **not** self-approvable by an implementation agent and the gate must not be bypassed. Effect: any PR that classifies as backend/migration (WP-L backend, and later WP-O/WP-R backend work) cannot pass the NEXOLAB Merge Gate until either Debian ships a fix and the images are rebuilt, the Device Agent image no longer ships the affected OpenSSL, or the risk owner records an exact, time-limited exception with exposure analysis. Frontend-only PRs are unaffected. Independent frontend work packages continue; the WP-L frontend refuses to report a view save the server did not persist, so it is safe to merge before the API. No exception was added and no check was bypassed.

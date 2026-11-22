@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pytest
 
-CURRENT_REVIEW_DATE = date(2026, 11, 16)
-CURRENT_EXPIRY = "2026-11-23"
+CURRENT_REVIEW_DATE = date(2026, 11, 22)
+CURRENT_EXPIRY = "2026-11-30"
+OPENSSL_QUIC_CVE = "CVE-2026-124709"
+OPENSSL_QUIC_EXPIRY = "2026-12-15"
 RETAINED_TELEMETRY_EXCEPTIONS = 15
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -292,7 +294,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    exceptions = payload["exceptions"]
+    exceptions = [e for e in payload["exceptions"] if e["vulnerability"] != OPENSSL_QUIC_CVE]
     stale = {
         (image_id, package, vulnerability)
         for image_id in {"device-agent", "telegram-gateway"}
@@ -620,7 +622,11 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     assert keys == expected
     assert len(new) == 0
     assert all(entry["owner"] == "platform-security" for entry in new)
-    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in payload["exceptions"])
+    assert all(
+        entry["expires_on"] == CURRENT_EXPIRY
+        for entry in payload["exceptions"]
+        if entry["vulnerability"] != "CVE-2026-124709"
+    )
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
     assert all("server_hostname" in entry["reason"] and "wrap_socket" in entry["reason"] for entry in new)
     MODULE.validate_exceptions(root / "security/vulnerability-exceptions.json", CURRENT_REVIEW_DATE)
@@ -643,13 +649,21 @@ def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
         assert "USER nonroot" in dockerfile
     assert 'CMD ["/usr/local/bin/python3", "/app/adaptive_main.py"]' in dockerfiles[0]
     assert 'CMD ["/usr/local/bin/python3", "-m", "uvicorn"' in dockerfiles[1]
-    assert all(entry["image_id"] == "telemetry-service" for entry in registry["exceptions"])
+    assert all(
+        entry["image_id"] == "telemetry-service"
+        for entry in registry["exceptions"]
+        if entry["vulnerability"] != OPENSSL_QUIC_CVE
+    )
 
 
 
 def test_current_approval_is_bound_to_eighteen_reviewed_telemetry_versions() -> None:
     path = ROOT / "security/vulnerability-exceptions.json"
-    entries = json.loads(path.read_text())["exceptions"]
+    entries = [
+        item
+        for item in json.loads(path.read_text())["exceptions"]
+        if item["vulnerability"] != OPENSSL_QUIC_CVE
+    ]
     keys = sorted(
         (item["image_id"], item["package"], item["vulnerability"], item["installed_version"])
         for item in entries
@@ -664,12 +678,42 @@ def test_current_approval_is_bound_to_eighteen_reviewed_telemetry_versions() -> 
     assert {item["vulnerability"] for item in entries if item["package"] == "libsqlite3-0"} == {
         "CVE-2026-119373", "CVE-2026-119374", "CVE-2026-119379",
     }
-    assert date.fromisoformat(CURRENT_EXPIRY) - CURRENT_REVIEW_DATE == timedelta(days=7)
+    assert date.fromisoformat(CURRENT_EXPIRY) - CURRENT_REVIEW_DATE == timedelta(days=8)
     assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253"
     assert all("run 43859841072" in item["reason"] for item in entries)
     assert all("163584bb22e1b51cf92f8cbd0a3acba806e6a905cb543578c051eaa349f9d297" in item["reason"] for item in entries)
     assert all(item["expires_on"] == CURRENT_EXPIRY for item in entries)
     MODULE.validate_exceptions(path, CURRENT_REVIEW_DATE)
-    MODULE.validate_exceptions(path, date(2026, 11, 23))
+    MODULE.validate_exceptions(path, date(2026, 11, 30))
     with pytest.raises(ValidationFailure, match="expired"):
-        MODULE.validate_exceptions(path, date(2026, 11, 24))
+        MODULE.validate_exceptions(path, date(2026, 12, 1))
+
+
+def test_openssl_quic_exceptions_are_the_three_exact_approved_entries(tmp_path: Path) -> None:
+    path = ROOT / "security/vulnerability-exceptions.json"
+    entries = [
+        item
+        for item in json.loads(path.read_text())["exceptions"]
+        if item["vulnerability"] == OPENSSL_QUIC_CVE
+    ]
+    assert sorted(
+        (item["image_id"], item["package"], item["installed_version"]) for item in entries
+    ) == [
+        ("device-agent", "libssl3t64", "3.5.7-1~deb13u3"),
+        ("telegram-gateway", "libssl3t64", "3.5.7-1~deb13u3"),
+        ("telemetry-service", "libssl3t64", "3.5.9-1~deb13u1"),
+    ]
+    assert {item["owner"] for item in entries} == {"platform-security"}
+    assert all(item["expires_on"] == OPENSSL_QUIC_EXPIRY for item in entries)
+    assert all("*" not in value for item in entries for value in item.values())
+    for item in entries:
+        reason = item["reason"]
+        assert "Product Owner approved" in reason and "#1692" in reason
+        assert "severity becomes Critical" in reason or "severity becomes Critical." in reason
+        assert "linux/amd64 and linux/arm64" in reason
+    # The approval ends 2026-12-15: after that the policy must reject the entries.
+    only = tmp_path / "only-openssl-quic.json"
+    only.write_text(json.dumps({"schema_version": 1, "exceptions": entries}), encoding="utf-8")
+    MODULE.validate_exceptions(only, date(2026, 12, 14))
+    with pytest.raises(ValidationFailure, match="expired"):
+        MODULE.validate_exceptions(only, date(2026, 12, 16))
