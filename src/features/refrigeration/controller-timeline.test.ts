@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  buildCompressorTimeline,
   buildControlStateTimeline,
   buildDefrostTimeline,
   buildRelayTimeline,
   buildRelayTransitions,
+  buildUnknownTimeline,
   summarizeActiveTimeline,
 } from "./controller-timeline";
 
@@ -150,5 +152,53 @@ describe("controller timelines", () => {
       selected,
     );
     expect(transitions.map((item) => item.eventId)).toEqual(["c"]);
+  });
+});
+
+describe("UNKNOWN versus NO DATA lanes", () => {
+  it("marks polls with a non-valid state as UNKNOWN, separately from ON/OFF and never as OFF", () => {
+    const samples = [sample("a", 0, 0), sample("bad", 1, 0, "communication_error"), sample("b", 2, 1)];
+    const unknown = buildUnknownTimeline(samples, range);
+    expect(unknown.map((item) => [item.fromMs, item.toMs, item.kind, item.label, item.active])).toEqual([
+      [
+        Date.parse("2026-08-28T00:00:00.000Z"),
+        Date.parse("2026-08-28T00:01:00.000Z"),
+        "unknown",
+        "Невідомо",
+        false,
+      ],
+      [
+        Date.parse("2026-08-28T00:01:00.000Z"),
+        Date.parse("2026-08-28T00:02:00.000Z"),
+        "unknown",
+        "Невідомо",
+        false,
+      ],
+    ]);
+    // The valid-state builders still emit nothing across the failing poll.
+    expect(buildRelayTimeline(samples, 0, range)).toEqual([]);
+  });
+
+  it("leaves a silent source gap empty (NO DATA) instead of calling it UNKNOWN", () => {
+    expect(
+      buildUnknownTimeline([sample("a", 0, 5), sample("b", 9, 5, "communication_error")], range),
+    ).toEqual([]);
+    expect(buildUnknownTimeline([sample("a", 0, 5), sample("b", 1, 5)], range)).toEqual([]);
+  });
+
+  it("never counts UNKNOWN intervals as active or covered time", () => {
+    const states = [sample("a", 0, 3), sample("b", 1, 3), sample("bad", 2, 3, "sensor_error")];
+    const timeline = [...buildDefrostTimeline(states, range), ...buildUnknownTimeline(states, range)];
+    expect(summarizeActiveTimeline(timeline, range)).toEqual({ activeMs: 60_000, coveredMs: 60_000 });
+  });
+});
+
+describe("compressor ON/OFF lane derived from speed", () => {
+  it("is ON above 0 rpm, OFF at exactly 0 and ignores invalid samples", () => {
+    const speeds = [sample("a", 0, 0), sample("b", 1, 2400), sample("c", 2, 2400), sample("d", 3, 0)];
+    expect(buildCompressorTimeline(speeds, range).map((item) => item.label)).toEqual(["OFF", "ON", "ON"]);
+    expect(
+      buildCompressorTimeline([sample("a", 0, 0), sample("bad", 1, 0, "communication_error")], range),
+    ).toEqual([]);
   });
 });

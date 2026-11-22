@@ -11682,6 +11682,22 @@
       "branch": "feat/1652-per-series-freshness"
     },
     {
+      "issue": 1655,
+      "title": "Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Refrigeration controller lanes now distinguish UNKNOWN (polled, no valid state: hatched, text «Невідомо», never OFF and never counted as active or covered time) from NO DATA (silent gap, empty), add a compressor ON/OFF lane derived from measured speed (>0 rpm) and a state legend. Door/fan/status/alarm lanes and Saved Dashboard lanes are classified as needing a canonical digital-channel taxonomy / item decode schema.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1459 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1655-state-lanes"
+    },
+    {
       "issue": 1658,
       "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
       "lifecycle": "review",

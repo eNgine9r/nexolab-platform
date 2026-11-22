@@ -2,6 +2,10 @@
 
 Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code. No Modbus/hardware write, no polling change, no site release.
 
+## 2026-11-22 — #1655 Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G) is source-only, not installed
+
+Refrigeration controller lanes now distinguish UNKNOWN (polled, no valid state: hatched, text «Невідомо», never OFF and never counted as active or covered time) from NO DATA (silent gap, empty), add a compressor ON/OFF lane derived from measured speed (>0 rpm) and a state legend. Door/fan/status/alarm lanes and Saved Dashboard lanes are classified as needing a canonical digital-channel taxonomy / item decode schema. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1652 Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F) is source-only, not installed
 
 Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open. No Modbus/hardware write, no polling change, no site release.
