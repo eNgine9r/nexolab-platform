@@ -310,6 +310,10 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_nexolab_dr_stream.py",
     "tests/test_nexolab_dr_scheduled_backup.py",
     "tests/test_nexolab_dr_backup_review_fixes.py",
+    # #1631 verified off-device copy with custody receipt: source-only tooling,
+    # synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
+    "scripts/nexolab-dr-offdevice-copy.py",
+    "tests/test_ci_dr_offdevice_copy.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {

@@ -113,7 +113,8 @@ All of the following steps are **read-only** until step 5.
    `cryptography` (`python3 -c 'import cryptography'`).
 2. **Key and custody (#1631):** generate exactly 32 random bytes as `/etc/nexolab/dr-backup.key`, root:root `0600`.
    Store an independent copy of the key **separately from every bundle**. Losing the key makes all bundles worthless.
-   Record only the fingerprint, which is printed in every receipt.
+   Record only the fingerprint, which is printed in every receipt. The custody procedure and the verified
+   off-device copy are in [`dr-offdevice-copy-1631.md`](dr-offdevice-copy-1631.md).
 3. **Install the config** as `/etc/nexolab/dr-backup.json` (root:root `0600`) and create `/var/backups/nexolab/dr` (`0700`).
 4. **Dry plan:** `python3 -I -B scripts/nexolab-dr-scheduled-backup.py --config /etc/nexolab/dr-backup.json --plan`.
    It reads no data and writes nothing; it fails with exit 78 if capacity is insufficient.
