@@ -54,6 +54,14 @@ def objectives() -> dict:
     return json.loads((ROOT / "security" / "disaster-recovery-assets.json").read_text(encoding="utf-8"))["objectives"]
 
 
+def object_metadata(*, etag: str = '"abc123"', observed: bool = True):
+    """(database rows, restored HEAD results, source observation) for two equipment images."""
+    database = {f"org/eq-{i}/img.jpg": {"etag": '"abc123"', "media_type": "image/jpeg"} for i in (1, 2)}
+    heads = [{"key": key, "status": 200, "etag": etag, "size": 10, "content_type": "image/jpeg"} for key in database]
+    source = {key: {"key": key, "etag": '"abc123"', "content_type": "image/jpeg"} for key in database}
+    return database, heads, source if observed else None
+
+
 class ReceiptCase(unittest.TestCase):
     """Builds a realistic site-mode receipt for a real synthetic bundle on 'off-device media'."""
 
@@ -72,15 +80,23 @@ class ReceiptCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def build(self, *, rehearsal: bool = False, mutate=None, failing=(), waivers=(), ready=READY,
-              completed=COMPLETED, started=STARTED, restore_started=RESTORE_STARTED) -> tuple[dict, Path, str]:
+              completed=COMPLETED, started=STARTED, restore_started=RESTORE_STARTED,
+              objects=None) -> tuple[dict, Path, str]:
+        # S3 metadata fidelity block exactly as the restore tool computes it (database, HEAD, source observation).
+        database, heads, observed = objects or object_metadata()
+        fidelity = ir.evaluate_object_metadata(database, heads, observed)
+        s3 = {"bucket_private": True, **fidelity, "stat_keys": {"exit": 0, "objects": len(database), "passed": True}}
         inputs = ir.verify_custody(bundle_path=self.bundle, custody=self.custody, key=iso.KEY)
         verified = drs.verify_file(self.bundle, iso.KEY)
         entries = ir.compare_stream_with_manifest(verified.entries, verified.manifest)
         binding = ir.bind_source_manifest(self.custody, verified.manifest)
         checks = ir.Checks(waivers=frozenset(waivers))
-        for name in (*ir.REQUIRED_CHECKS, *health.SITE_MODE_CHECKS, "object_storage.objects_present_via_s3"):
+        for name in (*ir.REQUIRED_CHECKS, *health.SITE_MODE_CHECKS, "object_storage.objects_present_via_s3",
+                     "object_storage.stat_keys"):
             detail = {"destination_kind": self.custody["destination_kind"]} if name == "custody.verified" else {}
             checks.add(name, name not in failing, detail)
+        checks.add("object_storage.metadata_fidelity", fidelity["metadata_fidelity"] == ir.METADATA_OK,
+                   {"metadata_fidelity": fidelity["metadata_fidelity"]})
         stores = {store: ir.store_verification_block(store, {"entry_sha256": entry["sha256"], "ok": True}, True)
                   for store, entry in entries.items() if not store.startswith("local-auth-")}
         pair = ir.store_verification_block("local-auth-keypair", {"keypair": {"matches": True}}, True)
@@ -108,8 +124,7 @@ class ReceiptCase(unittest.TestCase):
                        "custody_copied_at": self.custody["copied_at"], "key_fingerprint": drs.key_fingerprint(iso.KEY),
                        "source_manifest_binding": binding, "backup_created_at": verified.manifest["created_at"],
                        "backup_commit": verified.manifest.get("commit"), "leaf_a_receipt_sha256": "not_available_on_media"},
-            "object_storage_s3": {"bucket_private": True, "stat_checked": 2, "present": 2, "etag_mismatches": 0,
-                                  "etag_missing": 0, "content_type_mismatches": 0, "metadata_fidelity": "PRESERVED"},
+            "object_storage_s3": s3,
             "egress": {"reachable": [], "resolved": [], "internet_name_resolution_from_stack": False},
             "rpo_rto": ir.compute_rpo_rto(backup_created_at=ir.parse_utc(verified.manifest["created_at"], "c"),
                                           restore_started_at=restore_started, ready_at=ready, newest_data_at=None,
@@ -230,11 +245,25 @@ class SiteModeTests(ReceiptCase):
         self.assertBlocked(path, "isolation.internet_disconnected")
 
     def test_degraded_metadata_fidelity_is_not_ok(self) -> None:
-        def degrade(receipt):
-            receipt["object_storage_s3"].update(metadata_fidelity="DEGRADED", etag_missing=2)
-            receipt["warnings"].append("FINDING: restored S3 metadata differs from the database for 2 object(s)")
-        _, path, _ = self.build(mutate=degrade)
-        self.assertBlocked(path, "metadata fidelity is not PRESERVED")
+        # Status forced to PASS so that the health gate's own fidelity rule is exercised, not just the check.
+        def force_pass(receipt):
+            receipt["checks"] = [dict(c, passed=True) for c in receipt["checks"]]
+            receipt.update(status="PASS", failed_checks=[])
+        _, path, _ = self.build(objects=object_metadata(etag=""), mutate=force_pass)
+        self.assertBlocked(path, "metadata fidelity is DEGRADED")
+        _, path, _ = self.build(objects=object_metadata(etag='"other"'))
+        self.assertBlocked(path, "status is not PASS")
+
+    def test_unverified_metadata_fidelity_is_not_ok(self) -> None:
+        def force_pass(receipt):
+            receipt["checks"] = [dict(c, passed=True) for c in receipt["checks"]]
+            receipt.update(status="PASS", failed_checks=[])
+        _, path, _ = self.build(objects=object_metadata(observed=False), mutate=force_pass)
+        self.assertBlocked(path, "metadata fidelity is UNVERIFIED_NO_SOURCE_OBSERVATION")
+
+    def test_legacy_preserved_value_is_not_ok(self) -> None:
+        _, path, _ = self.build(mutate=lambda r: r["object_storage_s3"].update(metadata_fidelity="PRESERVED"))
+        self.assertBlocked(path, "metadata fidelity is PRESERVED, not OK")
 
     def test_any_warning_blocks_under_the_strict_default(self) -> None:
         _, path, _ = self.build(mutate=lambda r: r["warnings"].append(
