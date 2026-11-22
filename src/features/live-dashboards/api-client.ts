@@ -9,6 +9,7 @@ import type {
   LiveDashboardItem,
   LiveDashboardStatus,
   LiveDashboardVersioned,
+  LiveDashboardViewSettings,
   LiveDashboardVisualization,
   LiveDashboardWrite,
 } from "./types";
@@ -164,7 +165,18 @@ export function parseLiveDashboard(value: unknown): LiveDashboard {
     archived_by: nullableString(value.archived_by, "Dashboard archiver"),
     archived_at: nullableString(value.archived_at, "Dashboard archived timestamp"),
     items: value.items.map(parseItem),
+    ...(value.view_settings === undefined ? {} : { view_settings: parseViewSettings(value.view_settings) }),
   };
+}
+
+/**
+ * Saved analysis view (#1666). Tolerant like the API: a value this client cannot interpret reads as
+ * "no saved view" instead of failing the dashboard. An absent key (older Telemetry Service) stays absent.
+ */
+function parseViewSettings(value: unknown): LiveDashboardViewSettings | null {
+  if (!isRecord(value) || !Array.isArray(value.hidden_items)) return null;
+  if (!value.hidden_items.every((item) => typeof item === "string")) return null;
+  return value as unknown as LiveDashboardViewSettings;
 }
 
 function parseCollection(value: unknown): LiveDashboardCollection {
