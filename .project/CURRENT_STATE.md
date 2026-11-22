@@ -1,6 +1,6 @@
-## 2026-11-22 — #1671 Device-grouped searchable channel selection on Live Data (WP-P) is source-only, not installed
+## 2026-11-22 — #1668 Chart detail control on Energy and Refrigeration (WP-M, completes #1620) is source-only, not installed
 
-Live Data gets a panel that groups channels by device with operator-defined names, searchable and collapsible groups, per-device and global select/deselect (limited to found channels while searching), a visible n-of-24 counter and an explicit message when the limit truncates a bulk selection. It edits the same selection as the flat table; its accessible names differ so existing selectors stay unambiguous. No Modbus/hardware write, no polling change, no site release.
+Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history. No Modbus/hardware write, no polling change, no site release.
 
 ## 2026-11-22 — #1666 Saved analysis views: save and restore in the live view (WP-L, frontend) is source-only, not installed
 

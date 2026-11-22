@@ -6,6 +6,11 @@ import {
   readEnergyCadenceAuthority,
   type EnergyCadenceAuthority,
 } from "@/features/energy/energy-cadence-authority";
+import {
+  resolveChartPointBudget,
+  type ChartDensityMode,
+  type ChartPointBudgetResolution,
+} from "@/features/charts/density";
 import { selectEnergyHistoryTail } from "@/features/energy/energy-history";
 import {
   invalidateEnergyComparisonHistory,
@@ -32,6 +37,7 @@ import {
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
+  ENERGY_METERS,
   ENERGY_METRICS,
   isEnergySample,
   resolveEnergyMeter,
@@ -90,6 +96,8 @@ interface EnergyCadenceAuthorityState {
 
 export interface EnergyTelemetryModel {
   mode: "demo" | "live";
+  /** Resolved chart detail budget for the current selection (#1620). */
+  densityResolution?: ChartPointBudgetResolution;
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
   freshSamples: TelemetrySample[];
@@ -152,10 +160,13 @@ export function useEnergyTelemetry({
   enabled = true,
   organizationId = null,
   securityScopeId = null,
+  densityMode = "auto",
 }: {
   enabled?: boolean;
   organizationId?: string | null;
   securityScopeId?: string | null;
+  /** Chart detail (#1620); the per-series budget is resolved here and is part of the history cache key. */
+  densityMode?: ChartDensityMode;
 } = {}): EnergyTelemetryModel {
   const selectedOrganizationId = organizationId?.trim() || null;
   const selectedSecurityScopeId = securityScopeId?.trim() || DEFAULT_SECURITY_SCOPE;
@@ -182,6 +193,12 @@ export function useEnergyTelemetry({
     (metric: EnergyMetricId) => setSelectedMetrics([metric]),
     [setSelectedMetrics],
   );
+  // Upper bound of plotted series: every meter × every selected metric.
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(densityMode, Math.max(1, selectedMetrics.length * ENERGY_METERS.length)),
+    [densityMode, selectedMetrics.length],
+  );
+  const pointsPerSeries = densityResolution.perSeries;
   const [historyRange, setHistoryRange] = useState<EnergyHistoryRange>("24h");
   const [historyWindowState, setHistoryWindow] = useState<EnergyHistoryWindow | null>(null);
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
@@ -204,12 +221,18 @@ export function useEnergyTelemetry({
             securityScope: securityScopeKey,
             nodeId: ENERGY_NODE_ID,
             metric: selectedMetrics.join("|"),
-            range: historyRange,
+            // The reduced history depends on the budget, so it must never be reused across budgets.
+            range: `${historyRange}|p${pointsPerSeries}`,
           },
-    [historyRange, scopeKey, securityScopeKey, selectedMetrics],
+    [historyRange, pointsPerSeries, scopeKey, securityScopeKey, selectedMetrics],
   );
   const historyKey = historyRetention === null ? null : energyHistoryRetentionKey(historyRetention);
   const storeRef = useRef(store);
+  const pointsPerSeriesRef = useRef(pointsPerSeries);
+  // Declared before the history effects so a budget change is visible to their reload.
+  useEffect(() => {
+    pointsPerSeriesRef.current = pointsPerSeries;
+  }, [pointsPerSeries]);
   const historySamplesRef = useRef(historySamples);
   const selectedMetricsRef = useRef(selectedMetrics);
   const historyRangeRef = useRef(historyRange);
@@ -415,6 +438,7 @@ export function useEnergyTelemetry({
           },
           selectedMetricsRef.current,
           activeCadenceAuthority,
+          pointsPerSeriesRef.current,
         );
         historySamplesRef.current = next;
         retainActiveHistory(nextWindow, next);
@@ -534,6 +558,7 @@ export function useEnergyTelemetry({
             },
             metrics,
             activeCadenceAuthority,
+            pointsPerSeriesRef.current,
           );
           historySamplesRef.current = next;
           retainActiveHistory(nextWindow, next);
@@ -654,6 +679,7 @@ export function useEnergyTelemetry({
       },
       selectedMetrics,
       cadenceAuthority,
+      pointsPerSeriesRef.current,
     );
     let disposed = false;
     activeHistoryKeyRef.current = historyKey;
@@ -694,6 +720,7 @@ export function useEnergyTelemetry({
       selectedMetrics,
       controller.signal,
       cadenceAuthority,
+      pointsPerSeriesRef.current,
     )
       .then(({ samples, errors }) => {
         if (disposed) return;
@@ -705,6 +732,7 @@ export function useEnergyTelemetry({
             { nodeId: ENERGY_NODE_ID, from: new Date(currentWindow.from), to: new Date(currentWindow.to) },
             selectedMetrics,
             cadenceAuthority,
+            pointsPerSeriesRef.current,
           );
           historySamplesRef.current = next;
           retainEnergyComparisonHistory(
@@ -920,6 +948,7 @@ export function useEnergyTelemetry({
     lastCapturedAt: resolvedView.lastCapturedAt,
     ageMs: resolvedView.ageMs,
     cadenceAuthority: cadenceAuthorityState.scopeKey === scopeKey ? cadenceAuthorityState.authority : null,
+    densityResolution,
     selectedMetrics,
     setSelectedMetrics,
     selectedMetric,
