@@ -92,7 +92,7 @@ export function DashboardIntervalStatistics({
                       style={{ backgroundColor: row.color }}
                       aria-hidden="true"
                     />
-                    {row.name}
+                    {row.unit ? `${row.name} · ${row.unit}` : row.name}
                   </th>
                   <td className="px-5 py-3">{stats ? value(stats.min, row.unit) : "—"}</td>
                   <td className="px-5 py-3">{stats ? value(stats.max, row.unit) : "—"}</td>

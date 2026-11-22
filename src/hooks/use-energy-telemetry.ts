@@ -6,6 +6,13 @@ import {
   readEnergyCadenceAuthority,
   type EnergyCadenceAuthority,
 } from "@/features/energy/energy-cadence-authority";
+import type { IntervalStatistics } from "@/features/charts/interval-statistics";
+import { EnergyRawStatistics } from "@/features/energy/energy-raw-statistics";
+import {
+  resolveChartPointBudget,
+  type ChartDensityMode,
+  type ChartPointBudgetResolution,
+} from "@/features/charts/density";
 import { selectEnergyHistoryTail } from "@/features/energy/energy-history";
 import {
   invalidateEnergyComparisonHistory,
@@ -32,6 +39,7 @@ import {
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
+  ENERGY_METERS,
   ENERGY_METRICS,
   isEnergySample,
   resolveEnergyMeter,
@@ -90,6 +98,18 @@ interface EnergyCadenceAuthorityState {
 
 export interface EnergyTelemetryModel {
   mode: "demo" | "live";
+  /** Resolved chart detail budget for the current selection (#1620). */
+  densityResolution?: ChartPointBudgetResolution;
+  /**
+   * Exact interval statistics from raw measurements (#1675); null when the raw base does not cover
+   * the interval or metric (e.g. history seeded from the retention cache).
+   */
+  intervalStatistics?: (
+    seriesKey: string,
+    metric: string,
+    fromMs: number,
+    toMs: number,
+  ) => IntervalStatistics | null;
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
   freshSamples: TelemetrySample[];
@@ -152,10 +172,13 @@ export function useEnergyTelemetry({
   enabled = true,
   organizationId = null,
   securityScopeId = null,
+  densityMode = "auto",
 }: {
   enabled?: boolean;
   organizationId?: string | null;
   securityScopeId?: string | null;
+  /** Chart detail (#1620); the per-series budget is resolved here and is part of the history cache key. */
+  densityMode?: ChartDensityMode;
 } = {}): EnergyTelemetryModel {
   const selectedOrganizationId = organizationId?.trim() || null;
   const selectedSecurityScopeId = securityScopeId?.trim() || DEFAULT_SECURITY_SCOPE;
@@ -182,6 +205,12 @@ export function useEnergyTelemetry({
     (metric: EnergyMetricId) => setSelectedMetrics([metric]),
     [setSelectedMetrics],
   );
+  // Upper bound of plotted series: every meter × every selected metric.
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(densityMode, Math.max(1, selectedMetrics.length * ENERGY_METERS.length)),
+    [densityMode, selectedMetrics.length],
+  );
+  const pointsPerSeries = densityResolution.perSeries;
   const [historyRange, setHistoryRange] = useState<EnergyHistoryRange>("24h");
   const [historyWindowState, setHistoryWindow] = useState<EnergyHistoryWindow | null>(null);
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
@@ -204,15 +233,27 @@ export function useEnergyTelemetry({
             securityScope: securityScopeKey,
             nodeId: ENERGY_NODE_ID,
             metric: selectedMetrics.join("|"),
-            range: historyRange,
+            // The reduced history depends on the budget, so it must never be reused across budgets.
+            range: `${historyRange}|p${pointsPerSeries}`,
           },
-    [historyRange, scopeKey, securityScopeKey, selectedMetrics],
+    [historyRange, pointsPerSeries, scopeKey, securityScopeKey, selectedMetrics],
   );
   const historyKey = historyRetention === null ? null : energyHistoryRetentionKey(historyRetention);
   const storeRef = useRef(store);
+  const pointsPerSeriesRef = useRef(pointsPerSeries);
+  // Declared before the history effects so a budget change is visible to their reload.
+  useEffect(() => {
+    pointsPerSeriesRef.current = pointsPerSeries;
+  }, [pointsPerSeries]);
   const historySamplesRef = useRef(historySamples);
   const selectedMetricsRef = useRef(selectedMetrics);
   const historyRangeRef = useRef(historyRange);
+  const rawStatisticsRef = useRef(new EnergyRawStatistics());
+  const intervalStatistics = useCallback(
+    (seriesKey: string, metric: string, fromMs: number, toMs: number) =>
+      rawStatisticsRef.current.statistics(historyRangeRef.current, seriesKey, metric, fromMs, toMs),
+    [],
+  );
   const historyKeyRef = useRef(historyKey);
   const historyRetentionRef = useRef(historyRetention);
   const activeHistoryKeyRef = useRef(activeHistoryKey);
@@ -415,6 +456,7 @@ export function useEnergyTelemetry({
           },
           selectedMetricsRef.current,
           activeCadenceAuthority,
+          pointsPerSeriesRef.current,
         );
         historySamplesRef.current = next;
         retainActiveHistory(nextWindow, next);
@@ -521,6 +563,8 @@ export function useEnergyTelemetry({
         };
         historyWindowRef.current = nextWindow;
         setHistoryWindow(nextWindow);
+        rawStatisticsRef.current.append(historyRangeRef.current, tail);
+        rawStatisticsRef.current.prune(historyRangeRef.current, Date.parse(nextWindow.from));
         setHistorySamples((current) => {
           const activeCadenceAuthority =
             cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
@@ -534,6 +578,7 @@ export function useEnergyTelemetry({
             },
             metrics,
             activeCadenceAuthority,
+            pointsPerSeriesRef.current,
           );
           historySamplesRef.current = next;
           retainActiveHistory(nextWindow, next);
@@ -654,6 +699,7 @@ export function useEnergyTelemetry({
       },
       selectedMetrics,
       cadenceAuthority,
+      pointsPerSeriesRef.current,
     );
     let disposed = false;
     activeHistoryKeyRef.current = historyKey;
@@ -684,6 +730,7 @@ export function useEnergyTelemetry({
     const deltaFromMs = Number.isFinite(loadedThrough)
       ? Math.max(requested.from.getTime(), loadedThrough - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS)
       : requested.from.getTime();
+    const rawCollected: TelemetrySample[] = [];
     void loadEnergyComparisonHistory(
       adapter,
       {
@@ -694,9 +741,24 @@ export function useEnergyTelemetry({
       selectedMetrics,
       controller.signal,
       cadenceAuthority,
+      pointsPerSeriesRef.current,
+      (raw) => rawCollected.push(...raw),
     )
       .then(({ samples, errors }) => {
         if (disposed) return;
+        // Exact statistics (#1675): a FULL load replaces the raw base; a delta load only extends an
+        // existing base. Metrics whose read failed are never marked as covered.
+        const coveredMetrics = selectedMetrics.filter((metric) => !errors[metric]);
+        if (deltaFromMs === requested.from.getTime()) {
+          rawStatisticsRef.current.replace(
+            historyRange,
+            requested.from.getTime(),
+            rawCollected,
+            coveredMetrics,
+          );
+        } else if (rawStatisticsRef.current.hasBase(historyRange)) {
+          rawStatisticsRef.current.append(historyRange, rawCollected);
+        }
         const currentWindow = historyWindowRef.current ?? requestedWindow;
         setHistorySamples((current) => {
           const next = mergeEnergyComparisonHistory(
@@ -705,6 +767,7 @@ export function useEnergyTelemetry({
             { nodeId: ENERGY_NODE_ID, from: new Date(currentWindow.from), to: new Date(currentWindow.to) },
             selectedMetrics,
             cadenceAuthority,
+            pointsPerSeriesRef.current,
           );
           historySamplesRef.current = next;
           retainEnergyComparisonHistory(
@@ -920,6 +983,8 @@ export function useEnergyTelemetry({
     lastCapturedAt: resolvedView.lastCapturedAt,
     ageMs: resolvedView.ageMs,
     cadenceAuthority: cadenceAuthorityState.scopeKey === scopeKey ? cadenceAuthorityState.authority : null,
+    densityResolution,
+    intervalStatistics,
     selectedMetrics,
     setSelectedMetrics,
     selectedMetric,

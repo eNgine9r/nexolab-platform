@@ -419,6 +419,7 @@ export function mergeEnergyHistoryTail(
   incoming: readonly TelemetrySample[],
   window: EnergyHistoryWindow,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  maximumPoints: number = MAX_HISTORY_POINTS_PER_METER,
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
@@ -505,7 +506,7 @@ export function mergeEnergyHistoryTail(
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
-    const sampled = bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window);
+    const sampled = bucketDownsampleAnnotated([...byEventId.values()], maximumPoints, window);
     const reduced = applyPendingBreak(sampled, annotation.breakPending);
     const latestReduced = reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
 
@@ -525,6 +526,9 @@ export async function loadCompleteEnergyHistory(
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
   initialSnapshotAt?: string,
+  maximumPoints: number = MAX_HISTORY_POINTS_PER_METER,
+  /** Receives the accepted RAW samples (before reduction) for exact interval statistics (#1675). */
+  onRawSamples?: (samples: readonly TelemetrySample[]) => void,
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
@@ -565,12 +569,8 @@ export async function loadCompleteEnergyHistory(
     }
 
     if (response.next_offset === null) {
-      return downsampleEnergyHistory(
-        [...samples.values()],
-        MAX_HISTORY_POINTS_PER_METER,
-        window,
-        cadenceAuthority,
-      );
+      onRawSamples?.([...samples.values()]);
+      return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority);
     }
 
     const capturedTimes = response.items
@@ -582,12 +582,8 @@ export async function loadCompleteEnergyHistory(
 
     const oldestCapturedAt = Math.min(...capturedTimes);
     if (oldestCapturedAt <= window.from.getTime()) {
-      return downsampleEnergyHistory(
-        [...samples.values()],
-        MAX_HISTORY_POINTS_PER_METER,
-        window,
-        cadenceAuthority,
-      );
+      onRawSamples?.([...samples.values()]);
+      return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority);
     }
 
     const boundaryCount = capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length;

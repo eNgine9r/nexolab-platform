@@ -8,12 +8,21 @@ import { CalendarRange, Download, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { useMemo, useState } from "react";
 
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import {
+  readStoredChartDensity,
+  resolveChartPointBudget,
+  storeChartDensity,
+  type ChartDensityMode,
+} from "@/features/charts/density";
 import { RefrigerationControllerChart } from "@/components/refrigeration/refrigeration-controller-chart";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
+  buildEmbracoTemperatureStatisticsRows,
   buildEmbracoOperatorCelsiusScene,
   buildEmbracoProbeRawScene,
 } from "@/features/refrigeration/controller-chart";
@@ -48,6 +57,9 @@ const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
   { id: "24h", label: "24 год" },
   { id: "custom", label: "Кастом" },
 ];
+
+/** Upper bound of simultaneously plotted series: 2 operator-°C pairs, 2 raw probes, compressor. */
+const REFRIGERATION_PLOTTED_SERIES = 7;
 
 export function RefrigerationControllerHistory({ controller }: { controller: RefrigerationControllerModel }) {
   const displayTimeZone = useDisplayTimeZone();
@@ -127,6 +139,12 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       : null;
   const analysisReady = analysisUnavailableLabel === null;
 
+  const [density, setDensity] = useState<ChartDensityMode>(() => readStoredChartDensity("refrigeration"));
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(density, REFRIGERATION_PLOTTED_SERIES),
+    [density],
+  );
+  const pointsPerSeries = densityResolution.perSeries;
   const temperatureScene = useMemo(
     () =>
       buildEmbracoOperatorCelsiusScene(
@@ -134,22 +152,54 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         controller.range,
         controller.latest?.online ?? false,
         controller.binding?.controllerEquipmentId ?? "",
+        pointsPerSeries,
       ),
     [
       controller.history,
       controller.latest?.online,
       controller.range,
       controller.binding?.controllerEquipmentId,
+      pointsPerSeries,
     ],
   );
   const probeRawScene = useMemo(
-    () => buildEmbracoProbeRawScene(controller.history, controller.range, controller.latest?.online ?? false),
-    [controller.history, controller.latest?.online, controller.range],
+    () =>
+      buildEmbracoProbeRawScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        pointsPerSeries,
+      ),
+    [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
   );
   const compressorScene = useMemo(
     () =>
-      buildEmbracoCompressorScene(controller.history, controller.range, controller.latest?.online ?? false),
-    [controller.history, controller.latest?.online, controller.range],
+      buildEmbracoCompressorScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        pointsPerSeries,
+      ),
+    [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
+  );
+  // Exact statistics come from the RAW history, not from the reduced chart series (#1675).
+  const temperatureStatisticsRows = useMemo(
+    () => buildEmbracoTemperatureStatisticsRows(controller.history, temperatureScene, viewportDomain),
+    [controller.history, temperatureScene, viewportDomain],
+  );
+  const displayedPoints = useMemo(
+    () =>
+      [temperatureScene, probeRawScene, compressorScene].reduce(
+        (total, scene) =>
+          total +
+          scene.series.reduce(
+            (sum, entry) =>
+              sum + entry.segments.reduce((points, segment) => points + segment.points.length, 0),
+            0,
+          ),
+        0,
+      ),
+    [compressorScene, probeRawScene, temperatureScene],
   );
   const compressorSamples = useMemo(
     () =>
@@ -368,6 +418,19 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         ) : null}
       </section>
 
+      <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-3">
+        <ChartDensityControl
+          mode={density}
+          resolution={densityResolution}
+          onChange={(next) => {
+            setDensity(next);
+            storeChartDensity("refrigeration", next);
+          }}
+          displayedPoints={displayedPoints}
+          availableMeasurements={null}
+        />
+      </section>
+
       {controller.historyLoading ? (
         <section className="grid min-h-48 place-items-center rounded-2xl border border-white/[0.08] bg-[#081a32]">
           <div className="text-center text-xs text-slate-500">
@@ -491,6 +554,16 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         розраховані °C наведені окремим стовпчиком з позначкою походження, а вихідні raw і якість вимірювання
         збережено без змін.
       </section>
+      <DashboardIntervalStatistics
+        rows={temperatureStatisticsRows}
+        fromMs={viewportDomain.fromMs}
+        toMs={viewportDomain.toMs}
+        isViewport={
+          viewportDomain.fromMs !== loadedAnalysisDomain.fromMs ||
+          viewportDomain.toMs !== loadedAnalysisDomain.toMs
+        }
+        displayTimeZone={displayTimeZone}
+      />
       <RefrigerationControllerChart
         title="Діагностика · вихідні raw"
         context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"

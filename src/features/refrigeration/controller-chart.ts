@@ -6,6 +6,7 @@ import {
   type ChartSeries,
   type ChartSeriesIdentity,
 } from "@/features/charts";
+import { buildRawStatisticsRows, type RawStatisticsRow } from "@/features/charts/raw-sample-statistics";
 import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -42,8 +43,8 @@ function breakMarker(sample: TelemetrySample, channelId: string, unit: string): 
   };
 }
 
-function reduced(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller");
+function reduced(segments: ChartSeries["segments"], maximumPoints?: number): ChartSeries["segments"] {
+  return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller", { maximumPoints });
 }
 
 function seriesFromSamples(
@@ -51,6 +52,7 @@ function seriesFromSamples(
   name: string,
   visualIndex: number,
   online: boolean,
+  maximumPoints?: number,
 ): ChartSeries | null {
   const ordered = [...samples]
     .filter((sample) => Number.isFinite(timestamp(sample)))
@@ -86,7 +88,7 @@ function seriesFromSamples(
     dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
     freshness: withInvalidNewestSample(online ? "live" : "offline", newestSampleValidity(ordered)),
-    segments: reduced(segments),
+    segments: reduced(segments, maximumPoints),
     visible: true,
     semanticMode: "instantaneous",
     displayPrecision: first.unit === "rpm" ? 0 : 1,
@@ -97,9 +99,10 @@ export function buildEmbracoTemperatureScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const series = [...TEMPERATURE_NAMES.entries()].flatMap(([metric, name], index) => {
-    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online);
+    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online, maximumPoints);
     return built ? [built] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -116,6 +119,7 @@ export function buildEmbracoOperatorCelsiusScene(
   range: RefrigerationHistoryRange,
   online: boolean,
   controllerEquipmentId: string,
+  maximumPoints?: number,
 ): ChartRendererScene {
   if (controllerEquipmentId !== EMBRACO_KK1_CONTROLLER_ID) {
     return { series: [], xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -155,12 +159,13 @@ export function buildEmbracoOperatorCelsiusScene(
       }
     }
     const visualIndex = index * 2;
-    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online);
+    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online, maximumPoints);
     const provisionalSeries = seriesFromSamples(
       provisional,
       `${name}${EMBRACO_PROVISIONAL_SUFFIX}`,
       visualIndex + 1,
       online,
+      maximumPoints,
     );
     return [calibratedSeries, provisionalSeries].flatMap((built) =>
       built ? [{ ...built, displayPrecision: 2 }] : [],
@@ -178,6 +183,7 @@ export function buildEmbracoProbeRawScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const probes = [
     [EMBRACO_METRICS.cabinet, "Температура в об’ємі · raw"],
@@ -200,7 +206,7 @@ export function buildEmbracoProbeRawScene(
           }
         : breakMarker(sample, `${sample.channel_id}:raw`, "raw"),
     );
-    const built = seriesFromSamples(rawSamples, name, index, online);
+    const built = seriesFromSamples(rawSamples, name, index, online, maximumPoints);
     return built ? [{ ...built, displayPrecision: 0 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -210,15 +216,58 @@ export function buildEmbracoCompressorScene(
   history: ReadonlyMap<string, readonly TelemetrySample[]>,
   range: RefrigerationHistoryRange,
   online: boolean,
+  maximumPoints?: number,
 ): ChartRendererScene {
   const series = seriesFromSamples(
     history.get(EMBRACO_METRICS.compressorSpeed) ?? [],
     "Compressor speed",
     0,
     online,
+    maximumPoints,
   );
   return {
     series: series ? [series] : [],
     xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() },
   };
+}
+
+/**
+ * Exact statistics for the Embraco KK1 probe series of {@link buildEmbracoOperatorCelsiusScene},
+ * computed from the RAW history (never from the reduced chart series) with the same value rules:
+ * the provisional operator scale yields a valid value only for the two operator probes, the
+ * calibrated series only for samples that are genuinely valid °C, everything else is a non-valid poll.
+ */
+export function buildEmbracoTemperatureStatisticsRows(
+  history: ReadonlyMap<string, readonly TelemetrySample[]>,
+  scene: ChartRendererScene,
+  domain: { fromMs: number; toMs: number },
+): RawStatisticsRow[] {
+  const probes = [
+    [EMBRACO_METRICS.cabinet, "Температура в об’ємі"],
+    [EMBRACO_METRICS.evaporator, "Датчик відтайки"],
+  ] as const;
+  const sources = new Map<string, TelemetrySample[]>();
+  for (const [metric, name] of probes) {
+    const calibrated: TelemetrySample[] = [];
+    const provisional: TelemetrySample[] = [];
+    for (const sample of history.get(metric) ?? []) {
+      if (sample.equipment_id !== EMBRACO_KK1_CONTROLLER_ID) continue;
+      const operatorCelsius = operatorEmbracoCelsius(sample);
+      const calibratedValid =
+        sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
+      if (operatorCelsius !== null) {
+        provisional.push({ ...sample, value: operatorCelsius, quality: "valid" });
+        calibrated.push({ ...sample, value: null, quality: "unknown" });
+      } else if (calibratedValid) {
+        calibrated.push(sample);
+        provisional.push({ ...sample, value: null, quality: "unknown" });
+      } else {
+        calibrated.push({ ...sample, value: null, quality: "unknown" });
+        provisional.push({ ...sample, value: null, quality: "unknown" });
+      }
+    }
+    sources.set(name, calibrated);
+    sources.set(`${name}${EMBRACO_PROVISIONAL_SUFFIX}`, provisional);
+  }
+  return buildRawStatisticsRows(scene.series, (_identity, series) => sources.get(series.name) ?? [], domain);
 }

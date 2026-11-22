@@ -22,6 +22,8 @@ import { EnergyConsumptionPanel } from "@/components/energy/energy-consumption-p
 import { EnergyParameterDialog } from "@/components/energy/energy-parameter-dialog";
 import { EnergyExportDialog } from "@/components/energy/energy-export-dialog";
 import type { EnergyExportController } from "@/features/energy/use-energy-export";
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import type { ChartDensityMode } from "@/features/charts/density";
 import { EnergyHistoryChart } from "@/components/energy/energy-history-chart";
 import {
   ENERGY_METERS,
@@ -248,6 +250,8 @@ function HistoryPanel({
   visibilityRevision,
   onApplyPairs,
   onExport,
+  density,
+  onDensityChange,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
@@ -255,6 +259,8 @@ function HistoryPanel({
   visibilityRevision: number;
   onApplyPairs: (pairs: EnergySeriesSelection[]) => void;
   onExport?: () => void;
+  density?: ChartDensityMode;
+  onDensityChange?: (mode: ChartDensityMode) => void;
 }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const visiblePairs = selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId));
@@ -380,6 +386,17 @@ function HistoryPanel({
           Немає валідних вимірювань: {missingPairs.map(pairLabel).join(", ")}.
         </p>
       ) : null}
+      {hasSelectedHistory && density !== undefined && onDensityChange && telemetry.densityResolution ? (
+        <div className="mt-5">
+          <ChartDensityControl
+            mode={density}
+            resolution={telemetry.densityResolution}
+            onChange={onDensityChange}
+            displayedPoints={null}
+            availableMeasurements={null}
+          />
+        </div>
+      ) : null}
       {visiblePairs.length > 0 ? (
         <div className={`mt-5 ${hasSelectedHistory ? "" : "hidden"}`}>
           <EnergyHistoryChart
@@ -405,10 +422,15 @@ export function EnergyWorkspace({
   telemetry,
   consumption,
   exporter,
+  density,
+  onDensityChange,
 }: {
   telemetry: EnergyTelemetryModel;
   consumption: EnergyConsumptionLoader;
   exporter?: EnergyExportController;
+  /** Chart detail (#1620); rendered only when both props and the resolved budget exist. */
+  density?: ChartDensityMode;
+  onDensityChange?: (mode: ChartDensityMode) => void;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   const openExport = exporter
@@ -601,6 +623,8 @@ export function EnergyWorkspace({
         selectedPairs={selectedPairs}
         onApplyPairs={applyPairs}
         onExport={openExport}
+        density={density}
+        onDensityChange={onDensityChange}
       />
 
       <section className="grid gap-3 xl:grid-cols-[1fr_360px]">

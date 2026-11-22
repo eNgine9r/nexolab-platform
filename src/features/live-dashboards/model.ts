@@ -104,6 +104,7 @@ export function draftToWrite(draft: LiveDashboardDraft): LiveDashboardWrite {
       color: item.color,
       display_unit: item.display_unit || null,
     })),
+    ...("view_settings" in draft ? { view_settings: draft.view_settings ?? null } : {}),
   };
 }
 
