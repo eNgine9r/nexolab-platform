@@ -1,7 +1,12 @@
 import { DEFAULT_LIVE_STALE_AFTER_MS, resolveLiveFreshness } from "@/features/live/freshness";
 import type { TelemetryAlarm, TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 
-export const LIVE_SELECTION_LIMIT = 8;
+/**
+ * Maximum channels in one Live comparison (#1654, was 8). 24 series render in ≈ 100 ms on a desktop
+ * browser at the Auto density budget (docs/audits/chart-density-benchmark-1620.md); the aggregate
+ * point cap in src/features/charts/density.ts keeps the total rendered points bounded.
+ */
+export const LIVE_SELECTION_LIMIT = 24;
 /** Default only; per-channel thresholds come from `@/features/live/freshness` (#1522). */
 export const LIVE_STALE_AFTER_MS = DEFAULT_LIVE_STALE_AFTER_MS;
 

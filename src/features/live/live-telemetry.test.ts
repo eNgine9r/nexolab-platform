@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  LIVE_SELECTION_LIMIT,
   defaultLiveTelemetryFilters,
   filterLiveTelemetry,
   groupLiveSamplesByUnit,
@@ -96,10 +97,10 @@ describe("live telemetry inventory", () => {
 
 describe("live telemetry selection", () => {
   it("prevents duplicates and reports the configured capacity limit", () => {
-    const available = new Set(Array.from({ length: 9 }, (_, index) => `key-${index}`));
-    const selected = Array.from({ length: 8 }, (_, index) => `key-${index}`);
+    const available = new Set(Array.from({ length: LIVE_SELECTION_LIMIT + 1 }, (_, index) => `key-${index}`));
+    const selected = Array.from({ length: LIVE_SELECTION_LIMIT }, (_, index) => `key-${index}`);
 
-    expect(toggleLiveSelection(selected, "key-8", available)).toEqual({
+    expect(toggleLiveSelection(selected, `key-${LIVE_SELECTION_LIMIT}`, available)).toEqual({
       selected,
       changed: false,
       reason: "limit",
