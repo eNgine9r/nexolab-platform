@@ -169,6 +169,17 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 
+    def test_dr_offdevice_copy_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-offdevice-copy.py",
+            "tests/test_ci_dr_offdevice_copy.py",
+            "docs/operations/dr-offdevice-copy-1631.md",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+
     def test_local_textfile_exporter_is_known_offline_workflow_tool(self) -> None:
         path = "scripts/serve-prometheus-textfile.py"
         result = classify([path])
