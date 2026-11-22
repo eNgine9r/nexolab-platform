@@ -36,6 +36,15 @@ export function resolveSeriesFreshness(input: SeriesFreshnessInput): SeriesFresh
   return now <= freshUntilMs ? { freshness: "live", freshUntilMs } : { freshness: "stale" };
 }
 
+/**
+ * Freshness of a series inside a fixed custom period (#1683). The window may have ended long ago,
+ * so the wall clock says nothing about it: the series is never "live" or "stale", only
+ * "historical" — or "invalid" when its newest sample in the window has no valid measurement.
+ */
+export function historicalSeriesFreshness(latest: { valid: boolean } | null): SeriesFreshness {
+  return { freshness: latest && !latest.valid ? "invalid" : "historical" };
+}
+
 /** Flips series whose `freshUntilMs` has passed to `stale`; returns the same array when nothing changed. */
 export function flipExpiredSeries(series: readonly ChartSeries[], now: number): readonly ChartSeries[] {
   let changed = false;

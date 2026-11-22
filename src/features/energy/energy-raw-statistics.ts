@@ -107,6 +107,13 @@ export class EnergyRawStatistics {
       : computeIntervalStatistics(createIntervalSampleColumns(), fromMs, toMs);
   }
 
+  /** Drops every range whose key matches (e.g. superseded custom periods, #1683). */
+  discard(matches: (rangeKey: string) => boolean): void {
+    for (const rangeKey of [...this.entries.keys()]) {
+      if (matches(rangeKey)) this.entries.delete(rangeKey);
+    }
+  }
+
   clear(): void {
     this.entries.clear();
   }
