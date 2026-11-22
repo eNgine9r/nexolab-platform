@@ -1,3 +1,7 @@
+## 2026-11-22 — #1662 Session chart window domain and consolidated release candidate (WP-J) is source-only, not installed
+
+The session history chart now uses the requested history window as its x domain so silent edges stay visible as gaps, and docs/operations/chart-programme-release-candidate.md records the consolidated programme release candidate: merged PRs, verification evidence, what is not proven (no Pi, site, hardware or signed-in browser evidence), classified follow-ups and the owner-run frontend-only Raspberry Pi update procedure. No deployment performed or authorised. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1660 Interval statistics on Live Data from raw history (WP-J) is source-only, not installed
 
 Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns. No Modbus/hardware write, no polling change, no site release.

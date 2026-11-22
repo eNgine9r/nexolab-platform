@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { buildOverviewChartGroups } from "@/features/dashboard/overview-chart";
+import { sessionChartDomain, type SessionHistoryWindow } from "@/components/sessions/session-chart-domain";
 import { isLiveSampleFresh, resolveLiveFreshness } from "@/features/live/freshness";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -16,8 +17,11 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 export function SessionTemperatureHistory({
   samples,
   now,
+  historyWindow,
 }: {
   samples: readonly TelemetrySample[];
+  /** Requested history window; becomes the x domain so silent edges stay visible. */
+  historyWindow?: SessionHistoryWindow | null;
   now?: number;
 }) {
   const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
@@ -31,13 +35,14 @@ export function SessionTemperatureHistory({
   }, []);
   const effectiveNow = now ?? clock;
 
-  const resetDomain = useMemo<ChartXDomain | null>(() => {
-    const timestamps = samples.map((sample) => Date.parse(sample.captured_at)).filter(Number.isFinite);
-    if (timestamps.length === 0) return null;
-    const fromMs = Math.min(...timestamps);
-    const toMs = Math.max(...timestamps);
-    return { fromMs, toMs: toMs > fromMs ? toMs : fromMs + 60_000 };
-  }, [samples]);
+  const resetDomain = useMemo<ChartXDomain | null>(
+    () =>
+      sessionChartDomain(
+        samples.map((sample) => Date.parse(sample.captured_at)),
+        historyWindow,
+      ),
+    [samples, historyWindow],
+  );
 
   // A session history is evidence, not a live view: it is "live" only while its newest sample is fresh.
   const status = useMemo(() => {
