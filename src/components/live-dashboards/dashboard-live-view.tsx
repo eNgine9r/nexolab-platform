@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { buildDashboardStatisticsRows } from "@/features/live-dashboards/statistics-rows";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
@@ -187,6 +189,17 @@ export function DashboardLiveView({
       telemetry.series,
       telemetry.status,
     ],
+  );
+  const statisticsRows = useMemo(
+    () =>
+      buildDashboardStatisticsRows(
+        dashboard.id,
+        telemetry.series,
+        chartGroups,
+        effectiveDomain,
+        telemetry.intervalStatistics,
+      ),
+    [chartGroups, dashboard.id, effectiveDomain, telemetry.intervalStatistics, telemetry.series],
   );
   const containsOperatorTemperatures = dashboard.items.some(isOperatorEmbracoTemperature);
   const valueSeries = telemetry.series.filter(
@@ -503,6 +516,14 @@ export function DashboardLiveView({
           onSoloSeries={soloSeries}
         />
       ))}
+
+      <DashboardIntervalStatistics
+        rows={statisticsRows}
+        fromMs={effectiveDomain.fromMs}
+        toMs={effectiveDomain.toMs}
+        isViewport={viewportDomain !== null}
+        displayTimeZone={displayTimeZone}
+      />
 
       <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90">
         <div className="border-b border-white/[0.07] px-5 py-4">
