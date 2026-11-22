@@ -37,6 +37,7 @@ import {
 import { formatFreshnessBasis, liveFreshnessFor } from "@/features/live/freshness";
 import { buildLiveChartGroups, liveSampleChartIdentity } from "@/features/live/live-chart";
 import {
+  LIVE_SELECTION_LIMIT,
   defaultLiveTelemetryFilters,
   filterLiveTelemetry,
   liveChannelKey,
@@ -977,7 +978,7 @@ export function LiveTelemetryExplorer({
                               if (!result.changed) {
                                 setSelectionMessage(
                                   result.reason === "limit"
-                                    ? "Можна порівнювати не більше 8 каналів."
+                                    ? `Можна порівнювати не більше ${LIVE_SELECTION_LIMIT} каналів.`
                                     : "Канал більше недоступний.",
                                 );
                                 return;

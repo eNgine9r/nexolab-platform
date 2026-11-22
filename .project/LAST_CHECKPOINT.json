@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T05:52:53Z",
+  "timestamp": "2026-11-22T06:02:50Z",
   "actor": "Claude",
   "event": "1658_png_export_source_pr",
   "baselines": {
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1658 merges: WP-J cross-module acceptance (density control and statistics on Live/Energy/Refrigeration, session chart domain, Playwright acceptance where runnable, consolidated release candidate and Pi update procedure). No site release authorized.",
+  "next_action": "After #1658 merges: WP-J Live statistics (#1660), release-candidate documentation and the final programme report. No site release authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
