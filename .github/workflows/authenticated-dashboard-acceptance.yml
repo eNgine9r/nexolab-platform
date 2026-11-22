@@ -36,6 +36,7 @@ on:
       - "services/device-agent/**"
       - "services/telemetry-service/app/**"
       - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/Dockerfile"
       - "services/telemetry-service/requirements.txt"
       - "src/app/api/device-agent/acquisition-cadence/**"
       - "src/app/energy/**"

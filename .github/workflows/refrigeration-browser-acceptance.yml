@@ -24,6 +24,7 @@ on:
       - "scripts/run-refrigeration-browser-acceptance.sh"
       - "services/telemetry-service/app/refrigeration/**"
       - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/Dockerfile"
       - "src/components/refrigeration/**"
       - "src/features/refrigeration/**"
   workflow_dispatch:
