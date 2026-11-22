@@ -25,6 +25,9 @@ import {
 
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import type { ChartDensityMode } from "@/features/charts/density";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { annotateChartGroups } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { LiveChannelPicker } from "@/components/live/live-channel-picker";
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
@@ -379,6 +382,14 @@ export function LiveTelemetryExplorer({
       telemetry.historySamples,
       telemetry.status,
     ],
+  );
+  const alertEvents = useDashboardAlertEvents({
+    enabled: selected.length > 0,
+    rangeKey: `live:${range}:${customFrom}:${customTo}`,
+  });
+  const annotatedGroups = useMemo(
+    () => annotateChartGroups(groups, alertEvents.alerts, telemetry.clock ?? 0),
+    [alertEvents.alerts, groups, telemetry.clock],
   );
   const statisticsRows = useMemo(
     () => buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
@@ -761,7 +772,7 @@ export function LiveTelemetryExplorer({
                 availableMeasurements={densityCounts.available}
               />
             ) : null}
-            {groups.map((group) => (
+            {annotatedGroups.map((group) => (
               <LiveChartPanel
                 key={group.id}
                 group={group}
@@ -791,6 +802,12 @@ export function LiveTelemetryExplorer({
                 }}
               />
             ))}
+            <DashboardAlertEvents
+              events={annotatedGroups.flatMap((group) => group.scene.events ?? [])}
+              status={alertEvents.status}
+              message={alertEvents.message}
+              displayTimeZone={displayTimeZone}
+            />
             <DashboardIntervalStatistics
               rows={statisticsRows}
               fromMs={effectiveDomain.fromMs}
