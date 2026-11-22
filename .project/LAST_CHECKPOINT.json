@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T06:02:50Z",
+  "timestamp": "2026-11-22T06:12:15Z",
   "actor": "Claude",
-  "event": "1658_png_export_source_pr",
+  "event": "1660_live_statistics_source_pr",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1658,
-    "branch": "feat/1658-png-export",
+    "issue": 1660,
+    "branch": "feat/1660-live-statistics",
     "status": "review",
     "site_cutover": false
   },
@@ -5457,7 +5457,7 @@
       }
     }
   ],
-  "next_action": "After #1658 merges: WP-J Live statistics (#1660), release-candidate documentation and the final programme report. No site release authorized.",
+  "next_action": "After #1660 merges: session window domain and release-candidate documentation (#1662), then remaining classified follow-ups. No site release authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

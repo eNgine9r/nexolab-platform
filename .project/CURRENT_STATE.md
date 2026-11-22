@@ -1,3 +1,7 @@
+## 2026-11-22 — #1660 Interval statistics on Live Data from raw history (WP-J) is source-only, not installed
+
+Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns. No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1658 PNG export of the visible plot and display-timezone CSV (WP-I) is source-only, not installed
 
 Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code. No Modbus/hardware write, no polling change, no site release.
