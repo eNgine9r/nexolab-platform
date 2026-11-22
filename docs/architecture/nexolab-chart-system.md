@@ -639,7 +639,8 @@ The following are provisional implementation targets, not claims about current c
 
 ### 14.1 Bounded series
 
-- common interactive multi-series plot default: maximum eight visible series, preserving the current Live Data comparison contract;
+- Live Data comparison: maximum 24 channels (#1654, was eight). Scenes remain bounded by equipment/axis partitioning (≤ 5 Y axes) and the aggregate point budget of src/features/charts/density.ts; Saved Dashboards allow 64 series in device-grouped, searchable panels;
+- common interactive multi-series plot default (historical, superseded for Live Data by the line above): maximum eight visible series;
 - larger dashboards split compatible series into explicit groups instead of one unreadable plot;
 - compact single-series sparklines stay separately bounded.
 

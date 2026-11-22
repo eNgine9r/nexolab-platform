@@ -21,6 +21,7 @@ import {
   type CadenceObservations,
 } from "@/features/live/freshness";
 import {
+  LIVE_SELECTION_LIMIT,
   liveChannelKey,
   reconcileLiveSelection,
   selectLatestLiveSamples,
@@ -277,7 +278,7 @@ export function useLiveTelemetry({
   const orderingStateRef = useRef<LiveHistoryOrderingState>(seedLiveHistoryOrderingState([]));
 
   const setSelectedKeys = useCallback((keys: string[]) => {
-    setSelectedKeysState([...new Set(keys)].slice(0, 8));
+    setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));
   }, []);
 
   const retry = useCallback(() => {

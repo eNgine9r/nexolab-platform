@@ -1,3 +1,7 @@
+## 2026-11-22 — #1654 Live comparison supports 24 series (WP-H) is source-only, not installed
+
+The Live Data comparison limit rises from 8 to 24 channels through the single shared constant (hook, URL restore, stored preference, message); 24 mixed-unit series across equipment produce valid scenes with at most five Y axes each, bounded by the aggregate point budget. Saved Dashboards already support 64 series with device-grouped picker and legend. A device-grouped selection table in Live and server-side downsampled history for very long ranges are classified as follow-ups (UI rework / backend decision). No Modbus/hardware write, no polling change, no site release.
+
 ## 2026-11-22 — #1652 Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F) is source-only, not installed
 
 Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open. No Modbus/hardware write, no polling change, no site release.

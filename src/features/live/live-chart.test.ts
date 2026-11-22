@@ -9,7 +9,7 @@ import {
   liveSeriesFreshness,
   liveStatusChartFreshness,
 } from "./live-chart";
-import { liveChannelKey } from "./live-telemetry";
+import { LIVE_SELECTION_LIMIT, liveChannelKey } from "./live-telemetry";
 
 function sample(
   eventId: string,
@@ -256,5 +256,28 @@ describe("per-series freshness (chart audit 2026-11-21)", () => {
     });
     expect(legacy.scene.series[0].freshness).toBe("live");
     expect(legacy.scene.series[0].latest).toBeUndefined();
+  });
+});
+
+describe("Live Data with the full comparison limit (#1654)", () => {
+  it("plots every one of the maximum selected channels across equipment and keeps each scene within five Y axes", () => {
+    const units = ["°C", "%", "V", "A", "W", "Hz"];
+    const identities = Array.from({ length: LIVE_SELECTION_LIMIT }, (_, index) =>
+      sample(`id-${index}`, "2026-08-11T12:59:00Z", index, units[index % units.length], {
+        equipment_id: `device-${index % 4}`,
+        channel_id: `ch-${index}`,
+        metric: `metric-${index % units.length}`,
+      }),
+    );
+    const groups = buildLiveChartGroups({
+      selectedIdentities: identities,
+      historySamples: identities,
+      status: "live",
+      xDomain: domain,
+    });
+    expect(groups.flatMap((group) => group.scene.series)).toHaveLength(LIVE_SELECTION_LIMIT);
+    for (const group of groups) {
+      expect(buildChartYAxisModel(group.scene.series).allAxes.length).toBeLessThanOrEqual(5);
+    }
   });
 });

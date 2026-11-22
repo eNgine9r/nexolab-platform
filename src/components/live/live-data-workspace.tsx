@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LiveTelemetryExplorer } from "@/components/live/live-telemetry-explorer";
+import { LIVE_SELECTION_LIMIT } from "@/features/live/live-telemetry";
 import {
   readLiveSelectionPreference,
   writeLiveSelectionPreference,
@@ -25,7 +26,7 @@ function ScopedLiveDataWorkspace({ organizationId }: { organizationId: string })
   const searchParams = useSearchParams();
   const [initialSelectedKeys] = useState(() =>
     searchParams.has("compare")
-      ? [...new Set(searchParams.getAll("compare"))].slice(0, 8)
+      ? [...new Set(searchParams.getAll("compare"))].slice(0, LIVE_SELECTION_LIMIT)
       : readLiveSelectionPreference(organizationId),
   );
   const initialRange = initialHistoryRange(searchParams.get("range"));
