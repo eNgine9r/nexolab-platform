@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T09:55:33Z",
+  "timestamp": "2026-11-22T14:33:45Z",
   "actor": "Claude",
-  "event": "xweb_chart_programme_source_complete",
+  "event": "cve_2026_124709_assessment_and_real_stack_acceptance",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5452,7 +5452,7 @@
       }
     }
   ],
-  "next_action": "Product Owner decisions: (1) risk-owner decision for HIGH CVE-2026-124709 so PR #1667 (saved analysis view API) can merge, (2) approve a frontend-only Raspberry Pi release using docs/operations/chart-programme-release-candidate.md, then measure density on the Pi and run the signed-in browser acceptance. No deployment, migration or hardware action was performed.",
+  "next_action": "Product Owner decisions: (1) accept or reject the exact, self-terminating exception scope for CVE-2026-124709 in docs/security/cve-2026-124709-assessment.md (or wait for Debian/OpenSSL 3.5.10 after 2026-12-01), and renew or let lapse the 18 telemetry-service exceptions expiring 2026-11-23; then PR #1667 can merge. (2) After that, approve the frontend/backend ARM64 release per docs/operations/chart-programme-arm64-release-procedure.md. No deployment, migration or hardware action was performed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
