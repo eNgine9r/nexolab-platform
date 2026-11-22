@@ -8,6 +8,7 @@ import { CalendarRange, Download, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { useMemo, useState } from "react";
 
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { ChartDensityControl } from "@/components/charts/chart-density-control";
 import {
   readStoredChartDensity,
@@ -21,6 +22,7 @@ import type { ChartXDomain } from "@/features/charts/domain";
 import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
+  buildEmbracoTemperatureStatisticsRows,
   buildEmbracoOperatorCelsiusScene,
   buildEmbracoProbeRawScene,
 } from "@/features/refrigeration/controller-chart";
@@ -179,6 +181,11 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         pointsPerSeries,
       ),
     [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
+  );
+  // Exact statistics come from the RAW history, not from the reduced chart series (#1675).
+  const temperatureStatisticsRows = useMemo(
+    () => buildEmbracoTemperatureStatisticsRows(controller.history, temperatureScene, viewportDomain),
+    [controller.history, temperatureScene, viewportDomain],
   );
   const displayedPoints = useMemo(
     () =>
@@ -547,6 +554,16 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         розраховані °C наведені окремим стовпчиком з позначкою походження, а вихідні raw і якість вимірювання
         збережено без змін.
       </section>
+      <DashboardIntervalStatistics
+        rows={temperatureStatisticsRows}
+        fromMs={viewportDomain.fromMs}
+        toMs={viewportDomain.toMs}
+        isViewport={
+          viewportDomain.fromMs !== loadedAnalysisDomain.fromMs ||
+          viewportDomain.toMs !== loadedAnalysisDomain.toMs
+        }
+        displayTimeZone={displayTimeZone}
+      />
       <RefrigerationControllerChart
         title="Діагностика · вихідні raw"
         context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"

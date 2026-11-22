@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { overviewStatisticsRows } from "@/features/dashboard/overview-statistics";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { buildOverviewChartGroups } from "@/features/dashboard/overview-chart";
@@ -28,6 +31,7 @@ export function SessionTemperatureHistory({
   const [soloSeriesKey, setSoloSeriesKey] = useState<string | null>(null);
   const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
   const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
+  const displayTimeZone = useDisplayTimeZone();
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => {
     const timer = globalThis.setInterval(() => setClock(Date.now()), 30_000);
@@ -102,6 +106,13 @@ export function SessionTemperatureHistory({
           }
         />
       ))}
+      <DashboardIntervalStatistics
+        rows={overviewStatisticsRows(groups, samples, viewportDomain ?? resetDomain)}
+        fromMs={(viewportDomain ?? resetDomain).fromMs}
+        toMs={(viewportDomain ?? resetDomain).toMs}
+        isViewport={viewportDomain !== null}
+        displayTimeZone={displayTimeZone}
+      />
     </div>
   );
 }
