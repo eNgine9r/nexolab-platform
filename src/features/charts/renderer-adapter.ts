@@ -41,6 +41,8 @@ export interface ChartRendererAdapter {
   setSharedXDomain(domain: ChartXDomain): void;
   resize(): void;
   resetZoom(): void;
+  /** Optional PNG data URL of the visible plot; null when unavailable. */
+  exportImage?(): string | null;
   dispose(): void;
   isDisposed(): boolean;
 }

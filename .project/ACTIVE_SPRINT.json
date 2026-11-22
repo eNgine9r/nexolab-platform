@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1652,
-      "title": "Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F)",
-      "branch": "feat/1652-per-series-freshness"
+      "issue": 1658,
+      "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
+      "branch": "feat/1658-png-export"
     },
     "next_work_package": null
   },
@@ -11680,6 +11680,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1652-per-series-freshness"
+    },
+    {
+      "issue": 1658,
+      "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 226 files/1460 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1658-png-export"
     }
   ],
   "maintenance_actions": [

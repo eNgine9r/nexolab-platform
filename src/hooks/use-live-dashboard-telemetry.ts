@@ -33,6 +33,7 @@ import {
   type IntervalStatistics,
 } from "@/features/charts/interval-statistics";
 import { savedDashboardDisplaySample } from "@/features/live-dashboards/embraco-series";
+import { getDisplayTimeZone } from "@/features/display-time/store";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import {
   operatorHistoryPreview,
@@ -335,7 +336,8 @@ export function useLiveDashboardTelemetry({
       const download = await createLiveDashboardApiClient(organizationId).exportTelemetryCsv(dashboard.id, {
         from: currentWindow.from.toISOString(),
         to: currentWindow.to.toISOString(),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        // The CSV local-time column follows the operator's display time zone preference (#1658).
+        timezone: getDisplayTimeZone(),
       });
       setExportStatus("idle");
       return download;

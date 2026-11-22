@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
@@ -38,6 +39,7 @@ export function LiveChartPanel({
   return (
     <ChartShell
       title={`Live Data · ${group.equipmentId}`}
+      onExportImage={() => void downloadChartPng(adapter, `Live Data ${group.equipmentId}`)}
       context={`${unitLabel} · ${axisCount} dynamic Y ${axisCount === 1 ? "axis" : "axes"}`}
       selectedRange={rangeLabel}
       locale="uk"
