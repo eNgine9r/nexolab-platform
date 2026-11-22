@@ -186,6 +186,8 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             "scripts/nexolab-dr-isolated-restore-rehearsal.py",
             "tests/test_ci_dr_isolated_restore.py",
             "docs/operations/dr-isolated-restore-1632.md",
+            "tests/test_ci_dr_health_restore_receipt.py",
+            "docs/operations/dr-readonly-backup-health-1441.md",
         ]
         result = classify(paths)
         self.assertFalse(result["fail_closed"])

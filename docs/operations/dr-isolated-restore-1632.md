@@ -216,8 +216,14 @@ Record RPO/RTO from `rpo_rto` in the receipt. Also write down the wall-clock tim
 - The output of `verify-receipt`, the preflight output, `docker image inspect` digests/architectures.
 - A photo or note of the physical setup: host model, unplugged uplink, media label (no key material).
 - `restore_target_identity_sha256 != destination_identity_sha256` (both in the receipt).
-- Then run `nexolab-dr-readonly-health.py`: its `isolated_restore` gate is still hard-coded `UNVERIFIED`; changing
-  that gate to consume this receipt is a separate, owner-approved change.
+- Then run `nexolab-dr-readonly-health.py --restore-receipt <receipt> --custody-receipt <custody receipt>`
+  (optionally with `--offdevice-destination <media>`). Its `isolated_restore` gate (Product Owner request) becomes
+  `REPORTED_OK` only for an intact, site-mode, all-PASS, waiver-free, warning-free receipt with
+  `metadata_fidelity` `PRESERVED`, bound to the custody receipt (and the newest copy on the media), with
+  `restore_target_identity_sha256 != destination_identity_sha256` and not older than 35 days. Anything else is
+  `BLOCKED` with the reason; without the options the gate stays `UNVERIFIED`. RPO/RTO gaps are echoed as findings,
+  not blockers. `REPORTED_OK` is receipt-attested and re-verified locally, not an independent proof of the physical
+  restore and not site readiness. Rules: `docs/operations/dr-readonly-backup-health-1441.md`.
 
 ## Local rehearsal (development machine, synthetic data)
 

@@ -320,6 +320,8 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/nexolab-dr-isolated-restore.py",
     "scripts/nexolab-dr-isolated-restore-rehearsal.py",
     "tests/test_ci_dr_isolated_restore.py",
+    # #1632 health integration: the read-only health gate consumes a verified restore receipt.
+    "tests/test_ci_dr_health_restore_receipt.py",
     # #1630 object-metadata fix: user.* xattrs (VersityGW ETag/Content-Type) through backup and
     # restore; synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
     "tests/test_ci_dr_object_metadata_xattrs.py",
