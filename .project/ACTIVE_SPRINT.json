@@ -68,9 +68,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1660,
-      "title": "Interval statistics on Live Data from raw history (WP-J)",
-      "branch": "feat/1660-live-statistics"
+      "issue": 1662,
+      "title": "Session chart window domain and consolidated release candidate (WP-J)",
+      "branch": "feat/1662-session-window-rc"
     },
     "next_work_package": null
   },
@@ -11744,6 +11744,22 @@
         "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
       },
       "branch": "feat/1660-live-statistics"
+    },
+    {
+      "issue": 1662,
+      "title": "Session chart window domain and consolidated release candidate (WP-J)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "The session history chart now uses the requested history window as its x domain so silent edges stay visible as gaps, and docs/operations/chart-programme-release-candidate.md records the consolidated programme release candidate: merged PRs, verification evidence, what is not proven (no Pi, site, hardware or signed-in browser evidence), classified follow-ups and the owner-run frontend-only Raspberry Pi update procedure. No deployment performed or authorised.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 228 files/1470 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1662-session-window-rc"
     }
   ],
   "maintenance_actions": [

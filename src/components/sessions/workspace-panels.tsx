@@ -195,7 +195,7 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             Історія сесії перевищує безпечний ліміт сторінок: на графіку показано неповний набір вимірювань.
           </p>
         ) : null}
-        <SessionTemperatureHistory samples={chartHistory} />
+        <SessionTemperatureHistory samples={chartHistory} historyWindow={data.historyWindow} />
       </div>
     </section>
   );
