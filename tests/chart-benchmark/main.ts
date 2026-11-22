@@ -37,11 +37,6 @@ declare global {
       runInitial: (seriesCount: 1 | 8, iterations?: number) => Promise<ScenarioResult>;
       runSynchronizedGroups: () => Promise<ScenarioResult>;
       runGapAndEvidence: () => Promise<ScenarioResult>;
-      runDensity: (
-        seriesCount: number,
-        pointsPerSeries: number,
-        iterations?: number,
-      ) => Promise<ScenarioResult>;
       runIncremental: (updates?: number) => Promise<ScenarioResult>;
       runResize: () => Promise<ScenarioResult>;
       runRemount: () => Promise<ScenarioResult>;
@@ -177,48 +172,6 @@ async function runInitial(seriesCount: 1 | 8, iterations = 10): Promise<Scenario
     name: `${seriesCount}x240 initial Canvas render`,
     measurement: summarize(samplesMs),
     details: { seriesCount, renderedPoints: points.length, rendererInstances: mounted.length },
-  };
-}
-
-/**
- * #1620 density matrix: initial Canvas render of N series x P points, plus the cost of reducing a
- * long raw history (30 000 points per series) to that budget with the evidence-preserving reducer.
- */
-async function runDensity(
-  seriesCount: number,
-  pointsPerSeries: number,
-  iterations = 7,
-): Promise<ScenarioResult> {
-  const raw = createBenchmarkSeries(0, 30_000);
-  const reduceStart = performance.now();
-  const reduced = reduceChartSegments(raw.segments, { maximumPoints: pointsPerSeries });
-  const reduceMs = performance.now() - reduceStart;
-  const reducedPoints = reduced.reduce((sum, segment) => sum + segment.points.length, 0);
-  const samplesMs: number[] = [];
-  for (let index = 0; index < iterations; index += 1) {
-    const scene = createBenchmarkScene(seriesCount);
-    scene.series = Array.from({ length: seriesCount }, (_, seriesIndex) =>
-      createBenchmarkSeries(seriesIndex, pointsPerSeries),
-    );
-    scene.xDomain = {
-      fromMs: BENCHMARK_START_MS,
-      toMs: BENCHMARK_START_MS + (pointsPerSeries - 1) * BENCHMARK_INTERVAL_MS,
-    };
-    const start = performance.now();
-    mountScenes([scene]);
-    await nextPaint();
-    samplesMs.push(performance.now() - start);
-  }
-  return {
-    name: `${seriesCount}x${pointsPerSeries} density render`,
-    measurement: summarize(samplesMs),
-    details: {
-      seriesCount,
-      pointsPerSeries,
-      aggregatePoints: seriesCount * pointsPerSeries,
-      reduceMsFrom30000: reduceMs,
-      reducedPoints,
-    },
   };
 }
 
@@ -362,7 +315,6 @@ window.nexolabChartBenchmark = {
   runInitial,
   runSynchronizedGroups,
   runGapAndEvidence,
-  runDensity,
   runIncremental,
   runResize,
   runRemount,
