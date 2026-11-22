@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-22T14:33:45Z",
+  "timestamp": "2026-11-22T18:46:28Z",
   "actor": "Claude",
-  "event": "cve_2026_124709_assessment_and_real_stack_acceptance",
+  "event": "dr_tooling_complete_release_prepared",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5452,7 +5452,7 @@
       }
     }
   ],
-  "next_action": "Product Owner decisions: (1) accept or reject the exact, self-terminating exception scope for CVE-2026-124709 in docs/security/cve-2026-124709-assessment.md (or wait for Debian/OpenSSL 3.5.10 after 2026-12-01), and renew or let lapse the 18 telemetry-service exceptions expiring 2026-11-23; then PR #1667 can merge. (2) After that, approve the frontend/backend ARM64 release per docs/operations/chart-programme-arm64-release-procedure.md. No deployment, migration or hardware action was performed.",
+  "next_action": "Owner: (1) choose the backup destination, key custodians and an isolated host and run the DR phase of docs/operations/xweb-release-owner-runbook.md (#1428: real backup, off-device copy with the internet disconnected, independent restore from the copy, then `nexolab-dr-readonly-health.py --offdevice-destination --restore-receipt`); (2) run the read-only on-host preflight in that runbook; (3) only then authorise the frontend-only or full ARM64 update. The 🟢 signal stays withheld until every gate is satisfied. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire (#1692).",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5461,7 +5461,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none (source-only chart programme; no site, hardware or Modbus change)",
+  "runtime_mutation": "none (source-only; no site, hardware, Modbus, backup, restore or migration performed)",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
