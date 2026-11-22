@@ -35,6 +35,7 @@ import {
 import { savedDashboardDisplaySample } from "@/features/live-dashboards/embraco-series";
 import { getDisplayTimeZone } from "@/features/display-time/store";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
+import { resolveViewSettings } from "@/features/live-dashboards/view-settings";
 import {
   operatorHistoryPreview,
   reduceSavedDashboardHistory,
@@ -237,6 +238,23 @@ function deriveStatus(
   return hasFresh ? "live" : "stale";
 }
 
+/**
+ * The range a dashboard opens with. A saved analysis view (#1666) wins over the dashboard default:
+ * this reset runs after the live view mounted, so it must not overwrite the restored range.
+ */
+function openingHistoryRange(dashboard: LiveDashboard): LiveDashboardHistoryRange {
+  const saved = resolveViewSettings(dashboard.view_settings, dashboard.items)?.range;
+  if (saved?.kind === "preset") return liveDashboardPresetRange(saved.preset);
+  if (saved?.kind === "custom") {
+    try {
+      return liveDashboardCustomRange(saved.from, saved.to);
+    } catch {
+      // An unusable stored period falls back to the dashboard default.
+    }
+  }
+  return liveDashboardPresetRange(defaultLiveDashboardHistoryPreset(dashboard.time_window));
+}
+
 export function useLiveDashboardTelemetry({
   dashboard,
   organizationId,
@@ -263,7 +281,7 @@ export function useLiveDashboardTelemetry({
   const [generation, setGeneration] = useState(0);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const [historyRange, setHistoryRange] = useState<LiveDashboardHistoryRange>(() =>
-    liveDashboardPresetRange(dashboard ? defaultLiveDashboardHistoryPreset(dashboard.time_window) : "24h"),
+    dashboard ? openingHistoryRange(dashboard) : liveDashboardPresetRange("24h"),
   );
   const [historyWindow, setHistoryWindow] = useState<LiveDashboardHistoryRange>(historyRange);
   const [historyStatus, setHistoryStatus] = useState<LiveDashboardHistoryStatus>("idle");
@@ -375,8 +393,7 @@ export function useLiveDashboardTelemetry({
     }
     if (rangeScopeRef.current === scopeKey) return;
     rangeScopeRef.current = scopeKey;
-    const preset = defaultLiveDashboardHistoryPreset(dashboard.time_window);
-    const nextRange = liveDashboardPresetRange(preset);
+    const nextRange = openingHistoryRange(dashboard);
     historySelectionRef.current = nextRange;
     historyWindowRef.current = rangeWindow(nextRange);
     void Promise.resolve().then(() => {
