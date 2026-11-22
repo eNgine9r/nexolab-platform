@@ -184,8 +184,14 @@ Record RPO/RTO from `rpo_rto` in the receipt. Also write down the wall-clock tim
 - The output of `verify-receipt`, the preflight output, `docker image inspect` digests/architectures.
 - A photo or note of the physical setup: host model, unplugged uplink, media label (no key material).
 - `restore_target_identity_sha256 != destination_identity_sha256` (both in the receipt).
-- Then run `nexolab-dr-readonly-health.py`: its `isolated_restore` gate is still hard-coded `UNVERIFIED`; changing
-  that gate to consume this receipt is a separate, owner-approved change.
+- Then run `nexolab-dr-readonly-health.py --restore-receipt <receipt> --custody-receipt <custody receipt>`
+  (optionally with `--offdevice-destination <media>`). Its `isolated_restore` gate (Product Owner request) becomes
+  `REPORTED_OK` only for an intact, site-mode, all-PASS, waiver-free, warning-free receipt with
+  `metadata_fidelity` `PRESERVED`, bound to the custody receipt (and the newest copy on the media), with
+  `restore_target_identity_sha256 != destination_identity_sha256` and not older than 35 days. Anything else is
+  `BLOCKED` with the reason; without the options the gate stays `UNVERIFIED`. RPO/RTO gaps are echoed as findings,
+  not blockers. `REPORTED_OK` is receipt-attested and re-verified locally, not an independent proof of the physical
+  restore and not site readiness. Rules: `docs/operations/dr-readonly-backup-health-1441.md`.
 
 ## Local rehearsal (development machine, synthetic data)
 
@@ -213,7 +219,8 @@ status says `REHEARSAL_PASS_WITH_WAIVERS`, and the restored stack itself is stil
 - **VersityGW object metadata is not preserved by leaf A.** The posix backend keeps ETag/Content-Type in extended
   attributes, which `directory_snapshot` does not capture. After restore, objects and SHA-256 are intact and the
   application serves them, but `HEAD` returns no ETag, and `object-storage-s3.py stat-keys` fails on the restored
-  store. The receipt reports `metadata_fidelity: DEGRADED`. A fix belongs to leaf A: capture xattrs as PAX
+  store. The receipt reports `metadata_fidelity: DEGRADED`, and the health gate then reports `isolated_restore`
+  `BLOCKED`. A fix belongs to leaf A: capture xattrs as PAX
   `SCHILY.xattr.*` records and restore them, or run VersityGW with sidecar metadata.
 - `scripts/verify-restored-platform.sh` and `disaster-recovery-domain-counts.sql` are bound to the synthetic CI
   fixture (organization `…0099`, fixed event ids, exactly 3 telemetry rows) and **cannot** be run against a real

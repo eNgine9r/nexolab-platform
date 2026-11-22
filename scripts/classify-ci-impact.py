@@ -320,6 +320,8 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/nexolab-dr-isolated-restore.py",
     "scripts/nexolab-dr-isolated-restore-rehearsal.py",
     "tests/test_ci_dr_isolated_restore.py",
+    # #1632 health integration: the read-only health gate consumes a verified restore receipt.
+    "tests/test_ci_dr_health_restore_receipt.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
