@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { AlertInstance } from "@/lib/alerts/types";
 
-import { alertMatchesSeries, buildAlertChartAnnotations } from "./alert-events";
+import {
+  alertMatchesSeries,
+  annotateChartGroups,
+  applyAlertAnnotations,
+  buildAlertChartAnnotations,
+} from "./alert-events";
 import { chartSeriesKey, type ChartSeriesIdentity } from "./domain";
 
 const T0 = Date.parse("2026-11-22T00:00:00Z");
@@ -133,5 +138,29 @@ describe("canonical alert chart annotations", () => {
     );
     expect(result.thresholds).toHaveLength(1);
     expect(result.events.filter((event) => event.id.startsWith("alert-1:"))).toHaveLength(3);
+  });
+});
+
+describe("scene-level alert annotation helpers (#1677)", () => {
+  const scene = { series: [{ identity }], xDomain: WINDOW };
+
+  it("annotates a scene with matching alerts and returns the same object when nothing matches", () => {
+    const annotated = applyAlertAnnotations(scene, [alert()], NOW);
+    expect(annotated).not.toBe(scene);
+    expect(annotated.events?.length).toBe(3);
+    expect(annotated.alarmRegions).toHaveLength(1);
+    expect(annotated.thresholds).toHaveLength(1);
+    expect(applyAlertAnnotations(scene, [alert({ channel_id: "other" })], NOW)).toBe(scene);
+    expect(applyAlertAnnotations(scene, [], NOW)).toBe(scene);
+  });
+
+  it("keeps identity of unaffected groups", () => {
+    const other = { scene: { series: [{ identity: { ...identity, channelId: "x" } }], xDomain: WINDOW } };
+    const hit = { scene };
+    const groups = [hit, other];
+    const result = annotateChartGroups(groups, [alert()], NOW);
+    expect(result[0]).not.toBe(hit);
+    expect(result[1]).toBe(other);
+    expect(annotateChartGroups(groups, [], NOW)).toBe(groups);
   });
 });

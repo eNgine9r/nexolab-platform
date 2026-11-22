@@ -6,6 +6,9 @@ import { AlertTriangle, ChevronDown, ChevronUp, LoaderCircle, RotateCcw, Thermom
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
 import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { overviewStatisticsRows } from "@/features/dashboard/overview-statistics";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
@@ -69,6 +72,7 @@ function HistoryChart({
     [historyWindow, range, samples],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
+  const displayTimeZone = useDisplayTimeZone();
   const [clockMs, setClockMs] = useState(() => Date.now());
   useEffect(() => {
     const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
@@ -187,6 +191,13 @@ function HistoryChart({
               onSoloSeries={soloSeries}
             />
           ))}
+          <DashboardIntervalStatistics
+            rows={overviewStatisticsRows(groups, samples, effectiveDomain)}
+            fromMs={effectiveDomain.fromMs}
+            toMs={effectiveDomain.toMs}
+            isViewport={viewportDomain !== null}
+            displayTimeZone={displayTimeZone}
+          />
         </div>
       )}
     </section>

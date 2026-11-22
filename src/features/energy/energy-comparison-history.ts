@@ -95,6 +95,7 @@ export async function loadEnergyComparisonHistory(
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
   maximumPoints?: number,
+  onRawSamples?: (samples: readonly TelemetrySample[]) => void,
 ): Promise<EnergyComparisonHistory> {
   const selected = normalizeEnergyMetrics(metrics);
   if (selected.length === 0) return { samples: [], errors: {} };
@@ -107,6 +108,7 @@ export async function loadEnergyComparisonHistory(
         cadenceAuthority,
         undefined,
         maximumPoints,
+        onRawSamples,
       ),
       errors: {},
     };
@@ -147,6 +149,7 @@ export async function loadEnergyComparisonHistory(
           cadenceAuthority,
           snapshot,
           maximumPoints,
+          onRawSamples,
         );
         results.set(metric, samples);
       } catch (error) {

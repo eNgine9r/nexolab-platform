@@ -527,6 +527,8 @@ export async function loadCompleteEnergyHistory(
   cadenceAuthority: EnergyCadenceAuthority | null = null,
   initialSnapshotAt?: string,
   maximumPoints: number = MAX_HISTORY_POINTS_PER_METER,
+  /** Receives the accepted RAW samples (before reduction) for exact interval statistics (#1675). */
+  onRawSamples?: (samples: readonly TelemetrySample[]) => void,
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
@@ -567,6 +569,7 @@ export async function loadCompleteEnergyHistory(
     }
 
     if (response.next_offset === null) {
+      onRawSamples?.([...samples.values()]);
       return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority);
     }
 
@@ -579,6 +582,7 @@ export async function loadCompleteEnergyHistory(
 
     const oldestCapturedAt = Math.min(...capturedTimes);
     if (oldestCapturedAt <= window.from.getTime()) {
+      onRawSamples?.([...samples.values()]);
       return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority);
     }
 

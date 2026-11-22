@@ -10,6 +10,7 @@ import {
   resolveViewSettings,
   viewportOverlapsWindow,
 } from "@/features/live-dashboards/view-settings";
+import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import type {
   LiveDashboard,
   LiveDashboardItem,
@@ -19,6 +20,7 @@ import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-tel
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 vi.mock("@/components/charts/chart-renderer-host", () => ({ ChartRendererHost: () => null }));
+vi.mock("@/features/live-dashboards/browser-download", () => ({ triggerBrowserBlobDownload: vi.fn() }));
 vi.mock("@/features/live-dashboards/use-dashboard-alert-events", () => ({
   useDashboardAlertEvents: () => ({ status: "idle", alerts: [], message: null }),
 }));
@@ -274,5 +276,33 @@ describe("DashboardLiveView saved analysis view", () => {
       await Promise.resolve();
     });
     expect(screen.getByTestId("saved-analysis-view-status")).toHaveTextContent("Не вдалося зберегти");
+  });
+});
+
+describe("DashboardLiveView exports (#1673)", () => {
+  it("builds the XLSX from the authoritative CSV export and prints on request", async () => {
+    const csv = ["timestamp_utc,value,unit", "2026-11-10T00:00:00Z,4.5,degC", ""].join("\n");
+    const exportCsv = vi.fn().mockResolvedValue({
+      blob: new Blob([csv], { type: "text/csv" }),
+      filename: "live-dashboard-d1.csv",
+      mediaType: "text/csv",
+    });
+    const print = vi.spyOn(globalThis, "print").mockImplementation(() => undefined);
+    render(view(telemetry("24h", { exportCsv } as Partial<LiveDashboardTelemetryModel>), dashboard(null)));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByTestId("dashboard-export-xlsx"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(exportCsv).toHaveBeenCalledTimes(1);
+    const download = vi.mocked(triggerBrowserBlobDownload).mock.calls.at(-1)?.[0];
+    expect(download?.filename).toBe("live-dashboard-d1.xlsx");
+    expect(download?.blob.size).toBeGreaterThan(500);
+    fireEvent.click(screen.getByTestId("dashboard-print-report"));
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("dashboard-print-header")).toHaveTextContent("звіт про вимірювання");
+    print.mockRestore();
   });
 });
