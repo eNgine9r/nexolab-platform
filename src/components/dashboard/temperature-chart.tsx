@@ -9,6 +9,9 @@ import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
 import { overviewStatisticsRows } from "@/features/dashboard/overview-statistics";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { annotateChartGroups } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
@@ -20,9 +23,10 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 const COMPACT_SENSOR_LIMIT = 8;
 
 const ranges: Array<{ value: DashboardHistoryRange; label: string }> = [
-  { value: "1h", label: "1г" },
-  { value: "6h", label: "6г" },
-  { value: "24h", label: "24г" },
+  { value: "1h", label: "1 година" },
+  { value: "6h", label: "6 годин" },
+  { value: "24h", label: "24 години" },
+  { value: "7d", label: "7 днів" },
 ];
 
 function compareChannels(left: string, right: string): number {
@@ -90,7 +94,15 @@ function HistoryChart({
     [effectiveDomain, hiddenSeriesKeys, samples, soloSeriesKey, telemetryStatus],
   );
   // The clock only flips silent series to stale; it never rebuilds scenes.
-  const groups = useMemo(() => applyFreshnessClock(builtGroups, clockMs), [builtGroups, clockMs]);
+  const alertEvents = useDashboardAlertEvents({
+    enabled: samples.length > 0,
+    rangeKey: `overview:${range}`,
+  });
+  const annotatedGroups = useMemo(
+    () => annotateChartGroups(builtGroups, alertEvents.alerts, clockMs),
+    [alertEvents.alerts, builtGroups, clockMs],
+  );
+  const groups = useMemo(() => applyFreshnessClock(annotatedGroups, clockMs), [annotatedGroups, clockMs]);
   const seriesCount = groups.reduce((count, group) => count + group.scene.series.length, 0);
   const renderedPointCount = groups.reduce(
     (count, group) =>
@@ -191,6 +203,12 @@ function HistoryChart({
               onSoloSeries={soloSeries}
             />
           ))}
+          <DashboardAlertEvents
+            events={groups.flatMap((group) => group.scene.events ?? [])}
+            status={alertEvents.status}
+            message={alertEvents.message}
+            displayTimeZone={displayTimeZone}
+          />
           <DashboardIntervalStatistics
             rows={overviewStatisticsRows(groups, samples, effectiveDomain)}
             fromMs={effectiveDomain.fromMs}

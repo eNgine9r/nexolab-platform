@@ -7,7 +7,17 @@ import {
   type ChartSeriesIdentity,
 } from "@/features/charts";
 import { buildRawStatisticsRows, type RawStatisticsRow } from "@/features/charts/raw-sample-statistics";
-import { newestSampleValidity, withInvalidNewestSample } from "@/features/charts/series-freshness";
+import {
+  newestSampleValidity,
+  resolveSeriesFreshness,
+  withInvalidNewestSample,
+  type SeriesFreshness,
+} from "@/features/charts/series-freshness";
+import {
+  CADENCE_OBSERVATION_LIMIT,
+  observedCadenceMs,
+  resolveLiveFreshness,
+} from "@/features/live/freshness";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { EMBRACO_METRICS, type RefrigerationHistoryRange } from "./controller-monitoring";
@@ -47,12 +57,36 @@ function reduced(segments: ChartSeries["segments"], maximumPoints?: number): Cha
   return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller", { maximumPoints });
 }
 
+/**
+ * Per-series freshness (#1677): the series' own newest RAW sample decides, with the #1522 threshold
+ * (server contract, else the cadence observed in its own raw timestamps, else 30 s). The controller
+ * `online` flag still wins when it is false; `freshUntilMs` lets a clock overlay flip a silent series to
+ * stale without rebuilding the scene.
+ */
+function refrigerationSeriesFreshness(
+  online: boolean,
+  ordered: readonly TelemetrySample[],
+  now: number = Date.now(),
+): SeriesFreshness {
+  const latest = ordered.at(-1);
+  const page = online ? "live" : "offline";
+  if (!latest) return { freshness: withInvalidNewestSample(page, null) };
+  const recent = [...new Set(ordered.map(timestamp))].slice(-CADENCE_OBSERVATION_LIMIT);
+  return resolveSeriesFreshness({
+    page,
+    latest: { timestampMs: timestamp(latest), valid: newestSampleValidity([latest])?.valid ?? false },
+    staleAfterMs: resolveLiveFreshness(latest, observedCadenceMs(recent)).staleAfterMs,
+    now,
+  });
+}
+
 function seriesFromSamples(
   samples: readonly TelemetrySample[],
   name: string,
   visualIndex: number,
   online: boolean,
   maximumPoints?: number,
+  now?: number,
 ): ChartSeries | null {
   const ordered = [...samples]
     .filter((sample) => Number.isFinite(timestamp(sample)))
@@ -87,7 +121,7 @@ function seriesFromSamples(
     colorToken: token.color,
     dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
-    freshness: withInvalidNewestSample(online ? "live" : "offline", newestSampleValidity(ordered)),
+    ...refrigerationSeriesFreshness(online, ordered, now),
     segments: reduced(segments, maximumPoints),
     visible: true,
     semanticMode: "instantaneous",
@@ -100,9 +134,10 @@ export function buildEmbracoTemperatureScene(
   range: RefrigerationHistoryRange,
   online: boolean,
   maximumPoints?: number,
+  now?: number,
 ): ChartRendererScene {
   const series = [...TEMPERATURE_NAMES.entries()].flatMap(([metric, name], index) => {
-    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online, maximumPoints);
+    const built = seriesFromSamples(history.get(metric) ?? [], name, index, online, maximumPoints, now);
     return built ? [built] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -120,6 +155,7 @@ export function buildEmbracoOperatorCelsiusScene(
   online: boolean,
   controllerEquipmentId: string,
   maximumPoints?: number,
+  now?: number,
 ): ChartRendererScene {
   if (controllerEquipmentId !== EMBRACO_KK1_CONTROLLER_ID) {
     return { series: [], xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -159,13 +195,14 @@ export function buildEmbracoOperatorCelsiusScene(
       }
     }
     const visualIndex = index * 2;
-    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online, maximumPoints);
+    const calibratedSeries = seriesFromSamples(calibrated, name, visualIndex, online, maximumPoints, now);
     const provisionalSeries = seriesFromSamples(
       provisional,
       `${name}${EMBRACO_PROVISIONAL_SUFFIX}`,
       visualIndex + 1,
       online,
       maximumPoints,
+      now,
     );
     return [calibratedSeries, provisionalSeries].flatMap((built) =>
       built ? [{ ...built, displayPrecision: 2 }] : [],
@@ -184,6 +221,7 @@ export function buildEmbracoProbeRawScene(
   range: RefrigerationHistoryRange,
   online: boolean,
   maximumPoints?: number,
+  now?: number,
 ): ChartRendererScene {
   const probes = [
     [EMBRACO_METRICS.cabinet, "Температура в об’ємі · raw"],
@@ -206,7 +244,7 @@ export function buildEmbracoProbeRawScene(
           }
         : breakMarker(sample, `${sample.channel_id}:raw`, "raw"),
     );
-    const built = seriesFromSamples(rawSamples, name, index, online, maximumPoints);
+    const built = seriesFromSamples(rawSamples, name, index, online, maximumPoints, now);
     return built ? [{ ...built, displayPrecision: 0 }] : [];
   });
   return { series, xDomain: { fromMs: range.from.getTime(), toMs: range.to.getTime() } };
@@ -217,6 +255,7 @@ export function buildEmbracoCompressorScene(
   range: RefrigerationHistoryRange,
   online: boolean,
   maximumPoints?: number,
+  now?: number,
 ): ChartRendererScene {
   const series = seriesFromSamples(
     history.get(EMBRACO_METRICS.compressorSpeed) ?? [],
@@ -224,6 +263,7 @@ export function buildEmbracoCompressorScene(
     0,
     online,
     maximumPoints,
+    now,
   );
   return {
     series: series ? [series] : [],

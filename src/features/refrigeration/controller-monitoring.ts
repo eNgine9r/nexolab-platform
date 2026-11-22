@@ -3,7 +3,7 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 import type { RefrigerationControllerBinding } from "./controller-binding-repository";
 
-export type RefrigerationHistoryPreset = "1h" | "12h" | "24h" | "custom";
+export type RefrigerationHistoryPreset = "1h" | "6h" | "12h" | "24h" | "7d" | "custom";
 export type RefrigerationHistoryRange = { from: Date; to: Date };
 
 export const EMBRACO_METRICS = {
@@ -83,7 +83,7 @@ export function resolveRefrigerationHistoryRange(
     }
     return { from, to: customTo };
   }
-  const hours = preset === "1h" ? 1 : preset === "12h" ? 12 : 24;
+  const hours = { "1h": 1, "6h": 6, "12h": 12, "24h": 24, "7d": 168 }[preset];
   return { from: new Date(to.getTime() - hours * 60 * 60 * 1000), to };
 }
 

@@ -47,7 +47,7 @@ import type {
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
-const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
+const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24, "7d": 7 * 24 } as const;
 const HISTORY_PENDING_LIVE_LIMIT = 5_000;
 
 interface RuntimeConfigResult {

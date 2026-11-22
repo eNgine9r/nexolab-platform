@@ -21,7 +21,7 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
   { value: "today", label: "Сьогодні" },
   { value: "yesterday", label: "Вчора" },
   { value: "last24h", label: "Останні 24 години" },
-  { value: "last7d", label: "7 днів" },
+  { value: "last7d", label: "Останні 7 днів" },
   { value: "last30d", label: "30 днів" },
   { value: "month", label: "Цей місяць" },
 ];

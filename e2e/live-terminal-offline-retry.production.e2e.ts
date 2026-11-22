@@ -112,7 +112,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible();
     await expect(inventoryChannel).toBeVisible();
     publishFreshTelemetry(6.2);
-    await expect(page.getByText("6,2 degC", { exact: true })).toBeVisible();
+    await expect(page.getByText("6,2 °C", { exact: true })).toBeVisible();
 
     const baselineClient = routedSocketState.healthyClient;
     const baselineServer = routedSocketState.healthyServer;
@@ -146,7 +146,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(inventoryChannel).toBeVisible();
     publishFreshTelemetry(6.4);
-    await expect(page.getByText("6,4 degC", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("6,4 °C", { exact: true })).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1_000);
     expect(routedSocketCount).toBe(attemptsAtOffline + 1);
   } finally {

@@ -42,6 +42,7 @@ export function OverviewChartPanel({
         selectedRange={rangeLabel}
         locale="uk"
         series={group.scene.series}
+        requestedWindow={resetDomain}
         inspection={inspection}
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}

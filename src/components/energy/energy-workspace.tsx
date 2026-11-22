@@ -48,11 +48,10 @@ import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energ
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
-  { value: "1h", label: "1 год" },
-  { value: "6h", label: "6 год" },
-  { value: "12h", label: "12 год" },
-  { value: "24h", label: "24 год" },
-  { value: "7d", label: "7 діб" },
+  { value: "1h", label: "1 година" },
+  { value: "6h", label: "6 годин" },
+  { value: "24h", label: "24 години" },
+  { value: "7d", label: "7 днів" },
 ];
 
 const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter((metric) => metric.id !== "electrical.energy.active");

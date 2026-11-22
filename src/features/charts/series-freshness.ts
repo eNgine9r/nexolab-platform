@@ -36,6 +36,24 @@ export function resolveSeriesFreshness(input: SeriesFreshnessInput): SeriesFresh
   return now <= freshUntilMs ? { freshness: "live", freshUntilMs } : { freshness: "stale" };
 }
 
+/** Flips series whose `freshUntilMs` has passed to `stale`; returns the same array when nothing changed. */
+export function flipExpiredSeries(series: readonly ChartSeries[], now: number): readonly ChartSeries[] {
+  let changed = false;
+  const next = series.map((entry): ChartSeries => {
+    if (
+      entry.freshness === "live" &&
+      entry.freshUntilMs !== undefined &&
+      Number.isFinite(entry.freshUntilMs) &&
+      now > entry.freshUntilMs
+    ) {
+      changed = true;
+      return { ...entry, freshness: "stale" };
+    }
+    return entry;
+  });
+  return changed ? next : series;
+}
+
 /** Flips series whose `freshUntilMs` has passed to `stale`; identity-stable when unchanged. */
 export function applyFreshnessClock<T extends { scene: ChartRendererScene }>(
   groups: readonly T[],
@@ -43,20 +61,8 @@ export function applyFreshnessClock<T extends { scene: ChartRendererScene }>(
 ): readonly T[] {
   let changed = false;
   const next = groups.map((group) => {
-    let sceneChanged = false;
-    const series = group.scene.series.map((entry): ChartSeries => {
-      if (
-        entry.freshness === "live" &&
-        entry.freshUntilMs !== undefined &&
-        Number.isFinite(entry.freshUntilMs) &&
-        now > entry.freshUntilMs
-      ) {
-        sceneChanged = true;
-        return { ...entry, freshness: "stale" };
-      }
-      return entry;
-    });
-    if (!sceneChanged) return group;
+    const series = flipExpiredSeries(group.scene.series, now);
+    if (series === group.scene.series) return group;
     changed = true;
     return { ...group, scene: { ...group.scene, series } };
   });
