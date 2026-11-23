@@ -67,7 +67,9 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1551
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -12137,6 +12139,27 @@
         "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
       },
       "branch": "ops/1713-gitlab-sync"
+    },
+    {
+      "issue": 1551,
+      "title": "Evidence-safe 30-day telemetry retention and bounded Raspberry Pi disk reclamation",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Telemetry service: 30-day ordinary-telemetry policy; session-linked samples never deleted (selection and DELETE); telemetry_latest untouched; irreversible deletion gated by RETENTION_TELEMETRY_DELETE_ENABLED (default false, enable after #1428); multi-batch cycles with time budget, pause and backlog interval; read-only --dry-run counts; observability. PostgreSQL physical reclamation runbook (owner, maintenance window). No production change.",
+      "depends_on": [
+        1428
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "telemetry-service retention/latest/metrics/health/cors/openapi tests OK on the Pi (SQLite); PostgreSQL retention test added for CI",
+        "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
+        "supersedes_draft_pr": 1552,
+        "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
+        "source_merge": "pending"
+      },
+      "branch": "feat/1551-evidence-aware-retention"
     }
   ],
   "maintenance_actions": [
