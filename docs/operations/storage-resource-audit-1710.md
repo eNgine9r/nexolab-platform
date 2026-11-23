@@ -82,7 +82,7 @@ From `.project/LAST_CHECKPOINT.json` baselines:
 sudo bash docs/operations/storage/nexolab-storage-inventory.sh /home/nexolab
 ```
 
-The report lists, among others: Commander workspace sizes with Git state (dirty files, unpushed commits, stashes), regenerable cache directories, directories used by running processes and systemd units, Docker images with digests, images used by containers, dangling images, volumes and build cache, and the largest PostgreSQL relations.
+The report ends with a **cleanup candidate summary** (manifest M1–M5): each item is marked CLEAN (all gates hold, with the exact command and its size), REVIEW (with the reason, for example uncommitted work or a process using the directory) or PROTECTED, followed by the estimated total. Nothing is deleted by the script. The report lists, among others: Commander workspace sizes with Git state (dirty files, unpushed commits, stashes), regenerable cache directories, directories used by running processes and systemd units, Docker images with digests, images used by containers, dangling images, volumes and build cache, and the largest PostgreSQL relations.
 
 ## Owner cleanup manifest
 
