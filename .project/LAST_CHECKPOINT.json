@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T13:35:57Z",
+  "timestamp": "2026-11-23T14:23:15Z",
   "actor": "Claude",
-  "event": "xweb_option_f_prepared",
+  "event": "xweb_activation_command_ready",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5501,7 +5501,7 @@
       }
     }
   ],
-  "next_action": "Owner: share the #1638 guarded scripts read-only into /home/nexolab-dev/handoff/1638 so the Option F activation can be regenerated with only release constants changed (artifacts verified, expire 2026-11-29). Decide on the crash-looping nexolab-external-frontend/-nginx pair and the old :3104 UI. Then #1428 A (backup now feasible at 30 GiB free) -> C -> B -> #1551 activation. Telemetry exceptions expire 2026-11-30.",
+  "next_action": "Owner: optionally stop the external-frontend crash loop (reversible), then run the XWEB activation command as nexolab (artifacts expire 2026-11-29); report the output; then authenticated browser checks of the XWEB charts on LAN and HTTPS. Afterwards #1428 A (backup) -> C -> B -> #1551. Telemetry exceptions expire 2026-11-30.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
