@@ -699,8 +699,9 @@ def test_openssl_quic_exceptions_are_the_three_exact_approved_entries(tmp_path: 
     assert sorted(
         (item["image_id"], item["package"], item["installed_version"]) for item in entries
     ) == [
-        ("device-agent", "libssl3t64", "3.5.7-1~deb13u3"),
-        ("telegram-gateway", "libssl3t64", "3.5.7-1~deb13u3"),
+        # Re-pinned 2026-11-23 by Product Owner approval (assessment section 10).
+        ("device-agent", "libssl3t64", "3.5.9-1~deb13u1"),
+        ("telegram-gateway", "libssl3t64", "3.5.9-1~deb13u1"),
         ("telemetry-service", "libssl3t64", "3.5.9-1~deb13u1"),
     ]
     assert {item["owner"] for item in entries} == {"platform-security"}
