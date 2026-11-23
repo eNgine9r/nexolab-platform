@@ -12018,7 +12018,8 @@
         "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
         "local_checks": "tracked issue; 18 telemetry exceptions renewed only to 2026-11-30",
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
-        "source_merge": "n/a"
+        "source_merge": "n/a",
+        "revalidation_2026_11_23": "CVE Exposure Evidence run 45151013470 (PR #1714 head c2015af5; 5 images x native amd64/arm64, no cache, gate Trivy pin): exactly two blocked tuples (device-agent, telegram-gateway; libssl3t64 3.5.9-1~deb13u1; no fix); no QUIC server API use outside OpenSSL; no UDP. Proposed exact installed_version re-pin awaiting Product Owner decision (docs/security/cve-2026-124709-assessment.md section 10; PRs #1719, #1720, #1721). Not applied."
       },
       "branch": ""
     },
@@ -12111,7 +12112,8 @@
         "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
         "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1711 merged a8f4749577e2d2693af5302bdb63829cd8ebfbd4 (head ee51fe2c) and PR #1712 merged 2d917dd311773ca3e2466eae20c780cfcebd1bfc (head e5c8971b), both after exact-head GREEN NEXOLAB Merge Gate",
-        "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)"
+        "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)",
+        "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted"
       },
       "branch": "ops/1710-persistent-dev-session"
     },
