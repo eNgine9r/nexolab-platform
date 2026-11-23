@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T08:51:29Z",
+  "timestamp": "2026-11-23T09:00:15Z",
   "actor": "Claude",
-  "event": "gitlab_sync_1713_review",
+  "event": "gitlab_sync_merged_cve_drift",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,9 +30,7 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": {
-    "issue": 1713
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -5482,7 +5480,7 @@
       }
     }
   ],
-  "next_action": "Merge #1713 PR after exact-head GREEN CI; owner installs and runs the authenticated check per docs/operations/gitlab-sync.md before any push. Then finish #1699 (draft PR #1714: CI, state, review). Owner: dev-session install, storage inventory, #1706 validation, #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
+  "next_action": "Owner decisions: (1) CVE-2026-124709 exact re-pin to libssl3t64 3.5.9-1~deb13u1 for device-agent (unblocks #1699 PR #1714) or wait for Debian fix; (2) install #1713 sync per docs/operations/gitlab-sync.md, run the authenticated check, then first verified push; (3) install docs/operations/dev-session; (4) run the read-only storage inventory; (5) #1706 validation; (6) #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

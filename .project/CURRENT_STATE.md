@@ -1,4 +1,8 @@
-## 2026-11-23 — #1713 GitHub → GitLab fast-forward synchronization prepared (in review, not operational)
+## 2026-11-23 — #1699 RS-485 onboarding reconcile ready in PR #1714, blocked by the CVE exception drift
+
+Stack head `4be678f6` merged into main as one change (81 files: device-agent, frontend, architecture docs, e2e). Governance and state files keep main; the stack's 2026-11-04 "disposable lab iteration" policy was not adopted. Energy and equipment-connections conflicts resolved as unions with main's installed UI. Device-agent changes are FC03/FC04 reads through the read-only preflight only. Device-agent suite 373 tests OK locally; CI unit/component and acceptance suites pass. Merge blocked only by the container vulnerability policy (see BLOCKERS). Hardware acceptance stays with the owner.
+
+## 2026-11-23 — #1713 GitHub → GitLab fast-forward synchronization merged (#1716), not operational
 
 Owner-installed `nexolab-gitlab-sync.service`/`.timer` (every 5 minutes, 10 minutes after boot) under an isolated DynamicUser with the GitLab token delivered only by `LoadCredential`. Fast-forward-only `main` plus explicitly approved tags; GitLab-ahead, diverged, rewritten-source and tag-collision cases fail closed without writing; pushed SHAs are read back; pushes carry `ci.skip`. Corporate endpoint lives only in the host's `sync.env`. Tested against local bare repositories (29 tests); the real token was not accessed. **Not operational** until the owner's authenticated check run and first verified push (docs/operations/gitlab-sync.md).
 
