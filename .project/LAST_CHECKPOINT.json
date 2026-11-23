@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T09:00:15Z",
+  "timestamp": "2026-11-23T10:04:52Z",
   "actor": "Claude",
-  "event": "gitlab_sync_merged_cve_drift",
+  "event": "owner_activation_prepared_cve_revalidated",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5480,7 +5480,7 @@
       }
     }
   ],
-  "next_action": "Owner decisions: (1) CVE-2026-124709 exact re-pin to libssl3t64 3.5.9-1~deb13u1 for device-agent (unblocks #1699 PR #1714) or wait for Debian fix; (2) install #1713 sync per docs/operations/gitlab-sync.md, run the authenticated check, then first verified push; (3) install docs/operations/dev-session; (4) run the read-only storage inventory; (5) #1706 validation; (6) #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
+  "next_action": "Owner, in order: (1) GitLab sync install in check mode and authenticated check (#1713); (2) read-only storage inventory and candidate review (#1710); (3) persistent dev session install (no restart of the running session); (4) GitLab push + SHA comparison, then timer, only if the check reported equal/fast_forward; (5) CVE-2026-124709 exact re-pin decision for device-agent and telegram-gateway (assessment §10) to unblock #1714; (6) decision on the 18 telemetry-service exceptions expiring 2026-11-30; (7) #1706 validation; (8) #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
