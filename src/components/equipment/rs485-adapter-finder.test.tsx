@@ -73,6 +73,17 @@ describe("RS-485 adapter identification", () => {
     });
   });
 
+  it("permits explicit selection for isolated search without claiming ordinary preflight readiness", () => {
+    const candidate = connection("test-only", {
+      availableForPreflight: false,
+      availableForIsolatedSearch: true,
+    });
+    expect(compareAdapterInventories(inventory(), inventory(candidate))).toEqual({
+      kind: "found",
+      connection: candidate,
+    });
+  });
+
   it("fetches two snapshots and requires explicit selection", async () => {
     const newAdapter = connection("new");
     const listConnections = vi

@@ -9,18 +9,26 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import { ENERGY_METERS, ENERGY_METRICS, energyMeterSupportsMetric } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 
 export function EnergyParameterDialog({
   selected,
+  meters = [],
+  includeLegacy = true,
   onApply,
   onClose,
 }: {
   selected: readonly EnergySeriesSelection[];
+  meters?: readonly CommissionedEnergyMeter[];
+  includeLegacy?: boolean;
   onApply: (selected: EnergySeriesSelection[]) => void;
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [draft, setDraft] = useState(() => normalizeEnergySeriesSelection(selected));
+  const [draft, setDraft] = useState(() => normalizeEnergySeriesSelection(selected, meters));
   const [search, setSearch] = useState("");
   const [selectedOnly, setSelectedOnly] = useState(false);
   useLayoutEffect(() => {
@@ -35,25 +43,39 @@ export function EnergyParameterDialog({
       const key = energySeriesSelectionKey(pair);
       return current.some((item) => energySeriesSelectionKey(item) === key)
         ? current.filter((item) => energySeriesSelectionKey(item) !== key)
-        : normalizeEnergySeriesSelection([...current, pair]);
+        : normalizeEnergySeriesSelection([...current, pair], meters);
     });
+  const allMeters = [...(includeLegacy ? ENERGY_METERS : []), ...meters];
   const normalizedSearch = search.trim().toLocaleLowerCase("uk-UA");
-  const visibleMeters = ENERGY_METERS.map((meter) => {
-    const meterText = [meter.label, meter.equipmentId, meter.modelLabel, String(meter.unitId)]
-      .join(" ")
-      .toLocaleLowerCase("uk-UA");
-    const matchesMeter = meterText.includes(normalizedSearch);
-    const metrics = ENERGY_METRICS.filter((metric) => {
-      const key = energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id });
-      if (selectedOnly && !selectedKeys.has(key)) return false;
-      if (!normalizedSearch || matchesMeter) return true;
-      return [metric.label, metric.shortLabel, metric.id, metric.expectedUnit]
+  const visibleMeters = allMeters
+    .map((meter) => {
+      const meterKey = "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : undefined;
+      const meterText = [
+        meter.label,
+        meter.equipmentId,
+        meter.modelLabel,
+        String(meter.unitId),
+        "busId" in meter ? meter.busId : "",
+      ]
         .join(" ")
-        .toLocaleLowerCase("uk-UA")
-        .includes(normalizedSearch);
-    });
-    return { meter, metrics };
-  }).filter((group) => group.metrics.length > 0);
+        .toLocaleLowerCase("uk-UA");
+      const matchesMeter = meterText.includes(normalizedSearch);
+      const metrics = ENERGY_METRICS.filter((metric) => {
+        const key = energySeriesSelectionKey({
+          unitId: meter.unitId,
+          metric: metric.id,
+          ...(meterKey ? { meterKey } : {}),
+        });
+        if (selectedOnly && !selectedKeys.has(key)) return false;
+        if (!normalizedSearch || matchesMeter) return true;
+        return [metric.label, metric.shortLabel, metric.id, metric.expectedUnit]
+          .join(" ")
+          .toLocaleLowerCase("uk-UA")
+          .includes(normalizedSearch);
+      });
+      return { meter, meterKey, metrics };
+    })
+    .filter((group) => group.metrics.length > 0);
 
   return (
     <dialog
@@ -121,7 +143,7 @@ export function EnergyParameterDialog({
               Лише вибрані
             </button>
             <p role="status" className="text-xs text-slate-300">
-              {visibleMeters.length} із {ENERGY_METERS.length} лічильників · {draft.length} серій обрано
+              {visibleMeters.length} із {allMeters.length} лічильників · {draft.length} серій обрано
             </p>
           </div>
         </div>
@@ -141,18 +163,19 @@ export function EnergyParameterDialog({
               </button>
             </div>
           ) : null}
-          {visibleMeters.map(({ meter, metrics }) => (
-            <fieldset key={meter.unitId} className="min-w-0 rounded-xl border border-white/[0.08] p-3">
+          {visibleMeters.map(({ meter, meterKey, metrics }) => (
+            <fieldset key={meterKey ?? meter.equipmentId} className="min-w-0 rounded-xl border border-white/[0.08] p-3">
               <legend className="px-2 text-xs font-semibold text-cyan-200">
                 {meter.label} · {meter.equipmentId}
                 <span className="ml-2 text-[11px] font-normal text-slate-400">
-                  {draft.filter((pair) => pair.unitId === meter.unitId).length} обрано
+                  {draft.filter((pair) => pair.unitId === meter.unitId && pair.meterKey === meterKey).length} обрано
                 </span>
               </legend>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {metrics.map((metric) => {
-                  const pair = { unitId: meter.unitId, metric: metric.id };
+                  const pair = { unitId: meter.unitId, metric: metric.id, ...(meterKey ? { meterKey } : {}) };
                   const supported = energyMeterSupportsMetric(meter, metric.id);
+                  const descriptionId = `unsupported-energy-${encodeURIComponent(meterKey ?? meter.equipmentId)}-${metric.shortLabel}`;
                   return (
                     <label
                       key={metric.id}
@@ -163,19 +186,14 @@ export function EnergyParameterDialog({
                         checked={selectedKeys.has(energySeriesSelectionKey(pair))}
                         disabled={!supported}
                         onChange={() => toggle(pair)}
-                        aria-label={`${meter.label} · ${metric.label}`}
-                        aria-describedby={
-                          !supported ? `unsupported-energy-${meter.unitId}-${metric.shortLabel}` : undefined
-                        }
+                        aria-label={`${meter.label}${"busId" in meter ? ` · ${meter.busId}` : ""} · ${metric.label}`}
+                        aria-describedby={!supported ? descriptionId : undefined}
                         className="h-4 w-4 shrink-0 accent-cyan-400"
                       />
                       <span className="min-w-0">
                         {metric.label} · {energySeriesDisplayUnit(metric.id)}
                         {!supported ? (
-                          <span
-                            id={`unsupported-energy-${meter.unitId}-${metric.shortLabel}`}
-                            className="mt-1 block text-[11px] leading-4"
-                          >
+                          <span id={descriptionId} className="mt-1 block text-[11px] leading-4">
                             Не підтримується цим лічильником
                           </span>
                         ) : null}

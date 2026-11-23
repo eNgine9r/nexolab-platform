@@ -92,6 +92,35 @@ function repository(session: CommissioningSession = persistedSession): Commissio
 }
 
 describe("EquipmentConnectionsWorkspace", () => {
+  it("shows a persisted standalone instrument name and address without a showcase", async () => {
+    render(
+      <EquipmentConnectionsWorkspace
+        repository={repository({
+          ...persistedSession,
+          displayName: "Dixell стенд 2",
+          unitId: 2,
+          profileId: "dixell-xjp60d",
+          nodeId: "edge-01",
+          lifecycle: "active",
+        })}
+        discoveryRepository={null}
+        canManage
+        assets={[]}
+      />,
+    );
+    expect(await screen.findByText("Dixell стенд 2")).toBeInTheDocument();
+    expect(screen.getByText(/Адреса 2 · Самостійний прилад/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Показники: Dixell стенд 2" })).toHaveAttribute(
+      "href",
+      "/live?workspace=explorer&node=edge-01&equipment=K2",
+    );
+    expect(screen.getByRole("link", { name: "Налаштування: Dixell стенд 2" })).toHaveAttribute(
+      "href",
+      "/equipment/onboarding/commissioning-1",
+    );
+    expect(screen.queryByText("Commissioning sessions")).not.toBeInTheDocument();
+  });
+
   it("surfaces persistent and unsupported drafts with discovery under Connections", async () => {
     render(
       <EquipmentConnectionsWorkspace
@@ -113,6 +142,7 @@ describe("EquipmentConnectionsWorkspace", () => {
       "href",
       "/equipment/onboarding/commissioning-1",
     );
+    expect(screen.queryByRole("link", { name: /Показники:/ })).not.toBeInTheDocument();
   });
 
   it("does not expose a mutation CTA without equipment.manage", async () => {
@@ -186,7 +216,11 @@ describe("EquipmentConnectionsWorkspace", () => {
     );
 
     expect(await screen.findByText("Embraco Sync")).toBeInTheDocument();
-    expect(screen.getByText("Read-only моніторинг активний")).toBeInTheDocument();
+    expect(screen.getByText("Зчитування ввімкнено")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Показники: Embraco Sync" })).toHaveAttribute(
+      "href",
+      "/live?workspace=explorer&node=edge-01&equipment=EMBRACO-2",
+    );
     expect(screen.getByText(/Прив’язка: Cool jet/)).toBeInTheDocument();
     expect(screen.getByText("1", { selector: "p" })).toBeInTheDocument();
   });
@@ -217,7 +251,7 @@ describe("EquipmentConnectionsWorkspace", () => {
     );
 
     expect(screen.queryByText("Unknown Mystery")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Завантаження чернеток");
+    expect(screen.getByRole("status")).toHaveTextContent("Завантаження приладів");
   });
 
   it("filters saved sessions by bus, Unit ID, equipment and persisted lifecycle without new API requests", async () => {
@@ -328,7 +362,7 @@ describe("EquipmentConnectionsWorkspace", () => {
         assets={[]}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Завантаження чернеток");
+    expect(screen.getByRole("status")).toHaveTextContent("Завантаження приладів");
     expect(screen.getAllByText("—")).toHaveLength(3);
     expect(screen.queryByRole("searchbox", { name: "Пошук підключень" })).not.toBeInTheDocument();
 
@@ -349,4 +383,43 @@ describe("EquipmentConnectionsWorkspace", () => {
     expect(screen.getAllByText("—")).toHaveLength(3);
     expect(screen.queryByRole("searchbox", { name: "Пошук підключень" })).not.toBeInTheDocument();
   });
+});
+
+it("shows two physical section instruments with reserved input count and distinct data links", async () => {
+  const sessions = [
+    {
+      ...persistedSession,
+      id: "first",
+      lifecycle: "active" as const,
+      displayName: "First Dixell",
+      profileId: "dixell-xjp60d-sections-6",
+      unitId: 1,
+      nodeId: "edge-01",
+      busId: "bus-a",
+    },
+    {
+      ...persistedSession,
+      id: "second",
+      lifecycle: "active" as const,
+      displayName: "Second Dixell",
+      profileId: "dixell-xjp60d-sections-2",
+      unitId: 7,
+      nodeId: "edge-01",
+      busId: "bus-a",
+    },
+  ];
+  render(
+    <EquipmentConnectionsWorkspace
+      repository={{ ...repository(), listSessions: async () => sessions }}
+      discoveryRepository={null}
+      canManage
+      assets={[]}
+    />,
+  );
+  await screen.findByText("Second Dixell");
+  expect(screen.getByText(/Адреси 1–6/)).toBeInTheDocument();
+  expect(screen.getByText(/Адреси 7–12/)).toBeInTheDocument();
+  expect(screen.getByText("Підключено: 2 · Резерв: 4")).toBeInTheDocument();
+  const href = screen.getByRole("link", { name: "Показники: Second Dixell" }).getAttribute("href");
+  expect(new URL(href!, "http://localhost").searchParams.get("equipment")).toBe("XJP60D-S:bus-a:7");
 });

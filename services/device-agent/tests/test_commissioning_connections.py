@@ -116,6 +116,25 @@ class CommissioningConnectionTests(unittest.TestCase):
                     commissioning_bus_id(candidate), topology=topology, serial_root=root
                 )
 
+            self.assertTrue(by_path[candidate]["available_for_isolated_search"])
+            resolved = resolve_commissioning_adapter(
+                commissioning_bus_id(candidate), topology=topology, serial_root=root, isolated_search=True
+            )
+            self.assertEqual(resolved.stable_path, candidate)
+
+    def test_isolated_search_still_rejects_production_alias_and_permission_denial(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            prod = str(root / "usb-prod")
+            alias = root / "usb-alias"
+            alias.symlink_to(root / "usb-prod")
+            topology = self._topology(prod)
+            with self.assertRaisesRegex(ValueError, "production-owned"):
+                resolve_commissioning_adapter(commissioning_bus_id(str(alias)), topology=topology, serial_root=root, isolated_search=True)
+            candidate = str(root / "usb-danfoss")
+            with self.assertRaisesRegex(ValueError, "not readable/writable"):
+                resolve_commissioning_adapter(commissioning_bus_id(candidate), topology=topology, serial_root=root, isolated_search=True, access_check=lambda _: False)
+
 
 if __name__ == "__main__":
     unittest.main()

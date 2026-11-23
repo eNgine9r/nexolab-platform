@@ -11,6 +11,11 @@ from waveshare_8ai import MODES, Waveshare8AIReader, decode_channel
 
 
 class Waveshare8AITests(unittest.TestCase):
+    def test_below_range_current_remains_unknown_without_guessing_wiring(self) -> None:
+        reading = decode_channel(1, 1, mode_word=3, input_word=0)
+        self.assertEqual((reading.value, reading.unit, reading.quality), (0.0, "uA", "unknown"))
+        self.assertEqual(decode_channel(1, 1, mode_word=3, input_word=4000).quality, "valid")
+        self.assertEqual(decode_channel(1, 1, mode_word=0, input_word=17253).quality, "unknown")
     def test_decodes_discovered_mode_zero_zero_input(self) -> None:
         reading = decode_channel(1, 1, mode_word=0, input_word=0)
         self.assertEqual(reading.mode_label, "0-10V")

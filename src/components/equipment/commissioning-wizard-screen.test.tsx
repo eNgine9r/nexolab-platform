@@ -112,6 +112,7 @@ const connectionInventory: CommissioningConnectionInventory = {
       ownership: "production_bus",
       present: true,
       availableForPreflight: true,
+      availableForReadSearch: true,
       serial: { baudrate: 9600, parity: "N", stopbits: 1, timeoutSeconds: 0.3, retries: 1 },
     },
     {
@@ -120,6 +121,7 @@ const connectionInventory: CommissioningConnectionInventory = {
       ownership: "available_commissioning",
       present: true,
       availableForPreflight: true,
+      availableForIsolatedSearch: true,
       serial: null,
     },
   ],
@@ -248,7 +250,54 @@ function runtime(repository: CommissioningRepository | null, error: string | nul
 describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.searchParams = new URLSearchParams("advanced=1");
     security.value.membership.organizationId = "organization-a";
+  });
+
+  it("opens new devices in the quick interface by default", async () => {
+    navigation.searchParams = new URLSearchParams();
+    runtimeFactory.create.mockReturnValue(runtime(commissioningRepository(async () => persistedSession)));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    expect(await screen.findByRole("heading", { name: "Додати прилад" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Назва приладу")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Етапи комісіонування" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Розширені налаштування" }));
+    expect(screen.getByRole("navigation", { name: "Етапи комісіонування" })).toBeInTheDocument();
+  });
+
+  it("removes an unplugged USB adapter and clears its selected address without reloading", async () => {
+    navigation.searchParams = new URLSearchParams();
+    const listConnections = vi.fn().mockResolvedValue(connectionInventory);
+    runtimeFactory.create.mockReturnValue(
+      runtime(commissioningRepository(async () => persistedSession, { listConnections })),
+    );
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Додати прилад" });
+    const adapter = screen.getByLabelText("USB–RS485");
+    fireEvent.change(adapter, { target: { value: "rs485-main" } });
+    fireEvent.change(screen.getByLabelText("Адреса приладу"), { target: { value: "7" } });
+    expect(adapter).toHaveValue("rs485-main");
+    expect(screen.getByLabelText("Адреса приладу")).toHaveValue(7);
+    listConnections.mockResolvedValue({
+      ...connectionInventory,
+      connections: connectionInventory.connections.map((item) => ({ ...item, present: false })),
+    });
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    await waitFor(() => expect(adapter).toHaveValue(""));
+    expect(screen.getByLabelText("Адреса приладу")).toHaveValue(null);
+    expect(
+      screen.getAllByRole("option").filter((option) => (option as HTMLOptionElement).value === "rs485-main"),
+    ).toHaveLength(0);
+    listConnections.mockResolvedValue(connectionInventory);
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole("option")
+          .filter((option) => (option as HTMLOptionElement).value === "rs485-main"),
+      ).toHaveLength(1),
+    );
+    expect(adapter).toHaveValue("");
   });
 
   it("renders an unavailable state when the local commissioning runtime is missing", () => {
@@ -271,7 +320,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     runtimeFactory.create.mockReturnValue(runtime(repository));
 
     render(<CommissioningWizardScreen commissioningId={null} />);
-    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    await screen.findByRole("heading", { name: "Новий прилад" });
 
     expect(screen.getByRole("option", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
@@ -295,7 +344,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     const repository = commissioningRepository(async () => persistedSession, { listConnections });
     runtimeFactory.create.mockReturnValue(runtime(repository));
     render(<CommissioningWizardScreen commissioningId={null} />);
-    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    await screen.findByRole("heading", { name: "Новий прилад" });
     fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Device Agent inventory unavailable");
     fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
@@ -328,7 +377,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     runtimeFactory.create.mockReturnValue(runtime(repository));
 
     render(<CommissioningWizardScreen commissioningId={null} />);
-    expect(await screen.findByRole("heading", { name: "Нова чернетка підключення" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Новий прилад" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
       target: { value: "unsupported" },
@@ -380,7 +429,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     runtimeFactory.create.mockReturnValue(runtime(repository));
 
     render(<CommissioningWizardScreen commissioningId={null} />);
-    expect(await screen.findByRole("heading", { name: "Нова чернетка підключення" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Новий прилад" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
@@ -414,7 +463,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     const repository = commissioningRepository(async () => persistedSession, { listConnections });
     runtimeFactory.create.mockReturnValue(runtime(repository));
     render(<CommissioningWizardScreen commissioningId={null} />);
-    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    await screen.findByRole("heading", { name: "Новий прилад" });
     fireEvent.click(screen.getByRole("button", { name: /Підключення/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Знайти новий адаптер" }));
     fireEvent.click(await screen.findByRole("button", { name: "Я підключив адаптер" }));
@@ -434,7 +483,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     runtimeFactory.create.mockReturnValue(runtime(repository));
 
     render(<CommissioningWizardScreen commissioningId={null} />);
-    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    await screen.findByRole("heading", { name: "Новий прилад" });
     fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
       target: { value: "danfoss-ak-cc25-pro" },
     });
@@ -453,6 +502,35 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.getByText("commissioning-1234567890abcdef")).toBeInTheDocument();
     expect(screen.getByText(/A10Q2SI7-if00-port0/)).toBeInTheDocument();
     expect(screen.getByText("Вільний адаптер · commissioning only")).toBeInTheDocument();
+  });
+
+  it("offers explicit read search on both configured and free adapters", async () => {
+    const profile: SupportedDeviceProfile = {
+      ...embracoProfile,
+      id: "dixell-xjp60d",
+      version: "dixell-xjp60d-fc03-v1",
+      manufacturer: "Dixell",
+      models: ["XJP60D"],
+      displayName: "Dixell XJP60D",
+      deviceFamily: "xjp60d",
+    };
+    const repository = commissioningRepository(async () => persistedSession, {
+      listProfiles: async () => [profile],
+      searchAddress: vi.fn(),
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Новий прилад" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: profile.id },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Далі" }));
+    const select = screen.getByRole("combobox", { name: "RS-485 підключення" });
+    fireEvent.change(select, { target: { value: "rs485-main" } });
+    expect(screen.getByRole("button", { name: "Знайти прилади" })).toBeEnabled();
+    fireEvent.change(select, { target: { value: "commissioning-1234567890abcdef" } });
+    expect(screen.getByRole("button", { name: "Знайти прилади" })).toBeEnabled();
+    expect(repository.searchAddress).not.toHaveBeenCalled();
   });
 
   it("does not expose activation controls for a discovery-only Danfoss session", async () => {
