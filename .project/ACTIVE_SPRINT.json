@@ -67,7 +67,9 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1699
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -12026,7 +12028,7 @@
     {
       "issue": 1699,
       "title": "Reconcile the unmerged RS-485 onboarding stack (#1483→#1521) with main",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "priority": "high",
       "scope": "Site/main drift: the commissioned runtime lineage is not in main; hardware acceptance stays with the owner. Not required by the XWEB release.",
       "depends_on": [],
@@ -12038,7 +12040,8 @@
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
         "source_merge": "n/a",
         "pull_request": 1714,
-        "blocker": "Container vulnerability policy: device-agent image now ships libssl3t64 3.5.9-1~deb13u1 (Debian 13.8); the owner-approved exact CVE-2026-124709 exception pins 3.5.7-1~deb13u3. Re-pinning is a new risk acceptance (Product Owner)."
+        "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
+        "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
       },
       "branch": "feat/1699-rs485-onboarding-reconcile"
     },
