@@ -1,0 +1,5 @@
+# /etc/nexolab-storage/protected-paths — one absolute path per line; a release at,
+# inside or above one of these paths is never removed. Add the recorded rollback
+# release here whenever it is not among the newest STORAGE_KEEP_RELEASES.
+/home/nexolab/nexolab-platform/runtime/external-frontend-releases
+/home/nexolab/commander-workspaces/nexolab-1638-release-f0295409
