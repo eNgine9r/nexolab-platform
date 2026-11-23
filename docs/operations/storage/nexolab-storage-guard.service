@@ -1,0 +1,24 @@
+# NEXOLAB disk guard (#1710, #1551): measures free space on / every 15 minutes.
+# WARNING below 40 GiB, CRITICAL below 20 GiB (journal priority and a failed unit).
+# Owner-installed to /etc/systemd/system/. Read-only: it changes nothing.
+
+[Unit]
+Description=NEXOLAB disk free-space guard (warning < 40 GiB, critical < 20 GiB)
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/nexolab-storage/housekeeping.env
+StateDirectory=nexolab-storage
+ExecStart=/usr/bin/python3 -I /usr/local/lib/nexolab-storage/nexolab-storage-housekeeping.py --guard-only
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryMax=64M
+CPUQuota=10%
+Nice=19
+TimeoutStartSec=60
