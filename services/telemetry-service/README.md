@@ -137,11 +137,13 @@ The persistence worker keeps the active telemetry or dead-letter item during a t
 
 Default policy:
 
-- normalized telemetry: 365 days;
-- raw JSON: 30 days, then redacted while normalized columns remain;
+- normalized ordinary telemetry: 30 days; deletion only when `RETENTION_TELEMETRY_DELETE_ENABLED=true` (off by default, enable after #1428); samples linked to laboratory sessions are never deleted and `telemetry_latest` is never touched;
+- raw JSON: 30 days, then redacted while normalized columns remain (session evidence keeps its raw payload);
 - dead-letter payloads: 30 days;
-- maximum cleanup batch per data class: 1000 rows;
-- cleanup interval: one hour.
+- cleanup batch per data class: 2000 rows, up to 60 batches or 60 seconds per cycle, 0.25 s pause between batches;
+- cleanup interval: one hour, or 5 minutes while a backlog remains.
+
+See `docs/operations/telemetry-backend-runbook.md` for the dry-run count and observability.
 
 Run cleanup immediately:
 

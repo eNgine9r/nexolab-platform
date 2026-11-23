@@ -58,6 +58,10 @@ GAUGES = {
     "spool_oldest_pending_age_seconds": "Age of the oldest pending durable record.",
     "spool_max_records": "Configured durable spool record capacity.",
     "spool_max_bytes": "Configured durable spool payload-byte capacity.",
+    "retention_telemetry_delete_enabled": "Whether retention may delete ordinary telemetry samples (#1551).",
+    "retention_last_batches": "Batches executed by the last retention cycle.",
+    "retention_last_duration_seconds": "Duration of the last retention cycle.",
+    "retention_backlog_remaining": "Whether the last retention cycle stopped with eligible work left.",
     "websocket_clients": "Currently connected WebSocket clients.",
     "ingestion_lag_seconds": "Lag from event capture to successful persistence.",
 }

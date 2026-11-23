@@ -193,11 +193,23 @@ class Settings(BaseSettings):
     websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)
 
     retention_enabled: bool = True
-    telemetry_retention_days: int = Field(default=365, ge=1, le=3650)
+    # Product Owner policy (#1551): ordinary monitoring telemetry is kept 30 days.
+    telemetry_retention_days: int = Field(default=30, ge=1, le=3650)
+    # Deleting telemetry samples is irreversible, so it stays OFF until the owner
+    # enables it after a verified backup and restore (#1428). Raw payload
+    # redaction and dead-letter cleanup run regardless.
+    retention_telemetry_delete_enabled: bool = False
     raw_payload_retention_days: int = Field(default=30, ge=1, le=3650)
     dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
-    retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
+    retention_batch_size: int = Field(default=2000, ge=1, le=100_000)
+    # Backlog draining: each cycle runs short batches (one transaction each) until
+    # nothing is left, the batch limit or the time budget is reached; a cycle that
+    # stops with work left is followed after the shorter backlog interval.
+    retention_max_batches_per_cycle: int = Field(default=60, ge=1, le=10_000)
+    retention_cycle_budget_seconds: float = Field(default=60.0, ge=1.0, le=3600.0)
+    retention_batch_pause_seconds: float = Field(default=0.25, ge=0.0, le=60.0)
+    retention_backlog_interval_seconds: int = Field(default=300, ge=60, le=86_400)
 
     # Local deterministic refrigeration morning reports. Scheduling is
     # acceptance-gated and therefore fail-closed unless explicitly enabled.

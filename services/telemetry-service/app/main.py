@@ -63,7 +63,7 @@ from app.reports.output_api import create_report_output_router
 from app.reports.output_queries import ReportOutputQueryRepository
 from app.reports.output_repository import ReportOutputRepository
 from app.reports.repository import ReportRepository
-from app.retention import RetentionWorker
+from app.retention import worker_from_settings
 from app.security.api import create_security_router
 from app.security.authentication import JwtAuthenticator
 from app.security.dependencies import SecurityDependencies
@@ -213,15 +213,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         database_retry_initial_seconds=resolved.database_retry_initial_seconds,
         database_retry_max_seconds=resolved.database_retry_max_seconds,
     )
-    retention_worker = RetentionWorker(
-        database=database,
-        state=state,
-        interval_seconds=resolved.retention_interval_seconds,
-        batch_size=resolved.retention_batch_size,
-        telemetry_retention_days=resolved.telemetry_retention_days,
-        raw_payload_retention_days=resolved.raw_payload_retention_days,
-        dead_letter_retention_days=resolved.dead_letter_retention_days,
-    )
+    retention_worker = worker_from_settings(database, state, resolved)
     mqtt_consumer: MqttConsumer | None = None
 
     @asynccontextmanager
