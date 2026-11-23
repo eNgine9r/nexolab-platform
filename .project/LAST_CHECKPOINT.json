@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T07:58:40Z",
+  "timestamp": "2026-11-23T08:51:29Z",
   "actor": "Claude",
-  "event": "checkpoint_writer_fix_1641_merged",
+  "event": "gitlab_sync_1713_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,7 +30,9 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1713
+  },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -1501,11 +1503,12 @@
     "active_issue_evidence": {
       "hardware_verified": false,
       "site_cutover": false,
-      "site_acceptance": "not_applicable_tooling",
-      "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
-      "pull_request": 1708,
-      "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
-      "source_merge": "pending"
+      "site_acceptance": "not_applicable_dev_infrastructure",
+      "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
+      "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
+      "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending",
+      "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3831,6 +3834,24 @@
       "manual_workflow_dispatches": 0,
       "packaged_authority": "not_established",
       "new_owner_command": "not_ready"
+    },
+    "superseded_active_issue_evidence_2026-11-23T07:58:40Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_applicable_tooling",
+      "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
+      "pull_request": 1708,
+      "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-23T08:44:18Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "2026-11-23: dev cleanup npm cache 3544->16 KiB and 3 merged local branches; start script pass/fail paths exercised with a throwaway HOME; systemd-analyze verify clean; inventory script exercised without root (docker denied as expected)",
+      "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
+      "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
     }
   },
   "observations": [
@@ -5461,7 +5482,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package remains for the agent. Owner: (a) #1706 validation — PC-off continuity, approved reboot recovery test, production container identity comparison; (b) CVE-2026-124709 decision (#1692) unblocks backend-classified PRs; (c) DR phase of docs/operations/xweb-release-owner-runbook.md (#1428), read-only on-host preflight, then authorise the frontend-only or full ARM64 update; (d) decide #1700 timing. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire (#1692).",
+  "next_action": "Merge #1713 PR after exact-head GREEN CI; owner installs and runs the authenticated check per docs/operations/gitlab-sync.md before any push. Then finish #1699 (draft PR #1714: CI, state, review). Owner: dev-session install, storage inventory, #1706 validation, #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
