@@ -67,9 +67,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1713
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -12027,7 +12025,7 @@
     {
       "issue": 1699,
       "title": "Reconcile the unmerged RS-485 onboarding stack (#1483→#1521) with main",
-      "lifecycle": "queued",
+      "lifecycle": "blocked",
       "priority": "high",
       "scope": "Site/main drift: the commissioned runtime lineage is not in main; hardware acceptance stays with the owner. Not required by the XWEB release.",
       "depends_on": [],
@@ -12035,11 +12033,13 @@
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
-        "local_checks": "read-only triage 2026-11-22",
+        "local_checks": "2026-11-23 reconcile merge of stack head 4be678f6 into main (81 files; governance/state keep main); device-agent suite 373 tests OK locally; CI: unit/component, device-agent builds, fleet/acquisition/offline acceptance passed; Prettier and a pytest-only test module fixed",
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
-        "source_merge": "n/a"
+        "source_merge": "n/a",
+        "pull_request": 1714,
+        "blocker": "Container vulnerability policy: device-agent image now ships libssl3t64 3.5.9-1~deb13u1 (Debian 13.8); the owner-approved exact CVE-2026-124709 exception pins 3.5.7-1~deb13u3. Re-pinning is a new risk acceptance (Product Owner)."
       },
-      "branch": ""
+      "branch": "feat/1699-rs485-onboarding-reconcile"
     },
     {
       "issue": 1700,
@@ -12118,7 +12118,7 @@
     {
       "issue": 1713,
       "title": "Automate GitHub to corporate GitLab fast-forward synchronization",
-      "lifecycle": "review",
+      "lifecycle": "needs_validation",
       "priority": "medium",
       "scope": "Owner-installed systemd service+timer (5 min, OnBootSec 10 min), DynamicUser identity, LoadCredential token and approved-tags, check/push modes, fast-forward-only main, approved release tags, divergence/rewrite/tag-collision fail-closed, SHA read-back verification, ci.skip push option, disk/memory reserve, bounded redacted JSON logging. Corporate endpoint kept out of the public repository.",
       "depends_on": [],
@@ -12129,7 +12129,7 @@
         "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
         "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
         "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
-        "source_merge": "pending",
+        "source_merge": "PR #1716 merged effc1cdb487f52d374570a576c3f782a5f1e44eb after exact-head GREEN NEXOLAB Merge Gate (head fedca928)",
         "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
       },
       "branch": "ops/1713-gitlab-sync"
