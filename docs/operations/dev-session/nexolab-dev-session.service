@@ -1,0 +1,43 @@
+# NEXOLAB isolated development session (#1706, #1710).
+# Owner-installed to /etc/systemd/system/. Started by nexolab-dev-session.timer
+# after boot; never enabled directly so production always starts first.
+# The sandbox is identical to the verified transient unit, plus service-level
+# resource limits that hold even if the user-1001.slice drop-ins are removed.
+
+[Unit]
+Description=NEXOLAB isolated development session (tmux, nexolab-dev)
+Documentation=file:///home/nexolab-dev/nexolab-platform/docs/operations/raspberry-pi-development-control-plane.md
+After=network-online.target docker.service
+Wants=network-online.target
+ConditionPathIsDirectory=/home/nexolab-dev/nexolab-platform
+ConditionPathExists=/usr/local/lib/nexolab-dev/nexolab-dev-session-start.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=nexolab-dev
+Group=nexolab-dev
+Slice=user-1001.slice
+WorkingDirectory=/home/nexolab-dev/nexolab-platform
+Environment=HOME=/home/nexolab-dev
+
+# Sandbox (unchanged from the verified transient unit).
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/home/nexolab-dev
+UMask=0077
+InaccessiblePaths=-/home/nexolab -/etc/nexolab -/var/lib/nexolab -/var/lib/docker -/run/docker.sock -/run/containerd/containerd.sock
+
+# Resource limits (same values as user-1001.slice).
+MemoryHigh=768M
+MemoryMax=1280M
+MemorySwapMax=512M
+CPUQuota=100%
+CPUWeight=20
+IOWeight=20
+TasksMax=128
+
+ExecStart=/usr/bin/tmux -S /home/nexolab-dev/nexolab.sock new-session -d -s nexolab /usr/local/lib/nexolab-dev/nexolab-dev-session-start.sh
+ExecStop=-/usr/bin/tmux -S /home/nexolab-dev/nexolab.sock kill-server

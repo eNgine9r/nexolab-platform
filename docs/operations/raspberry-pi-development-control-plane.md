@@ -58,7 +58,45 @@ sudo systemd-run --unit=nexolab-dev-session --slice=user-1001.slice \
   /usr/bin/tmux -S /home/nexolab-dev/nexolab.sock new-session -d -s nexolab /bin/bash
 ```
 
-The unit is **transient**: it survives client disconnect and the PC being switched off, but **not a host reboot**. Automatic restart after reboot is deliberately not configured; it requires a separately approved reboot test.
+This transient unit survives client disconnect and the PC being switched off, but **not a host reboot** (confirmed by the unexpected reboot on 2026-11-23). It remains the manual fallback.
+
+### Persistent session after reboot (#1710)
+
+`docs/operations/dev-session/` holds an owner-installed persistent version with the **same sandbox** plus service-level copies of the slice limits (`MemoryHigh=768M`, `MemoryMax=1280M`, `MemorySwapMax=512M`, `CPUQuota=100%`, `CPUWeight=20`, `IOWeight=20`, `TasksMax=128`):
+
+| File                           | Installed as                               | Role                                                                                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nexolab-dev-session.service`  | `/etc/systemd/system/`                     | sandboxed tmux server for `nexolab-dev`; not enabled directly                                                                                                                                                                                                   |
+| `nexolab-dev-session.timer`    | `/etc/systemd/system/`                     | starts the service 5 minutes after boot, so production starts first                                                                                                                                                                                             |
+| `nexolab-dev-session-start.sh` | `/usr/local/lib/nexolab-dev/` (root-owned) | first tmux window: waits up to 15 minutes for telemetry readiness, checks free disk (≥ 20 GiB) and host `MemAvailable` (≥ 900 MiB), writes `~/.local/state/nexolab-dev/last-recovery-snapshot.txt`, optionally resumes Claude, then leaves an interactive shell |
+
+Automatic Claude resume is **opt-in**: only when `~/.config/nexolab-dev/auto-resume` exists and all gates pass does the script run `claude --continue --permission-mode auto` with a recovery prompt (recover from repository state, checkpoints, branches, PRs and Issues; no production change; no reboot). If Claude exits, the session falls back to a shell; there is no restart loop. If a gate fails, Claude is not started and the reason is logged in `~/.local/state/nexolab-dev/session-start.log`.
+
+Install (owner, operator account with sudo; run from a checkout of `main`):
+
+```bash
+sudo install -d -o root -g root -m 0755 /usr/local/lib/nexolab-dev
+sudo install -o root -g root -m 0755 docs/operations/dev-session/nexolab-dev-session-start.sh /usr/local/lib/nexolab-dev/
+sudo install -o root -g root -m 0644 docs/operations/dev-session/nexolab-dev-session.service docs/operations/dev-session/nexolab-dev-session.timer /etc/systemd/system/
+sudo systemd-analyze verify /etc/systemd/system/nexolab-dev-session.service /etc/systemd/system/nexolab-dev-session.timer
+sudo systemctl daemon-reload
+sudo systemctl enable nexolab-dev-session.timer
+# Optional: allow automatic Claude resume after reboot.
+sudo -u nexolab-dev install -d -m 0700 /home/nexolab-dev/.config/nexolab-dev
+sudo -u nexolab-dev touch /home/nexolab-dev/.config/nexolab-dev/auto-resume
+```
+
+While a transient session is running, a unit with the same name cannot be loaded. Switch over at a convenient moment (this ends the current tmux session; commit or push work first):
+
+```bash
+sudo systemctl stop nexolab-dev-session.service   # transient unit
+sudo systemctl daemon-reload
+sudo systemctl start nexolab-dev-session.service  # persistent unit, same sandbox
+```
+
+Verify after the switch and after the next reboot: `systemctl status nexolab-dev-session.service nexolab-dev-session.timer`, `cat /proc/<claude pid>/cgroup` shows `user-1001.slice/nexolab-dev-session.service`, and `~/.local/state/nexolab-dev/session-start.log` shows the gate result. Do **not** reboot only to test this; use the next planned or unplanned restart.
+
+Disable or roll back: `sudo systemctl disable --now nexolab-dev-session.timer`; remove the opt-in flag to stop automatic resume; delete the two unit files and `/usr/local/lib/nexolab-dev/`, then `sudo systemctl daemon-reload`. Production is not affected.
 
 > Always work inside this tmux server. A shell opened with plain `sudo -u nexolab-dev` runs in the operator's cgroup, outside the sandbox and the slice limits. Never start Claude Code from such a shell.
 
@@ -90,7 +128,7 @@ This terminates the tmux server and every process in it. It does not touch produ
 ### Recover after disconnect, crash or reboot
 
 1. Check whether the session exists: `systemctl status nexolab-dev-session.service`.
-2. If absent (for example after a reboot), run the resource gate below, then start it again with the `systemd-run` command above.
+2. If absent after a reboot and the persistent timer is installed, wait for it (5 minutes after boot) and read `~/.local/state/nexolab-dev/session-start.log`. Otherwise run the resource gate below and start the session with `sudo systemctl start nexolab-dev-session.service` (persistent) or the `systemd-run` command above (transient fallback).
 3. In the workspace: `git status`, `git fetch`, then read `.project/CURRENT_STATE.md`, `.project/LAST_CHECKPOINT.json` and open PRs before continuing. Do not infer state from chat history.
 
 Execution is never uninterrupted across provider usage limits or host restarts; work resumes from the repository checkpoint.
