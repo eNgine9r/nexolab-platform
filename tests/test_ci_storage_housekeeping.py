@@ -275,3 +275,130 @@ class GuardAndUnitTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StrictReferenceScanTests(unittest.TestCase):
+    """An incomplete reference scan must never make an item look unreferenced."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.records = self.dir / "runtime"
+        (self.records / "deployments" / "d1").mkdir(parents=True)
+        self.needle = "a" * 38 + "01-20261101T000000Z"
+
+    def tearDown(self) -> None:
+        for path in self.dir.rglob("*"):
+            if path.is_dir() and not path.is_symlink():
+                path.chmod(0o755)
+        self.tmp.cleanup()
+
+    def config(self, *roots: Path) -> object:
+        return _config(reference_roots=tuple(str(r) for r in roots))
+
+    def test_missing_reference_root_fails_closed(self) -> None:
+        with self.assertRaises(HK.FailClosed):
+            HK.reference_index(self.config(self.records, self.dir / "absent"), [self.needle])
+
+    @unittest.skipIf(os.geteuid() == 0, "root can read unreadable directories")
+    def test_unreadable_directory_or_file_fails_closed(self) -> None:
+        locked = self.records / "deployments" / "locked"
+        locked.mkdir()
+        locked.chmod(0)
+        with self.assertRaises(HK.FailClosed):
+            HK.reference_index(self.config(self.records), [self.needle])
+        locked.chmod(0o755)
+        secret = self.records / "deployments" / "record.json"
+        secret.write_text("x", encoding="utf-8")
+        secret.chmod(0)
+        with self.assertRaises(HK.FailClosed):
+            HK.reference_index(self.config(self.records), [self.needle])
+
+    def test_symlinked_directory_outside_scanned_roots_fails_closed(self) -> None:
+        outside = self.dir / "elsewhere"
+        outside.mkdir()
+        (self.records / "link").symlink_to(outside)
+        with self.assertRaises(HK.FailClosed):
+            HK.reference_index(self.config(self.records), [self.needle])
+
+    def test_large_extensionless_and_symlinked_files_are_searched(self) -> None:
+        big = self.records / "deployments" / "d1" / "ROLLBACK"
+        big.write_bytes(b"x" * (HK.CHUNK - 5) + self.needle.encode() + b"y" * 100)
+        target = self.dir / "external-record.txt"
+        target.write_text(f"rollback={self.needle}", encoding="utf-8")
+        (self.records / "deployments" / "d1" / "linked.txt").symlink_to(target)
+        (self.records / "deployments" / "d1" / "bundle.tar.gz").write_bytes(self.needle.encode())
+        hits = HK.reference_index(self.config(self.records), [self.needle])[self.needle]
+        self.assertIn(str(big), hits, "a reference crossing a chunk boundary in an extension-less file is found")
+        self.assertIn(str(self.records / "deployments" / "d1" / "linked.txt"), hits)
+        self.assertNotIn(str(self.records / "deployments" / "d1" / "bundle.tar.gz"), hits)
+
+    def test_strict_scan_failure_withholds_all_image_and_release_candidates(self) -> None:
+        root = self.dir / "releases"
+        root.mkdir()
+        for day in range(1, 6):
+            _release(root, day, age_days=60)
+        config = _config(release_roots=(str(root),), reference_roots=(str(self.dir / "absent"),))
+        actions, _kept, withheld = HK.plan_all(config, FakeDocker())
+        self.assertEqual({a.kind for a in actions}, {"apt_cache"})
+        self.assertIn("reference root missing or unreadable", withheld[0])
+
+
+DSPEC = importlib.util.spec_from_file_location("nexolab_archive_dedupe", STORAGE / "nexolab-archive-dedupe.py")
+assert DSPEC and DSPEC.loader
+DD = importlib.util.module_from_spec(DSPEC)
+sys.modules[DSPEC.name] = DD
+DSPEC.loader.exec_module(DD)
+
+
+class ArchiveDedupeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.workspace = self.dir / "guarded-update"
+        self.keep = self.dir / "runtime" / "deployments"
+        (self.workspace / "pkg").mkdir(parents=True)
+        self.keep.mkdir(parents=True)
+        self.payload = os.urandom(4096)
+        (self.keep / "bundle.tar.gz").write_bytes(self.payload)
+        (self.workspace / "pkg" / "bundle-copy.tar.gz").write_bytes(self.payload)
+        (self.workspace / "pkg" / "second-copy.tgz").write_bytes(self.payload)
+        (self.workspace / "pkg" / "different.tar.gz").write_bytes(os.urandom(4096))
+        (self.workspace / "pkg" / "notes.txt").write_bytes(self.payload)
+        (self.workspace / "pkg" / "link.tar.gz").symlink_to(self.keep / "bundle.tar.gz")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def plan(self) -> tuple[Path, str, dict]:
+        out = self.dir / "plan.json"
+        DD.main(["--scan-root", str(self.workspace), "--keep-root", str(self.keep), "--min-bytes", "1024", "--plan-out", str(out)])
+        return out, hashlib.sha256(out.read_bytes()).hexdigest(), json.loads(out.read_text(encoding="utf-8"))
+
+    def test_plan_finds_only_identical_archives_inside_the_scan_root(self) -> None:
+        _out, _digest, plan = self.plan()
+        duplicates = {Path(e["duplicate"]).name for e in plan["entries"]}
+        self.assertEqual(duplicates, {"bundle-copy.tar.gz", "second-copy.tgz"})
+        self.assertTrue(all(e["retained"] == str((self.keep / "bundle.tar.gz").resolve()) for e in plan["entries"]))
+
+    def test_apply_hardlinks_keep_every_path_and_content(self) -> None:
+        out, digest, plan = self.plan()
+        with self.assertRaises(SystemExit):
+            DD.apply_plan(out, "0" * 64)
+        done, skipped = DD.apply_plan(out, digest)
+        self.assertEqual((len(done), skipped), (2, []))
+        retained = (self.keep / "bundle.tar.gz").stat()
+        for name in ("bundle-copy.tar.gz", "second-copy.tgz"):
+            path = self.workspace / "pkg" / name
+            self.assertTrue(path.is_file(), "every recorded path still exists")
+            self.assertEqual(path.read_bytes(), self.payload)
+            self.assertEqual(path.stat().st_ino, retained.st_ino)
+        self.assertEqual((self.keep / "bundle.tar.gz").read_bytes(), self.payload, "retained copy untouched")
+        self.assertNotEqual((self.workspace / "pkg" / "different.tar.gz").stat().st_ino, retained.st_ino)
+
+    def test_changed_file_after_plan_is_skipped(self) -> None:
+        out, digest, _plan = self.plan()
+        (self.workspace / "pkg" / "second-copy.tgz").write_bytes(os.urandom(4096))
+        done, skipped = DD.apply_plan(out, digest)
+        self.assertEqual([Path(e["duplicate"]).name for e in done], ["bundle-copy.tar.gz"])
+        self.assertEqual(skipped[0]["reason"], "content changed")

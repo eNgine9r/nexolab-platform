@@ -71,6 +71,10 @@ Apply re-plans everything and executes only manifest entries that are **still** 
 
 What a manifest can contain: APT downloads; Docker build cache older than 7 days; dangling images older than 7 days; `<sha>-<stamp>` frontend releases outside the newest 3 and older than 14 days. Never: volumes, containers, tagged images, PostgreSQL, evidence, deployments, backups, Commander workspaces.
 
+The reference scan is strict: a configured reference root that is missing or unreadable, any unreadable directory or file, or a symlinked directory leading outside the scanned roots withholds **all** image and release candidates. Every regular file is searched completely (streamed, including large and extension-less files and symlinked files); only binary archives and media are skipped. Remove a reference root from `housekeeping.env` only if it genuinely does not exist on the host.
+
+Byte-identical archives inside a retired workspace are deduplicated, not deleted: `nexolab-archive-dedupe.py` replaces each verified duplicate with a hard link to a retained identical copy (same filesystem, equal size and full SHA-256, re-verified immediately before linking), so every recorded path keeps identical content and only the duplicate blocks are freed.
+
 Large individual workspaces (for example `guarded-update-1313`) are reviewed separately and read-only first:
 
 ```bash
