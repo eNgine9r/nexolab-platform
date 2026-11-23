@@ -28,6 +28,7 @@ import {
   type EnergySeriesSelection,
 } from "@/features/energy/energy-series-selection";
 import { ENERGY_METRICS } from "@/features/energy/energy-telemetry";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 
 const NARROW_CHART_QUERY = "(max-width: 767px)";
@@ -47,11 +48,15 @@ function serverAxisBudgetSnapshot(): number {
 export function EnergyHistoryChart({
   telemetry,
   selectedUnitIds,
+  selectedMeterKeys,
+  meters,
   selectedPairs,
   visibilityRevision = 0,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
+  selectedMeterKeys?: readonly string[];
+  meters?: readonly CommissionedEnergyMeter[];
   selectedPairs?: readonly EnergySeriesSelection[];
   visibilityRevision?: number;
 }) {
@@ -76,6 +81,8 @@ export function EnergyHistoryChart({
         selectedMetrics: telemetry.selectedMetrics,
         selectedPairs,
         selectedUnitIds,
+        selectedMeterKeys,
+        meters,
         status: telemetry.status,
         historyWindow: telemetry.historyWindow,
         cadenceAuthority: telemetry.cadenceAuthority,
@@ -85,6 +92,8 @@ export function EnergyHistoryChart({
       historical,
       selectedPairs,
       selectedUnitIds,
+      selectedMeterKeys,
+      meters,
       telemetry.cadenceAuthority,
       telemetry.historySamples,
       telemetry.historyWindow,

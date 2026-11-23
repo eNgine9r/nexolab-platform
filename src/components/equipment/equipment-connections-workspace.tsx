@@ -11,6 +11,8 @@ import type {
 } from "@/features/equipment/commissioning-repository";
 import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 import type { EquipmentDiscoveryRepository } from "@/features/equipment/discovery-repository";
+import { instrumentLiveLink } from "@/features/equipment/instrument-live-link";
+import { sectionProbeCount } from "@/features/equipment/xjp60d-sections";
 
 type SessionViewFilter = "all" | "attention" | "in_progress" | "active";
 
@@ -32,7 +34,7 @@ const lifecycleLabel: Record<CommissioningSession["lifecycle"], string> = {
   ready_for_preflight: "Готова до перевірки",
   verified: "Перевірено",
   pending_activation: "Активація…",
-  active: "Read-only моніторинг активний",
+  active: "Зчитування ввімкнено",
   activation_failed: "Активація не завершена",
   rolled_back: "Відкочено",
   blocked: "Заблокована",
@@ -87,13 +89,14 @@ export function EquipmentConnectionsWorkspace({
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setLoadedRepository(repository);
-        setError(cause instanceof Error ? cause.message : "Чернетки комісіонування недоступні.");
+        setError(cause instanceof Error ? cause.message : "Список приладів недоступний.");
         setState("error");
       });
     return () => controller.abort();
   }, [epoch, repository]);
 
-  const visibleSessions = loadedRepository === repository ? sessions : [];
+  const visibleSessions =
+    loadedRepository === repository ? sessions.filter((session) => session.lifecycle !== "cancelled") : [];
   const assetNames = new Map(
     assets
       .filter((asset) => asset.category === "refrigeration-equipment")
@@ -151,7 +154,7 @@ export function EquipmentConnectionsWorkspace({
             <div className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-cyan-300 uppercase">
               <Cable className="h-4 w-4" aria-hidden="true" /> RS-485 · локальні підключення
             </div>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Підключення пристроїв</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Підключені прилади</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
               Знайдіть прилад, перевірте збережену шину та статус підключення. Активний моніторинг
               відображається лише після підтвердженої активації. Зміни в цьому списку не надсилають команди
@@ -200,7 +203,7 @@ export function EquipmentConnectionsWorkspace({
           <button
             type="button"
             onClick={load}
-            aria-label="Оновити чернетки комісіонування"
+            aria-label="Оновити список приладів"
             className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-slate-300 hover:bg-white/[0.05] focus:ring-2 focus:ring-cyan-300 focus:outline-none"
           >
             <RotateCcw className="h-4 w-4" />
@@ -241,7 +244,7 @@ export function EquipmentConnectionsWorkspace({
 
         {viewState === "loading" ? (
           <div role="status" className="mt-5 flex items-center gap-2 text-sm text-slate-400">
-            <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" /> Завантаження чернеток…
+            <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" /> Завантаження приладів…
           </div>
         ) : null}
         {viewState === "error" ? (
@@ -255,8 +258,8 @@ export function EquipmentConnectionsWorkspace({
         {viewState === "ready" && visibleSessions.length === 0 ? (
           <div className="mt-5 rounded-2xl border border-dashed border-white/10 p-7 text-center">
             <CircleDashed className="mx-auto h-7 w-7 text-slate-600" />
-            <p className="mt-3 text-sm font-medium text-white">Чернеток ще немає</p>
-            <p className="mt-1 text-xs text-slate-500">Створіть намір для вже підтримуваного профілю.</p>
+            <p className="mt-3 text-sm font-medium text-white">Приладів ще немає</p>
+            <p className="mt-1 text-xs text-slate-500">Натисніть «Підключити пристрій», щоб додати перший.</p>
           </div>
         ) : null}
         {viewState === "ready" && visibleSessions.length > 0 && filteredSessions.length === 0 ? (
@@ -277,19 +280,23 @@ export function EquipmentConnectionsWorkspace({
         {viewState === "ready" && filteredSessions.length > 0 ? (
           <div className="mt-4 grid gap-2 xl:grid-cols-2">
             {filteredSessions.map((session) => (
-              <Link
+              <article
                 key={session.id}
-                href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}
-                className="group rounded-2xl border border-white/[0.07] bg-[#06142a]/65 p-4 transition hover:border-cyan-300/20 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+                className="rounded-2xl border border-white/[0.07] bg-[#06142a]/65 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white">
-                      {session.manufacturer} {session.model}
+                      {session.displayName || `${session.manufacturer} ${session.model}`}
                     </p>
                     <p className="mt-1 text-[11px] leading-4 break-words text-slate-400">
                       {session.profileId ?? "Профіль не визначено"} · версія {session.version}
                     </p>
+                    {session.displayName ? (
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {session.manufacturer} {session.model}
+                      </p>
+                    ) : null}
                   </div>
                   <span
                     className={`max-w-[12rem] shrink-0 rounded-full border px-2.5 py-1 text-center text-[11px] leading-4 font-medium ${lifecycleTone[session.lifecycle]}`}
@@ -302,17 +309,44 @@ export function EquipmentConnectionsWorkspace({
                   {session.unitId !== null ? <span>Unit ID: {session.unitId}</span> : null}
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  Прив’язка:{" "}
+                  {sectionProbeCount(session.profileId) !== null && session.unitId
+                    ? `Адреси ${session.unitId}–${session.unitId + 5}`
+                    : `Адреса ${session.unitId ?? "—"}`}{" "}
+                  ·{" "}
                   {session.targetEquipmentKey
-                    ? (assetNames.get(session.targetEquipmentKey) ?? session.targetEquipmentKey)
-                    : "не вибрана"}
+                    ? `Прив’язка: ${assetNames.get(session.targetEquipmentKey) ?? session.targetEquipmentKey}`
+                    : "Самостійний прилад"}
                 </p>
+                {sectionProbeCount(session.profileId) !== null ? (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Підключено: {sectionProbeCount(session.profileId)} · Резерв:{" "}
+                    {6 - sectionProbeCount(session.profileId)!}
+                  </p>
+                ) : null}
                 {session.unsupportedReason || session.blockedReason ? (
                   <p className="mt-2 flex items-center gap-1.5 text-[11px] leading-4 text-amber-200">
                     <Ban className="h-3 w-3" /> {session.unsupportedReason ?? session.blockedReason}
                   </p>
                 ) : null}
-              </Link>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {instrumentLiveLink(session) ? (
+                    <Link
+                      href={instrumentLiveLink(session)!}
+                      aria-label={`Показники: ${session.displayName || `${session.manufacturer} ${session.model}`}`}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-200 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+                    >
+                      Показники
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}
+                    aria-label={`Налаштування: ${session.displayName || `${session.manufacturer} ${session.model}`}`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.05] focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+                  >
+                    {session.lifecycle === "active" ? "Налаштування" : "Переглянути підключення"}
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
         ) : null}

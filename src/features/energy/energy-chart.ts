@@ -27,7 +27,12 @@ import {
   isEnergySample,
   resolveEnergyMeter,
   type EnergyMetricId,
+  type EnergyMeter,
 } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import { energySeriesSelectionKey, type EnergySeriesSelection } from "./energy-series-selection";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -39,6 +44,12 @@ const METER_COLORS: Record<number, string> = {
   202: "#a78bfa",
   203: "#f59e0b",
 };
+
+function scopedColor(identity: string, metricIndex: number): string {
+  let hash = 0;
+  for (const char of identity) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return `hsl(${(hash + metricIndex * 137.508) % 360} 75% 65%)`;
+}
 
 export interface EnergyChartScene {
   series: ChartSeries[];
@@ -169,6 +180,8 @@ export function buildEnergyChartScene({
   selectedMetrics,
   selectedPairs,
   selectedUnitIds,
+  selectedMeterKeys,
+  meters = [],
   status,
   historyWindow,
   cadenceAuthority = null,
@@ -180,6 +193,8 @@ export function buildEnergyChartScene({
   selectedMetrics?: readonly EnergyMetricId[];
   selectedPairs?: readonly EnergySeriesSelection[];
   selectedUnitIds: readonly number[];
+  selectedMeterKeys?: readonly string[];
+  meters?: readonly CommissionedEnergyMeter[];
   status: EnergyTelemetryModel["status"];
   historyWindow: EnergyTelemetryModel["historyWindow"];
   /** Per-meter stale threshold owner (same rule as the page status); 30 s default without one. */
@@ -192,10 +207,11 @@ export function buildEnergyChartScene({
   const metrics = new Set(selectedMetrics ?? [selectedMetric ?? ENERGY_METRICS[0].id]);
   const pairs = selectedPairs ? new Set(selectedPairs.map(energySeriesSelectionKey)) : null;
   const selected = new Set(selectedUnitIds);
+  const selectedScoped = new Set(selectedMeterKeys ?? []);
   const groups = new Map<
     string,
     {
-      meter: (typeof ENERGY_METERS)[number];
+      meter: EnergyMeter;
       metric: (typeof ENERGY_METRICS)[number];
       nodeId: string;
       channelId: string;
@@ -203,11 +219,17 @@ export function buildEnergyChartScene({
     }
   >();
   for (const sample of samples) {
-    if (!metrics.has(sample.metric as EnergyMetricId) || !isEnergySample(sample)) continue;
-    const meter = resolveEnergyMeter(sample);
+    if (!metrics.has(sample.metric as EnergyMetricId) || !isEnergySample(sample, meters)) continue;
+    const meter = resolveEnergyMeter(sample, meters);
     const metric = ENERGY_METRICS.find((item) => item.id === sample.metric);
-    if (!meter || !metric || !selected.has(meter.unitId)) continue;
-    if (pairs && !pairs.has(energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id }))) continue;
+    if (!meter || !metric) continue;
+    const scopedKey = "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : undefined;
+    if (scopedKey ? !selectedScoped.has(scopedKey) : !selected.has(meter.unitId)) continue;
+    if (
+      pairs &&
+      !pairs.has(energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id, meterKey: scopedKey }))
+    )
+      continue;
     const key = JSON.stringify([
       sample.node_id,
       meter.equipmentId,
@@ -233,6 +255,7 @@ export function buildEnergyChartScene({
         energyMeterOrder(left.meter.unitId) - energyMeterOrder(right.meter.unitId) ||
         ENERGY_METRICS.indexOf(left.metric) - ENERGY_METRICS.indexOf(right.metric) ||
         left.nodeId.localeCompare(right.nodeId) ||
+        left.meter.equipmentId.localeCompare(right.meter.equipmentId) ||
         left.channelId.localeCompare(right.channelId),
     )
     .map((group) => {
@@ -247,9 +270,14 @@ export function buildEnergyChartScene({
         identity,
         name: `${group.meter.label} · ${group.metric.label} · ${group.meter.equipmentId} · ${group.channelId}`,
         colorToken:
-          group.metric.id === "electrical.power.active"
-            ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
-            : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
+          "nodeId" in group.meter
+            ? scopedColor(
+                energyMeterIdentity(group.nodeId, group.meter.equipmentId),
+                ENERGY_METRICS.indexOf(group.metric),
+              )
+            : group.metric.id === "electrical.power.active"
+              ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
+              : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
         dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
         ...(historical

@@ -13,6 +13,7 @@ import {
   selectEnergyBoundarySample,
 } from "@/features/energy/energy-consumption-cache";
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -25,7 +26,7 @@ const boundaryHistoryCache = createEnergyBoundaryHistoryCache();
 export interface EnergyConsumptionLoader {
   enabled: boolean;
   load: (
-    unitId: number,
+    selection: number | CommissionedEnergyMeter,
     window: EnergyConsumptionWindow,
     currentCumulative: TelemetrySample | null,
     signal?: AbortSignal,
@@ -60,11 +61,19 @@ export function useEnergyConsumption({
   enabled,
   organizationId,
   securityScopeId,
+  commissionedMeters = [],
 }: {
   enabled: boolean;
   organizationId: string | null;
   securityScopeId: string | null;
+  commissionedMeters?: readonly CommissionedEnergyMeter[];
 }): EnergyConsumptionLoader {
+  const inventoryJSON = JSON.stringify(
+    [...commissionedMeters].sort((left, right) =>
+      `${left.nodeId}\u0000${left.equipmentId}`.localeCompare(`${right.nodeId}\u0000${right.equipmentId}`),
+    ),
+  );
+  const meters = useMemo(() => JSON.parse(inventoryJSON) as CommissionedEnergyMeter[], [inventoryJSON]);
   const resolvedOrganizationId =
     organizationId?.trim() || process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
   const resolvedSecurityScopeId = securityScopeId?.trim() || "anonymous";
@@ -79,7 +88,7 @@ export function useEnergyConsumption({
   const cacheScopeKey = `${resolvedSecurityScopeId}:${resolvedOrganizationId ?? "no-organization"}`;
 
   const load = useCallback<EnergyConsumptionLoader["load"]>(
-    async (unitId, window, currentCumulative, signal) => {
+    async (selection, window, currentCumulative, signal) => {
       if (!enabled || !adapter) {
         return {
           status: "error",
@@ -89,18 +98,33 @@ export function useEnergyConsumption({
           message: "Енергоспоживання недоступне без авторизованого локального live runtime.",
         };
       }
-      const meter = ENERGY_METERS.find((item) => item.unitId === unitId);
+      const matches =
+        typeof selection === "number"
+          ? []
+          : meters.filter(
+              (item) =>
+                item.nodeId === selection.nodeId &&
+                item.equipmentId === selection.equipmentId &&
+                item.unitId === selection.unitId,
+            );
+      const meter =
+        typeof selection === "number"
+          ? ENERGY_METERS.find((item) => item.unitId === selection)
+          : matches.length === 1
+            ? matches[0]
+            : undefined;
       if (!meter) {
         return {
           status: "error",
           valueKwh: null,
           startSample: null,
           endSample: null,
-          message: `Невідомий лічильник енергії з Unit ${unitId}.`,
+          message: "Лічильник відсутній в авторизованому списку або його ідентичність неоднозначна.",
         };
       }
 
       try {
+        const nodeId = "nodeId" in meter ? meter.nodeId : ENERGY_NODE_ID;
         signal?.throwIfAborted();
         const now = Date.now();
         const toAt = window.to.getTime();
@@ -112,6 +136,8 @@ export function useEnergyConsumption({
           currentCumulative ? [currentCumulative] : [],
           meter,
           window.to,
+          ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+          nodeId,
         );
 
         if (endsAtCurrentBoundary && !endSample) {
@@ -121,17 +147,23 @@ export function useEnergyConsumption({
         const startSamples = await boundaryHistoryCache.load({
           adapter,
           scopeKey: cacheScopeKey,
-          nodeId: ENERGY_NODE_ID,
+          nodeId,
           boundary: window.from,
         });
         signal?.throwIfAborted();
-        const startSample = selectEnergyBoundarySample(startSamples, meter, window.from);
+        const startSample = selectEnergyBoundarySample(
+          startSamples,
+          meter,
+          window.from,
+          ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+          nodeId,
+        );
 
         if (!endsAtCurrentBoundary && !endSample) {
           const endSamples = await boundaryHistoryCache.load({
             adapter,
             scopeKey: cacheScopeKey,
-            nodeId: ENERGY_NODE_ID,
+            nodeId,
             boundary: window.to,
           });
           signal?.throwIfAborted();
@@ -140,6 +172,7 @@ export function useEnergyConsumption({
             meter,
             window.to,
             ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+            nodeId,
           );
         }
 
@@ -155,7 +188,7 @@ export function useEnergyConsumption({
         };
       }
     },
-    [adapter, cacheScopeKey, enabled],
+    [adapter, cacheScopeKey, enabled, meters],
   );
 
   const consumptionEnabled = enabled && adapter !== null;

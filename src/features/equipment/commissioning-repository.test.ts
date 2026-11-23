@@ -210,6 +210,44 @@ describe("HttpCommissioningRepository", () => {
     });
   });
 
+  it("keeps a commissioned bus owned after activation and lists another free adapter", async () => {
+    const activated = {
+      ...connectionsPayload.connections[0],
+      bus_id: "commissioning-0ae914347f704234",
+      stable_transport_identifier: "/dev/serial/by-id/usb-sdm120",
+      available_for_read_search: true,
+      available_for_isolated_search: false,
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      json({
+        ...connectionsPayload,
+        connections: [connectionsPayload.connections[0], activated, connectionsPayload.connections[1]],
+      }),
+    );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+
+    await expect(repository.listConnections()).resolves.toMatchObject({
+      connections: [
+        { busId: "rs485-main", ownership: "production_bus" },
+        { busId: "commissioning-0ae914347f704234", ownership: "production_bus", serial: { baudrate: 9600 } },
+        { busId: "commissioning-1234567890abcdef", ownership: "available_commissioning", serial: null },
+      ],
+    });
+  });
+
+  it("still rejects an unowned adapter claiming a production serial configuration", async () => {
+    const unowned = {
+      ...connectionsPayload.connections[1],
+      serial: connectionsPayload.connections[0].serial,
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...connectionsPayload, connections: [unowned] }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+
+    await expect(repository.listConnections()).rejects.toThrow();
+  });
+
   it("preserves discovery-only activation capability from the supported profile API", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
       json({
@@ -301,6 +339,88 @@ describe("HttpCommissioningRepository", () => {
       "Idempotency-Key": "preflight-key-1",
       "X-Audit-Reason": "Run bounded read-only commissioning preflight",
     });
+  });
+
+  it("accepts FC04 only for the exact SDM120 profile", async () => {
+    const meterEvidence = {
+      ...preflightPayload.evidence,
+      profile_id: "eastron-sdm120m",
+      profile_version: "eastron-sdm120m-fc04-v1",
+      read_method: "modbus_rtu_fc04",
+      function_codes: [4],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...preflightPayload, evidence: meterEvidence }))
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...meterEvidence, function_codes: [6] } }),
+      )
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...meterEvidence, profile_id: "embraco-sync" } }),
+      );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getLatestPreflight("commissioning-1")).resolves.toMatchObject({
+      evidence: { readMethod: "modbus_rtu_fc04", functionCodes: [4] },
+    });
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+  });
+
+  it("accepts both fixed read functions only for the Waveshare profile", async () => {
+    const preflight = {
+      ...preflightPayload.evidence,
+      profile_id: "waveshare-8ai-b-v3",
+      profile_version: "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      read_method: "modbus_rtu_fc03_fc04",
+      function_codes: [3, 4],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...preflightPayload, evidence: preflight }))
+      .mockResolvedValueOnce(
+        json({ ...preflightPayload, evidence: { ...preflight, function_codes: [3, 4, 6] } }),
+      );
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getLatestPreflight("commissioning-1")).resolves.toMatchObject({
+      evidence: { functionCodes: [3, 4] },
+    });
+    await expect(repository.getLatestPreflight("commissioning-1")).rejects.toThrow();
+  });
+
+  it("requires the mixed read-only polling plan for Waveshare", async () => {
+    const plan = {
+      ...activationPlanPayload,
+      profile_id: "waveshare-8ai-b-v3",
+      profile_version: "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      polling_mode: "read_only_fc03_fc04",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(plan))
+      .mockResolvedValueOnce(json({ ...plan, polling_mode: "read_only_fc03" }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getActivationPlan("commissioning-1")).resolves.toMatchObject({
+      pollingMode: "read_only_fc03_fc04",
+    });
+    await expect(repository.getActivationPlan("commissioning-1")).rejects.toThrow();
+  });
+
+  it("requires an FC04 activation plan for the SDM120M profile", async () => {
+    const plan = {
+      ...activationPlanPayload,
+      profile_id: "eastron-sdm120m",
+      profile_version: "eastron-sdm120m-fc04-v1",
+      polling_mode: "read_only_fc04",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(plan))
+      .mockResolvedValueOnce(json({ ...plan, polling_mode: "read_only_fc03" }));
+    const repository = new HttpCommissioningRepository({ apiBaseUrl: "http://telemetry.local", fetchImpl });
+    await expect(repository.getActivationPlan("commissioning-1")).resolves.toMatchObject({
+      pollingMode: "read_only_fc04",
+    });
+    await expect(repository.getActivationPlan("commissioning-1")).rejects.toThrow();
   });
 
   it("parses activation plan/evidence and sends exact optimistic activation headers", async () => {

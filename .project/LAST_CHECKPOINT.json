@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T10:04:52Z",
+  "timestamp": "2026-11-23T10:16:44Z",
   "actor": "Claude",
-  "event": "owner_activation_prepared_cve_revalidated",
+  "event": "rs485_reconcile_1699_review_unblocked",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,7 +30,9 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1699
+  },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -1501,12 +1503,13 @@
     "active_issue_evidence": {
       "hardware_verified": false,
       "site_cutover": false,
-      "site_acceptance": "not_applicable_dev_infrastructure",
-      "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
-      "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
-      "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
-      "source_merge": "pending",
-      "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "2026-11-23 reconcile merge of stack head 4be678f6 into main (81 files; governance/state keep main); device-agent suite 373 tests OK locally; CI: unit/component, device-agent builds, fleet/acquisition/offline acceptance passed; Prettier and a pytest-only test module fixed",
+      "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+      "source_merge": "n/a",
+      "pull_request": 1714,
+      "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
+      "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3850,6 +3853,16 @@
       "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
       "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
       "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-23T10:04:52Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_applicable_dev_infrastructure",
+      "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
+      "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
+      "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending",
+      "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
     }
   },
   "observations": [
@@ -5480,7 +5493,7 @@
       }
     }
   ],
-  "next_action": "Owner, in order: (1) GitLab sync install in check mode and authenticated check (#1713); (2) read-only storage inventory and candidate review (#1710); (3) persistent dev session install (no restart of the running session); (4) GitLab push + SHA comparison, then timer, only if the check reported equal/fast_forward; (5) CVE-2026-124709 exact re-pin decision for device-agent and telegram-gateway (assessment §10) to unblock #1714; (6) decision on the 18 telemetry-service exceptions expiring 2026-11-30; (7) #1706 validation; (8) #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
+  "next_action": "Merge #1714 (#1699) after exact-head GREEN CI; hardware acceptance of the RS-485 onboarding features stays with the owner and nothing is deployed. Owner: run the prepared activation commands (GitLab check, storage inventory, dev-session install), decide the 18 telemetry-service exceptions expiring 2026-11-30, #1706 validation, #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
