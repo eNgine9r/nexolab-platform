@@ -1,6 +1,6 @@
-## 2026-11-23 — #1710 storage/resource audit and reboot-persistent dev session (in progress)
+## 2026-11-23 — #1710 storage/resource audit and reboot-persistent dev session (merged #1711, #1712; owner steps pending)
 
-The host rebooted unexpectedly at 08:15:55Z; production recovered on its own (Device Agent sampling, telemetry ready, lag 0.15 s). The transient dev session was lost, so an owner-installed persistent session (unit + 5-minute boot timer + gated start script, same sandbox and limits, opt-in Claude auto-resume) is in docs/operations/dev-session. Audit: 199 GiB used / 24 GiB free, ~189 GiB in owner-only areas; dev workspace 629 MiB (cleanup reclaimed ~3.5 MiB). Owner read-only inventory script and cleanup manifest: docs/operations/storage-resource-audit-1710.md. No production, Docker, database or hardware change.
+The host rebooted unexpectedly at 08:15:55Z; production recovered on its own (Device Agent sampling, telemetry ready, lag 0.15 s). The transient dev session was lost, so an owner-installed persistent session (unit + 5-minute boot timer + gated start script, same sandbox and limits, opt-in Claude auto-resume) is in docs/operations/dev-session. Audit: 199 GiB used / 24 GiB free, ~189 GiB in owner-only areas; dev workspace 629 MiB (cleanup reclaimed ~3.5 MiB). Owner read-only inventory script and cleanup manifest: docs/operations/storage-resource-audit-1710.md. Repository audit: module-level scans clean; the obsolete disabled-auth deploy script was removed (#1712). Owner steps: install docs/operations/dev-session, run the read-only inventory, decide manifest M1–M6 and R1–R4. No production, Docker, database or hardware change.
 
 ## 2026-11-23 — #1641 checkpoint writer keeps historical evidence (merged #1708, 97f7f95c)
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T08:25:15Z",
+  "timestamp": "2026-11-23T08:44:18Z",
   "actor": "Claude",
-  "event": "storage_audit_1710_in_progress",
+  "event": "storage_audit_1710_merged",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,9 +30,7 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": {
-    "issue": 1710
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -5472,7 +5470,7 @@
       }
     }
   ],
-  "next_action": "#1710: merge the persistent dev session + audit docs PR, then the focused obsolete-script removal PR; owner installs docs/operations/dev-session and runs docs/operations/storage/nexolab-storage-inventory.sh. Then #1699 assessment. Owner gates unchanged: #1706 validation, CVE-2026-124709 decision (#1692), #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
+  "next_action": "Next: #1713 GitHub to GitLab sync (owner-installed systemd timer, LoadCredential, fast-forward only), then finish #1699 (draft PR #1714, reconcile merge pushed). Owner: install docs/operations/dev-session; run docs/operations/storage/nexolab-storage-inventory.sh; #1706 validation; #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
