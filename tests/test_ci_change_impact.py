@@ -886,6 +886,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         result = classify([".github/workflows/ci.yml"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_project_state_writer_is_ci_governance_not_cross_surface(self) -> None:
+        result = classify(["scripts/project-state.py", "tests/test_ci_project_state_v2.py"])
+        self.assertEqual(result["classes"], ["ci_governance"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_core_only_toolchain_changes_do_not_require_unrelated_external_lanes(self) -> None:
         for path in (
             "eslint.config.mjs",
