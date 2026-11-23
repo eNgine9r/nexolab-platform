@@ -162,8 +162,12 @@ Recommendations (each a separate owner-approved Work Package; nothing was change
 - Script reference scan (`scripts/`, excluding tests): four files are referenced nowhere else.
   - `scripts/repair-postgres-role-password.sh`, `scripts/resume-central-api-raspberry-pi.sh`: incident recovery tools from #162. **KEEP** — unreferenced is not obsolete for recovery tooling.
   - `scripts/run-chart-benchmark.mjs`: drives `tests/chart-benchmark/`, used by the #1620 density benchmark. **KEEP**.
-  - `scripts/deploy-disabled-auth-websocket-fix.sh`: one-off July deployment that copies the WebSocket client from the `ops/raspberry-pi-current-head-launch` branch over the working tree, builds and restarts `nexolab-dashboard.service`. Running it today would deploy July code to production. **Obsolete and hazardous**; removed in a separate focused PR.
-- Broader dead-code analysis of `src/` and `services/` (unused components, modules, dependencies) needs the full Node toolchain and is proposed as a CI-run follow-up, not done on the Pi.
+  - `scripts/deploy-disabled-auth-websocket-fix.sh`: one-off July deployment that copies the WebSocket client from the `ops/raspberry-pi-current-head-launch` branch over the working tree, builds and restarts `nexolab-dashboard.service`. `main` implements disabled-auth WebSocket handling itself (`src/lib/telemetry/websocket-client.ts`, `provider !== "disabled"`), so running it today would deploy July code to production. **Removed** in PR #1712 (`2d917dd3`).
+- Frontend module scan (319 non-route, non-test modules under `src/`): every module is imported somewhere (the only hit, `src/test/setup.ts`, is the Vitest setup file).
+- Python service module scan (`services/*`, excluding tests and migrations): every module is referenced.
+- `package.json`: every declared dependency is referenced outside the lockfile.
+- Byte-identical files: one pair, `infrastructure/mqtt/dynamic-security/dynsec-admin.sh` and `services/telemetry-service/bin/nexolab-dynsec-admin`, is an intentional copy with a CI drift check (`docs/operations/mqtt-broker-control.md`). **KEEP**.
+- These scans are reference-based. Symbol-level dead code inside used modules (unused exports, unreachable branches) needs a TypeScript-aware tool such as `knip` with a full `npm ci`; that is a CI-run follow-up, not a Pi task.
 
 ## Storage and resource policy
 
