@@ -67,7 +67,9 @@
     "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1706
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -12055,6 +12057,24 @@
         "source_merge": "n/a"
       },
       "branch": ""
+    },
+    {
+      "issue": 1706,
+      "title": "Move the Claude Code development control plane to an isolated Raspberry Pi ARM64 workspace",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Development-only: isolated nexolab-dev account (no sudo/docker/serial, sandboxed transient tmux unit, user-1001.slice 768/1280 MiB, 1 CPU, 128 tasks), native ARM64 Claude Code, fresh clone, PC-independent runbook docs/operations/raspberry-pi-development-control-plane.md. No production, deployment, hardware or database change.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "2026-11-23 read-only from the sandboxed session: isolation (sudo refused, docker.sock/operator home/etc/nexolab inaccessible, no serial devices), slice limits, 24 GiB free, Claude 2.1.323 aarch64, gh auth (masked), Device Agent /health ok and telemetry /health/ready ready (lag ~0.18 s); validate-project-state passed",
+        "owner_pending": "PC-off continuity, approved reboot recovery test, before/after production container identity comparison (no Docker access from the dev account by design)",
+        "review_clearance": "Product Owner directive 2026-11-23 (Pi primary development environment) and AGENTS.md autonomous execution authorization",
+        "source_merge": "pending"
+      },
+      "branch": "docs/1706-pi-dev-control-plane"
     }
   ],
   "maintenance_actions": [
