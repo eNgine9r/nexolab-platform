@@ -1,4 +1,8 @@
-## 2026-11-23 — #1706 development control plane moved to the isolated Raspberry Pi account (in review)
+## 2026-11-23 — #1641 checkpoint writer keeps historical evidence (in review, #1708)
+
+`scripts/project-state.py checkpoint` now refreshes only the event fields of the existing checkpoint and fails closed if any evidence snapshot, observation, baseline or top-level record would be dropped. Its first real dry run exposed stale sprint baselines (pre-#1638 frontend release) that would have silently replaced the installed `f0295409` identity; differing baselines are now refused unless `--accept-baseline-changes` is given, and the sprint baselines were reconciled to the checkpoint. Tooling only.
+
+## 2026-11-23 — #1706 development control plane moved to the isolated Raspberry Pi account (merged #1707, owner validation pending)
 
 Development now runs on `nexolab-edge-01` under the non-privileged `nexolab-dev` account inside a sandboxed transient tmux unit (no sudo, Docker, serial or production paths; `user-1001.slice` 768/1280 MiB, one CPU, 128 tasks); the Windows PC is no longer required and remains a fallback. Heavy builds and tests stay in GitHub Actions. Read-only verification from the session: isolation holds, 24 GiB free, Device Agent and telemetry healthy. Owner-pending: PC-off continuity, an approved reboot recovery test, production container identity comparison. Runbook: docs/operations/raspberry-pi-development-control-plane.md. No production, deployment, hardware or database change.
 

@@ -325,8 +325,68 @@ def complete_work(active: dict[str, Any], *, issue: int) -> dict[str, Any]:
     return result
 
 
-def make_checkpoint(*, active: dict[str, Any], current: dict[str, Any] | None, event: str, next_action: str, timestamp: str, actor: str) -> dict[str, Any]:
-    result: dict[str, Any] = {
+def _require_preserved(previous: dict[str, Any], result: dict[str, Any]) -> None:
+    """Fail closed if a checkpoint rewrite would drop historical evidence."""
+    lost = [f"top-level {key!r}" for key in previous if key not in result]
+    for section in ("evidence_snapshot", "baselines"):
+        before = previous.get(section)
+        after = result.get(section)
+        if isinstance(before, dict):
+            after_keys = after if isinstance(after, dict) else {}
+            lost.extend(f"{section}.{key}" for key in before if key not in after_keys)
+    before_observations = previous.get("observations")
+    if isinstance(before_observations, list):
+        after_observations = result.get("observations")
+        if not isinstance(after_observations, list) or any(
+            item not in after_observations for item in before_observations
+        ):
+            lost.append("observations")
+    if lost:
+        raise ValueError("checkpoint would drop existing evidence: " + ", ".join(lost))
+
+
+def _archive_superseded_active_evidence(
+    snapshot: dict[str, Any], active: dict[str, Any], replacement: Any, previous_timestamp: Any
+) -> None:
+    """Keep a replaced active_issue_evidence unless the sprint already holds it."""
+    old = snapshot.get("active_issue_evidence")
+    if not old or old == replacement:
+        return
+    if any(item.get("evidence") == old for item in active.get("work_packages", [])):
+        return
+    key = f"superseded_active_issue_evidence_{previous_timestamp or 'unknown'}"
+    existing = snapshot.get(key)
+    if existing is not None and existing != old:
+        raise ValueError(f"checkpoint would overwrite archived evidence {key!r}")
+    snapshot[key] = old
+
+
+def make_checkpoint(
+    *,
+    active: dict[str, Any],
+    current: dict[str, Any] | None,
+    event: str,
+    next_action: str,
+    timestamp: str,
+    actor: str,
+    previous: dict[str, Any] | None = None,
+    accept_baseline_changes: bool = False,
+) -> dict[str, Any]:
+    """Build the next checkpoint.
+
+    With ``previous`` (the existing checkpoint) only the event fields are
+    regenerated; historical evidence snapshots, observations, extra baselines
+    and any other top-level records are carried forward unchanged (#1641).
+    A baseline whose value differs between ACTIVE_SPRINT and the existing
+    checkpoint is refused unless ``accept_baseline_changes`` is set, so a
+    stale sprint baseline can never silently replace recorded release state.
+    """
+    active_issue_evidence = (
+        copy.deepcopy(find_work_package(active, current["issue"]).get("evidence", {}))
+        if current is not None
+        else None
+    )
+    regenerated: dict[str, Any] = {
         "schema_version": 2,
         "project": "NEXOLAB",
         "profile": "LOCAL_LAN",
@@ -336,11 +396,43 @@ def make_checkpoint(*, active: dict[str, Any], current: dict[str, Any] | None, e
         "event": event,
         "baselines": copy.deepcopy(active["baselines"]),
         "active_work": copy.deepcopy(active["selection"].get("active_work_package")),
-        "evidence_snapshot": {"active_issue_evidence": copy.deepcopy(find_work_package(active, current["issue"]).get("evidence", {})) if current is not None else {}},
+        "evidence_snapshot": {"active_issue_evidence": active_issue_evidence if active_issue_evidence is not None else {}},
         "observations": [],
         "next_action": next_action,
         "safety": copy.deepcopy(active["safety"]),
     }
+    if previous is None:
+        result = regenerated
+    else:
+        result = copy.deepcopy(previous)
+        for key, value in regenerated.items():
+            if key == "baselines":
+                merged = result.get("baselines")
+                merged = merged if isinstance(merged, dict) else {}
+                changed = sorted(k for k in value if k in merged and merged[k] != value[k])
+                if changed and not accept_baseline_changes:
+                    raise ValueError(
+                        "ACTIVE_SPRINT baselines differ from the existing checkpoint for "
+                        + ", ".join(changed)
+                        + "; reconcile them or pass --accept-baseline-changes"
+                    )
+                merged.update(value)
+                result["baselines"] = merged
+            elif key == "evidence_snapshot":
+                snapshot = result.get("evidence_snapshot")
+                snapshot = snapshot if isinstance(snapshot, dict) else {}
+                if active_issue_evidence is not None:
+                    _archive_superseded_active_evidence(
+                        snapshot, active, active_issue_evidence, previous.get("timestamp")
+                    )
+                    snapshot["active_issue_evidence"] = active_issue_evidence
+                result["evidence_snapshot"] = snapshot
+            elif key == "observations":
+                if not isinstance(result.get("observations"), list):
+                    result["observations"] = []
+            else:
+                result[key] = value
+        _require_preserved(previous, result)
     _VALIDATOR.validate_checkpoint(result)
     return result
 
@@ -389,6 +481,11 @@ def parse_args() -> argparse.Namespace:
     checkpoint.add_argument("--next-action", required=True)
     checkpoint.add_argument("--timestamp", required=True)
     checkpoint.add_argument("--actor", default="ChatGPT")
+    checkpoint.add_argument(
+        "--accept-baseline-changes",
+        action="store_true",
+        help="allow ACTIVE_SPRINT baselines to replace differing checkpoint baselines",
+    )
     checkpoint.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -430,7 +527,16 @@ def main() -> int:
         return 0
     if args.command == "checkpoint":
         current = active["selection"].get("active_work_package")
-        updated = make_checkpoint(active=active, current=current, event=args.event, next_action=args.next_action, timestamp=args.timestamp, actor=args.actor)
+        updated = make_checkpoint(
+            active=active,
+            current=current,
+            event=args.event,
+            next_action=args.next_action,
+            timestamp=args.timestamp,
+            actor=args.actor,
+            previous=checkpoint,
+            accept_baseline_changes=args.accept_baseline_changes,
+        )
         _write_or_preview(checkpoint_path, checkpoint, updated, dry_run=args.dry_run)
         return 0
     raise AssertionError(args.command)
