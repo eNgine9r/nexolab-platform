@@ -49,8 +49,11 @@ from typing import Callable, Iterable
 RELEASE_NAME = re.compile(r"^(?P<sha>[0-9a-f]{40})-(?P<stamp>\d{8}T\d{6}Z)$")
 IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
 UNIT_DIRS = ("/etc/systemd/system", "/run/systemd/system", "/lib/systemd/system")
-REFERENCE_SUFFIXES = {".json", ".txt", ".env", ".conf", ".yaml", ".yml", ".sha256", ".manifest", ".log", ".md", ".sh", ".service"}
-REFERENCE_MAX_BYTES = 8 * 1024 * 1024
+# Large binary payloads cannot hold a plain-text reference; every other regular
+# file under a reference root is searched completely (streamed in chunks).
+BINARY_SUFFIXES = {".tar", ".gz", ".tgz", ".zst", ".xz", ".bz2", ".zip", ".img", ".iso", ".deb", ".dump",
+                   ".so", ".png", ".jpg", ".jpeg", ".webp", ".woff", ".woff2", ".wasm", ".pdf", ".age", ".enc", ".gpg"}
+CHUNK = 1024 * 1024
 GIB = 1024**3
 
 
@@ -200,34 +203,74 @@ def _process_paths() -> set[str]:
     return paths
 
 
+def _file_mentions(path: Path, needles: set[str]) -> set[str]:
+    """Stream a file and return the needles it contains (chunk overlap covers boundaries)."""
+    found: set[str] = set()
+    overlap = max((len(n) for n in needles), default=1)
+    tail = b""
+    encoded = {needle: needle.encode() for needle in needles}
+    with path.open("rb") as handle:
+        while True:
+            block = handle.read(CHUNK)
+            if not block:
+                break
+            data = tail + block
+            for needle, raw in encoded.items():
+                if needle not in found and raw in data:
+                    found.add(needle)
+            if len(found) == len(needles):
+                break
+            tail = data[-overlap:]
+    return found
+
+
 def reference_index(config: Config, needles: Iterable[str]) -> dict[str, list[str]]:
-    """Map each needle to the record files (under reference roots) that mention it."""
+    """Map each needle to the record files (under reference roots) that mention it.
+
+    Strict: a configured root that is missing or unreadable, any unreadable
+    directory or file, or a symlinked directory that leaves the scanned roots
+    raises FailClosed, so an incomplete scan can never make an item look
+    unreferenced. Symlinked files are read through to their target.
+    """
     wanted = {needle for needle in needles if needle}
     hits: dict[str, list[str]] = {needle: [] for needle in wanted}
     if not wanted:
         return hits
-    skip = {str(Path(root).resolve()) for root in config.release_roots}
+    release_roots = [str(Path(root).resolve()) for root in config.release_roots]
+    scanned_roots = [str(Path(root).resolve()) for root in config.reference_roots]
+
+    def walk_error(error: OSError) -> None:
+        raise FailClosed(f"reference scan incomplete: {getattr(error, 'filename', '?')}: {error.__class__.__name__}")
+
     for root_text in config.reference_roots:
         root = Path(root_text)
-        if not root.exists():
-            continue
         if not root.is_dir() or not os.access(root, os.R_OK | os.X_OK):
-            raise FailClosed(f"reference root unreadable: {root_text}")
-        for directory, dirs, files in os.walk(root, followlinks=False):
-            dirs[:] = [d for d in dirs if str(Path(directory, d).resolve()) not in skip and d not in {"node_modules", ".next", ".git"}]
+            raise FailClosed(f"reference root missing or unreadable: {root_text}")
+        for directory, dirs, files in os.walk(root, followlinks=False, onerror=walk_error):
+            kept_dirs = []
+            for name in dirs:
+                full = Path(directory, name)
+                resolved = str(full.resolve())
+                if resolved in release_roots or name in {"node_modules", ".next", ".git"}:
+                    continue
+                if full.is_symlink():
+                    if not _related(resolved, scanned_roots + release_roots):
+                        raise FailClosed(f"reference scan incomplete: symlinked directory leaves scanned roots: {full}")
+                    continue
+                kept_dirs.append(name)
+            dirs[:] = kept_dirs
             for name in files:
                 path = Path(directory, name)
-                if path.suffix.lower() not in REFERENCE_SUFFIXES:
+                if path.suffix.lower() in BINARY_SUFFIXES:
                     continue
                 try:
-                    if path.is_symlink() or path.stat().st_size > REFERENCE_MAX_BYTES:
+                    if path.is_symlink() and not path.resolve().is_file():
                         continue
-                    data = path.read_text(encoding="utf-8", errors="replace")
-                except OSError:
-                    continue
-                for needle in wanted:
-                    if needle in data:
-                        hits[needle].append(str(path))
+                    found = _file_mentions(path, wanted)
+                except OSError as error:
+                    raise FailClosed(f"reference scan incomplete: {path}: {error.__class__.__name__}") from error
+                for needle in found:
+                    hits[needle].append(str(path))
     return hits
 
 
