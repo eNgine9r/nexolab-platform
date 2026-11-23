@@ -1,6 +1,6 @@
-# NEXOLAB storage housekeeping (#1710): reproducible artifacts only, protected
-# current/rollback releases. STORAGE_HOUSEKEEPING_MODE=report (default) only
-# prints the plan; apply only after reviewing a report run.
+# NEXOLAB storage housekeeping (#1710): REPORT ONLY - plans reproducible-artifact
+# cleanup and writes a checksummed manifest. Applying a reviewed manifest is a
+# separate manual command (--apply-manifest PATH --manifest-sha256 HEX).
 # Owner-installed to /etc/systemd/system/.
 
 [Unit]

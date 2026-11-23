@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T12:14:18Z",
+  "timestamp": "2026-11-23T12:24:43Z",
   "actor": "Claude",
-  "event": "retention_1551_merged",
+  "event": "housekeeping_v2_owner_installs_recorded",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5501,7 +5501,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package remains for the agent. Owner, in order: (1) install disk guard + housekeeping (report), review, apply; (2) storage inventory, M5 caches, stage-4 tag/workspace review (docs/operations/storage-reclamation-plan.md); (3) #1428 verified backup + independent restore; (4) deploy #1551 with TELEMETRY_RETENTION_DAYS=30, record --dry-run counts in #1551, enable RETENTION_TELEMETRY_DELETE_ENABLED; (5) VACUUM FULL window (docs/operations/postgresql-storage-reclamation.md). Also: GitLab sync check, dev-session install, #1699 hardware acceptance, 18 telemetry exceptions expire 2026-11-30, OpenSSL 3.5.10 due 2026-12-01.",
+  "next_action": "Merge the housekeeping v2 PR after exact-head GREEN CI; owner reinstalls the pinned v2 script, reruns report, reviews the manifest (REVIEW reasons), applies it with the exact SHA-256; runs nexolab-workspace-review.sh on guarded-update-1313 and shares the report for classification. #1428: owner backup + off-device copy + independent restore, then #1551 activation. GitLab sync: record check/push result. Telemetry exceptions expire 2026-11-30.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
