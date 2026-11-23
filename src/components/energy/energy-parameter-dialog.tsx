@@ -164,11 +164,15 @@ export function EnergyParameterDialog({
             </div>
           ) : null}
           {visibleMeters.map(({ meter, meterKey, metrics }) => (
-            <fieldset key={meterKey ?? meter.equipmentId} className="min-w-0 rounded-xl border border-white/[0.08] p-3">
+            <fieldset
+              key={meterKey ?? meter.equipmentId}
+              className="min-w-0 rounded-xl border border-white/[0.08] p-3"
+            >
               <legend className="px-2 text-xs font-semibold text-cyan-200">
                 {meter.label} · {meter.equipmentId}
                 <span className="ml-2 text-[11px] font-normal text-slate-400">
-                  {draft.filter((pair) => pair.unitId === meter.unitId && pair.meterKey === meterKey).length} обрано
+                  {draft.filter((pair) => pair.unitId === meter.unitId && pair.meterKey === meterKey).length}{" "}
+                  обрано
                 </span>
               </legend>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

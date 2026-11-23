@@ -85,7 +85,14 @@ export function mergeEnergyComparisonHistory(
   meters: readonly CommissionedEnergyMeter[] = [],
 ): TelemetrySample[] {
   return metrics.flatMap((metric) =>
-    mergeEnergyHistoryTail(existing, incoming, { ...window, metric }, cadenceAuthority, maximumPoints, meters),
+    mergeEnergyHistoryTail(
+      existing,
+      incoming,
+      { ...window, metric },
+      cadenceAuthority,
+      maximumPoints,
+      meters,
+    ),
   );
 }
 
