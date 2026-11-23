@@ -67,9 +67,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1710
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -12099,7 +12097,7 @@
     {
       "issue": 1710,
       "title": "System audit, safe dev cleanup, reboot-persistent dev session and storage/resource policy",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Read-only audit (disk/RAM/CPU, repository, Git); verified dev-cache cleanup owned by nexolab-dev; owner-installed persistent dev session (unit+timer+gated start script, opt-in Claude auto-resume); owner read-only inventory script; owner cleanup manifest; storage policy; focused obsolete-code removal PRs. No production, Docker, DB or hardware change.",
       "depends_on": [],
@@ -12110,7 +12108,8 @@
         "local_checks": "2026-11-23: dev cleanup npm cache 3544->16 KiB and 3 merged local branches; start script pass/fail paths exercised with a throwaway HOME; systemd-analyze verify clean; inventory script exercised without root (docker denied as expected)",
         "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
         "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
-        "source_merge": "pending"
+        "source_merge": "PR #1711 merged a8f4749577e2d2693af5302bdb63829cd8ebfbd4 (head ee51fe2c) and PR #1712 merged 2d917dd311773ca3e2466eae20c780cfcebd1bfc (head e5c8971b), both after exact-head GREEN NEXOLAB Merge Gate",
+        "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)"
       },
       "branch": "ops/1710-persistent-dev-session"
     }
