@@ -12118,7 +12118,9 @@
         "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)",
         "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted",
         "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB",
-        "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply."
+        "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply.",
+        "strict_scan_dedupe": "PR #1729 merged a0b09a53: strict reference scan (missing/unreadable root, unreadable dir/file, escaping symlinked dir -> all image/release candidates withheld; every regular file streamed); hard-link dedupe of byte-identical archives with checksum-pinned plan",
+        "owner_report_v2": "Owner reported 2026-11-23: v2 manifest /var/lib/nexolab-storage/manifest-20261123T123701Z.json sha256 ec909e83...e21e27, 5,261,205,689 bytes (8 frontend releases, 1 dangling image; APT already cleaned); guarded-update-1313: 20 GiB, no active systemd/process/mount references, historical deployment/recovery references, 3 byte-identical archives 2.21 GiB; free 23.90 GiB. Consolidated gated owner command prepared (identity gate + strict apply + hard-link dedupe)."
       },
       "branch": "ops/1710-persistent-dev-session"
     },
@@ -12159,7 +12161,8 @@
         "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
         "supersedes_draft_pr": 1552,
         "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
-        "source_merge": "PR #1725 merged e658e58ac9eda4b90e75b5218560c6afbf33ac19 after exact-head GREEN CI (head 10389cb5: 39 pass; telemetry suite 892 passed on PostgreSQL incl. test_retention_postgres); draft #1552 closed as superseded"
+        "source_merge": "PR #1725 merged e658e58ac9eda4b90e75b5218560c6afbf33ac19 after exact-head GREEN CI (head 10389cb5: 39 pass; telemetry suite 892 passed on PostgreSQL incl. test_retention_postgres); draft #1552 closed as superseded",
+        "activation_sequence": "Backup tool needs free >= max_backup_bytes (8 GiB) + 20 GiB reserve = 28 GiB on /var/backups; after the consolidated cleanup (~31 GiB expected) #1428 step A (--plan, first manual backup) becomes feasible; retention stays off until B (isolated restore) is verified."
       },
       "branch": "feat/1551-evidence-aware-retention"
     }
