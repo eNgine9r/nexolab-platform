@@ -67,7 +67,9 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1713
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -12112,6 +12114,25 @@
         "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)"
       },
       "branch": "ops/1710-persistent-dev-session"
+    },
+    {
+      "issue": 1713,
+      "title": "Automate GitHub to corporate GitLab fast-forward synchronization",
+      "lifecycle": "review",
+      "priority": "medium",
+      "scope": "Owner-installed systemd service+timer (5 min, OnBootSec 10 min), DynamicUser identity, LoadCredential token and approved-tags, check/push modes, fast-forward-only main, approved release tags, divergence/rewrite/tag-collision fail-closed, SHA read-back verification, ci.skip push option, disk/memory reserve, bounded redacted JSON logging. Corporate endpoint kept out of the public repository.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_applicable_dev_infrastructure",
+        "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
+        "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
+        "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
+        "source_merge": "pending",
+        "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
+      },
+      "branch": "ops/1713-gitlab-sync"
     }
   ],
   "maintenance_actions": [

@@ -1,0 +1,16 @@
+# Run nexolab-gitlab-sync.service every five minutes, first 10 minutes after
+# boot (production starts first). Owner-installed to /etc/systemd/system/ and
+# enabled with: sudo systemctl enable --now nexolab-gitlab-sync.timer
+
+[Unit]
+Description=NEXOLAB GitHub to GitLab synchronization every five minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30s
+AccuracySec=30s
+Unit=nexolab-gitlab-sync.service
+
+[Install]
+WantedBy=timers.target
