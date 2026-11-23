@@ -12117,7 +12117,8 @@
         "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1711 merged a8f4749577e2d2693af5302bdb63829cd8ebfbd4 (head ee51fe2c) and PR #1712 merged 2d917dd311773ca3e2466eae20c780cfcebd1bfc (head e5c8971b), both after exact-head GREEN NEXOLAB Merge Gate",
         "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)",
-        "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted"
+        "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted",
+        "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB"
       },
       "branch": "ops/1710-persistent-dev-session"
     },
