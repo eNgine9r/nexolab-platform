@@ -67,9 +67,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1699
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -12021,14 +12019,15 @@
         "local_checks": "tracked issue; 18 telemetry exceptions renewed only to 2026-11-30",
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
         "source_merge": "n/a",
-        "revalidation_2026_11_23": "CVE Exposure Evidence run 45151013470 (PR #1714 head c2015af5; 5 images x native amd64/arm64, no cache, gate Trivy pin): exactly two blocked tuples (device-agent, telegram-gateway; libssl3t64 3.5.9-1~deb13u1; no fix); no QUIC server API use outside OpenSSL; no UDP. Proposed exact installed_version re-pin awaiting Product Owner decision (docs/security/cve-2026-124709-assessment.md section 10; PRs #1719, #1720, #1721). Not applied."
+        "revalidation_2026_11_23": "CVE Exposure Evidence run 45151013470 (PR #1714 head c2015af5; 5 images x native amd64/arm64, no cache, gate Trivy pin): exactly two blocked tuples (device-agent, telegram-gateway; libssl3t64 3.5.9-1~deb13u1; no fix); no QUIC server API use outside OpenSSL; no UDP. Proposed exact installed_version re-pin awaiting Product Owner decision (docs/security/cve-2026-124709-assessment.md section 10; PRs #1719, #1720, #1721). Not applied.",
+        "repin_2026_11_23": "Product Owner approved exact re-pin of device-agent and telegram-gateway libssl3t64 to 3.5.9-1~deb13u1 (expiry 2026-12-15 unchanged); PR #1723 merged 7dfa6eeef974d2cfd91abf3be62edec4c17dd9df after exact-head GREEN CI incl. Container Supply Chain"
       },
       "branch": ""
     },
     {
       "issue": 1699,
       "title": "Reconcile the unmerged RS-485 onboarding stack (#1483→#1521) with main",
-      "lifecycle": "review",
+      "lifecycle": "hardware_validation",
       "priority": "high",
       "scope": "Site/main drift: the commissioned runtime lineage is not in main; hardware acceptance stays with the owner. Not required by the XWEB release.",
       "depends_on": [],
@@ -12038,7 +12037,7 @@
         "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
         "local_checks": "2026-11-23 reconcile merge of stack head 4be678f6 into main (81 files; governance/state keep main); device-agent suite 373 tests OK locally; CI: unit/component, device-agent builds, fleet/acquisition/offline acceptance passed; Prettier and a pytest-only test module fixed",
         "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
-        "source_merge": "n/a",
+        "source_merge": "PR #1714 merged ebc47ebd05a97369d3a2839b7a87d1bab8e5b150 after exact-head GREEN CI (head 324ddc89: 24 pass incl. device-agent build, vulnerability policy, NEXOLAB Merge Gate); 13 superseded stacked PRs closed with branches kept",
         "pull_request": 1714,
         "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
         "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
