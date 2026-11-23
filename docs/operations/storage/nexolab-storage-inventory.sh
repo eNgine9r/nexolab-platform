@@ -15,7 +15,7 @@ OUT_DIR="${1:-$PWD}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 REPORT="${OUT_DIR}/nexolab-storage-inventory-${STAMP}.txt"
 OPERATOR="${NEXOLAB_OPERATOR:-nexolab}"
-OPERATOR_HOME="$(getent passwd "$OPERATOR" | cut -d: -f6)"
+OPERATOR_HOME="${NEXOLAB_OPERATOR_HOME:-$(getent passwd "$OPERATOR" | cut -d: -f6)}"
 SCAN_TIMEOUT="${NEXOLAB_INVENTORY_SCAN_TIMEOUT:-900}"
 
 [ "$(id -u)" = 0 ] || { echo "Run with sudo (read-only inventory needs to see protected paths)." >&2; exit 1; }
@@ -112,6 +112,97 @@ as_operator() { runuser -u "$OPERATOR" -- "$@"; }
 
   section "Journal"
   journalctl --disk-usage
+
+  # ---------------------------------------------------------------------------
+  # Candidate summary (#1710 manifest M1-M5). Estimates only; NOTHING is deleted.
+  # A candidate is listed only when every gate below holds; everything else is
+  # printed as REVIEW or PROTECTED with the reason.
+  # ---------------------------------------------------------------------------
+  section "Cleanup candidates (estimates only; nothing deleted)"
+  total=0
+  add() { total=$((total + ${1:-0})); }
+  bytes() { du -sbx "$@" 2>/dev/null | awk '{s+=$1} END {print s+0}'; }
+  human() { numfmt --to=iec-i --suffix=B "${1:-0}" 2>/dev/null || echo "${1:-0} B"; }
+
+  apt_bytes="$(find /var/cache/apt/archives -maxdepth 1 -name '*.deb' -printf '%s\n' 2>/dev/null | awk '{s+=$1} END {print s+0}')"
+  if pgrep -x apt-get >/dev/null || pgrep -x dpkg >/dev/null || pgrep -x apt >/dev/null; then
+    echo "M1 REVIEW  apt/dpkg is running; re-run later"
+  else
+    echo "M1 CLEAN   $(human "$apt_bytes")  downloaded .deb files in /var/cache/apt/archives  ->  sudo apt-get clean"
+    add "$apt_bytes"
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    build_cache="$(docker system df --format '{{.Type}}|{{.Reclaimable}}' 2>/dev/null | awk -F'|' '$1=="Build Cache"{print $2}')"
+    echo "M2 CLEAN   ${build_cache:-unknown} reclaimable Docker build cache  ->  sudo docker builder prune --force --filter until=168h  (only cache older than 7 days; exact amount reported by the command)"
+  fi
+
+  npm_cache="$OPERATOR_HOME/.npm/_cacache"
+  if [ -d "$npm_cache" ]; then
+    if pgrep -u "$OPERATOR" -f '(^|/)npm( |$)|npx' >/dev/null; then
+      echo "M3 REVIEW  npm is running for $OPERATOR; re-run later"
+    else
+      npm_bytes="$(bytes "$npm_cache")"
+      echo "M3 CLEAN   $(human "$npm_bytes")  $npm_cache  ->  sudo -u $OPERATOR npm cache clean --force"
+      add "$npm_bytes"
+    fi
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    protected_ids="sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e
+sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b
+sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1"
+    used_ids="$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' | sort -u)"
+    for id in $(docker images -q --filter dangling=true --no-trunc | sort -u); do
+      if printf '%s\n' "$protected_ids" | grep -qx "$id"; then
+        echo "M4 PROTECTED $id  (baseline / rollback image)"
+      elif printf '%s\n' "$used_ids" | grep -qx "$id"; then
+        echo "M4 PROTECTED $id  (used by a container)"
+      else
+        size="$(docker image inspect --format '{{.Size}}' "$id" 2>/dev/null || echo 0)"
+        echo "M4 CLEAN   $(human "$size")  dangling image $id  ->  sudo docker image rm $id"
+        add "$size"
+      fi
+    done
+  fi
+
+  in_use="$(for pid in $(pgrep -u "$OPERATOR"); do readlink "/proc/$pid/cwd" 2>/dev/null; done | sort -u)"
+  units="$(cat /etc/systemd/system/*.service "$OPERATOR_HOME"/.config/systemd/user/*.service 2>/dev/null)"
+  for workspace in "$OPERATOR_HOME"/commander-workspaces/*/; do
+    [ -d "$workspace" ] || continue
+    workspace="$(readlink -f "$workspace")"
+    name="$(basename "$workspace")"
+    reason=""
+    case "$name" in
+      nexolab-1638-release-f0295409) reason="holds release evidence (site-activation-report-1638.json)" ;;
+    esac
+    if [ -z "$reason" ] && printf '%s\n' "$in_use" | grep -q "^$workspace\(/\|$\)"; then reason="working directory of a running process"; fi
+    if [ -z "$reason" ] && printf '%s' "$units" | grep -qF "$workspace"; then reason="referenced by a systemd unit"; fi
+    if [ -z "$reason" ] && { [ -d "$workspace/.git" ] || [ -f "$workspace/.git" ]; }; then
+      dirty="$(as_operator git -C "$workspace" status --porcelain 2>/dev/null | wc -l)"
+      unpushed="$(as_operator git -C "$workspace" rev-list --count '@{u}..HEAD' 2>/dev/null || echo unknown)"
+      stashes="$(as_operator git -C "$workspace" stash list 2>/dev/null | wc -l)"
+      if [ "$dirty" != 0 ] || [ "$unpushed" != 0 ] || [ "$stashes" != 0 ]; then
+        reason="git dirty=$dirty unpushed=$unpushed stashes=$stashes"
+      fi
+    fi
+    caches="$(find "$workspace" -xdev -maxdepth 3 -type d \( -name node_modules -o -name .next \) -prune -print 2>/dev/null)"
+    [ -n "$caches" ] || continue
+    cache_bytes="$(printf '%s\n' "$caches" | tr '\n' '\0' | xargs -0 du -sbx 2>/dev/null | awk '{s+=$1} END {print s+0}')"
+    if [ -n "$reason" ]; then
+      echo "M5 REVIEW  $(human "$cache_bytes")  $workspace  ($reason)"
+    else
+      echo "M5 CLEAN   $(human "$cache_bytes")  regenerable caches in $workspace:"
+      printf '%s\n' "$caches" | while read -r cache; do
+        echo "             sudo -u $OPERATOR rm -rf --one-file-system '$cache'"
+      done
+      add "$cache_bytes"
+    fi
+  done
+
+  echo
+  echo "Estimated reclaimable by CLEAN candidates (excluding M2 build cache): $(human "$total")"
+  echo "Free now: $(df -h --output=avail / | tail -1 | tr -d ' ')"
 } >"$REPORT" 2>&1
 
 echo "Read-only inventory written to $REPORT"
