@@ -1,3 +1,7 @@
+## 2026-11-23 — #1706 development control plane moved to the isolated Raspberry Pi account (in review)
+
+Development now runs on `nexolab-edge-01` under the non-privileged `nexolab-dev` account inside a sandboxed transient tmux unit (no sudo, Docker, serial or production paths; `user-1001.slice` 768/1280 MiB, one CPU, 128 tasks); the Windows PC is no longer required and remains a fallback. Heavy builds and tests stay in GitHub Actions. Read-only verification from the session: isolation holds, 24 GiB free, Device Agent and telemetry healthy. Owner-pending: PC-off continuity, an approved reboot recovery test, production container identity comparison. Runbook: docs/operations/raspberry-pi-development-control-plane.md. No production, deployment, hardware or database change.
+
 ## 2026-11-22 — final main b415985f: health gate accepts the restore tool's metadata fidelity OK (#1702)
 
 After the object-metadata fix (#1697) renamed the good fidelity value from PRESERVED to OK, the health gate merged in #1698 would have blocked every genuine receipt; #1702 accepts only the restore tool's own OK and still blocks DEGRADED, UNVERIFIED_NO_SOURCE_OBSERVATION and any non-zero mismatch counter. Release identity, gates and owner actions are unchanged (docs/operations/xweb-release-owner-runbook.md). Nothing was run on the site.
