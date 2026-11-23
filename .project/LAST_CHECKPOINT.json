@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T10:16:44Z",
+  "timestamp": "2026-11-23T10:29:55Z",
   "actor": "Claude",
-  "event": "rs485_reconcile_1699_review_unblocked",
+  "event": "rs485_reconcile_merged_cve_repinned",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,9 +30,7 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": {
-    "issue": 1699
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -5493,7 +5491,7 @@
       }
     }
   ],
-  "next_action": "Merge #1714 (#1699) after exact-head GREEN CI; hardware acceptance of the RS-485 onboarding features stays with the owner and nothing is deployed. Owner: run the prepared activation commands (GitLab check, storage inventory, dev-session install), decide the 18 telemetry-service exceptions expiring 2026-11-30, #1706 validation, #1428 DR phase before any release. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire.",
+  "next_action": "Owner: (1) prepared activation commands in order (GitLab install + check, storage inventory, dev-session install, then GitLab push + timer only after a clean check); (2) real-device read-only acceptance of the #1699 onboarding features before any Device Agent release; (3) decision on the 18 telemetry-service exceptions expiring 2026-11-30; (4) #1706 validation; (5) #1428 DR phase before any backend release. No independent Ready Work Package remains for the agent. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10 (then retire the libssl exceptions, #1692); 2026-12-15 libssl exceptions expire.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
