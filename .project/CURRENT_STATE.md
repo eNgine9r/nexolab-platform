@@ -1,4 +1,4 @@
-## 2026-11-23 — #1551 evidence-aware 30-day retention (in review) and #1710 storage guard/housekeeping (merged #1726); nothing enabled on site
+## 2026-11-23 — #1551 evidence-aware 30-day retention (merged #1725) and #1710 storage guard/housekeeping (merged #1726); nothing enabled on site
 
 Telemetry retention: 30-day policy for ordinary monitoring telemetry; samples linked to laboratory sessions are never deleted (selection and DELETE); `telemetry_latest` untouched; irreversible deletion gated by `RETENTION_TELEMETRY_DELETE_ENABLED` (default false, enable only after #1428); multi-batch cycles (2000 rows, ≤ 60 batches or 60 s, 5-minute backlog interval) replace one 1000-row batch per hour; read-only `--dry-run` counts; PostgreSQL physical reclamation runbook (one owner-approved `VACUUM FULL telemetry_samples` window). Storage: owner-installed disk guard (warning < 40 GiB, critical < 20 GiB) and weekly housekeeping (report mode by default) with protected current/rollback releases; staged plan to ≥ 50 GiB in docs/operations/storage-reclamation-plan.md. Site still runs 365-day retention; no data, Docker, volume or production change.
 
