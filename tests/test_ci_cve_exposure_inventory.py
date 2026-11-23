@@ -158,6 +158,15 @@ class WorkflowContractTests(unittest.TestCase):
         for forbidden in ("docker push", "docker login", "push: true", "vulnerability-exceptions.json"):
             self.assertNotIn(forbidden, text)
 
+    def test_tooling_runs_from_workflow_commit_and_source_from_the_assessed_ref(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+        evidence = text.split("\n  evidence:\n", 1)[1].split("\n  summary:\n", 1)[0]
+        self.assertIn("ref: ${{ inputs.ref }}\n          path: target", evidence)
+        self.assertIn('-f "target/${{ matrix.dockerfile }}"', evidence)
+        self.assertIn('"target/${{ matrix.context }}"', evidence)
+        self.assertIn("python3 -I docs/security/tools/cve_exposure_inventory.py", evidence)
+        self.assertNotIn("target/docs/security/tools", evidence)
+
     def test_gate_and_evidence_use_the_same_trivy_pin(self) -> None:
         gate = (ROOT / ".github" / "workflows" / "container-supply-chain.yml").read_text(encoding="utf-8")
         self.assertIn("aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25", gate)
