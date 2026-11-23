@@ -53,19 +53,29 @@ journalctl -u nexolab-storage-housekeeping.service -o cat --no-pager | tail -60
 
 Before stage 2, add the **recorded frontend rollback release** to `/etc/nexolab-storage/protected-paths` if it is not among the newest three releases (`sudo systemctl show nexolab-dashboard.service -p WorkingDirectory` gives the current one; the rollback is recorded in the latest deployment evidence).
 
-## Stage 2 — apply automatic housekeeping
+## Stage 2 — apply a reviewed, checksum-pinned manifest
 
-After reviewing the report (every `planned:` line, every `kept:` reason):
+Scheduled and manual report runs never change anything. Each report writes a manifest (`/var/lib/nexolab-storage/manifest-<stamp>.json`) and prints its SHA-256. Every candidate was already checked against: the protected image and path inventories (both required — if either is missing, empty or unreadable, **no** image or release candidate is produced), images used by any container, container bind mounts, systemd units, running processes, and every mention of the release name or image ID in the reference roots (deployment, rollback and recovery records, offline bundle manifests, backups, workspaces, project state). Referenced items appear as `kept: … (referenced by N record(s), e.g. …)` and are never candidates. If Docker cannot be listed or inspected, image and release candidates are withheld (`WITHHELD` line).
+
+Review the manifest, then apply exactly that file:
 
 ```bash
-sudo sed -i 's/^STORAGE_HOUSEKEEPING_MODE=report$/STORAGE_HOUSEKEEPING_MODE=apply/' /etc/nexolab-storage/housekeeping.env
-sudo systemctl start nexolab-storage-housekeeping.service
-journalctl -u nexolab-storage-housekeeping.service -o cat --no-pager | tail -60
-sudo systemctl enable --now nexolab-storage-housekeeping.timer   # weekly, Sunday 03:30
+M=/var/lib/nexolab-storage/manifest-<stamp>.json
+sudo sha256sum "$M"                      # must equal the hash printed by the report
+sudo python3 -I /usr/local/lib/nexolab-storage/nexolab-storage-housekeeping.py \
+  --env-file /etc/nexolab-storage/housekeeping.env --apply-manifest "$M" --manifest-sha256 <approved-hash>
 df -h /
 ```
 
-What it may remove: APT downloads; Docker build cache older than 7 days; dangling images older than 7 days not used by any container and not in `protected-images`; `<sha>-<stamp>` frontend releases outside the newest 3, older than 14 days, not referenced by any systemd unit, not used by a process and not in `protected-paths`. Never: volumes, containers, tagged images, PostgreSQL, evidence, deployments, backups, Commander workspaces.
+Apply re-plans everything and executes only manifest entries that are **still** eligible; anything that became protected, used or referenced since the report is skipped and listed. A wrong hash is refused. There is no unattended apply; the weekly timer only refreshes the report and manifest.
+
+What a manifest can contain: APT downloads; Docker build cache older than 7 days; dangling images older than 7 days; `<sha>-<stamp>` frontend releases outside the newest 3 and older than 14 days. Never: volumes, containers, tagged images, PostgreSQL, evidence, deployments, backups, Commander workspaces.
+
+Large individual workspaces (for example `guarded-update-1313`) are reviewed separately and read-only first:
+
+```bash
+sudo bash docs/operations/storage/nexolab-workspace-review.sh /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313 "$HOME"
+```
 
 ## Stage 3 — idle Commander workspace caches (M5)
 

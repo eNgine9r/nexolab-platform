@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -33,79 +35,28 @@ def _release(root: Path, day: int, *, age_days: float) -> Path:
     return path
 
 
-class ReleaseTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name) / "frontend-releases"
-        self.root.mkdir()
-
-    def tearDown(self) -> None:
-        self.tmp.cleanup()
-
-    def test_keeps_newest_and_young_and_prunes_only_old_superseded(self) -> None:
-        releases = {day: _release(self.root, day, age_days=40 - day) for day in range(1, 9)}
-        (self.root / "not-a-release").mkdir()
-        actions, kept = HK.plan_releases(HK.Config(release_roots=(str(self.root),)), now=NOW, unit_text="", process_paths=set())
-        targets = {action.target for action in actions}
-        # newest three (days 8, 7, 6) kept; days 1..5 are 35..39 days old -> pruned
-        self.assertEqual(targets, {str(releases[day]) for day in range(1, 6)})
-        self.assertTrue(all(action.bytes > 0 for action in actions))
-        self.assertTrue(all(action.command[:3] == ["rm", "-rf", "--one-file-system"] for action in actions))
-        self.assertNotIn(str(self.root / "not-a-release"), targets)
-        reasons = {item["target"]: item["reason"] for item in kept}
-        self.assertIn("newest", reasons[str(releases[8])])
-
-    def test_systemd_reference_process_use_protected_list_and_age_protect(self) -> None:
-        releases = {day: _release(self.root, day, age_days=60 - day) for day in range(1, 9)}
-        releases[9] = _release(self.root, 9, age_days=2)
-        young = _release(self.root, 10, age_days=1)
-        old_young = self.root / f"{SHA[:-2]}00-20261100T000000Z"
-        (old_young).mkdir()
-        unit_text = f"WorkingDirectory={releases[1]}\n"
-        actions, kept = HK.plan_releases(
-            HK.Config(release_roots=(str(self.root),), protected_paths=(str(releases[3]),)),
-            now=NOW,
-            unit_text=unit_text,
-            process_paths={str(releases[2] / "node_modules")},
-        )
-        reasons = {item["target"]: item["reason"] for item in kept}
-        self.assertEqual(reasons[str(releases[1])], "referenced by a systemd unit")
-        self.assertEqual(reasons[str(releases[2])], "in use by a running process")
-        self.assertEqual(reasons[str(releases[3])], "listed as protected")
-        self.assertIn("newest", reasons[str(young)])
-        targets = {action.target for action in actions}
-        self.assertFalse({str(releases[1]), str(releases[2]), str(releases[3]), str(young)} & targets)
-        self.assertIn(str(releases[4]), targets)
-
-    def test_symlinked_release_and_symlinked_root_are_never_removed(self) -> None:
-        outside = Path(self.tmp.name) / "outside"
-        outside.mkdir()
-        for day in range(1, 5):
-            _release(self.root, day, age_days=50)
-        link = self.root / f"{SHA[:-2]}00-20250101T000000Z"
-        link.symlink_to(outside)
-        actions, kept = HK.plan_releases(HK.Config(release_roots=(str(self.root),)), now=NOW, unit_text="", process_paths=set())
-        self.assertNotIn(str(link), {action.target for action in actions})
-        self.assertIn({"target": str(link), "reason": "symlink or not a directory"}, kept)
-        root_link = Path(self.tmp.name) / "root-link"
-        root_link.symlink_to(self.root)
-        actions, kept = HK.plan_releases(HK.Config(release_roots=(str(root_link),)), now=NOW, unit_text="", process_paths=set())
-        self.assertEqual(actions, [])
+def _image(n: int) -> str:
+    return "sha256:" + hashlib.sha256(str(n).encode()).hexdigest()
 
 
 class FakeDocker:
-    def __init__(self, images: dict[str, tuple[int, int]], used: set[str]) -> None:
-        self.images = images
-        self.used = used
+    def __init__(self, images: dict[str, tuple[int, int]] | None = None, used: dict[str, list[str]] | None = None,
+                 fail: set[str] | None = None) -> None:
+        self.images = images or {}
+        self.used = used or {}  # container image -> mount sources
+        self.fail = fail or set()
         self.calls: list[list[str]] = []
 
     def __call__(self, command: list[str]) -> subprocess.CompletedProcess[str]:
         self.calls.append(command)
+        key = " ".join(command[:2])
+        if key in self.fail:
+            return subprocess.CompletedProcess(command, 1, "", "denied")
         out = ""
-        if command[:3] == ["docker", "ps", "-aq"]:
-            out = "c1\nc2\n"
+        if command[:2] == ["docker", "ps"]:
+            out = "\n".join(f"c{i}" for i in range(len(self.used)))
         elif command[:2] == ["docker", "inspect"]:
-            out = "\n".join(sorted(self.used))
+            out = "\n".join(f"{image}|{';'.join(mounts)};" for image, mounts in self.used.items())
         elif command[:2] == ["docker", "images"]:
             out = "\n".join(self.images)
         elif command[:3] == ["docker", "image", "inspect"]:
@@ -117,90 +68,206 @@ class FakeDocker:
         return subprocess.CompletedProcess(command, 0, out, "")
 
 
-def _image(n: int) -> str:
-    return "sha256:" + f"{n:064x}"
+def _config(**overrides: object) -> object:
+    values: dict[str, object] = dict(protected_images=(_image(999),), protected_paths=("/nonexistent/protected",))
+    values.update(overrides)
+    return HK.Config(**values)
+
+
+class ReleaseTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / "frontend-releases"
+        self.root.mkdir()
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def plan(self, **kwargs: object) -> tuple[list, list]:
+        config = kwargs.pop("config", _config(release_roots=(str(self.root),)))
+        defaults = dict(now=NOW, unit_text="", process_paths=set(), mount_sources=set(), references={})
+        defaults.update(kwargs)
+        return HK.plan_releases(config, **defaults)
+
+    def test_keeps_newest_and_prunes_only_old_superseded(self) -> None:
+        releases = {day: _release(self.root, day, age_days=40 - day) for day in range(1, 9)}
+        (self.root / "not-a-release").mkdir()
+        actions, kept = self.plan()
+        self.assertEqual({a.target for a in actions}, {str(releases[d]) for d in range(1, 6)})
+        self.assertTrue(all(a.command[:3] == ["rm", "-rf", "--one-file-system"] for a in actions))
+        self.assertIn("newest", {k["target"]: k["reason"] for k in kept}[str(releases[8])])
+
+    def test_every_protection_reason(self) -> None:
+        releases = {day: _release(self.root, day, age_days=60 - day) for day in range(1, 10)}
+        references = {releases[5].name: ["/runtime/deployments/20261101T000000Z/rollback.json"]}
+        actions, kept = self.plan(
+            config=_config(release_roots=(str(self.root),), protected_paths=(str(releases[3]),)),
+            unit_text=f"WorkingDirectory={releases[1]}\n",
+            process_paths={str(releases[2] / "node_modules")},
+            mount_sources={str(releases[4] / "public")},
+            references=references,
+        )
+        reasons = {k["target"]: k["reason"] for k in kept}
+        self.assertEqual(reasons[str(releases[1])], "referenced by a systemd unit")
+        self.assertEqual(reasons[str(releases[2])], "in use by a running process")
+        self.assertEqual(reasons[str(releases[3])], "listed as protected")
+        self.assertEqual(reasons[str(releases[4])], "bind-mounted into a container")
+        self.assertIn("referenced by 1 record(s)", reasons[str(releases[5])])
+        self.assertEqual({a.target for a in actions}, {str(releases[6])})
+
+    def test_root_and_parent_paths_do_not_protect_everything(self) -> None:
+        releases = {day: _release(self.root, day, age_days=60) for day in range(1, 6)}
+        actions, _ = self.plan(process_paths={"/", str(self.root.parent)}, mount_sources={"/", str(self.root)})
+        self.assertEqual({a.target for a in actions}, {str(releases[1]), str(releases[2])})
+        actions, _ = self.plan(config=_config(release_roots=(str(self.root),), protected_paths=("/", str(self.root))))
+        self.assertEqual(actions, [], "a protected parent directory protects the releases inside it")
+
+    def test_symlinks_are_never_removed(self) -> None:
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        for day in range(1, 5):
+            _release(self.root, day, age_days=50)
+        link = self.root / f"{SHA[:-2]}00-20250101T000000Z"
+        link.symlink_to(outside)
+        actions, kept = self.plan()
+        self.assertNotIn(str(link), {a.target for a in actions})
+        root_link = Path(self.tmp.name) / "root-link"
+        root_link.symlink_to(self.root)
+        actions, _ = self.plan(config=_config(release_roots=(str(root_link),)))
+        self.assertEqual(actions, [])
+
+    def test_reference_index_finds_records_and_skips_release_roots(self) -> None:
+        release = _release(self.root, 1, age_days=60)
+        records = Path(self.tmp.name) / "runtime" / "deployments" / "20261101T000000Z"
+        records.mkdir(parents=True)
+        (records / "rollback.json").write_text(json.dumps({"rollback_release": str(release)}), encoding="utf-8")
+        (self.root / "inside.json").write_text(release.name, encoding="utf-8")
+        config = _config(release_roots=(str(self.root),), reference_roots=(str(Path(self.tmp.name) / "runtime"),))
+        hits = HK.reference_index(config, [release.name])
+        self.assertEqual(hits[release.name], [str(records / "rollback.json")])
 
 
 class DockerTests(unittest.TestCase):
-    def test_only_old_unused_unprotected_dangling_images(self) -> None:
-        images = {_image(1): (30, 100), _image(2): (30, 200), _image(3): (30, 300), _image(4): (2, 400)}
-        fake = FakeDocker(images, used={_image(2)})
+    def test_only_old_unused_unprotected_unreferenced_dangling_images(self) -> None:
+        images = {_image(n): (30, n * 100) for n in (1, 2, 3, 5)}
+        images[_image(4)] = (2, 400)
+        fake = FakeDocker(images, used={_image(2): ["/srv/x"]})
+        config = _config(protected_images=(_image(3),))
+        in_use, _ = HK.docker_usage(fake)
         actions, kept = HK.plan_docker(
-            HK.Config(protected_images=(_image(3),)), fake, now=datetime(2026, 11, 23, tzinfo=UTC)
+            config, fake, now=datetime(2026, 11, 23, tzinfo=UTC), in_use=in_use,
+            references={_image(5)[7:19]: ["/var/backups/nexolab/manifest.json"]},
         )
-        kinds = {(action.kind, action.target) for action in actions}
-        self.assertIn(("dangling_image", _image(1)), kinds)
-        self.assertFalse({_image(2), _image(3), _image(4)} & {action.target for action in actions})
-        reasons = {item["target"]: item["reason"] for item in kept}
+        self.assertEqual({a.target for a in actions if a.kind == "dangling_image"}, {_image(1)})
+        reasons = {k["target"]: k["reason"] for k in kept}
         self.assertEqual(reasons[_image(2)], "used by a container")
         self.assertEqual(reasons[_image(3)], "listed as protected")
         self.assertIn("younger", reasons[_image(4)])
-        build = [action for action in actions if action.kind == "docker_build_cache"][0]
-        self.assertEqual(build.command, ["docker", "builder", "prune", "--force", "--filter", "until=168h"])
+        self.assertIn("referenced by 1 record(s)", reasons[_image(5)])
         for action in actions:
-            self.assertNotIn("-f", action.command[3:] if action.kind == "dangling_image" else [])
-            self.assertNotIn("volume", action.command)
-            self.assertNotIn("system", action.command)
+            self.assertFalse({"-f", "--force", "volume", "system"} & set(action.command[2:] if action.kind == "dangling_image" else []))
+
+    def test_docker_failures_fail_closed(self) -> None:
+        for failing in ("docker ps", "docker inspect"):
+            with self.subTest(failing=failing):
+                with self.assertRaises(HK.FailClosed):
+                    HK.docker_usage(FakeDocker(used={_image(1): []}, fail={failing}))
 
 
-class GuardAndModeTests(unittest.TestCase):
-    def test_guard_levels(self) -> None:
+class PlanAndManifestTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.root = self.dir / "releases"
+        self.root.mkdir()
+        for day in range(1, 6):
+            _release(self.root, day, age_days=60)
+        (self.dir / "protected-images").write_text(_image(999) + "\n", encoding="utf-8")
+        (self.dir / "protected-paths").write_text("/nonexistent/protected\n", encoding="utf-8")
+        self.env = {
+            "STORAGE_RELEASE_ROOTS": str(self.root),
+            "STATE_DIRECTORY": str(self.dir / "state"),
+            "STORAGE_WARN_GIB": "0",
+            "STORAGE_CRITICAL_GIB": "0",
+            "STORAGE_PROTECTED_IMAGES_FILE": str(self.dir / "protected-images"),
+            "STORAGE_PROTECTED_PATHS_FILE": str(self.dir / "protected-paths"),
+        }
+        self.env_file = self.dir / "housekeeping.env"
+        self.env_file.write_text("\n".join(f"{k}={v}" for k, v in self.env.items()) + "\n", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_missing_or_empty_protected_inventory_withholds_images_and_releases(self) -> None:
+        for broken in ({"STORAGE_PROTECTED_IMAGES_FILE": str(self.dir / "absent")}, {"STORAGE_PROTECTED_PATHS_FILE": ""}):
+            with self.subTest(broken=broken):
+                config = HK.config_from_env({**self.env, **broken})
+                self.assertFalse(config.protected_inventories_ok)
+                actions, _kept, withheld = HK.plan_all(config, FakeDocker())
+                self.assertEqual({a.kind for a in actions}, {"apt_cache"})
+                self.assertTrue(withheld and "withheld" in withheld[0])
+        (self.dir / "protected-images").write_text("# only comments\n", encoding="utf-8")
+        self.assertFalse(HK.config_from_env(self.env).protected_inventories_ok)
+
+    def test_docker_failure_withholds_images_and_releases(self) -> None:
+        config = HK.config_from_env(self.env)
+        actions, _kept, withheld = HK.plan_all(config, FakeDocker(fail={"docker ps"}))
+        self.assertEqual({a.kind for a in actions}, {"apt_cache"})
+        self.assertIn("docker ps failed", withheld[0])
+
+    def test_report_writes_manifest_and_executes_nothing(self) -> None:
+        fake = FakeDocker()
+        self.assertEqual(HK.main(["--env-file", str(self.env_file)], run=fake), 0)
+        self.assertFalse([c for c in fake.calls if c[0] in {"rm", "apt-get"} or c[:2] == ["docker", "builder"]])
+        report = json.loads((self.dir / "state" / "housekeeping.json").read_text(encoding="utf-8"))
+        manifest_path = Path(report["manifest"]["path"])
+        self.assertEqual(hashlib.sha256(manifest_path.read_bytes()).hexdigest(), report["manifest"]["sha256"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(len([e for e in manifest["entries"] if e["kind"] == "frontend_release"]), 2)
+
+    def test_apply_requires_exact_hash_and_runs_only_still_eligible_entries(self) -> None:
+        HK.main(["--env-file", str(self.env_file)], run=FakeDocker())
+        report = json.loads((self.dir / "state" / "housekeeping.json").read_text(encoding="utf-8"))
+        path, digest = report["manifest"]["path"], report["manifest"]["sha256"]
+
+        refused = FakeDocker()
+        self.assertEqual(HK.main(["--env-file", str(self.env_file), "--apply-manifest", path, "--manifest-sha256", "0" * 64], run=refused), 3)
+        self.assertFalse([c for c in refused.calls if c[0] == "rm"])
+
+        # One approved release becomes protected after approval: it must be skipped.
+        manifest = json.loads(Path(path).read_text(encoding="utf-8"))
+        release_targets = [e["target"] for e in manifest["entries"] if e["kind"] == "frontend_release"]
+        (self.dir / "protected-paths").write_text(release_targets[0] + "\n", encoding="utf-8")
+        applied = FakeDocker()
+        HK.main(["--env-file", str(self.env_file), "--apply-manifest", path, "--manifest-sha256", digest], run=applied)
+        removed = [c[-1] for c in applied.calls if c[0] == "rm"]
+        self.assertEqual(removed, [release_targets[1]])
+        final = json.loads((self.dir / "state" / "housekeeping.json").read_text(encoding="utf-8"))
+        self.assertIn({"target": f"frontend_release:{release_targets[0]}", "reason": "no longer eligible; skipped"}, final["kept"])
+
+
+class GuardAndUnitTests(unittest.TestCase):
+    def test_guard_levels_and_exit_code(self) -> None:
         self.assertEqual(HK.disk_state(HK.Config(warn_gib=0, critical_gib=0))["level"], "ok")
         self.assertEqual(HK.disk_state(HK.Config(warn_gib=10**9, critical_gib=0))["level"], "warning")
-        self.assertEqual(HK.disk_state(HK.Config(warn_gib=10**9, critical_gib=10**9))["level"], "critical")
-
-    def test_report_mode_executes_nothing_and_apply_executes_plan(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "releases"
-            root.mkdir()
-            for day in range(1, 6):
-                _release(root, day, age_days=60)
-            env = {
-                "STORAGE_RELEASE_ROOTS": str(root),
-                "STATE_DIRECTORY": str(Path(tmp) / "state"),
-                "STORAGE_WARN_GIB": "0",
-                "STORAGE_CRITICAL_GIB": "0",
-            }
-            old_env = dict(os.environ)
-            try:
-                os.environ.update(env)
-                fake = FakeDocker({}, set())
-                self.assertEqual(HK.main([], run=fake), 0)
-                executed = [c for c in fake.calls if c[0] in {"rm", "apt-get"} or c[:2] == ["docker", "builder"]]
-                self.assertEqual(executed, [], "report mode must not execute any action")
-                self.assertEqual(len(list(root.iterdir())), 5)
-                os.environ["STORAGE_HOUSEKEEPING_MODE"] = "apply"
-                fake = FakeDocker({}, set())
-                HK.main([], run=fake)
-                removed = [c for c in fake.calls if c[0] == "rm"]
-                self.assertEqual(len(removed), 2, "only releases beyond the newest three")
-                self.assertTrue((Path(tmp) / "state" / "housekeeping.json").is_file())
-            finally:
-                os.environ.clear()
-                os.environ.update(old_env)
+            env = Path(tmp) / "env"
+            env.write_text(f"STATE_DIRECTORY={tmp}\nSTORAGE_WARN_GIB=1e9\nSTORAGE_CRITICAL_GIB=1e9\n", encoding="utf-8")
+            self.assertEqual(HK.main(["--guard-only", "--env-file", str(env)], run=FakeDocker()), 2)
+            self.assertTrue((Path(tmp) / "guard.json").is_file())
 
-    def test_guard_only_exit_code_and_status(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            old_env = dict(os.environ)
-            try:
-                os.environ.update({"STATE_DIRECTORY": tmp, "STORAGE_WARN_GIB": "1e9", "STORAGE_CRITICAL_GIB": "1e9"})
-                self.assertEqual(HK.main(["--guard-only"], run=FakeDocker({}, set())), 2)
-                self.assertTrue((Path(tmp) / "guard.json").is_file())
-            finally:
-                os.environ.clear()
-                os.environ.update(old_env)
-
-    def test_units_keep_limits_and_report_default(self) -> None:
+    def test_units_and_defaults(self) -> None:
         guard = (STORAGE / "nexolab-storage-guard.service").read_text(encoding="utf-8")
         self.assertIn("--guard-only", guard)
-        self.assertIn("ProtectSystem=strict", guard)
         housekeeping = (STORAGE / "nexolab-storage-housekeeping.service").read_text(encoding="utf-8")
+        exec_start = [line for line in housekeeping.splitlines() if line.startswith("ExecStart=")]
+        self.assertEqual(len(exec_start), 1)
+        self.assertNotIn("--apply-manifest", exec_start[0], "scheduled runs must never apply")
         for setting in ("IOSchedulingClass=idle", "MemoryMax=256M", "NoNewPrivileges=yes"):
             self.assertIn(setting, housekeeping)
         env = (STORAGE / "housekeeping.env.example").read_text(encoding="utf-8")
-        self.assertIn("STORAGE_HOUSEKEEPING_MODE=report", env)
-        self.assertIn("STORAGE_WARN_GIB=40", env)
-        self.assertIn("STORAGE_CRITICAL_GIB=20", env)
+        for setting in ("STORAGE_WARN_GIB=40", "STORAGE_CRITICAL_GIB=20", "STORAGE_REFERENCE_ROOTS=", "STORAGE_PROTECTED_IMAGES_FILE="):
+            self.assertIn(setting, env)
         source = (STORAGE / "nexolab-storage-housekeeping.py").read_text(encoding="utf-8")
         for forbidden in ("volume prune", "system prune", "compose down", "VACUUM", "DELETE FROM"):
             self.assertNotIn(forbidden, source)

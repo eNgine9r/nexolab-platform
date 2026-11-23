@@ -12076,7 +12076,8 @@
         "owner_pending": "PC-off continuity, approved reboot recovery test, before/after production container identity comparison (no Docker access from the dev account by design)",
         "review_clearance": "Product Owner directive 2026-11-23 (Pi primary development environment) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1707 merged 26ed183e24f6c0b3661c3bb366bdf4cd75db03ab after exact-head GREEN NEXOLAB Merge Gate (head d75267b0)",
-        "dev_tooling": "user-local Node 22.23.1 (checksum-verified) and Prettier 3.9.9 in the dev home for format checks"
+        "dev_tooling": "user-local Node 22.23.1 (checksum-verified) and Prettier 3.9.9 in the dev home for format checks",
+        "persistent_session": "Owner reported 2026-11-23: persistent dev session (unit + boot timer + gated start script) installed; takes effect at the next boot."
       },
       "branch": "docs/1706-pi-dev-control-plane"
     },
@@ -12116,7 +12117,8 @@
         "source_merge": "PR #1711 merged a8f4749577e2d2693af5302bdb63829cd8ebfbd4 (head ee51fe2c) and PR #1712 merged 2d917dd311773ca3e2466eae20c780cfcebd1bfc (head e5c8971b), both after exact-head GREEN NEXOLAB Merge Gate",
         "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)",
         "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted",
-        "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB"
+        "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB",
+        "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply."
       },
       "branch": "ops/1710-persistent-dev-session"
     },
@@ -12135,7 +12137,8 @@
         "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
         "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1716 merged effc1cdb487f52d374570a576c3f782a5f1e44eb after exact-head GREEN NEXOLAB Merge Gate (head fedca928)",
-        "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
+        "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)",
+        "owner_installation": "Owner reported 2026-11-23: GitLab sync installed. Operational status (authenticated check result, first verified push, timer) not yet recorded in the repository; not claimed operational here."
       },
       "branch": "ops/1713-gitlab-sync"
     },
