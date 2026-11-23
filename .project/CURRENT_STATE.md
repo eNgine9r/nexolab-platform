@@ -1,6 +1,8 @@
-## 2026-11-23 — #1641 checkpoint writer keeps historical evidence (in review, #1708)
+## 2026-11-23 — #1641 checkpoint writer keeps historical evidence (merged #1708, 97f7f95c)
 
-`scripts/project-state.py checkpoint` now refreshes only the event fields of the existing checkpoint and fails closed if any evidence snapshot, observation, baseline or top-level record would be dropped. Its first real dry run exposed stale sprint baselines (pre-#1638 frontend release) that would have silently replaced the installed `f0295409` identity; differing baselines are now refused unless `--accept-baseline-changes` is given, and the sprint baselines were reconciled to the checkpoint. Tooling only.
+`scripts/project-state.py checkpoint` now refreshes only the event fields of the existing checkpoint and fails closed if any evidence snapshot, observation, baseline or top-level record would be dropped. Its first real dry run exposed stale sprint baselines (pre-#1638 frontend release) that would have silently replaced the installed `f0295409` identity; differing baselines are now refused unless `--accept-baseline-changes` is given, and the sprint baselines were reconciled to the checkpoint. Replaced active-issue evidence that no sprint work package holds is archived, not dropped. The CI classifier now treats the writer as CI governance (it previously failed closed with unreachable external workflows). Tooling only.
+
+No further independently executable Ready Work Package remains: #1700 is deferred until after the XWEB release, #1692 waits for OpenSSL 3.5.10 (2026-12-01), #1699 and other backend-classified work is gated by the CVE-2026-124709 decision and owner hardware acceptance, #1633 (GitLab shadow CI) is not approved, and #1638's remainder is a backend decision plus site acceptance. #1706 awaits owner validation. Correction: the #1641 review checkpoint recorded `2026-11-23T08:30:00Z`, which was ahead of real time; this checkpoint uses the actual UTC time.
 
 ## 2026-11-23 — #1706 development control plane moved to the isolated Raspberry Pi account (merged #1707, owner validation pending)
 
