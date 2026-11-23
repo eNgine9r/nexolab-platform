@@ -4,6 +4,7 @@ import importlib.util
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -302,6 +303,172 @@ class StateModelV2Tests(unittest.TestCase):
             actor="ChatGPT",
         )
         self.assertEqual(first, second)
+
+    def _previous_checkpoint(self, active: dict) -> dict:
+        previous = MODULE.make_checkpoint(
+            active=active,
+            current=active["selection"]["active_work_package"],
+            event="older",
+            next_action="Older action",
+            timestamp="2026-08-22T10:00:00Z",
+            actor="ChatGPT",
+        )
+        previous["baselines"]["historical_release_evidence"] = "runtime/evidence/older"
+        previous["evidence_snapshot"]["issue_1388_recovery"] = {"result": "PASS", "checks": 12}
+        previous["observations"].append(
+            {
+                "source": "github",
+                "observed_at": "2026-08-22T09:00:00Z",
+                "kind": "historical_merge",
+                "data": {"issue": 606, "pull_request": 632, "merge_sha": SHA_D},
+            }
+        )
+        previous["runtime_mutation"] = {"performed": False}
+        previous["recovery_1384"] = {"status": "verified"}
+        return previous
+
+    def test_checkpoint_preserves_existing_evidence_and_updates_event_fields(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        snapshot = json.loads(json.dumps(previous))
+        updated = MODULE.make_checkpoint(
+            active=active,
+            current=active["selection"]["active_work_package"],
+            event="checkpoint",
+            next_action="Continue",
+            timestamp="2026-08-22T11:05:00Z",
+            actor="Claude",
+            previous=previous,
+        )
+        self.assertEqual(previous, snapshot, "previous checkpoint must not be mutated")
+        self.assertEqual(updated["event"], "checkpoint")
+        self.assertEqual(updated["next_action"], "Continue")
+        self.assertEqual(updated["timestamp"], "2026-08-22T11:05:00Z")
+        self.assertEqual(updated["actor"], "Claude")
+        self.assertEqual(updated["evidence_snapshot"]["issue_1388_recovery"], {"result": "PASS", "checks": 12})
+        self.assertIn("active_issue_evidence", updated["evidence_snapshot"])
+        self.assertEqual(updated["observations"], previous["observations"])
+        self.assertEqual(updated["baselines"]["historical_release_evidence"], "runtime/evidence/older")
+        self.assertEqual(updated["runtime_mutation"], {"performed": False})
+        self.assertEqual(updated["recovery_1384"], {"status": "verified"})
+        self.assertEqual(list(updated), list(previous), "existing key order is kept for a reviewable diff")
+
+    def test_checkpoint_without_active_work_keeps_previous_active_issue_evidence(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        idle = json.loads(json.dumps(active))
+        idle["selection"]["active_work_package"] = None
+        updated = MODULE.make_checkpoint(
+            active=idle,
+            current=None,
+            event="idle",
+            next_action="Wait",
+            timestamp="2026-08-22T11:05:00Z",
+            actor="Claude",
+            previous=previous,
+        )
+        self.assertIsNone(updated["active_work"])
+        self.assertEqual(
+            updated["evidence_snapshot"]["active_issue_evidence"],
+            previous["evidence_snapshot"]["active_issue_evidence"],
+        )
+
+    def test_checkpoint_guard_rejects_dropped_evidence(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        cases = {
+            "top-level 'recovery_1384'": lambda doc: doc.pop("recovery_1384"),
+            "evidence_snapshot.issue_1388_recovery": lambda doc: doc["evidence_snapshot"].pop("issue_1388_recovery"),
+            "baselines.historical_release_evidence": lambda doc: doc["baselines"].pop("historical_release_evidence"),
+            "observations": lambda doc: doc.__setitem__("observations", []),
+        }
+        for label, drop in cases.items():
+            with self.subTest(label=label):
+                reduced = json.loads(json.dumps(previous))
+                drop(reduced)
+                with self.assertRaisesRegex(ValueError, "would drop existing evidence"):
+                    MODULE._require_preserved(previous, reduced)
+
+    def test_checkpoint_refuses_stale_sprint_baseline_unless_accepted(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        key = next(iter(active["baselines"]))
+        recorded = previous["baselines"][key]
+        stale = json.loads(json.dumps(active))
+        stale["baselines"][key] = SHA_C if recorded != SHA_C else SHA_B
+        arguments = dict(
+            active=stale,
+            current=stale["selection"]["active_work_package"],
+            event="checkpoint",
+            next_action="Continue",
+            timestamp="2026-08-22T11:05:00Z",
+            actor="Claude",
+            previous=previous,
+        )
+        with self.assertRaisesRegex(ValueError, f"baselines differ .*{key}"):
+            MODULE.make_checkpoint(**arguments)
+        accepted = MODULE.make_checkpoint(**arguments, accept_baseline_changes=True)
+        self.assertEqual(accepted["baselines"][key], stale["baselines"][key])
+        self.assertEqual(accepted["baselines"]["historical_release_evidence"], "runtime/evidence/older")
+
+    def test_checkpoint_against_repository_state_drops_nothing(self) -> None:
+        active = MODULE.load(ROOT / ".project" / "ACTIVE_SPRINT.json")
+        previous = MODULE.load(ROOT / ".project" / "LAST_CHECKPOINT.json")
+        if previous.get("schema_version") != 2:
+            self.skipTest("repository checkpoint is not State Model v2")
+        updated = MODULE.make_checkpoint(
+            active=active,
+            current=active["selection"].get("active_work_package"),
+            event="regression-1641",
+            next_action="Continue",
+            timestamp="2026-11-23T00:00:00Z",
+            actor="Claude",
+            previous=previous,
+        )
+        self.assertEqual(set(updated) - {"active_work"}, set(previous) - {"active_work"})
+        for key, value in previous["evidence_snapshot"].items():
+            if key != "active_issue_evidence":
+                self.assertEqual(updated["evidence_snapshot"][key], value, key)
+        self.assertEqual(updated["observations"], previous["observations"])
+        for key in previous["baselines"]:
+            self.assertIn(key, updated["baselines"])
+
+    def test_checkpoint_cli_preserves_evidence_on_disk(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".project").mkdir()
+            (root / ".project" / "ACTIVE_SPRINT.json").write_text(MODULE.canonical(active), encoding="utf-8")
+            (root / ".project" / "LAST_CHECKPOINT.json").write_text(MODULE.canonical(previous), encoding="utf-8")
+            (root / ".project" / "CURRENT_STATE.md").write_text("# NEXOLAB Current State\n", encoding="utf-8")
+            (root / ".project" / "BLOCKERS.md").write_text("# NEXOLAB Blockers\n", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MODULE_PATH),
+                    "--root",
+                    tmp,
+                    "checkpoint",
+                    "--event",
+                    "cli",
+                    "--next-action",
+                    "Continue",
+                    "--timestamp",
+                    "2026-08-22T11:05:00Z",
+                    "--actor",
+                    "Claude",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            written = json.loads((root / ".project" / "LAST_CHECKPOINT.json").read_text(encoding="utf-8"))
+        self.assertEqual(written["event"], "cli")
+        self.assertEqual(written["evidence_snapshot"]["issue_1388_recovery"], {"result": "PASS", "checks": 12})
+        self.assertEqual(written["recovery_1384"], {"status": "verified"})
+        self.assertEqual(written["observations"], previous["observations"])
 
     def test_sprint_runner_uses_state_model_v2_writer_contract(self) -> None:
         runner = (ROOT / "scripts" / "ai-sprint-run.ps1").read_text(encoding="utf-8")
