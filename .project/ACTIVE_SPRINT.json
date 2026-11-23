@@ -67,9 +67,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1641
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -12080,7 +12078,7 @@
     {
       "issue": 1641,
       "title": "Keep historical evidence when project-state.py writes a checkpoint",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "priority": "high",
       "scope": "scripts/project-state.py checkpoint starts from the existing checkpoint, refreshes only event fields and fails closed on any dropped evidence; differing sprint/checkpoint baselines refused unless --accept-baseline-changes; stale pre-#1638 sprint frontend baselines reconciled to the checkpoint.",
       "depends_on": [],
@@ -12091,7 +12089,8 @@
         "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
         "pull_request": 1708,
         "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
-        "source_merge": "pending"
+        "source_merge": "PR #1708 merged 97f7f95c6734fd89300ab78080ff7d91a1ae2725 after exact-head GREEN NEXOLAB Merge Gate incl. Authenticated Dashboard, Offline Bundle and Refrigeration Browser acceptance (head 1765c3b8)",
+        "ci_classifier": "scripts/project-state.py and tests/test_ci_project_state_v2.py classified as ci_governance; previously failed closed as cross_surface with unreachable external workflows"
       },
       "branch": "fix/1641-checkpoint-preserves-evidence"
     }
