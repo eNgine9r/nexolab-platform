@@ -1,0 +1,5 @@
+# /etc/nexolab-storage/protected-images — one image ID per line; never removed.
+# Baselines from .project/LAST_CHECKPOINT.json (deployed, rollback, SDM120 candidate Device Agent).
+sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e
+sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b
+sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1

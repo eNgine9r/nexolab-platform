@@ -1,0 +1,11 @@
+[Unit]
+Description=Run NEXOLAB storage housekeeping weekly
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=30min
+Unit=nexolab-storage-housekeeping.service
+
+[Install]
+WantedBy=timers.target
