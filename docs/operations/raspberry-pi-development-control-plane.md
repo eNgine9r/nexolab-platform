@@ -15,15 +15,15 @@ Production monitoring has absolute priority over development.
 
 ## Account and isolation
 
-| Property | Value |
-| --- | --- |
-| Account | `nexolab-dev` (uid 1001), groups `nexolab-dev`, `users` only |
-| Home | `/home/nexolab-dev`, mode `0700`, `UMask=0077` |
-| Workspace | `/home/nexolab-dev/nexolab-platform`, a fresh clone of `eNgine9r/nexolab-platform` tracking `main` |
-| Excluded groups | `sudo`, `docker`, `dialout`, `gpio` and any other hardware group |
-| Privilege | `NoNewPrivileges=yes` (sudo is refused) |
-| Filesystem | `ProtectSystem=strict`, writable only `/home/nexolab-dev`, `PrivateTmp=yes`, `PrivateDevices=yes` |
-| Hidden paths | `/home/nexolab`, `/etc/nexolab`, `/var/lib/nexolab`, `/var/lib/docker`, `/run/docker.sock`, `/run/containerd/containerd.sock` |
+| Property        | Value                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Account         | `nexolab-dev` (uid 1001), groups `nexolab-dev`, `users` only                                                                  |
+| Home            | `/home/nexolab-dev`, mode `0700`, `UMask=0077`                                                                                |
+| Workspace       | `/home/nexolab-dev/nexolab-platform`, a fresh clone of `eNgine9r/nexolab-platform` tracking `main`                            |
+| Excluded groups | `sudo`, `docker`, `dialout`, `gpio` and any other hardware group                                                              |
+| Privilege       | `NoNewPrivileges=yes` (sudo is refused)                                                                                       |
+| Filesystem      | `ProtectSystem=strict`, writable only `/home/nexolab-dev`, `PrivateTmp=yes`, `PrivateDevices=yes`                             |
+| Hidden paths    | `/home/nexolab`, `/etc/nexolab`, `/var/lib/nexolab`, `/var/lib/docker`, `/run/docker.sock`, `/run/containerd/containerd.sock` |
 
 The existing production deployment checkout and the older Commander checkout belong to the operator account and are neither reused nor reset.
 
@@ -31,13 +31,13 @@ The existing production deployment checkout and the older Commander checkout bel
 
 Limits are set on `user-1001.slice` (persistent drop-ins created with `systemctl set-property`):
 
-| Limit | Value | Effect |
-| --- | --- | --- |
-| `MemoryHigh` | 768 MiB | reclaim/throttle above this |
-| `MemoryMax` | 1280 MiB | hard cap; the kernel kills inside the slice, never production |
-| `MemorySwapMax` | 512 MiB | bounded swap use |
-| `CPUQuota` | 100 % | at most one of four cores |
-| `TasksMax` | 128 | bounded process count; avoid parallel local test fan-out |
+| Limit           | Value    | Effect                                                        |
+| --------------- | -------- | ------------------------------------------------------------- |
+| `MemoryHigh`    | 768 MiB  | reclaim/throttle above this                                   |
+| `MemoryMax`     | 1280 MiB | hard cap; the kernel kills inside the slice, never production |
+| `MemorySwapMax` | 512 MiB  | bounded swap use                                              |
+| `CPUQuota`      | 100 %    | at most one of four cores                                     |
+| `TasksMax`      | 128      | bounded process count; avoid parallel local test fan-out      |
 
 Disk: the host must keep **at least 20 GiB free** on `/`. Development stops before that reserve is consumed.
 
@@ -121,14 +121,15 @@ Stop development immediately, and record the reason in `.project/BLOCKERS.md`, w
 
 ## What runs where
 
-| Work | Location |
-| --- | --- |
-| git, `gh`, issue/PR/CI management | Pi, development account |
-| Project-state validation (`scripts/validate-project-state.py`), small Python checks | Pi, development account |
-| Node/Next.js builds, frontend unit and browser tests | GitHub Actions (Node is not installed locally) |
-| Docker image builds, Compose and integration tests, supply-chain scans | GitHub Actions |
-| ARM64 offline bundles and release artifacts | GitHub Actions |
-| Release, site activation, production migration, backup and restore evidence | Owner only, separate authorization |
+| Work                                                                                                                      | Location                           |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| git, `gh`, issue/PR/CI management                                                                                         | Pi, development account            |
+| Project-state validation (`scripts/validate-project-state.py`), small Python checks                                       | Pi, development account            |
+| Prettier check of changed files (user-local Node 22.23.1 in `~/.local/node`, Prettier 3.9.9 in `~/.local/tools/prettier`) | Pi, development account            |
+| Next.js builds, `npm ci`, frontend unit and browser tests                                                                 | GitHub Actions                     |
+| Docker image builds, Compose and integration tests, supply-chain scans                                                    | GitHub Actions                     |
+| ARM64 offline bundles and release artifacts                                                                               | GitHub Actions                     |
+| Release, site activation, production migration, backup and restore evidence                                               | Owner only, separate authorization |
 
 Every change goes through a feature branch and a Pull Request; direct pushes to `main` are forbidden. A PR may merge only with an exact-head GREEN NEXOLAB Merge Gate and passing project-state integrity, under the authorization recorded in `AGENTS.md`.
 
@@ -154,23 +155,35 @@ Production is not affected by any of these steps.
 
 Run from inside the sandboxed session on `main` `c20e6555`:
 
-| Check | Result |
-| --- | --- |
-| Account and groups | `nexolab-dev` uid 1001; groups `nexolab-dev`, `users` |
-| sudo | refused (`no new privileges`) |
-| Docker socket | not accessible |
-| `/home/nexolab`, `/etc/nexolab` | not readable (contents not read) |
-| Serial devices | none visible (`/dev/serial/by-id` absent) |
-| Slice limits | `memory.high` 768 MiB, `memory.max` 1280 MiB, `memory.swap.max` 512 MiB, `cpu.max` 1 core, `pids.max` 128 |
-| Disk | 24 GiB available on `/` (reserve 20 GiB) |
-| Claude Code | 2.1.323, native ELF aarch64 |
-| GitHub | `gh` authenticated as the repository owner; token masked |
-| Workspace | clean, tracking `origin/main` |
-| Device Agent `/health` | `ok`, `mqtt_connected: true`, queue 0, `device_mode: modbus` |
-| Telemetry `/health/ready` | `ready`; database and MQTT ready; ingestion lag about 0.18 s |
+| Check                           | Result                                                                                                    |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Account and groups              | `nexolab-dev` uid 1001; groups `nexolab-dev`, `users`                                                     |
+| sudo                            | refused (`no new privileges`)                                                                             |
+| Docker socket                   | not accessible                                                                                            |
+| `/home/nexolab`, `/etc/nexolab` | not readable (contents not read)                                                                          |
+| Serial devices                  | none visible (`/dev/serial/by-id` absent)                                                                 |
+| Slice limits                    | `memory.high` 768 MiB, `memory.max` 1280 MiB, `memory.swap.max` 512 MiB, `cpu.max` 1 core, `pids.max` 128 |
+| Disk                            | 24 GiB available on `/` (reserve 20 GiB)                                                                  |
+| Claude Code                     | 2.1.323, native ELF aarch64                                                                               |
+| GitHub                          | `gh` authenticated as the repository owner; token masked                                                  |
+| Workspace                       | clean, tracking `origin/main`                                                                             |
+| Device Agent `/health`          | `ok`, `mqtt_connected: true`, queue 0, `device_mode: modbus`                                              |
+| Telemetry `/health/ready`       | `ready`; database and MQTT ready; ingestion lag about 0.18 s                                              |
 
 Not verified by the agent and left to the owner:
 
 - session continuity with the PC switched off (requires the owner to switch it off and reconnect);
 - reboot recovery (requires a separately approved reboot test);
 - before/after comparison of production container identities (the development account has no Docker access by design, so only health endpoints were compared).
+
+### Local format check
+
+The repository Prettier config loads `prettier-plugin-tailwindcss`, which is not installed in the tools prefix. It only sorts Tailwind classes, so for Markdown, JSON and YAML use a copy of the config without `plugins`:
+
+```bash
+export PATH="$HOME/.local/node/bin:$PATH"
+python3 -c "import json;c=json.load(open('.prettierrc.json'));c.pop('plugins');json.dump(c,open('/tmp/prettierrc.json','w'))"
+~/.local/tools/prettier/node_modules/.bin/prettier --config /tmp/prettierrc.json --check <changed files>
+```
+
+TypeScript and TSX formatting is left to CI.
