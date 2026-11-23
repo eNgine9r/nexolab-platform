@@ -12120,7 +12120,8 @@
         "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB",
         "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply.",
         "strict_scan_dedupe": "PR #1729 merged a0b09a53: strict reference scan (missing/unreadable root, unreadable dir/file, escaping symlinked dir -> all image/release candidates withheld; every regular file streamed); hard-link dedupe of byte-identical archives with checksum-pinned plan",
-        "owner_report_v2": "Owner reported 2026-11-23: v2 manifest /var/lib/nexolab-storage/manifest-20261123T123701Z.json sha256 ec909e83...e21e27, 5,261,205,689 bytes (8 frontend releases, 1 dangling image; APT already cleaned); guarded-update-1313: 20 GiB, no active systemd/process/mount references, historical deployment/recovery references, 3 byte-identical archives 2.21 GiB; free 23.90 GiB. Consolidated gated owner command prepared (identity gate + strict apply + hard-link dedupe)."
+        "owner_report_v2": "Owner reported 2026-11-23: v2 manifest /var/lib/nexolab-storage/manifest-20261123T123701Z.json sha256 ec909e83...e21e27, 5,261,205,689 bytes (8 frontend releases, 1 dangling image; APT already cleaned); guarded-update-1313: 20 GiB, no active systemd/process/mount references, historical deployment/recovery references, 3 byte-identical archives 2.21 GiB; free 23.90 GiB. Consolidated gated owner command prepared (identity gate + strict apply + hard-link dedupe).",
+        "cleanup_result_2026_11_23": "Owner ran the consolidated gated cleanup (manifest ec909e83 + guarded-update-1313 hard-link dedupe): free space 23.90 -> 30.29 GiB (agent-observed df 30.29 GiB, guard last run exit 0)."
       },
       "branch": "ops/1710-persistent-dev-session"
     },
@@ -12140,7 +12141,8 @@
         "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1716 merged effc1cdb487f52d374570a576c3f782a5f1e44eb after exact-head GREEN NEXOLAB Merge Gate (head fedca928)",
         "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)",
-        "owner_installation": "Owner reported 2026-11-23: GitLab sync installed. Operational status (authenticated check result, first verified push, timer) not yet recorded in the repository; not claimed operational here."
+        "owner_installation": "Owner reported 2026-11-23: GitLab sync installed. Operational status (authenticated check result, first verified push, timer) not yet recorded in the repository; not claimed operational here.",
+        "operational_evidence_2026_11_23": "Agent-observed (read-only systemd): nexolab-gitlab-sync.timer active every 5 min; last service run 2026-11-23T13:27:36Z Result=success ExecMainStatus=0 (owner reports push mode installed). Destination SHA comparison remains an owner record."
       },
       "branch": "ops/1713-gitlab-sync"
     },
