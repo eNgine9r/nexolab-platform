@@ -68,7 +68,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1706
+      "issue": 1641
     },
     "next_work_package": null
   },
@@ -12061,7 +12061,7 @@
     {
       "issue": 1706,
       "title": "Move the Claude Code development control plane to an isolated Raspberry Pi ARM64 workspace",
-      "lifecycle": "review",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Development-only: isolated nexolab-dev account (no sudo/docker/serial, sandboxed transient tmux unit, user-1001.slice 768/1280 MiB, 1 CPU, 128 tasks), native ARM64 Claude Code, fresh clone, PC-independent runbook docs/operations/raspberry-pi-development-control-plane.md. No production, deployment, hardware or database change.",
       "depends_on": [],
@@ -12072,9 +12072,28 @@
         "local_checks": "2026-11-23 read-only from the sandboxed session: isolation (sudo refused, docker.sock/operator home/etc/nexolab inaccessible, no serial devices), slice limits, 24 GiB free, Claude 2.1.323 aarch64, gh auth (masked), Device Agent /health ok and telemetry /health/ready ready (lag ~0.18 s); validate-project-state passed",
         "owner_pending": "PC-off continuity, approved reboot recovery test, before/after production container identity comparison (no Docker access from the dev account by design)",
         "review_clearance": "Product Owner directive 2026-11-23 (Pi primary development environment) and AGENTS.md autonomous execution authorization",
-        "source_merge": "pending"
+        "source_merge": "PR #1707 merged 26ed183e24f6c0b3661c3bb366bdf4cd75db03ab after exact-head GREEN NEXOLAB Merge Gate (head d75267b0)",
+        "dev_tooling": "user-local Node 22.23.1 (checksum-verified) and Prettier 3.9.9 in the dev home for format checks"
       },
       "branch": "docs/1706-pi-dev-control-plane"
+    },
+    {
+      "issue": 1641,
+      "title": "Keep historical evidence when project-state.py writes a checkpoint",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "scripts/project-state.py checkpoint starts from the existing checkpoint, refreshes only event fields and fails closed on any dropped evidence; differing sprint/checkpoint baselines refused unless --accept-baseline-changes; stale pre-#1638 sprint frontend baselines reconciled to the checkpoint.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_applicable_tooling",
+        "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
+        "pull_request": 1708,
+        "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
+        "source_merge": "pending"
+      },
+      "branch": "fix/1641-checkpoint-preserves-evidence"
     }
   ],
   "maintenance_actions": [

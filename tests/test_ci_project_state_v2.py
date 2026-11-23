@@ -373,6 +373,33 @@ class StateModelV2Tests(unittest.TestCase):
             previous["evidence_snapshot"]["active_issue_evidence"],
         )
 
+    def test_checkpoint_archives_unique_replaced_active_issue_evidence(self) -> None:
+        active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
+        previous = self._previous_checkpoint(active)
+        unique = {"native_storage_export_sha256": SHA_D, "owner_reissue_approval_at": "2026-10-11T19:58:12Z"}
+        previous["evidence_snapshot"]["active_issue_evidence"] = unique
+        arguments = dict(
+            active=active,
+            current=active["selection"]["active_work_package"],
+            event="checkpoint",
+            next_action="Continue",
+            timestamp="2026-08-22T11:05:00Z",
+            actor="Claude",
+        )
+        updated = MODULE.make_checkpoint(**arguments, previous=previous)
+        archived = updated["evidence_snapshot"]["superseded_active_issue_evidence_2026-08-22T10:00:00Z"]
+        self.assertEqual(archived, unique)
+        self.assertNotEqual(updated["evidence_snapshot"]["active_issue_evidence"], unique)
+
+        held = json.loads(json.dumps(previous))
+        held["evidence_snapshot"]["active_issue_evidence"] = {"other": "evidence"}
+        sprint_copy = json.loads(json.dumps(active))
+        sprint_copy["work_packages"].append({"issue": 999, "title": "Old", "lifecycle": "completed", "evidence": {"other": "evidence"}})
+        not_archived = MODULE.make_checkpoint(**{**arguments, "active": sprint_copy}, previous=held)
+        self.assertFalse(
+            [k for k in not_archived["evidence_snapshot"] if k.startswith("superseded_active_issue_evidence_")]
+        )
+
     def test_checkpoint_guard_rejects_dropped_evidence(self) -> None:
         active = MODULE.migrate_active_v1(v1_active(), observed_at="2026-08-22T11:00:00Z")
         previous = self._previous_checkpoint(active)

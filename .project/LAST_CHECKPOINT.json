@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T07:40:00Z",
+  "timestamp": "2026-11-23T08:30:00Z",
   "actor": "Claude",
-  "event": "pi_dev_control_plane_1706_review",
+  "event": "checkpoint_writer_fix_1641_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,9 +31,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1706,
-    "branch": "docs/1706-pi-dev-control-plane",
-    "lifecycle": "review"
+    "issue": 1641
   },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
@@ -1503,12 +1501,13 @@
       "hardware": "not_touched"
     },
     "active_issue_evidence": {
-      "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
-      "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
-      "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
-      "manual_workflow_dispatches": 0,
-      "packaged_authority": "not_established",
-      "new_owner_command": "not_ready"
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_applicable_tooling",
+      "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
+      "pull_request": 1708,
+      "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3826,6 +3825,14 @@
       "not_verified": "signed-in owner browser check of the chart pages; offline reboot",
       "backend_changed": false,
       "modbus_write": false
+    },
+    "superseded_active_issue_evidence_2026-11-23T07:40:00Z": {
+      "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
+      "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
+      "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
+      "manual_workflow_dispatches": 0,
+      "packaged_authority": "not_established",
+      "new_owner_command": "not_ready"
     }
   },
   "observations": [
@@ -5456,7 +5463,7 @@
       }
     }
   ],
-  "next_action": "Development now runs on nexolab-edge-01 in the isolated nexolab-dev session (#1706, docs/operations/raspberry-pi-development-control-plane.md); merge #1706 after exact-head GREEN CI, then continue independent Ready work. Owner: (1) choose the backup destination, key custodians and an isolated host and run the DR phase of docs/operations/xweb-release-owner-runbook.md (#1428: real backup, off-device copy with the internet disconnected, independent restore from the copy, then `nexolab-dr-readonly-health.py --offdevice-destination --restore-receipt`); (2) run the read-only on-host preflight in that runbook; (3) only then authorise the frontend-only or full ARM64 update. The 🟢 signal stays withheld until every gate is satisfied. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire (#1692).",
+  "next_action": "Merge #1708 (#1641) after exact-head GREEN CI. #1706 owner validation: PC-off continuity, approved reboot test, container identity comparison. Owner: (1) DR phase of docs/operations/xweb-release-owner-runbook.md (#1428); (2) read-only on-host preflight; (3) only then authorise the frontend-only or full ARM64 update. Calendar: 2026-11-30 telemetry exceptions expire; 2026-12-01 OpenSSL 3.5.10; 2026-12-15 libssl exceptions expire (#1692).",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

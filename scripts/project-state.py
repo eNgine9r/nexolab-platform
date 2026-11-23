@@ -345,6 +345,22 @@ def _require_preserved(previous: dict[str, Any], result: dict[str, Any]) -> None
         raise ValueError("checkpoint would drop existing evidence: " + ", ".join(lost))
 
 
+def _archive_superseded_active_evidence(
+    snapshot: dict[str, Any], active: dict[str, Any], replacement: Any, previous_timestamp: Any
+) -> None:
+    """Keep a replaced active_issue_evidence unless the sprint already holds it."""
+    old = snapshot.get("active_issue_evidence")
+    if not old or old == replacement:
+        return
+    if any(item.get("evidence") == old for item in active.get("work_packages", [])):
+        return
+    key = f"superseded_active_issue_evidence_{previous_timestamp or 'unknown'}"
+    existing = snapshot.get(key)
+    if existing is not None and existing != old:
+        raise ValueError(f"checkpoint would overwrite archived evidence {key!r}")
+    snapshot[key] = old
+
+
 def make_checkpoint(
     *,
     active: dict[str, Any],
@@ -406,6 +422,9 @@ def make_checkpoint(
                 snapshot = result.get("evidence_snapshot")
                 snapshot = snapshot if isinstance(snapshot, dict) else {}
                 if active_issue_evidence is not None:
+                    _archive_superseded_active_evidence(
+                        snapshot, active, active_issue_evidence, previous.get("timestamp")
+                    )
                     snapshot["active_issue_evidence"] = active_issue_evidence
                 result["evidence_snapshot"] = snapshot
             elif key == "observations":
