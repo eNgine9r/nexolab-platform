@@ -36,6 +36,24 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
     def test_multiple_emails_denied(self) -> None:
         self.assert_reject_allowlist("approved@example.com\nother@example.com\n", "approved@example.com")
 
+    def test_exact_multiple_approved_emails_allowed(self) -> None:
+        GATE.verify_allowlist(
+            "approved@example.com\nother@example.com\n",
+            expected_email="approved@example.com\nother@example.com",
+        )
+
+    def test_duplicates_are_denied(self) -> None:
+        self.assert_reject_allowlist(
+            "approved@example.com\napproved@example.com\n",
+            "approved@example.com\napproved@example.com",
+        )
+
+    def test_unapproved_addition_is_rejected_even_with_multiple_approved(self) -> None:
+        self.assert_reject_allowlist(
+            "approved@example.com\nother@example.com\nextra@example.com\n",
+            "approved@example.com\nother@example.com",
+        )
+
     def test_missing_identity_denied(self) -> None:
         self.assert_reject_allowlist("", "approved@example.com")
 

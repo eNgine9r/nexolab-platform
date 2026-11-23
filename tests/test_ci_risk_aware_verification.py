@@ -42,6 +42,28 @@ def pull_request_paths(workflow_text: str) -> list[str]:
 
 
 class RiskAwareVerificationContractTests(unittest.TestCase):
+    def test_google_gateway_changes_register_all_required_pr_workflows(self) -> None:
+        paths = (
+            'scripts/inspection/nexolab_google_oauth_gate.py',
+            'scripts/operations/nexolab_google_oauth_private_exec.py',
+            'scripts/operations/nexolab_google_oauth_private_provision.py',
+            'infrastructure/external-access/oauth2-proxy-google.example.cfg',
+            'tests/test_nexolab_google_oauth_private_exec.py',
+        )
+        workflows = {
+            'Authenticated Dashboard Acceptance': DASHBOARD,
+            'Offline Bundle': OFFLINE,
+            'Refrigeration Browser Acceptance': REFRIGERATION,
+        }
+        required = classify(list(paths))['verification']['required_external_workflows']
+        for name in required:
+            if name not in workflows:
+                continue
+            patterns = pull_request_paths(workflows[name])
+            for path in paths:
+                with self.subTest(workflow=name, path=path):
+                    self.assertTrue(any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns))
+
     def test_all_known_tracked_routes_have_matching_workflow_trigger_coverage(self) -> None:
         workflow_paths = {
             'Authenticated Dashboard Acceptance': pull_request_paths(DASHBOARD),
