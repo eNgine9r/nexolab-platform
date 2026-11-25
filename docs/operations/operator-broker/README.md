@@ -23,18 +23,18 @@ The development account cannot write the code, the units, the approvals or the a
 
 ## Operations (v1.0.0)
 
-| Op                                                      | Kind    | What it returns                                                                                     |
-| ------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------- |
-| `broker.list`                                           | read    | Ops, kinds and argument schemas                                                                     |
-| `system.summary`, `system.power`, `system.boots`        | read    | Uptime, memory, disk, temperature, throttling and undervoltage flags, failed units, time, boot list |
-| `logs.unit`, `logs.kernel`, `logs.system`               | read    | Journal of an allow-listed unit, or kernel/system lines of a fixed category (power, wifi, crash…)   |
-| `service.status`, `service.list`                        | read    | State of allow-listed units and NEXOLAB timers                                                      |
-| `docker.containers`, `docker.container`, `docker.logs`  | read    | Identity, image, health, restart count, networks/aliases, ports, mounts; redacted recent logs       |
-| `docker.networks`, `docker.images`, `docker.disk`       | read    | Networks and attachments, images with digests and in-use mapping, `docker system df`                |
-| `network.summary`, `wifi.diagnose`                      | read    | Addresses, routes, DNS, NM devices, listeners, DHCP; Wi-Fi profiles without secrets, scan, reasons  |
-| `storage.summary`, `storage.inventory`                  | read    | Filesystems and journal usage; the pinned #1710 inventory (report readable by the dev group)        |
-| `service.recover unit=nexolab-lan-gateway.service`      | recover | Restart only if enabled and `failed`/`inactive`                                                     |
-| `service.recover unit=nexolab-network-endpoint-repair…` | recover | Run the same idempotent #1748 repair its timer runs                                                 |
+| Op                                                      | Kind    | What it returns                                                                                                                                                            |
+| ------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `broker.list`                                           | read    | Ops, kinds and argument schemas                                                                                                                                            |
+| `system.summary`, `system.power`, `system.boots`        | read    | Uptime, memory, disk, temperature, throttling and undervoltage flags, failed units, time, boot list                                                                        |
+| `logs.unit`, `logs.kernel`, `logs.system`               | read    | Journal of an allow-listed unit, or kernel/system lines of a fixed category (power, wifi, crash…)                                                                          |
+| `service.status`, `service.list`                        | read    | State of allow-listed units and NEXOLAB timers                                                                                                                             |
+| `docker.containers`, `docker.container`, `docker.logs`  | read    | NEXOLAB containers only (`nexolab-*`, Compose project `nexolab*` or none): identity, health, networks, ports, mounts; redacted logs                                        |
+| `docker.networks`, `docker.images`, `docker.disk`       | read    | Networks and attachments, images with digests and in-use mapping, `docker system df`                                                                                       |
+| `network.summary`, `wifi.diagnose`                      | read    | Addresses, routes, DNS, NM devices, listeners, DHCP; Wi-Fi profiles without secrets, scan, reasons                                                                         |
+| `storage.summary`, `storage.inventory`                  | read    | Filesystems and journal usage; the pinned #1710 inventory as a sanitized excerpt (allow-listed sections, foreign workspaces masked). The raw report stays root-only (0600) |
+| `service.recover unit=nexolab-lan-gateway.service`      | recover | Restart only if enabled and `failed`/`inactive`                                                                                                                            |
+| `service.recover unit=nexolab-network-endpoint-repair…` | recover | Run the same idempotent #1748 repair its timer runs                                                                                                                        |
 
 Approved deployment or network operations (Wi-Fi profile change, Stage 2/3 activation) are added later as separate reviewed handlers. Each one needs a new pinned broker release, installed by the owner, and an approval per run.
 
@@ -57,15 +57,19 @@ The owner gets one command with the SHA-256 of `install-operator-broker.sh`. Tha
 - `/usr/local/lib/nexolab-operator/` (root, 0755);
 - `/etc/systemd/system/nexolab-operator-broker.{socket,service}`;
 - `/etc/nexolab-operator/approvals` (root, 0700);
-- `/var/log/nexolab-operator` and `/var/lib/nexolab-operator/reports` (root:nexolab-dev, 0750).
+- `/var/log/nexolab-operator` (root:nexolab-dev, 2750: audit receipts readable by the dev group);
+- `/var/lib/nexolab-operator/reports` (root, 0700: raw inventory reports never reach the dev account).
 
 It enables only the socket and then proves:
 
-- the owner account is rejected (`unauthorized_peer`);
-- the development account can list operations;
-- the audit chain verifies.
+- the owner account, which is not in the socket group, is refused by the kernel at the socket file (`EACCES`);
+- root is refused by the broker (`unauthorized_peer`);
+- the development account, called inside a transient unit with the dev-session sandbox (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateDevices`, no Docker socket), can list operations and read `system.summary`;
+- the audit chain verifies, and the socket, file modes and service sandbox match the final state.
 
-Any failure removes everything it installed. Production services, containers, networks and credentials are not touched.
+Any failure removes everything it installed and verifies the removal (`ROLLBACK_VERIFIED`, otherwise `HARD_BLOCKER_ROLLBACK_INCOMPLETE`). The staging directory is always deleted.
+
+CI (`operator-broker-install-acceptance.yml`) performs the real installation on a disposable runner with systemd, with an owner account outside the socket group. It also covers a tampered payload, a failure during installation, a foreign container that must stay invisible, a NEXOLAB container logging a secret, and uninstall. Production services, containers, networks and credentials are not touched.
 
 ```bash
 bash install-operator-broker.sh status

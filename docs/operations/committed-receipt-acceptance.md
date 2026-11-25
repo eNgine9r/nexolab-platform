@@ -56,10 +56,13 @@ The summary is written before the throughput gate is enforced, so a run below th
 
 ### Measured throughput
 
-| Run                                         | Catch-up (rows/s)                | Whole recovery (rows/s) |
-| ------------------------------------------- | -------------------------------- | ----------------------- |
-| Slice 3 (head replay), run 45688608839      | 1.14 (head replay)               | 2.3                     |
-| Slice 4 (bulk catch-up), see the PR summary | measured in CI, gate &ge; 50 net | measured in CI          |
+Gate: at least 50 rows/s net. In the slice 4 runs the catch-up was limited by the central round trip (about 33 of 50 rows in flight), not by the Edge rate cap. Whole recovery includes the mid-catch-up Edge restart and its full resend. At about 64 rows/s net, the 2026-11-25 loss (about 53,000 rows) would drain in about 14 minutes on the CI runner. The Pi is not measured.
+
+| Run                                                | Catch-up (rows/s)                                | Whole recovery (rows/s) |
+| -------------------------------------------------- | ------------------------------------------------ | ----------------------- |
+| Slice 3 (head replay), run 45688608839             | 1.14 (head replay)                               | 2.3                     |
+| Slice 4 (bulk catch-up), run 45696227212 attempt 1 | 65.1 net (68.9 PostgreSQL commits), live flow on | 36.0                    |
+| Slice 4 (bulk catch-up), run 45696227212 attempt 2 | 63.8 net, live flow on                           | 39.1                    |
 
 ## Owner provisioning of the two receipt identities
 

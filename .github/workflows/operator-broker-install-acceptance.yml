@@ -1,0 +1,139 @@
+name: Operator Broker install acceptance
+
+# #1769: real systemd installation of the pinned Operator Broker on a disposable runner.
+# The runner user (uid 1001) plays the development account; a separate sudo-capable
+# owner account outside the socket group runs the installer, exactly like the Pi.
+
+on:
+  pull_request:
+    paths:
+      - docs/operations/operator-broker/**
+      - docs/operations/storage/nexolab-storage-inventory.sh
+      - tests/test_ci_operator_broker.py
+      - .github/workflows/operator-broker-install-acceptance.yml
+  push:
+    branches: [main]
+    paths:
+      - docs/operations/operator-broker/**
+      - docs/operations/storage/nexolab-storage-inventory.sh
+      - .github/workflows/operator-broker-install-acceptance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Real systemd install, trust boundaries, NEXOLAB scope, rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Prepare accounts (runner = uid 1001 dev account, nxowner = owner outside the socket group)
+        run: |
+          set -euo pipefail
+          test "$(id -u runner)" = 1001
+          sudo groupadd --force nexolab-dev
+          sudo usermod -aG nexolab-dev runner
+          sudo useradd -m -s /bin/bash nxowner
+          echo 'nxowner ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/90-nxowner >/dev/null
+          sudo chmod 0440 /etc/sudoers.d/90-nxowner
+          if id -nG nxowner | tr ' ' '\n' | grep -qx nexolab-dev; then exit 1; fi
+          mkdir -p /tmp/payload
+          cp docs/operations/operator-broker/{nexolab-operator-broker.py,nexolab-operator-broker.service,nexolab-operator-broker.socket,install-operator-broker.sh} /tmp/payload/
+          cp docs/operations/storage/nexolab-storage-inventory.sh /tmp/payload/
+          chmod 0444 /tmp/payload/*
+
+      - name: Workloads (one NEXOLAB container that logs a secret, one foreign product)
+        run: |
+          set -euo pipefail
+          docker run -d --name nexolab-central-probe-1 --label com.docker.compose.project=nexolab-central \
+            busybox:1.37 sh -c 'echo "db password=hunter2-should-not-leak"; echo nexolab-ok; sleep 600'
+          docker run -d --name sellora-backend-1 --label com.docker.compose.project=sellora \
+            busybox:1.37 sh -c 'echo sellora-private; sleep 600'
+          docker network create sellora_default >/dev/null
+
+      - name: Tampered payload is refused before anything is installed
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tampered && cp /tmp/payload/* /tmp/tampered/ && chmod u+w /tmp/tampered/*
+          echo '# tamper' >> /tmp/tampered/nexolab-operator-broker.py
+          out=$(sudo -u nxowner -H NEXOLAB_OPERATOR_DEV_USER=runner bash /tmp/payload/install-operator-broker.sh install /tmp/tampered 2>&1) && rc=0 || rc=$?
+          echo "$out"
+          test "$rc" != 0
+          grep -q "checksum mismatch nexolab-operator-broker.py" <<<"$out"
+          test ! -e /usr/local/lib/nexolab-operator
+          test ! -e /etc/systemd/system/nexolab-operator-broker.service
+          test -z "$(sudo find /root -maxdepth 1 -name 'nexolab-operator-stage.*')"
+
+      - name: Failure during installation rolls back and verifies the removal
+        run: |
+          set -euo pipefail
+          sudo touch /var/log/nexolab-operator   # a file where the installer needs a directory
+          out=$(sudo -u nxowner -H NEXOLAB_OPERATOR_DEV_USER=runner bash /tmp/payload/install-operator-broker.sh install /tmp/payload 2>&1) && rc=0 || rc=$?
+          echo "$out"
+          test "$rc" = 1
+          grep -q "ROLLBACK_VERIFIED" <<<"$out"
+          test ! -e /usr/local/lib/nexolab-operator
+          if systemctl is-active --quiet nexolab-operator-broker.socket; then exit 1; fi
+          test -z "$(sudo find /root -maxdepth 1 -name 'nexolab-operator-stage.*')"
+          sudo rm -f /var/log/nexolab-operator
+
+      - name: Install as the owner (owner refused at the socket file, root refused, dev allowed)
+        run: |
+          set -euo pipefail
+          out=$(sudo -u nxowner -H NEXOLAB_OPERATOR_DEV_USER=runner bash /tmp/payload/install-operator-broker.sh install /tmp/payload 2>&1) || { echo "$out"; exit 1; }
+          echo "$out"
+          grep -q "owner nxowner (uid .*): DENIED_FS EACCES" <<<"$out"
+          grep -q "^root: False unauthorized_peer" <<<"$out"
+          grep -q "OPERATOR_BROKER_INSTALLED socket=enabled/active owner=refused root=refused dev=allowed audit=ok" <<<"$out"
+          test -z "$(sudo find /root -maxdepth 1 -name 'nexolab-operator-stage.*')"
+          test "$(stat -c '%U:%G %a' /run/nexolab-operator/broker.sock)" = "root:nexolab-dev 660"
+
+      - name: Development account calls (fresh login with the group, dev-session sandbox)
+        run: |
+          set -euo pipefail
+          call() {
+            sudo systemd-run --quiet --wait --pipe --collect --uid=runner -p NoNewPrivileges=yes \
+              -p PrivateDevices=yes -p ProtectSystem=strict -p InaccessiblePaths=-/run/docker.sock \
+              /usr/bin/python3 -I "$GITHUB_WORKSPACE/docs/operations/operator-broker/nexolab-operator.py" --json "$@"
+          }
+          absent() { if grep -q -- "$1" <<<"$2"; then echo "LEAK: $1"; exit 1; fi; }
+          call system.summary | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["ok"], r'
+          containers=$(call docker.containers)
+          grep -q nexolab-central-probe-1 <<<"$containers"
+          absent sellora "$containers"
+          absent sellora "$(call docker.networks)"
+          absent sellora "$(call docker.images)"
+          foreign=$(call docker.logs name=sellora-backend-1 || true)
+          grep -q '"error": "unknown_container"' <<<"$foreign"
+          absent sellora-private "$foreign"
+          logs=$(call docker.logs name=nexolab-central-probe-1 lines=20)
+          grep -q nexolab-ok <<<"$logs"
+          absent hunter2 "$logs"
+          # the dev account cannot read raw reports, approvals or write the broker
+          for check in "-r /var/lib/nexolab-operator/reports" "-r /etc/nexolab-operator/approvals" \
+                       "-w /usr/local/lib/nexolab-operator/nexolab-operator-broker.py"; do
+            if sudo -u runner test $check; then echo "dev account can access: $check"; exit 1; fi
+          done
+          sudo -u runner test -r /var/log/nexolab-operator/audit.jsonl
+          sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit
+
+      - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence
+        run: |
+          set -euo pipefail
+          if sudo -u nxowner python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op service.recover; then exit 1; fi
+          out=$(sudo -u nxowner -H bash /tmp/payload/install-operator-broker.sh uninstall 2>&1)
+          echo "$out"
+          grep -q ROLLBACK_VERIFIED <<<"$out"
+          grep -q OPERATOR_BROKER_REMOVED <<<"$out"
+          test ! -e /usr/local/lib/nexolab-operator
+          test ! -S /run/nexolab-operator/broker.sock
+          sudo test -s /var/log/nexolab-operator/audit.jsonl
+
+      - name: Broker journal (diagnostics)
+        if: always()
+        run: sudo journalctl -u nexolab-operator-broker.service -u nexolab-operator-broker.socket --no-pager -n 80 || true

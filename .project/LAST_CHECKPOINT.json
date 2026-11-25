@@ -5,7 +5,7 @@
   "sprint": "PRODUCTION-READINESS-1",
   "timestamp": "2026-11-25T22:30:00Z",
   "actor": "claude",
-  "event": "#1762 slice 4: bounded bulk committed-receipt catch-up (exact-row binding, windowed Edge resend, batch central publisher, >= 50 rows/s acceptance gate) in review",
+  "event": "#1769 broker installer fixed (#1770); #1762 slice 4 bulk committed-receipt catch-up in review (acceptance GREEN, 65.1 and 63.8 rows/s net vs 1.1 rows/s before)",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -1506,7 +1506,8 @@
       "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
       "default_off": true,
       "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
-      "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762)."
+      "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762).",
+      "slice_3_acceptance": "Slice 3 PR #1768 (feat/1762-receipt-e2e-acceptance): dynsec admin create-org-receipt-publisher (publish-only nexolab/v1/{org}/+/receipts) and create-node-receipt-subscriber (literal read-only nexolab/v1/{org}/{node}/receipts) with real-broker deny cases; Committed Receipt Acceptance workflow GREEN run 45688608839: tiny broker queue overflow observed, forged receipts not delivered, wrong-node/out-of-order/duplicate rejected without prune, two Edge restarts lossless, PostgreSQL sequences 1..248 exactly once, Edge outbox drained. Throughput: head replay 1.14 rows/s, resend after Edge restart 7.2 rows/s; 53,000 rows about 12.9 h and no convergence with 4.5 rows/s live flow (follow-up). Hardware, site broker ACL and site UNVERIFIED."
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3937,6 +3938,14 @@
       "site_cutover": false,
       "site_acceptance": "owner_install_pending",
       "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi"
+    },
+    "superseded_active_issue_evidence_2026-11-25T19:26:23Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
+      "default_off": true,
+      "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
+      "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762)."
     }
   },
   "observations": [
@@ -5567,7 +5576,7 @@
       }
     }
   ],
-  "next_action": "#1762 slice 3 isolated acceptance + receipt identities; await owner broker install, SSD cleanup, Stage 2 prepare",
+  "next_action": "Owner runs broker-v2 install; then verify broker diagnostics from dev tmux; merge #1762 slice 4 when GREEN",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

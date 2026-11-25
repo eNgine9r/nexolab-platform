@@ -1,8 +1,8 @@
 ## 2026-11-25 — Pending owner actions (resume point after any reboot; updated evening)
 
-1. **Operator Broker install (#1758):**
+1. **Operator Broker install (#1758/#1769, owner-approved):** fixed installer, merged in #1770; payload `~/recovery-p0/broker-v2`.
    ```
-   T=$(mktemp -d); sudo cat ~nexolab-dev/recovery-p0/broker-v1/install-operator-broker.sh > $T/i.sh && echo "42bf8b5b43fb561cdc9e7208c81934fe2d1e0d17101a3b847762439c18e8180c  $T/i.sh" | sha256sum -c - && bash $T/i.sh install /home/nexolab-dev/recovery-p0/broker-v1
+   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v2/install-operator-broker.sh > $T/i.sh && echo "1b21af15ce1c51dc9a3406fe68b0777659a9d22edecb08a676a1542b062f33f5  $T/i.sh" | sha256sum -c - && bash $T/i.sh install /home/nexolab-dev/recovery-p0/broker-v2
    ```
 2. **SSD cleanup:** `owner-2026-11-25-ssd-cleanup.sh t1`, then `t2a` (pinned `978209882d…`). Needed for the #1428 backup (28 GiB) and the Stage 2 build reserve (20 GiB).
 3. **WP2c Stage 2 (#1734):** `owner-2026-11-25-stage2.sh prepare` (pinned `19c0085c…`). After it passes, `execute` needs exact Product Owner approval.
