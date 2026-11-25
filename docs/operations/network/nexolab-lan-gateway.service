@@ -31,7 +31,9 @@ PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# AF_NETLINK: Node's os.networkInterfaces() (getifaddrs) reads interface addresses over
+# netlink (#1756). Read-only here: no CAP_NET_ADMIN, so routes/links cannot be changed.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 RestrictNamespaces=yes
 LockPersonality=yes
 # Port 80 only: no other capability.
