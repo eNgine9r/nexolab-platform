@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NEXOLAB P0 network-change recovery (v2): interim compatibility service address.
+"""NEXOLAB P0 network-change recovery (v3.2): compatibility address and Docker endpoint repair.
 
 Owner-run as the operator account (uid 1000, docker group, sudo for `ip`,
 `sysctl`, `journalctl` and copying evidence). Restores the existing LOCAL_LAN
@@ -27,6 +27,18 @@ v2 changes after the unconfirmed v1 GREEN report:
     diagnose  (default, read-only)
     apply     add the alias (transient), start/rebind, verify, stability window
     verify    read-only: stability window + PostgreSQL ingestion
+    repair-networks
+              v3: restore lost Docker network endpoints (NetworkSettings.Networks
+              empty while NetworkMode names the network, #1399) exactly as the
+              container's own Compose configuration defines them (networks,
+              aliases, fixed IPs), then start, verify DNS/ports/API, stability;
+              full rollback of every touched container on any failure.
+              v3.1: Compose files may be root-only; a privileged read-only
+              helper returns only the network projection. Every preflight
+              failure is BLOCKED (exit 3) with evidence and no change.
+              `--minimal-network-model`: explicit fallback when the Compose
+              model cannot be read (primary network + service alias +
+              repository standalone overlay).
     rollback  remove the alias (dummy and legacy lo) and restore arp_ignore
     install-boot-compat / remove-boot-compat
               optional interim unit creating the alias before Docker at boot
@@ -79,15 +91,15 @@ WantedBy=multi-user.target
 """
 PG_READONLY_SQL = """
 SET statement_timeout = '30s';
-SELECT json_build_object(
+SELECT jsonb_build_object(
   'now', now(),
-  'latest', (SELECT json_agg(r) FROM (SELECT id, node_id, captured_at, received_at FROM telemetry_samples ORDER BY id DESC LIMIT 3) r),
-  'recent_by_received_10min', (SELECT json_agg(b ORDER BY b.bucket) FROM (
+  'latest', (SELECT jsonb_agg(r) FROM (SELECT id, node_id, captured_at, received_at FROM telemetry_samples ORDER BY id DESC LIMIT 3) r),
+  'recent_by_received_10min', (SELECT jsonb_agg(b ORDER BY b.bucket) FROM (
       SELECT date_trunc('hour', received_at) + floor(date_part('minute', received_at) / 10) * interval '10 minutes' AS bucket,
              count(*) AS row_count, min(captured_at) AS min_captured, max(captured_at) AS max_captured
       FROM (SELECT received_at, captured_at FROM telemetry_samples ORDER BY id DESC LIMIT 200000) s
       GROUP BY 1) b),
-  'recent_by_captured_10min', (SELECT json_agg(b ORDER BY b.bucket) FROM (
+  'recent_by_captured_10min', (SELECT jsonb_agg(b ORDER BY b.bucket) FROM (
       SELECT date_trunc('hour', captured_at) + floor(date_part('minute', captured_at) / 10) * interval '10 minutes' AS bucket,
              count(*) AS row_count
       FROM (SELECT captured_at FROM telemetry_samples ORDER BY id DESC LIMIT 200000) s
@@ -98,6 +110,18 @@ SELECT json_build_object(
 
 class Blocked(Exception):
     pass
+
+
+try:  # progress must be visible immediately, also through `| tee`
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):
+    pass
+_T0 = time.monotonic()
+
+
+def say(message: str) -> None:
+    print(f"[{time.monotonic() - _T0:7.1f}s] {message}", flush=True)
 
 
 def run(*args: str, timeout: int = 60, check: bool = True, env: dict | None = None) -> str:
@@ -179,6 +203,8 @@ def summary(c: dict) -> dict:
         "published_ports": sorted(f"{b.get('HostIp')}:{b.get('HostPort')}->{p}" for p, v in actual.items() for b in (v or [])),
         "networks": sorted((c["NetworkSettings"].get("Networks") or {}).keys()),
         "mounts": sorted(f"{m.get('Name') or m.get('Source')}:{m.get('Destination')}" for m in c.get("Mounts", [])),
+        "compose": {k: labels.get(f"com.docker.compose.{k}", "") for k in (
+            "project.config_files", "project.working_dir", "project.environment_file")},
     }
 
 
@@ -248,10 +274,11 @@ def postgres_ingestion(items: list[dict]) -> dict:
                             capture_output=True, timeout=90, check=False)
     if result.returncode:
         return {"postgres": "query failed", "stderr": result.stderr.strip()[-300:]}
+    text = result.stdout.strip()
     try:
-        return json.loads(result.stdout.strip().splitlines()[-1])
-    except (ValueError, IndexError):
-        return {"postgres": "unparsed", "stdout": result.stdout[-300:]}
+        return json.loads(text[text.index("{"):])
+    except ValueError:
+        return {"postgres": "unparsed", "stdout": text[-300:]}
 
 
 def history() -> dict:
@@ -355,6 +382,8 @@ def wait_ready(ids: list[str], deadline: float) -> list[dict]:
                              or now[i]["health"] not in ("healthy", "-") or ports_missing(now[i]))]
         if not pending or time.monotonic() > deadline:
             return pending
+        say("waiting: " + ", ".join(f"{p['name']}={p.get('state')}/{p.get('health', '-')}" for p in pending)
+            + f" ({int(deadline - time.monotonic())}s left)")
         time.sleep(5)
 
 
@@ -540,6 +569,415 @@ def remove_boot() -> int:
     return 0
 
 
+# ---------------------------------------------------------------- v3 -------
+NET_ORDER = ("postgres", "minio", "object-storage", "versitygw", "mqtt", "telemetry-service", "dashboard")
+
+
+# Privileged, read-only Compose model reader (v3.1). It runs ONLY this helper
+# as root (`sudo -n python3 -I -c HELPER request`). The helper accepts compose
+# and env files only under ALLOWED_COMPOSE_ROOTS (after realpath, regular file,
+# owner root or the operator, not world-writable), runs `docker compose config`
+# and prints ONLY the network projection of the requested services. Interpolated
+# environment values/secrets never leave the helper process, are never printed
+# and never reach the unprivileged recovery process or its evidence.
+ALLOWED_COMPOSE_ROOTS = ("/var/backups/nexolab/", "/home/nexolab/", "/opt/nexolab/", "/etc/nexolab/")
+ENV_FALLBACK = {"nexolab-central": ".env.central", "nexolab-edge": ".env.edge-central"}
+SUDO_PYTHON = "/usr/bin/python3"
+COMPOSE_HELPER = r"""
+import json, os, re, subprocess, sys
+req = json.loads(sys.argv[1])
+roots = tuple(req["roots"])
+def check(path, kind):
+    real = os.path.realpath(path)
+    if not real.startswith(roots):
+        return "PATH_NOT_ALLOWED %s" % path
+    if kind == "dir":
+        return None if os.path.isdir(real) else "DIR_MISSING %s" % path
+    if not os.path.isfile(real):
+        return "FILE_MISSING %s" % path
+    st = os.stat(real)
+    if st.st_uid not in (0, req["operator_uid"]):
+        return "UNEXPECTED_OWNER %s uid=%d" % (path, st.st_uid)
+    if st.st_mode & 0o002:
+        return "WORLD_WRITABLE %s" % path
+    return None
+envs = list(req["envs"])
+if not envs and req.get("env_fallback"):
+    candidate = os.path.join(req["workdir"], req["env_fallback"])
+    if os.path.isfile(os.path.realpath(candidate)):
+        envs = [candidate]
+errors = [e for e in [check(req["workdir"], "dir")] + [check(p, "file") for p in req["files"] + envs] if e]
+if not req["files"]:
+    errors.append("NO_COMPOSE_FILES")
+if errors:
+    print(json.dumps({"error": errors, "envs": envs})); sys.exit(0)
+cmd = ["docker", "compose", "--project-name", req["project"], "--project-directory", os.path.realpath(req["workdir"])]
+for p in req["files"]:
+    cmd += ["-f", os.path.realpath(p)]
+for p in envs:
+    cmd += ["--env-file", os.path.realpath(p)]
+r = subprocess.run(cmd + ["config", "--format", "json"], capture_output=True, text=True, timeout=90)
+if r.returncode:
+    lines = [re.sub(r"=\S+", "=<redacted>", l)[:200] for l in r.stderr.splitlines()
+             if re.search(r"(?i)required|not found|no such|invalid|error", l)]
+    print(json.dumps({"error": ["COMPOSE_CONFIG_FAILED exit=%d" % r.returncode] + lines[:5], "envs": envs})); sys.exit(0)
+m = json.loads(r.stdout)
+def net(spec):
+    spec = spec or {}
+    return {"aliases": spec.get("aliases") or [], "ipv4_address": spec.get("ipv4_address")}
+services = {}
+for name in req["services"]:
+    svc = (m.get("services") or {}).get(name)
+    if svc is None:
+        continue
+    nets = svc.get("networks")
+    services[name] = {"network_mode": svc.get("network_mode"),
+                      "networks": None if nets is None else {k: net(v) for k, v in nets.items()}}
+print(json.dumps({"model": {"name": m.get("name"), "services": services,
+                            "networks": {k: {"name": (v or {}).get("name")} for k, v in (m.get("networks") or {}).items()}},
+                  "envs": envs}))
+"""
+
+
+def compose_request(project: str, compose: dict, services: list[str]) -> dict:
+    return {
+        "project": project,
+        "files": [f for f in compose["project.config_files"].split(",") if f],
+        "workdir": compose["project.working_dir"],
+        "envs": [e for e in compose["project.environment_file"].split(",") if e],
+        "env_fallback": ENV_FALLBACK.get(project),
+        "services": sorted(set(services)),
+        "roots": list(ALLOWED_COMPOSE_ROOTS),
+        "operator_uid": os.getuid(),
+    }
+
+
+def compose_config(project: str, compose: dict, services: list[str] | None = None) -> dict:
+    """Network projection of the container's own Compose model, read by the privileged helper.
+
+    The unprivileged process never opens the (possibly root-only) Compose or
+    env files itself and never receives interpolated values.
+    """
+    request = compose_request(project, compose, services or [])
+    if not request["files"] or not request["workdir"]:
+        raise Blocked(f"NO_COMPOSE_LABELS for project {project}: cannot derive the authoritative network model")
+    try:
+        out = subprocess.run(["sudo", "-n", SUDO_PYTHON, "-I", "-c", COMPOSE_HELPER, json.dumps(request)],
+                             text=True, capture_output=True, timeout=120, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise Blocked(f"COMPOSE_HELPER_UNAVAILABLE {exc.__class__.__name__}") from exc
+    if out.returncode:
+        raise Blocked(f"COMPOSE_HELPER_FAILED exit={out.returncode} (sudo credentials cached? run `sudo -v` first): "
+                      f"{out.stderr.strip()[-200:]}")
+    try:
+        answer = json.loads(out.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError) as exc:
+        raise Blocked("COMPOSE_HELPER_UNPARSED") from exc
+    if answer.get("error"):
+        raise Blocked(f"COMPOSE_MODEL_BLOCKED {project}: {answer['error']}")
+    return answer["model"]
+
+
+def desired_networks(config: dict, service: str) -> dict[str, dict]:
+    """{docker network name: {aliases, ipv4}} for one service; {} when it does not use bridge networks."""
+    svc = (config.get("services") or {}).get(service)
+    if svc is None:
+        raise Blocked(f"SERVICE_NOT_IN_COMPOSE_MODEL {service}")
+    if svc.get("network_mode"):
+        return {}
+    wanted = svc.get("networks") or {"default": None}
+    result = {}
+    for key, spec in wanted.items():
+        spec = spec or {}
+        name = ((config.get("networks") or {}).get(key) or {}).get("name") or f"{config.get('name')}_{key}"
+        aliases = [service] + [a for a in (spec.get("aliases") or []) if a != service]
+        result[name] = {"aliases": aliases, "ipv4": spec.get("ipv4_address")}
+    return result
+
+
+def endpoint_plan(items: list[dict], models: dict[tuple, dict]) -> list[dict]:
+    """Containers whose actual endpoints lack networks their Compose model requires."""
+    plan = []
+    for c in items:
+        if c["project"] not in PROJECTS or not c["service"]:
+            continue
+        key = (c["project"], c["compose"]["project.config_files"], c["compose"]["project.environment_file"])
+        model = models.get(key)
+        if model is None or not meant_to_run(c):
+            continue
+        want = desired_networks(model, c["service"])
+        missing = {net: spec for net, spec in want.items() if net not in c["networks"]}
+        if missing:
+            plan.append({"id": c["id"], "name": c["name"], "service": c["service"], "state": c["state"],
+                         "missing": missing, "had": c["networks"]})
+    rank = {s: i for i, s in enumerate(NET_ORDER)}
+    return sorted(plan, key=lambda t: next((rank[s] for s in NET_ORDER if s in t["service"]), len(NET_ORDER)))
+
+
+def meant_to_run(c: dict) -> bool:
+    """Running/restarting, or exited because its start failed while it should always run.
+
+    Intentionally stopped one-shot jobs (init, migrate) and candidates are never started.
+    """
+    if c["state"] in ("running", "restarting"):
+        return True
+    return (c["state"] == "exited" and bool(c.get("error"))
+            and c.get("restart_policy") in ("always", "unless-stopped"))
+
+
+def connect_cmd(net: str, spec: dict, cid: str) -> list[str]:
+    cmd = ["docker", "network", "connect"]
+    for alias in spec["aliases"]:
+        cmd += ["--alias", alias]
+    if spec.get("ipv4"):
+        cmd += ["--ip", spec["ipv4"]]
+    return [*cmd, net, cid]
+
+
+def _ready(cid: str, wanted: list[str]) -> tuple[bool, str]:
+    now = {c["id"]: c for c in (summary(x) for x in containers())}.get(cid)
+    if not now:
+        return False, "missing"
+    ok = (now["state"] == "running" and now["health"] in ("healthy", "-") and not ports_missing(now)
+          and all(n in now["networks"] for n in wanted))
+    return ok, f"{now['state']}/{now['health']} nets={','.join(now['networks']) or '-'} ports={len(now['published_ports'])}/{len(now['configured_ports'])}"
+
+
+def repair_one(target: dict, timeout_s: int, undo: dict) -> None:
+    """Restore missing endpoints; `undo` is updated as each step happens.
+
+    A running container that still has at least one network (for example the
+    Device Agent) is never stopped: missing networks are connected live.
+    A container without any network, or exited/restarting, is stopped (if
+    needed), connected and started so Docker programs its ports.
+    """
+    cid, name = target["id"], target["name"]
+    live = target["state"] == "running" and bool(target["had"])
+    undo.update({"live": live})
+    if not live and target["state"] in ("running", "restarting"):
+        say(f"{name}: docker stop (was {target['state']}, networks {target['had'] or 'NONE'})")
+        run("docker", "stop", "-t", "30", cid, timeout=90)
+        undo["stopped"] = True
+    for net, spec in target["missing"].items():
+        run("docker", "network", "inspect", "--format", "{{.Name}}", net, timeout=30)  # never create networks
+        say(f"{name}: network connect {net} aliases={spec['aliases']}{' ip=' + spec['ipv4'] if spec.get('ipv4') else ''}"
+            f"{' (live, no restart)' if live else ''}")
+        run(*connect_cmd(net, spec, cid), timeout=60)
+        undo["added"].append(net)
+    if not live:
+        say(f"{name}: docker start")
+        run("docker", "start", cid, timeout=120)
+    deadline = time.monotonic() + timeout_s
+    wanted = list(target["missing"]) + target["had"]
+    while True:
+        ok, detail = _ready(cid, wanted)
+        if ok:
+            say(f"{name}: READY {detail}")
+            return
+        if time.monotonic() > deadline:
+            raise Blocked(f"NOT_READY_AFTER_{timeout_s}s {name}: {detail}")
+        say(f"{name}: waiting {detail} ({int(deadline - time.monotonic())}s left)")
+        time.sleep(5)
+
+
+def undo_one(record: dict) -> None:
+    name, cid = record["name"], record["id"]
+    say(f"ROLLBACK {name}: disconnect {record['added']}, restore pre-state {record['pre_state']}")
+    if not record.get("live"):
+        run("docker", "stop", "-t", "30", cid, timeout=90, check=False)
+    for net in record["added"]:
+        run("docker", "network", "disconnect", net, cid, timeout=60, check=False)
+    if not record.get("live") and record["pre_state"] in ("running", "restarting"):
+        run("docker", "start", cid, timeout=120, check=False)
+
+
+def dns_check(items: list[dict]) -> dict:
+    """Resolve the Compose names the Telemetry Service needs, from inside it."""
+    tel = _service(items, "nexolab-central", "telemetry-service")
+    if not tel:
+        return {"telemetry": "not running"}
+    code = ("import socket,json;r={}\nfor n in ('postgres','mqtt'):\n try: r[n]=socket.gethostbyname(n)\n"
+            " except Exception as e: r[n]='FAIL '+str(e)\nprint(json.dumps(r))")
+    out = run("docker", "exec", tel["id"], "python3", "-c", code, timeout=30, check=False)
+    try:
+        return json.loads(out.splitlines()[-1])
+    except (ValueError, IndexError):
+        return {"raw": out[-200:]}
+
+
+def endpoint_lost(c: dict) -> bool:
+    """Production container meant to run whose primary Compose network endpoint is gone (#1399)."""
+    mode = c.get("network_mode") or ""
+    if c["project"] not in PROJECTS or not c["service"] or not meant_to_run(c):
+        return False
+    if mode in ("host", "none", "default", "bridge") or mode.startswith(("container:", "service:")):
+        return False
+    return mode not in c["networks"]
+
+
+STANDALONE_NETWORK = "nexolab-standalone-runtime"
+# Repository overlay infrastructure/compose/compose.central-standalone.yaml (used in LAN mode).
+STANDALONE_OVERLAY = {"mqtt": ["central-mqtt"], "telemetry-service": []}
+
+
+def minimal_model(project: str, members: list[dict]) -> dict:
+    """Explicit opt-in fallback when the Compose model cannot be read: each container's own
+    primary network (its NetworkMode) with the service alias, plus the repository's
+    standalone-runtime overlay when that network exists. Recorded as such in the evidence."""
+    standalone = subprocess.run(["docker", "network", "inspect", "--format", "{{.Name}}", STANDALONE_NETWORK],
+                                capture_output=True, timeout=30, check=False).returncode == 0
+    services, networks = {}, {}
+    for c in members:
+        nets = {"primary-" + c["service"]: {"aliases": [], "ipv4_address": None}}
+        networks["primary-" + c["service"]] = {"name": c["network_mode"]}
+        if standalone and c["service"] in STANDALONE_OVERLAY:
+            nets["standalone-runtime"] = {"aliases": STANDALONE_OVERLAY[c["service"]], "ipv4_address": None}
+            networks["standalone-runtime"] = {"name": STANDALONE_NETWORK}
+        services[c["service"]] = {"network_mode": None, "networks": nets}
+    return {"name": project, "services": services, "networks": networks, "source": "minimal-fallback"}
+
+
+def preflight(items: list[dict], allow_minimal: bool = False) -> tuple[list[dict], dict]:
+    """Everything is checked before any change. Raises Blocked with a precise reason."""
+    say("preflight: tools and privileges")
+    for tool in (IP, SYSCTL, SUDO_PYTHON):
+        if not Path(tool).exists():
+            raise Blocked(f"PREFLIGHT_TOOL_MISSING {tool}")
+    if subprocess.run(["sudo", "-n", "true"], capture_output=True, timeout=20, check=False).returncode:
+        raise Blocked("PREFLIGHT_SUDO_NOT_CACHED: run `sudo -v` first (the tool never asks for a password mid-run)")
+    if subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=30, check=False).returncode:
+        raise Blocked("PREFLIGHT_DOCKER_COMPOSE_UNAVAILABLE")
+    targets = [c for c in items if endpoint_lost(c)]
+    say(f"preflight: {len(targets)} production container(s) with lost endpoints: {[c['name'] for c in targets] or 'none'}")
+    groups: dict[tuple, list[dict]] = {}
+    for c in targets:
+        key = (c["project"], c["compose"]["project.config_files"], c["compose"]["project.environment_file"])
+        groups.setdefault(key, []).append(c)
+    models: dict[tuple, dict] = {}
+    for key, members in groups.items():
+        say(f"preflight: privileged read-only Compose model {key[0]} ({len(key[1].split(','))} file(s)) "
+            f"for {[c['service'] for c in members]}")
+        try:
+            models[key] = compose_config(key[0], members[0]["compose"], [c["service"] for c in members])
+        except Blocked as exc:
+            if not allow_minimal or not str(exc).startswith(("COMPOSE_MODEL_BLOCKED", "NO_COMPOSE_LABELS")):
+                raise
+            say(f"WARNING Compose model unavailable ({exc}); using the explicit minimal network model")
+            models[key] = minimal_model(key[0], members)
+    plan = endpoint_plan(targets, models)
+    for target in plan:
+        for net in target["missing"]:
+            if subprocess.run(["docker", "network", "inspect", "--format", "{{.Name}}", net],
+                              capture_output=True, timeout=30, check=False).returncode:
+                raise Blocked(f"PREFLIGHT_NETWORK_MISSING {net} (this tool never creates networks)")
+    holders = compat_holders()
+    if [h for h in holders if h not in ("lo", DUMMY)]:
+        raise Blocked(f"COMPAT_IP_HELD_BY_PHYSICAL_INTERFACE {holders}")
+    if physical_routes_covering():
+        raise Blocked("PHYSICAL_ROUTE_COVERS_COMPAT_IP: refusing on the former laboratory LAN")
+    return plan, models
+
+
+def repair_networks(share_to: str | None = None, allow_minimal: bool = False) -> int:
+    if os.getuid() != 1000:
+        print("NEXOLAB_NETWORK_REPAIR_BLOCKED RUN_AS_OPERATOR_UID_1000 (never run this tool as root)", flush=True)
+        return 3
+    others = run("pgrep", "-af", "nexolab-network-compat-recovery|recover-v2.py|recover-v3", check=False).splitlines()
+    others = [o for o in others if str(os.getpid()) not in o.split()[0:1] and "pgrep" not in o]
+    if others:
+        print(f"NEXOLAB_NETWORK_REPAIR_BLOCKED ANOTHER_RECOVERY_RUNNING {others}", flush=True)
+        return 3
+    ev = evidence_dir()
+    handle = None
+    say("phase 1/6 preflight (no changes)")
+    try:
+        handle = lock()
+        dump(ev, "provenance.json", provenance())
+        before = diagnose(ev)
+        items = before["containers"]
+        plan, models = preflight(items, allow_minimal)
+        dump(ev, "network_models.json", {" | ".join(k): v for k, v in models.items()})  # projections only
+    except Exception as exc:  # noqa: BLE001 - any preflight failure is BLOCKED with evidence, nothing changed
+        reason = f"{exc.__class__.__name__}: {exc}" if not isinstance(exc, Blocked) else str(exc)
+        dump(ev, "preflight_blocked.json", {"reason": reason})
+        if handle:
+            handle.close()
+        try:
+            share(ev, share_to)
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"NEXOLAB_NETWORK_REPAIR_BLOCKED {reason} (no change made) evidence={ev}", flush=True)
+        return 3
+    dump(ev, "endpoint_plan.json", plan)
+    if not plan:
+        say("no lost network endpoints on production containers")
+    for t in plan:
+        say(f"plan: {t['name']} ({t['state']}) missing {list(t['missing'])} has {t['had'] or 'NONE'}")
+    alias_added = False
+    if not ({"lo", DUMMY} & set(compat_holders())) and any(COMPAT_IP in c["bound_ips"] for c in items):
+        say("phase 2/6 compatibility address")
+        dump(ev, "arp_ignore_before.json", before["arp_ignore"])
+        add_alias()
+        alias_added = True
+    else:
+        say(f"phase 2/6 compatibility address present on {compat_holders()}")
+    say(f"phase 3/6 repair {len(plan)} container(s): stop -> connect -> start -> wait")
+    done: list[dict] = []
+    current: dict | None = None
+    try:
+        for target in plan:
+            current = {"id": target["id"], "name": target["name"], "pre_state": target["state"], "added": []}
+            repair_one(target, 240 if "telemetry" in target["service"] else 150, current)
+            done.append(current)
+            current = None
+        say("phase 4/6 verify: Docker DNS, published ports, API, dashboard")
+        now = [summary(c) for c in containers()]
+        dns = dns_check(now)
+        say(f"DNS from telemetry-service: {dns}")
+        # Only containers meant to run: stopped historical/candidate containers keep their
+        # configured ports unpublished by design and must not fail verification (v3.2).
+        missing_ports = {c["name"]: sorted(set(c["configured_ports"]) - set(c["published_ports"]))
+                         for c in now if c["project"] in PROJECTS and meant_to_run(c) and ports_missing(c)}
+        status, body = http(f"http://{COMPAT_IP}:8082/health/ready")
+        dash, _ = http(f"http://{COMPAT_IP}:3000/api/runtime-identity")
+        dump(ev, "verify.json", {"dns": dns, "missing_ports": missing_ports, "ready": [status, body[:300]], "dashboard": dash})
+        say(f"ports missing: {missing_ports or 'none'} | telemetry ready HTTP {status} | dashboard HTTP {dash}")
+        if any(str(v).startswith("FAIL") for v in dns.values()) or missing_ports or status != 200 or dash != 200:
+            raise Blocked(f"VERIFY_FAILED dns={dns} missing_ports={missing_ports} ready={status} dashboard={dash}")
+    except Exception as exc:  # noqa: BLE001 - every failure path rolls back
+        say(f"FAILURE: {exc}")
+        if current:
+            done.append(current)
+        for record in reversed(done):
+            undo_one(record)
+        if alias_added:
+            remove_alias()
+            restore_arp()
+        handle.close()
+        dump(ev, "rollback.json", {"error": str(exc), "undone": done, "alias_removed": alias_added})
+        share(ev, share_to)
+        print(f"NEXOLAB_NETWORK_REPAIR_ROLLED_BACK {exc} evidence={ev}", flush=True)
+        return 1
+    say(f"phase 5/6 stability window {STABILITY_SECONDS}s: alias, API, Edge delivery, PostgreSQL rows")
+    stable, _ = stability(ev)
+    say("phase 6/6 evidence")
+    after = diagnose(None, with_history=False)
+    dump(ev, "after.json", after)
+    handle.close()
+    share(ev, share_to)
+    by_id = {c["id"]: c for c in after["containers"]}
+    drift = [c["name"] for c in items if c["id"] not in by_id or by_id[c["id"]]["image"] != c["image"]
+             or by_id[c["id"]]["mounts"] != c["mounts"]]
+    if drift:
+        print(f"HARD_BLOCKER_CONTAINER_IDENTITY_DRIFT {drift}", flush=True)
+        return 2
+    if not stable:
+        print(f"NEXOLAB_NETWORK_REPAIR_UNSTABLE endpoints restored, delivery/ingestion not proven; evidence={ev}", flush=True)
+        return 1
+    print(f"NEXOLAB_NETWORK_REPAIR_GREEN_STABLE dns ports api edge_delivering postgres_ingesting evidence={ev}", flush=True)
+    return 0
+
+
 def main(argv: list[str]) -> int:
     args = list(argv[1:])
     share_to = None
@@ -559,6 +997,8 @@ def main(argv: list[str]) -> int:
             return apply(share_to)
         if mode == "verify":
             return verify(share_to)
+        if mode == "repair-networks":
+            return repair_networks(share_to, allow_minimal="--minimal-network-model" in args)
         provenance()
         return {"rollback": rollback, "install-boot-compat": install_boot, "remove-boot-compat": remove_boot}[mode]()
     except KeyError:
