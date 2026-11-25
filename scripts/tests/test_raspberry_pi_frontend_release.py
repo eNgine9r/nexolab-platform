@@ -290,6 +290,60 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
             self.assertEqual(result.returncode, 75)
             self.assertIn("status=FAIL", report.read_text())
             self.assertIn("npm run build", report.read_text())
+    def _same_origin_release(self, temp: str, chunk_text: str) -> tuple[Path, Path, str]:
+        release = Path(temp) / "release"
+        chunk = release / ".next" / "static" / "chunks" / "app.js"
+        chunk.parent.mkdir(parents=True)
+        (release / ".next" / "BUILD_ID").write_text("build-so\n", encoding="utf-8")
+        chunk.write_text(chunk_text, encoding="utf-8")
+        report = Path(temp) / "contract.txt"
+        return release, report, "live same-origin same-origin local 00000000-0000-0000-0000-000000000001"
+
+    def test_same_origin_contract_passes_without_compiled_host_origin(self) -> None:
+        bundle = ('"live";"same-origin";"local";"00000000-0000-0000-0000-000000000001";'
+                  'fetch(u,{credentials:"same-origin"});ns="http://www.w3.org/2000/svg"')
+        with tempfile.TemporaryDirectory() as temp:
+            release, report, args = self._same_origin_release(temp, bundle)
+            result = run_bash(f"source {HELPER}; nexolab_frontend_verify_public_contract {release} {args} {report}")
+            self.assertEqual(result.returncode, 0, report.read_text())
+            self.assertIn("same_origin_browser_bundle=no-absolute-host-origin", report.read_text())
+
+    def test_same_origin_contract_rejects_compiled_host_origin(self) -> None:
+        base = '"live";"same-origin";"local";"00000000-0000-0000-0000-000000000001";'
+        for leaked in ("http://172.18.48.66:8082", "ws://192.168.1.220/api/v1/telemetry/live",
+                       "http://localhost:8082", "https://nexolab-edge-01:8082"):
+            with tempfile.TemporaryDirectory() as temp:
+                release, report, args = self._same_origin_release(temp, base + f'u="{leaked}"')
+                result = run_bash(
+                    f"source {HELPER}; nexolab_frontend_verify_public_contract {release} {args} {report}")
+                self.assertEqual(result.returncode, 70, leaked)
+                self.assertIn("compiled_absolute_origin=", report.read_text())
+
+    def test_same_origin_contract_rejects_mixed_endpoints(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            release, report, _ = self._same_origin_release(
+                temp, '"live";"same-origin";"ws://x/api";"local";"00000000-0000-0000-0000-000000000001"')
+            args = "live same-origin ws://x/api local 00000000-0000-0000-0000-000000000001"
+            result = run_bash(f"source {HELPER}; nexolab_frontend_verify_public_contract {release} {args} {report}")
+            self.assertEqual(result.returncode, 70)
+            self.assertIn("same_origin_mixed=", report.read_text())
+
+    def test_artifact_builder_same_origin_profile_is_strict(self) -> None:
+        common = ["--platform", "linux/arm64", "--organization-id", "00000000-0000-0000-0000-000000000001",
+                  "--output", "/nonexistent-never-created"]
+        for extra in (["--api-base-url", "same-origin", "--websocket-url", "ws://h/api/v1/telemetry/live",
+                       "--auth-provider", "local"],
+                      ["--api-base-url", "http://h:8082", "--websocket-url", "same-origin", "--auth-provider", "local"],
+                      ["--api-base-url", "same-origin", "--websocket-url", "same-origin",
+                       "--auth-provider", "acceptance"],
+                      ["--api-base-url", "same-origin", "--websocket-url", "same-origin", "--auth-provider", "local",
+                       "--external-https"],
+                      ["--api-base-url", "same-origin-x", "--websocket-url", "same-origin", "--auth-provider",
+                       "local"]):
+            result = subprocess.run(["bash", str(ARTIFACT_BUILDER), *extra, *common], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 64, (extra, result.stderr))
+        self.assertFalse(Path("/nonexistent-never-created").exists())
+
     def test_public_contract_rejects_dynamic_or_wrong_build_env(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             release = Path(temp) / "release"
