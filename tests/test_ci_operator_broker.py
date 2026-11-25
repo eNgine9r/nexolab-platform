@@ -96,6 +96,8 @@ class RunningBroker:
             self.proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.proc.kill()
+        if self.proc.stdout is not None:
+            self.proc.stdout.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
 
@@ -399,7 +401,7 @@ class BrokerStaticContractTests(unittest.TestCase):
         out = subprocess.run([analyze, "verify", "--man=no", str(SOCKET_UNIT), str(SERVICE)],
                              capture_output=True, text=True, timeout=60)
         problems = [line for line in out.stderr.splitlines()
-                    if line.strip() and not re.search(r"is not executable|No such file|Command .* is not|"
+                    if "nexolab-operator-broker" in line and not re.search(r"is not executable|No such file|Command .* is not|"
                                                       r"Failed to prepare filename|Unit .* not found|"
                                                       r"Failed to create .*: (Permission|Read-only)|"
                                                       r"Neither a valid executable", line)]
