@@ -1,8 +1,9 @@
 """Source-only central MQTT QoS1 receipt transport (#1445).
 
 A broker PUBACK proves broker acceptance, NOT Edge reception and NOT a
-verified publisher ACL. Do not connect this class to the installed runtime
-until dedicated MQTT identity/ACL review and isolated acceptance are complete.
+verified publisher ACL. It is wired into the runtime only behind the
+default-OFF NEXOLAB_COMMITTED_RECEIPTS flag (#1762); site activation still
+needs dedicated MQTT identity/ACL review and isolated acceptance.
 """
 from __future__ import annotations
 
@@ -68,6 +69,11 @@ class CommittedReceiptMqttSender:
         client.on_connect = self._on_connect
         client.on_disconnect = self._on_disconnect
         self._client = client
+
+    @property
+    def connected(self) -> bool:
+        """Diagnostic only: a CONNACK is not proof of the receipt ACL."""
+        return self._started and self._connected.is_set()
 
     def start(self) -> None:
         if self._started:

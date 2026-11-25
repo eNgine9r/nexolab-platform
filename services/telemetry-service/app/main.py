@@ -14,6 +14,7 @@ from app.alerts.api import create_alert_router
 from app.alerts.processor import AlertProcessor
 from app.alerts.repository import AlertRepository
 from app.api import create_api_router
+from app.committed_receipt_runtime import build_committed_receipt_runtime
 from app.config import Settings
 from app.energy_export.api import create_energy_export_router
 from app.energy_export.jobs import ExportJobs, ExportPolicy
@@ -182,6 +183,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if resolved.mqtt_node_registry_enforced
         else None
     )
+    # #1762: default OFF. Disabled leaves both values None so the ingestion
+    # path, readiness and metrics stay exactly as before.
+    committed_receipts = None
+    receipt_publisher_loop = None
+    if resolved.committed_receipts_enabled:
+        committed_receipts, receipt_publisher_loop = build_committed_receipt_runtime(
+            resolved,
+            database,
+            node_ingress_authorizer,
+        )
     report_repository = ReportRepository(
         database,
         security_repository=security_repository,
@@ -212,6 +223,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         dead_letter_payload_max_bytes=resolved.dead_letter_payload_max_bytes,
         database_retry_initial_seconds=resolved.database_retry_initial_seconds,
         database_retry_max_seconds=resolved.database_retry_max_seconds,
+        committed_receipts=committed_receipts,
     )
     retention_worker = worker_from_settings(database, state, resolved)
     mqtt_consumer: MqttConsumer | None = None
@@ -235,6 +247,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             retention_worker.start()
         if broker_control_worker is not None:
             broker_control_worker.start()
+        if receipt_publisher_loop is not None:
+            receipt_publisher_loop.start()
 
         if resolved.mqtt_enabled:
             mqtt_consumer = MqttConsumer(resolved, ingestor, state)
@@ -249,6 +263,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if mqtt_consumer is not None:
                 mqtt_consumer.stop()
             await asyncio.to_thread(ingestor.stop)
+            if receipt_publisher_loop is not None:
+                await asyncio.to_thread(receipt_publisher_loop.stop)
             if broker_control_worker is not None:
                 await asyncio.to_thread(broker_control_worker.stop)
             if resolved.retention_enabled:
@@ -314,6 +330,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
+    app.state.receipt_publisher_loop = receipt_publisher_loop
     if local_auth_service is not None:
         app.include_router(create_local_auth_router(local_auth_service))
     app.include_router(create_security_router(security_repository, security_dependencies))
@@ -521,18 +538,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "database_error": snapshot["database_error"],
             "last_error": snapshot["last_error"],
         }
+        if receipt_publisher_loop is not None:
+            # Reported separately; never part of the telemetry verdict above.
+            payload["committed_receipts"] = receipt_publisher_loop.stats.snapshot()
         return JSONResponse(payload, status_code=200 if ready else 503)
 
     @app.get("/metrics", response_class=PlainTextResponse)
     def metrics() -> PlainTextResponse:
         return PlainTextResponse(
-            render_prometheus(state.snapshot()),
+            render_prometheus(_metrics_snapshot()),
             media_type=PROMETHEUS_CONTENT_TYPE,
         )
 
     @app.get("/metrics/json")
     def metrics_json() -> dict[str, object]:
-        return state.snapshot()
+        return _metrics_snapshot()
+
+    def _metrics_snapshot() -> dict[str, object]:
+        snapshot = state.snapshot()
+        if receipt_publisher_loop is not None:
+            snapshot["committed_receipts"] = receipt_publisher_loop.stats.snapshot()
+        return snapshot
 
     return app
 

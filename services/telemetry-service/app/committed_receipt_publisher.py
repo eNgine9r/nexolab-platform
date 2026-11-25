@@ -1,6 +1,7 @@
 """Source-only PostgreSQL receipt publisher core for Issue #1445.
 
-This module is deliberately NOT connected to the installed MQTT runtime.
+Runtime use is limited to the default-OFF NEXOLAB_COMMITTED_RECEIPTS flag
+(#1762, app/committed_receipt_runtime.py).
 A deployment must independently verify a dedicated broker publisher identity,
 enforced per-node receipt-topic ACL and receipt subscriber isolation. An
 injected sender's return value is not proof of that security boundary.

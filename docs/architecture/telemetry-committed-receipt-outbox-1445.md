@@ -169,3 +169,141 @@ PostgreSQL result, not yet evidence of exact-head GitHub CI or an installed
 site PostgreSQL 16 runtime. `central_publisher_authorized=True` and the
 PUBACK callback are **synthetic-only**. The test never calls production MQTT,
 a physical controller, site PostgreSQL or the real Edge subscriber.
+
+## 2026-11-25 — Runtime wiring behind a default-OFF flag (#1762 slice 1)
+
+The central pieces are now connected to the telemetry-service runtime, but
+only behind `NEXOLAB_COMMITTED_RECEIPTS`:
+
+| Value                | Behaviour                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled` (default) | Unchanged: separate `NodeIngressAuthorizer.authorize` then `persist(event, raw)`; no publisher thread; readiness and metrics output unchanged. |
+| `enabled`            | Org-scoped node telemetry topics use `authorize_and_persist_committed` (registry, cursor, sample and receipt intent in one transaction).       |
+
+When `enabled`, startup fails closed unless all of the following hold:
+
+- `MQTT_ENABLED=true` and `MQTT_NODE_REGISTRY_ENFORCED=true`;
+- `DATABASE_URL` is PostgreSQL;
+- a dedicated receipt publisher identity:
+  `NEXOLAB_RECEIPT_PUBLISHER_USERNAME` and
+  `NEXOLAB_RECEIPT_PUBLISHER_PASSWORD_FILE` (a mounted file, read once at
+  startup, never logged), with `NEXOLAB_RECEIPT_PUBLISHER_CLIENT_ID`
+  (default `nexolab-receipt-publisher`). Username and client id must differ
+  from the ingestion subscriber's `MQTT_USERNAME` and `MQTT_CLIENT_ID`.
+  The publisher reuses the broker host, port and CA from the MQTT TLS
+  settings but never presents the ingestion client certificate.
+
+Runtime behaviour when enabled:
+
+- Legacy or unscoped topics keep the legacy path. Dead-letter handling,
+  duplicates, live publish and `after_persist` behave as before.
+- Deterministic receipt identity conflicts (for example, the same `event_id`
+  with a different payload) are dead-lettered with reason
+  `committed_receipt_conflict` instead of blocking the queue head.
+- If the bounded receipt outbox is full, the event is persisted on the legacy
+  path without a receipt intent (counted in
+  `committed_receipt_outbox_full_fallback_total`). The Edge keeps the row and
+  a later replay re-queues the receipt. Telemetry is never blocked by receipts.
+- A background thread (`committed-receipt-publisher`) runs
+  `CommittedReceiptPublisher.run_once` one intent at a time, with bounded
+  exponential backoff (`NEXOLAB_RECEIPT_PUBLISHER_RETRY_INITIAL_SECONDS`,
+  `..._RETRY_MAX_SECONDS`) and a graceful stop on shutdown.
+- `/metrics` and `/metrics/json` gain a `committed_receipt_*` section
+  (pending, oldest pending age, attempts, PUBACK-confirmed, failures, loop
+  errors, transport connected). `/health/ready` adds a separate
+  `committed_receipts` object (`ready`, `degraded` or `stopped`). The
+  telemetry readiness verdict and HTTP status never depend on it.
+
+**Site activation is out of scope.** It needs the protected backup and
+restore gate (#1428), an approved release, and a broker receipt identity and
+ACL provisioned by the owner (#1449/#1450). Until then the flag stays
+`disabled` on site. The Edge side (slice 2) and the isolated end-to-end
+acceptance (slice 3) are separate PRs. Hardware and site remain
+**UNVERIFIED**.
+
+## 2026-11-25 — Edge wiring behind a default-OFF flag (#1762 slice 2)
+
+The Edge pieces (`receipt_retention.CommittedReceiptQueue`,
+`receipt_replay.CommittedReceiptReplay`, `durable_receipt_v1`) are now
+connected to the Device Agent through `services/device-agent/committed_receipt_mode.py`,
+but only behind `DEVICE_AGENT_COMMITTED_RECEIPTS`:
+
+| Value                | Behaviour                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled` (default) | Unchanged: legacy `OfflineQueue`, rows are deleted after the broker QoS 1 PUBACK, no receipt client, `/health` output unchanged.          |
+| `enabled`            | `CommittedReceiptQueue`: PUBACK never deletes. Only a validated `postgres_committed` receipt prunes exactly one row in one SQLite commit. |
+
+When `enabled`, startup fails closed (`Settings.from_env`) unless all of the
+following hold. Errors name only the settings, never their values:
+
+- org-scoped telemetry: `NEXOLAB_ORGANIZATION_ID` (canonical lowercase UUID),
+  an explicitly set `NEXOLAB_NODE_ID` that matches the receipt contract, and
+  `MQTT_AUTH_REQUIRED=true` (telemetry identity `node:{org}:{node}`);
+- a dedicated Edge receipt subscriber identity, following the existing
+  mounted-file credential convention:
+  `DEVICE_AGENT_RECEIPT_MQTT_USERNAME`,
+  `DEVICE_AGENT_RECEIPT_MQTT_PASSWORD_FILE` (read at startup, never logged)
+  and `DEVICE_AGENT_RECEIPT_MQTT_CLIENT_ID` (default
+  `nexolab-{org}-{node}-receipts`). Username and client id must differ from
+  the telemetry `MQTT_USERNAME` and `MQTT_CLIENT_ID`. With
+  `MQTT_TLS_REQUIRED=true` the receipt client trusts the same CA but never
+  presents the telemetry client certificate;
+- the trusted central publisher identity,
+  `DEVICE_AGENT_RECEIPT_PUBLISHER_USERNAME`, in the dedicated
+  `nexolab-central-receipts-*` namespace, and the operator statement
+  `DEVICE_AGENT_RECEIPT_BROKER_ACL=broker-enforced` that the installed broker
+  ACL lets only that identity publish to `nexolab/v1/+/+/receipts`;
+- a valid replay budget: `DEVICE_AGENT_RECEIPT_REPLAY_AFTER_SECONDS`
+  (default 60), `..._REPLAY_INITIAL_RETRY_SECONDS` (5),
+  `..._REPLAY_MAX_RETRY_SECONDS` (300, at least the initial value) and
+  `..._REPLAY_MIN_INTERVAL_SECONDS` (0.2).
+
+**Trust model.** MQTT 3.1.1 does not identify the publisher of a message.
+`central_publisher_authorized` is therefore derived only from that validated
+configuration and from delivery on the dedicated subscriber's exact
+`nexolab/v1/{org}/{node}/receipts` QoS 1 subscription. It never comes from
+the receipt body or topic. The real guarantee is the installed broker ACL,
+which this PR does not verify.
+
+Runtime behaviour when enabled:
+
+- **First send.** The normal flush publishes every queued row once per
+  process lifetime, in SQLite id order, and advances an in-memory cursor on
+  PUBACK. It never deletes. After a restart the cursor starts at zero, so all
+  retained rows are sent once more (central deduplicates by `event_id`).
+- **Receipts.** A separate Paho client (dedicated identity) subscribes to the
+  exact node receipt topic. Each message goes through
+  `apply_committed_receipt`: forged, wrong-tenant, wrong-node, wrong-event,
+  out-of-order, stale, future, malformed and duplicate receipts are rejected
+  and counted by reason; `durably_spooled` is informational and never prunes.
+  The receipt ledger is durable across restarts.
+- **Replay.** A `committed-receipt-replay` thread re-publishes only the oldest
+  pending row, only after it waited `REPLAY_AFTER_SECONDS` since it was sent,
+  and then with the bounded exponential backoff of `CommittedReceiptReplay`.
+  Ticks are at least `REPLAY_MIN_INTERVAL_SECONDS` apart, and nothing is
+  replayed while the telemetry connection is down. A pruning receipt wakes the
+  thread so the next head is handled without waiting. Recovery from a large
+  loss is therefore one row per receipt round trip: bounded, but not fast.
+- **Foreign rows.** If the oldest row is not on the node's org-scoped
+  telemetry topic (for example a legacy `nexolab/telemetry` row left from
+  before activation), receipts and replay stop at that row and `/health`
+  becomes `degraded`. Drain the outbox with the flag disabled before enabling.
+- **`/health`** gains a `committed_receipts` object: pending count, oldest
+  pending age, payload/SQLite/free-disk bytes, receipts applied,
+  informational and rejected (by reason), first sends, replay attempts,
+  PUBACKs, failures and next retry, subscriber connection and SUBACK state.
+  It has no credentials or usernames. `retention_guaranteed` is always
+  `false`: free disk is reported, not reserved.
+
+**Provisioning gap.** The #1450 `nexolab-dynsec-admin grant-node-receipts`
+command grants the receipt topic to the node telemetry principal
+`node:{org}:{node}`. This slice requires a separate Edge receipt identity, so
+the owner must provision that identity (and its read-only ACL on the node
+receipt topic) before activation. That is part of #1449, not this PR.
+
+**Site activation is out of scope.** It needs the protected backup and
+restore gate (#1428), an approved release, and the broker identities and ACL
+provisioned by the owner (#1449/#1450). Until then the flag stays `disabled`
+on site. The tests use fake MQTT clients and synthetic receipts with real
+SQLite; they are not broker-ACL, outage or hardware evidence. The isolated
+end-to-end acceptance is slice 3. Hardware and site remain **UNVERIFIED**.

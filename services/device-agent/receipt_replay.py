@@ -1,8 +1,10 @@
-"""Bounded source-only FIFO replay for future authenticated final-receipt mode.
+"""Bounded FIFO replay for authenticated final-receipt mode.
 
-NOT wired into DeviceAgent. A trusted caller must independently establish
-installed broker ACL/identity and an authenticated receipt subscriber before
-enabling receipt mode. MQTT QoS1 PUBACK is never a deletion authorization.
+Driven by committed_receipt_mode.CommittedReceiptRuntime only when
+DEVICE_AGENT_COMMITTED_RECEIPTS=enabled (#1762 slice 2, default disabled).
+Activation still requires the installed broker ACL/identity and an
+authenticated receipt subscriber. MQTT QoS1 PUBACK is never a deletion
+authorization.
 """
 
 from __future__ import annotations

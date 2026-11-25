@@ -66,6 +66,44 @@ GAUGES = {
     "ingestion_lag_seconds": "Lag from event capture to successful persistence.",
 }
 
+# Rendered only when NEXOLAB_COMMITTED_RECEIPTS=enabled (#1762); the section
+# is absent otherwise so the disabled exposition is unchanged.
+RECEIPT_COUNTERS = {
+    "committed_ingress_total": "Telemetry routed through the committed receipt path.",
+    "conflict_dead_letter_total": "Committed-path identity conflicts dead-lettered.",
+    "outbox_full_fallback_total": "Telemetry persisted without a receipt intent because the outbox was full.",
+    "publish_attempts_total": "Receipt publication attempts (one durable intent each).",
+    "published_total": "Receipts confirmed by a broker QoS1 PUBACK (not Edge delivery).",
+    "publish_failures_total": "Receipt publication attempts without a broker PUBACK.",
+    "loop_errors_total": "Receipt publisher loop errors such as database unavailability.",
+}
+
+RECEIPT_GAUGES = {
+    "pending": "Committed receipt intents not yet confirmed by the broker.",
+    "oldest_pending_age_seconds": "Age of the oldest unpublished committed receipt intent.",
+    "consecutive_failures": "Consecutive receipt publisher failures.",
+    "publisher_running": "Whether the receipt publisher loop is running.",
+    "transport_connected": "Whether the dedicated receipt MQTT identity is connected.",
+}
+
+
+def _render_committed_receipts(lines: list[str], section: object) -> None:
+    if not isinstance(section, dict):
+        return
+    for field, help_text in RECEIPT_COUNTERS.items():
+        name = f"{PREFIX}committed_receipt_{field}"
+        lines.append(f"# HELP {name} {help_text}")
+        lines.append(f"# TYPE {name} counter")
+        _sample(lines, f"committed_receipt_{field}", section.get(field, 0))
+    for field, help_text in RECEIPT_GAUGES.items():
+        value = section.get(field)
+        if value is None:
+            continue
+        name = f"{PREFIX}committed_receipt_{field}"
+        lines.append(f"# HELP {name} {help_text}")
+        lines.append(f"# TYPE {name} gauge")
+        _sample(lines, f"committed_receipt_{field}", value)
+
 
 def _escape_label(value: str) -> str:
     return value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
@@ -184,5 +222,8 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
             value = reason_counts[reason_code]
             escaped = _escape_label(str(reason_code))
             lines.append(f'{name}{{reason_code="{escaped}"}} {value}')
+
+    if "committed_receipts" in resolved:
+        _render_committed_receipts(lines, resolved["committed_receipts"])
 
     return "\n".join(lines) + "\n"
