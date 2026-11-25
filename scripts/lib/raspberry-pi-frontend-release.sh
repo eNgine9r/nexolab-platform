@@ -129,7 +129,27 @@ for key, value in expected.items():
             dynamic_refs.append(f"{key}:{path.relative_to(root)}")
             break
 
-status = "PASS" if not missing_values and not dynamic_refs else "FAIL"
+# Same-origin LAN profile (#1734): the literal also appears in fetch(credentials), so
+# its presence proves nothing. Require both endpoints together and prove the browser
+# bundle compiles no absolute host origin (IP literal, localhost or the API port).
+same_origin_errors = []
+api_same = expected["NEXT_PUBLIC_NEXOLAB_API_BASE_URL"] == "same-origin"
+ws_same = expected["NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL"] == "same-origin"
+if api_same != ws_same:
+    same_origin_errors.append("same_origin_mixed=api-and-websocket-must-both-be-same-origin")
+if api_same and ws_same:
+    absolute = re.compile(r"\b(?:https?|wss?)://(?:\d{1,3}(?:\.\d{1,3}){3}|localhost|\[[0-9a-fA-F:]+\])(?::\d+)?"
+                          r"|\b(?:https?|wss?)://[A-Za-z0-9.-]+:8082\b")
+    static = build / "static"
+    for path, text in files:
+        if static in path.parents:
+            match = absolute.search(text)
+            if match:
+                same_origin_errors.append(f"compiled_absolute_origin={match.group(0)}:{path.relative_to(root)}")
+                if len(same_origin_errors) >= 10:
+                    break
+
+status = "PASS" if not missing_values and not dynamic_refs and not same_origin_errors else "FAIL"
 lines = [f"status={status}", f"build_id={(build / 'BUILD_ID').read_text().strip()}"]
 for key, value in expected.items():
     lines.append(f"{key}={value}")
@@ -137,6 +157,9 @@ for key in missing_values:
     lines.append(f"missing_baked_value={key}")
 for item in dynamic_refs:
     lines.append(f"dynamic_public_env_ref={item}")
+lines.extend(same_origin_errors)
+if api_same and ws_same and not same_origin_errors:
+    lines.append("same_origin_browser_bundle=no-absolute-host-origin")
 report.write_text("\n".join(lines) + "\n", encoding="utf-8")
 raise SystemExit(0 if status == "PASS" else 70)
 PY

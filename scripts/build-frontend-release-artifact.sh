@@ -4,12 +4,16 @@ set -Eeuo pipefail
 usage() {
   cat <<'EOF'
 Usage: build-frontend-release-artifact.sh --platform linux/arm64|linux/amd64 \
-  --api-base-url URL --websocket-url URL --auth-provider PROVIDER \
+  --api-base-url URL|same-origin --websocket-url URL|same-origin --auth-provider PROVIDER \
   --organization-id UUID --output DIR [--external-https]
 
 Builds a self-contained production Dashboard runtime artifact for a target Linux
 architecture. The connected builder may use internet; the resulting artifact is
 consumed offline by the Raspberry Pi deployment path.
+
+same-origin (both endpoints, local auth): a LOCAL_LAN build served through the LAN
+gateway; the compiled browser bundle must contain no absolute host origin. The
+dashboard server then needs NEXOLAB_SERVER_API_BASE_URL (private origin, #1738).
 EOF
 }
 
@@ -39,8 +43,22 @@ done
   echo "ERROR: --platform must be linux/arm64 or linux/amd64" >&2
   exit 64
 }
-[[ "$API_BASE_URL" =~ ^https?:// ]] || { echo "ERROR: invalid API URL" >&2; exit 64; }
-[[ "$WEBSOCKET_URL" =~ ^wss?:// ]] || { echo "ERROR: invalid WebSocket URL" >&2; exit 64; }
+if [[ "$API_BASE_URL" == same-origin || "$WEBSOCKET_URL" == same-origin ]]; then
+  # LOCAL_LAN same-origin profile (#1734 WP2c Stage 2): the browser uses the origin that
+  # served the page (the LAN gateway), so no host IP is compiled in. Both endpoints
+  # together, local auth, and never the protected external HTTPS stage.
+  [[ "$API_BASE_URL" == same-origin && "$WEBSOCKET_URL" == same-origin ]] || {
+    echo "ERROR: same-origin requires both --api-base-url and --websocket-url to be same-origin" >&2
+    exit 64
+  }
+  [[ "$EXTERNAL_HTTPS_STAGE" == false && "$AUTH_PROVIDER" == local ]] || {
+    echo "ERROR: same-origin LAN artifact requires local auth and no --external-https" >&2
+    exit 64
+  }
+else
+  [[ "$API_BASE_URL" =~ ^https?:// ]] || { echo "ERROR: invalid API URL" >&2; exit 64; }
+  [[ "$WEBSOCKET_URL" =~ ^wss?:// ]] || { echo "ERROR: invalid WebSocket URL" >&2; exit 64; }
+fi
 [[ "$AUTH_PROVIDER" =~ ^(disabled|local|acceptance|supabase)$ ]] || {
   echo "ERROR: unsupported auth provider" >&2
   exit 64

@@ -31,9 +31,15 @@ A wildcard listener cannot share a port with a specific-address bind, so the LAN
 
 ### Phase 2 — same-origin LAN frontend (frontend-only release, Option F pattern)
 
-- Build a LAN artifact from main with `NEXT_PUBLIC_NEXOLAB_API_BASE_URL=same-origin` (WP2a #1738). Server-side private origin `http://telemetry-service:8082`, allowed by #1738.
-- Activate with the guarded #1643 procedure: preview, switch, automatic rollback to the current LAN image.
-- Verify through the gateway on Ethernet and on Wi-Fi: login, Live Data, WebSocket, charts, photos (authenticated API, #1740).
+- **Build** in GitHub Actions (`Frontend Release Artifact`, ARM64) from main with `api_base_url=same-origin`, `websocket_url=same-origin`, `auth_provider=local` and no `external_origin`.
+  - The builder accepts `same-origin` only for both endpoints together, with local auth and never for the protected HTTPS stage.
+  - The compiled public contract must report `same_origin_browser_bundle=no-absolute-host-origin`, meaning no IP literal, `localhost` or `:8082` origin in the browser bundle.
+- **Server side:** the dashboard container additionally gets `NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082` (allowed by #1738). Without it, server routes fail closed.
+  - Before the switch, the preview container proves that Docker DNS resolves `telemetry-service` from the `nexolab-central` network.
+- **Activate** with the guarded #1643 frontend-only procedure: preview on `127.0.0.1:3125`, switch, then automatic rollback to the current LAN image (`7db6e1a8`, build `CWBsCWWebOZGHa5YyWp18`) on identity or health failure, or on any backend container ID change.
+- **Verify** through the gateway on Ethernet and on Wi-Fi: login, Live Data over `ws://<host>/api/v1/telemetry/live`, charts, photos (authenticated API, #1740), logout.
+- **Also affected:** `tailscale serve :8444` proxies to the same LAN container and must be re-verified. The HTTPS UI `:3105` is a separate release and stays unchanged.
+- **Gates:** the dashboard is stateless (no mounts) and the release is frontend-only, so the #1428 backup gate does not apply to this phase (Option F). It still applies to phase 3.
 
 ### Phase 3 — backend on loopback and Docker DNS (container recreation, approval required)
 

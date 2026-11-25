@@ -68,10 +68,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1734
+      "issue": 1758
     },
     "next_work_package": {
-      "issue": 1735
+      "issue": 1734
     }
   },
   "work_packages": [
@@ -12218,7 +12218,8 @@
         "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
         "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)",
         "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
-        "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)"
+        "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)",
+        "wp2c_stage1": "2026-11-25 16:13Z owner ran Stage 1 v3 (8a48f62b...): NEXOLAB_STAGE1_GATEWAY_GREEN, real systemd sandbox SANDBOX_OK, gateway enabled+active on 127.0.0.1:80 and 192.168.1.220:80, login 200/API 400/WS 101 parity, OAuth gate 302, tailnet listener untouched, telemetry ready. Evidence p0-evidence/owner-stage1-20261125T161322Z.log. Stage 2/3 not approved."
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12233,9 +12234,34 @@
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "owner_pending",
-        "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read"
+        "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read",
+        "finding_2026_11_25_diag": "Read-only diag 16:14Z: LAB KK1 system-wide, wpa-psk, psk-flags 0, WPA2 ch11 signal 100; brcmfmac 7.45.265; CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16 (802.11 auth timeout, before the 4-way handshake) every ~13 s; previous boot failed with no-secrets (4-way handshake). Hypothesis: wrong/changed PSK followed by AP-side block of MAC 2C:CF:67:A6:09:3A after repeated failures, or AP ACL. Needs owner/router-side check; four autoconnect Wi-Fi profiles exist (LAB KK1, WEST, me_mac, netplan-wlan0-iPhone)."
       },
       "branch": null
+    },
+    {
+      "issue": 1758,
+      "title": "Autonomous Raspberry Pi operations via a bounded local operator broker",
+      "lifecycle": "in_progress",
+      "priority": "high",
+      "scope": "Root-owned socket-activated broker: SO_PEERCRED uid 1001, fixed typed ops (read diagnostics, two down-only recover ops, approval-gated framework), redaction, replay protection, hash-chained audit, immutable-handler self check; checksum-pinned owner install/uninstall. No live installation by agent.",
+      "depends_on": [
+        1706
+      ],
+      "branch": "feat/1758-operator-broker",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "tests/test_ci_operator_broker.py",
+        "docs/operations/raspberry-pi-development-control-plane.md",
+        "docs/AI_DEVELOPMENT_OPERATING_STANDARD.md",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_install_pending",
+        "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi"
+      }
     },
     {
       "issue": 1762,

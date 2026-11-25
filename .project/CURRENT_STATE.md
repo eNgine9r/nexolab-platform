@@ -1,3 +1,22 @@
+## 2026-11-25 — WP2c Stage 1 GREEN; autonomous engineering mode; Operator Broker #1758 in review
+
+- **Stage 1 (#1734) installed by the owner, verified at 16:13Z.**
+  - The LAN gateway is enabled and active on `127.0.0.1:80` and `192.168.1.220:80`.
+  - The real systemd sandbox check passed (`SANDBOX_OK`).
+  - Login, API and WebSocket parity with the direct path.
+  - The OAuth gate still returns 302, and the tailnet listener and Ethernet are unchanged. Telemetry ready.
+  - Stage 2 (same-origin LAN frontend) and Stage 3 (loopback backend, retire `nxcompat0`) are next. Each needs exact owner approval.
+- **Second unplanned reboot (about 15:17Z) recovered automatically.** The cause is unknown; `system.power` through the broker will read the throttling flags once it is installed.
+- **Wi-Fi (#1735).**
+  - The profile is system-wide with the PSK stored.
+  - The AP rejects authentication with status 16 before the 4-way handshake, while the earlier boot failed the handshake (`no-secrets`).
+  - The likely cause is on the access point (changed PSK, then a temporary block or ACL on the Pi MAC). It needs a router-side check by the owner.
+- **SSD.**
+  - 23 GiB free. The inventory is in the evidence directory and the cleanup plan is in the owner evidence directory.
+  - The inventory tool's own "CLEAN" suggestions include protected recovery images and must not be run as written. Fix tracked under #1710.
+  - The main growth risk is `telemetry_samples` (22 GB).
+- **Autonomous engineering mode** is authorized by the Product Owner and documented in the control-plane runbook and the operating standard. #1758 adds a root-owned, socket-activated broker with fixed audited operations for the development account (source only; the owner installs it once).
+
 ## 2026-11-25 — receipt chain merged (source only), image CVEs resolved, reboot recovered automatically
 
 - **Security (#1743).** #1744 merged: exact libzstd1 fix overlay, plus the Product Owner-approved CVE-2026-107494 exceptions (three images, expiry 2026-12-15, no automatic extension).
