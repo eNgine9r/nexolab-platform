@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import io
+import json
+import subprocess
 import os
 import re
 import tempfile
@@ -90,7 +93,9 @@ class SafetyContractTests(unittest.TestCase):
         # Docker network use is limited to inspect/connect and disconnect for rollback; Compose to `config` only.
         self.assertEqual(sorted(set(re.findall(r'"docker", "network", "(\w+)"', text))), ["connect", "disconnect", "inspect"])
         self.assertIn('"config", "--format", "json"', text)
-        self.assertEqual(len(re.findall(r'\["docker", "compose"', text)), 1)
+        # Compose is used only for `version` and, inside the privileged helper, `config --format json`.
+        self.assertEqual(sorted(set(re.findall(r'\["docker", "compose", "([^"]+)"', text))), ["--project-name", "version"])
+        self.assertIn('cmd + ["config", "--format", "json"]', text)
 
     def test_boot_unit_runs_before_docker_and_only_adds_alias(self) -> None:
         unit = REC.UNIT_TEXT
@@ -156,10 +161,13 @@ EDGE_MODEL = {
 COMPOSE = {"project.config_files": "/srv/c.yaml", "project.working_dir": "/srv", "project.environment_file": "/srv/.env"}
 
 
-def _c(name: str, service: str, project: str, state: str, networks: list[str], ports=(), published=()) -> dict:
+def _c(name: str, service: str, project: str, state: str, networks: list[str], ports=(), published=(),
+       mode: str | None = None) -> dict:
     item = _container(name, service, project, state, list(ports), list(published))
     item["networks"] = networks
     item["compose"] = dict(COMPOSE)
+    item["network_mode"] = mode or ("nexolab-central" if project == "nexolab-central" else "nexolab-edge_default")
+    item["restart_policy"] = "unless-stopped"
     return item
 
 
@@ -236,9 +244,12 @@ class V3RepairTests(unittest.TestCase):
             return ""
 
         ready = iter([(True, "ok"), (False, "restarting")])
+        ok = mock.Mock(returncode=0, stdout="", stderr="")
         with mock.patch.object(REC.os, "getuid", return_value=1000), \
                 mock.patch.object(REC, "lock", return_value=open(os.devnull)), \
                 mock.patch.object(REC, "evidence_dir", return_value=Path(tempfile.mkdtemp())), \
+                mock.patch.object(REC.subprocess, "run", return_value=ok), \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
                 mock.patch.object(REC, "provenance", return_value={}), \
                 mock.patch.object(REC, "diagnose", return_value=diag), \
                 mock.patch.object(REC, "compose_config", return_value=CENTRAL_MODEL), \
@@ -262,9 +273,177 @@ class V3RepairTests(unittest.TestCase):
 
     def test_refuses_while_another_recovery_runs(self) -> None:
         with mock.patch.object(REC.os, "getuid", return_value=1000), \
-                mock.patch.object(REC, "run", return_value="4242 python3 -I -B recover-v2.py apply"), \
-                self.assertRaises(REC.Blocked):
-            REC.repair_networks()
+                mock.patch.object(REC, "run", return_value="4242 python3 -I -B recover-v2.py apply"):
+            self.assertEqual(REC.repair_networks(), 3)
+
+    def test_only_production_containers_with_lost_endpoints_are_targets(self) -> None:
+        items = self.incident() + [
+            _c("cand", "dashboard", "nexolab-central", "exited", []),          # stopped candidate
+            _c("migrate", "telemetry-migrate", "nexolab-central", "exited", []),  # finished one-shot
+            _c("other", "x", "nexolab-1364", "running", []),                   # other project
+        ]
+        lost = sorted(c["name"] for c in items if REC.endpoint_lost(c))
+        self.assertEqual(lost, ["dash", "minio", "mq", "tel"])
+
+
+class V31PrivilegedComposeTests(unittest.TestCase):
+    """v3.1: Compose files may live in root-only directories (/var/backups/nexolab is 0750 root)."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.private = self.root / "live-1575" / "compose"
+        self.private.mkdir(parents=True)
+        (self.private / "compose.central.yaml").write_text("services: {}\n")
+        (self.private / ".env.central").write_text("POSTGRES_PASSWORD=supersecret\n")
+        self.compose = {"project.config_files": str(self.private / "compose.central.yaml"),
+                        "project.working_dir": str(self.private), "project.environment_file": ""}
+
+    def tearDown(self) -> None:
+        os.chmod(self.private.parent, 0o755)
+        self.tmp.cleanup()
+
+    def test_unprivileged_process_never_opens_root_only_compose_files(self) -> None:
+        os.chmod(self.private.parent, 0o000)  # emulate the root-only backup directory
+        projection = {"model": {"name": "nexolab-central", "services": {"mqtt": {"network_mode": None, "networks": {
+            "central": {"aliases": [], "ipv4_address": None}}}}, "networks": {"central": {"name": "nexolab-central"}}}}
+        calls = []
+
+        def fake(cmd, **kwargs):
+            calls.append(cmd)
+            return mock.Mock(returncode=0, stdout=json.dumps(projection) + "\n", stderr="")
+
+        with mock.patch.object(REC.subprocess, "run", side_effect=fake):
+            model = REC.compose_config("nexolab-central", self.compose, ["mqtt"])
+        self.assertEqual(model["services"]["mqtt"]["networks"]["central"]["aliases"], [])
+        self.assertEqual(calls[0][:5], ["sudo", "-n", REC.SUDO_PYTHON, "-I", "-c"])
+        request = json.loads(calls[0][-1])
+        self.assertEqual(request["services"], ["mqtt"])
+        self.assertEqual(request["env_fallback"], ".env.central")
+
+    def test_helper_refusal_is_blocked_and_repair_reports_blocked_with_evidence(self) -> None:
+        evidence = Path(tempfile.mkdtemp())
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [])]
+        items[0]["compose"] = self.compose
+        refusal = mock.Mock(returncode=0, stdout=json.dumps({"error": ["PATH_NOT_ALLOWED x"]}), stderr="")
+        with mock.patch.object(REC.os, "getuid", return_value=1000), \
+                mock.patch.object(REC, "run", return_value=""), \
+                mock.patch.object(REC, "lock", return_value=open(os.devnull)), \
+                mock.patch.object(REC, "evidence_dir", return_value=evidence), \
+                mock.patch.object(REC, "provenance", return_value={}), \
+                mock.patch.object(REC, "diagnose", return_value={"containers": items, "arp_ignore": {}}), \
+                mock.patch.object(REC, "share") as share, \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
+                mock.patch.object(REC.subprocess, "run", return_value=refusal), \
+                mock.patch.object(REC, "add_alias") as add_alias:
+            code = REC.repair_networks("/tmp/x")
+        self.assertEqual(code, 3)
+        add_alias.assert_not_called()
+        share.assert_called_once()
+        self.assertIn("PATH_NOT_ALLOWED", (evidence / "preflight_blocked.json").read_text())
+
+    def test_permission_error_in_preflight_is_blocked_not_a_crash(self) -> None:
+        evidence = Path(tempfile.mkdtemp())
+        with mock.patch.object(REC.os, "getuid", return_value=1000), \
+                mock.patch.object(REC, "run", return_value=""), \
+                mock.patch.object(REC, "lock", return_value=open(os.devnull)), \
+                mock.patch.object(REC, "evidence_dir", return_value=evidence), \
+                mock.patch.object(REC, "provenance", return_value={}), \
+                mock.patch.object(REC, "diagnose", side_effect=PermissionError(13, "Permission denied", "/var/backups/x")), \
+                mock.patch.object(REC, "share"):
+            self.assertEqual(REC.repair_networks(), 3)
+        self.assertIn("PermissionError", (evidence / "preflight_blocked.json").read_text())
+
+    def test_helper_validates_paths_and_returns_only_the_network_projection(self) -> None:
+        """Run the real helper (as this user) with a fake docker that prints secret-bearing config."""
+        bindir = self.root / "bin"
+        bindir.mkdir()
+        model = {"name": "nexolab-central", "services": {
+            "telemetry-service": {"environment": {"DATABASE_URL": "postgresql://u:supersecret@postgres/db"},
+                                  "networks": {"central": None, "standalone-runtime": {"aliases": ["x"]}}},
+            "postgres": {"environment": {"POSTGRES_PASSWORD": "supersecret"}, "networks": {"central": None}}},
+            "networks": {"central": {"name": "nexolab-central", "driver": "bridge"}}}
+        (bindir / "docker").write_text("#!/bin/sh\ncat <<'J'\n" + json.dumps(model) + "\nJ\n")
+        os.chmod(bindir / "docker", 0o755)
+        request = REC.compose_request("nexolab-central", self.compose, ["telemetry-service"])
+        request["roots"] = [str(self.root) + "/"]
+        env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"}
+        out = subprocess.run([sys.executable, "-I", "-c", REC.COMPOSE_HELPER, json.dumps(request)],
+                             capture_output=True, text=True, env=env, timeout=30)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertNotIn("supersecret", out.stdout)
+        answer = json.loads(out.stdout)
+        self.assertEqual(list(answer["model"]["services"]), ["telemetry-service"])
+        self.assertEqual(answer["envs"], [str(self.private / ".env.central")])
+        request["roots"] = ["/nonexistent-root/"]
+        out = subprocess.run([sys.executable, "-I", "-c", REC.COMPOSE_HELPER, json.dumps(request)],
+                             capture_output=True, text=True, env=env, timeout=30)
+        self.assertIn("PATH_NOT_ALLOWED", out.stdout)
+
+
+class V31EndToEndTests(unittest.TestCase):
+    def test_success_path_repairs_in_order_and_reports_green_stable(self) -> None:
+        items = [_c("pg", "postgres", "nexolab-central", "running", ["nexolab-central"]),
+                 _c("tel", "telemetry-service", "nexolab-central", "restarting", [], ["172.18.48.66:8082->8082/tcp"]),
+                 _c("mq", "mqtt", "nexolab-central", "running", [], ["172.18.48.66:1884->1883/tcp"]),
+                 _c("dash", "dashboard", "nexolab-central", "running", [], ["172.18.48.66:3000->3000/tcp"])]
+        connects = []
+
+        def fake_run(*args, **kwargs):
+            if args[:3] == ("docker", "network", "connect"):
+                connects.append((args[-1], args[-2]))
+            return ""
+
+        ok = mock.Mock(returncode=0, stdout="", stderr="")
+        out = io.StringIO()
+        with mock.patch.object(REC.os, "getuid", return_value=1000), \
+                mock.patch.object(REC, "lock", return_value=open(os.devnull)), \
+                mock.patch.object(REC, "evidence_dir", return_value=Path(tempfile.mkdtemp())), \
+                mock.patch.object(REC, "provenance", return_value={}), \
+                mock.patch.object(REC, "diagnose", return_value={"containers": items, "arp_ignore": {}}), \
+                mock.patch.object(REC, "compose_config", return_value=CENTRAL_MODEL), \
+                mock.patch.object(REC.subprocess, "run", return_value=ok), \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
+                mock.patch.object(REC, "compat_holders", return_value=["nxcompat0"]), \
+                mock.patch.object(REC, "physical_routes_covering", return_value=[]), \
+                mock.patch.object(REC, "run", side_effect=fake_run), \
+                mock.patch.object(REC, "_ready", return_value=(True, "ok")), \
+                mock.patch.object(REC, "containers", return_value=[]), \
+                mock.patch.object(REC, "dns_check", return_value={"postgres": "172.19.0.3", "mqtt": "172.19.0.4"}), \
+                mock.patch.object(REC, "http", return_value=(200, "{}")), \
+                mock.patch.object(REC, "stability", return_value=(True, {})), \
+                mock.patch.object(REC, "share"), \
+                mock.patch("sys.stdout", out):
+            code = REC.repair_networks()
+        self.assertEqual(code, 0, out.getvalue()[-800:])
+        self.assertIn("NEXOLAB_NETWORK_REPAIR_GREEN_STABLE", out.getvalue())
+        self.assertEqual([c for c, _ in connects], ["mq", "mq", "tel", "tel", "dash"])
+        self.assertIn(("mq", "nexolab-standalone-runtime"), connects)
+
+
+class V31MinimalModelTests(unittest.TestCase):
+    def test_minimal_model_restores_primary_network_and_standalone_overlay(self) -> None:
+        members = [_c("mq", "mqtt", "nexolab-central", "running", []), _c("dash", "dashboard", "nexolab-central", "running", [])]
+        with mock.patch.object(REC.subprocess, "run", return_value=mock.Mock(returncode=0)):
+            model = REC.minimal_model("nexolab-central", members)
+        self.assertEqual(REC.desired_networks(model, "mqtt"), {
+            "nexolab-central": {"aliases": ["mqtt"], "ipv4": None},
+            "nexolab-standalone-runtime": {"aliases": ["mqtt", "central-mqtt"], "ipv4": None}})
+        self.assertEqual(REC.desired_networks(model, "dashboard"), {"nexolab-central": {"aliases": ["dashboard"], "ipv4": None}})
+
+    def test_minimal_model_is_never_used_without_the_explicit_flag(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [])]
+        blocked = REC.Blocked("COMPOSE_MODEL_BLOCKED nexolab-central: ['COMPOSE_CONFIG_FAILED exit=1']")
+        with mock.patch.object(REC.subprocess, "run", return_value=mock.Mock(returncode=0)), \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
+                mock.patch.object(REC, "compose_config", side_effect=blocked), \
+                mock.patch.object(REC, "compat_holders", return_value=[]), \
+                mock.patch.object(REC, "physical_routes_covering", return_value=[]):
+            with self.assertRaises(REC.Blocked):
+                REC.preflight(items)
+            plan, models = REC.preflight(items, allow_minimal=True)
+        self.assertEqual([p["name"] for p in plan], ["mq"])
+        self.assertEqual(next(iter(models.values()))["source"], "minimal-fallback")
 
 
 class V3SelectionTests(unittest.TestCase):

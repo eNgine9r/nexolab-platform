@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NEXOLAB P0 network-change recovery (v3): compatibility address and Docker endpoint repair.
+"""NEXOLAB P0 network-change recovery (v3.1): compatibility address and Docker endpoint repair.
 
 Owner-run as the operator account (uid 1000, docker group, sudo for `ip`,
 `sysctl`, `journalctl` and copying evidence). Restores the existing LOCAL_LAN
@@ -32,7 +32,13 @@ v2 changes after the unconfirmed v1 GREEN report:
               empty while NetworkMode names the network, #1399) exactly as the
               container's own Compose configuration defines them (networks,
               aliases, fixed IPs), then start, verify DNS/ports/API, stability;
-              full rollback of every touched container on any failure
+              full rollback of every touched container on any failure.
+              v3.1: Compose files may be root-only; a privileged read-only
+              helper returns only the network projection. Every preflight
+              failure is BLOCKED (exit 3) with evidence and no change.
+              `--minimal-network-model`: explicit fallback when the Compose
+              model cannot be read (primary network + service alias +
+              repository standalone overlay).
     rollback  remove the alias (dummy and legacy lo) and restore arp_ignore
     install-boot-compat / remove-boot-compat
               optional interim unit creating the alias before Docker at boot
@@ -567,31 +573,109 @@ def remove_boot() -> int:
 NET_ORDER = ("postgres", "minio", "object-storage", "versitygw", "mqtt", "telemetry-service", "dashboard")
 
 
-def compose_config(project: str, compose: dict) -> dict:
-    """Effective Compose model of the container's own project files (secrets never printed or saved)."""
-    files = [f for f in compose["project.config_files"].split(",") if f]
-    workdir = compose["project.working_dir"]
-    envs = [e for e in compose["project.environment_file"].split(",") if e]
-    if not envs:
-        # Older Compose labels lack environment_file; the deploy scripts use these names (#1733).
-        fallback = {"nexolab-central": ".env.central", "nexolab-edge": ".env.edge-central"}.get(project)
-        candidate = Path(workdir or ".") / (fallback or ".env")
-        if fallback and candidate.is_file():
-            envs = [str(candidate)]
-    if not files or not workdir:
+# Privileged, read-only Compose model reader (v3.1). It runs ONLY this helper
+# as root (`sudo -n python3 -I -c HELPER request`). The helper accepts compose
+# and env files only under ALLOWED_COMPOSE_ROOTS (after realpath, regular file,
+# owner root or the operator, not world-writable), runs `docker compose config`
+# and prints ONLY the network projection of the requested services. Interpolated
+# environment values/secrets never leave the helper process, are never printed
+# and never reach the unprivileged recovery process or its evidence.
+ALLOWED_COMPOSE_ROOTS = ("/var/backups/nexolab/", "/home/nexolab/", "/opt/nexolab/", "/etc/nexolab/")
+ENV_FALLBACK = {"nexolab-central": ".env.central", "nexolab-edge": ".env.edge-central"}
+SUDO_PYTHON = "/usr/bin/python3"
+COMPOSE_HELPER = r"""
+import json, os, re, subprocess, sys
+req = json.loads(sys.argv[1])
+roots = tuple(req["roots"])
+def check(path, kind):
+    real = os.path.realpath(path)
+    if not real.startswith(roots):
+        return "PATH_NOT_ALLOWED %s" % path
+    if kind == "dir":
+        return None if os.path.isdir(real) else "DIR_MISSING %s" % path
+    if not os.path.isfile(real):
+        return "FILE_MISSING %s" % path
+    st = os.stat(real)
+    if st.st_uid not in (0, req["operator_uid"]):
+        return "UNEXPECTED_OWNER %s uid=%d" % (path, st.st_uid)
+    if st.st_mode & 0o002:
+        return "WORLD_WRITABLE %s" % path
+    return None
+envs = list(req["envs"])
+if not envs and req.get("env_fallback"):
+    candidate = os.path.join(req["workdir"], req["env_fallback"])
+    if os.path.isfile(os.path.realpath(candidate)):
+        envs = [candidate]
+errors = [e for e in [check(req["workdir"], "dir")] + [check(p, "file") for p in req["files"] + envs] if e]
+if not req["files"]:
+    errors.append("NO_COMPOSE_FILES")
+if errors:
+    print(json.dumps({"error": errors, "envs": envs})); sys.exit(0)
+cmd = ["docker", "compose", "--project-name", req["project"], "--project-directory", os.path.realpath(req["workdir"])]
+for p in req["files"]:
+    cmd += ["-f", os.path.realpath(p)]
+for p in envs:
+    cmd += ["--env-file", os.path.realpath(p)]
+r = subprocess.run(cmd + ["config", "--format", "json"], capture_output=True, text=True, timeout=90)
+if r.returncode:
+    lines = [re.sub(r"=\S+", "=<redacted>", l)[:200] for l in r.stderr.splitlines()
+             if re.search(r"(?i)required|not found|no such|invalid|error", l)]
+    print(json.dumps({"error": ["COMPOSE_CONFIG_FAILED exit=%d" % r.returncode] + lines[:5], "envs": envs})); sys.exit(0)
+m = json.loads(r.stdout)
+def net(spec):
+    spec = spec or {}
+    return {"aliases": spec.get("aliases") or [], "ipv4_address": spec.get("ipv4_address")}
+services = {}
+for name in req["services"]:
+    svc = (m.get("services") or {}).get(name)
+    if svc is None:
+        continue
+    nets = svc.get("networks")
+    services[name] = {"network_mode": svc.get("network_mode"),
+                      "networks": None if nets is None else {k: net(v) for k, v in nets.items()}}
+print(json.dumps({"model": {"name": m.get("name"), "services": services,
+                            "networks": {k: {"name": (v or {}).get("name")} for k, v in (m.get("networks") or {}).items()}},
+                  "envs": envs}))
+"""
+
+
+def compose_request(project: str, compose: dict, services: list[str]) -> dict:
+    return {
+        "project": project,
+        "files": [f for f in compose["project.config_files"].split(",") if f],
+        "workdir": compose["project.working_dir"],
+        "envs": [e for e in compose["project.environment_file"].split(",") if e],
+        "env_fallback": ENV_FALLBACK.get(project),
+        "services": sorted(set(services)),
+        "roots": list(ALLOWED_COMPOSE_ROOTS),
+        "operator_uid": os.getuid(),
+    }
+
+
+def compose_config(project: str, compose: dict, services: list[str] | None = None) -> dict:
+    """Network projection of the container's own Compose model, read by the privileged helper.
+
+    The unprivileged process never opens the (possibly root-only) Compose or
+    env files itself and never receives interpolated values.
+    """
+    request = compose_request(project, compose, services or [])
+    if not request["files"] or not request["workdir"]:
         raise Blocked(f"NO_COMPOSE_LABELS for project {project}: cannot derive the authoritative network model")
-    for path in [*files, *envs]:
-        if not Path(path).is_file():
-            raise Blocked(f"COMPOSE_FILE_MISSING {path}")
-    cmd = ["docker", "compose", "--project-name", project, "--project-directory", workdir]
-    for path in files:
-        cmd += ["-f", path]
-    for path in envs:
-        cmd += ["--env-file", path]
-    out = subprocess.run([*cmd, "config", "--format", "json"], text=True, capture_output=True, timeout=90, check=False)
+    try:
+        out = subprocess.run(["sudo", "-n", SUDO_PYTHON, "-I", "-c", COMPOSE_HELPER, json.dumps(request)],
+                             text=True, capture_output=True, timeout=120, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise Blocked(f"COMPOSE_HELPER_UNAVAILABLE {exc.__class__.__name__}") from exc
     if out.returncode:
-        raise Blocked(f"COMPOSE_CONFIG_FAILED {project}: {out.stderr.strip()[-300:]}")
-    return json.loads(out.stdout)
+        raise Blocked(f"COMPOSE_HELPER_FAILED exit={out.returncode} (sudo credentials cached? run `sudo -v` first): "
+                      f"{out.stderr.strip()[-200:]}")
+    try:
+        answer = json.loads(out.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError) as exc:
+        raise Blocked("COMPOSE_HELPER_UNPARSED") from exc
+    if answer.get("error"):
+        raise Blocked(f"COMPOSE_MODEL_BLOCKED {project}: {answer['error']}")
+    return answer["model"]
 
 
 def desired_networks(config: dict, service: str) -> dict[str, dict]:
@@ -721,37 +805,114 @@ def dns_check(items: list[dict]) -> dict:
         return {"raw": out[-200:]}
 
 
-def repair_networks(share_to: str | None = None) -> int:
-    if os.getuid() != 1000:
-        raise Blocked("RUN_AS_OPERATOR_UID_1000")
-    others = run("pgrep", "-af", "nexolab-network-compat-recovery|recover-v2.py|recover-v3.py", check=False).splitlines()
-    others = [o for o in others if str(os.getpid()) not in o.split()[0:1] and "pgrep" not in o]
-    if others:
-        raise Blocked(f"ANOTHER_RECOVERY_RUNNING {others}: wait until it finishes and releases the lock")
-    handle = lock()
-    ev = evidence_dir()
-    dump(ev, "provenance.json", provenance())
-    say("phase 1/6 preflight: read-only state and Compose network model")
-    before = diagnose(ev)
-    items = before["containers"]
+def endpoint_lost(c: dict) -> bool:
+    """Production container meant to run whose primary Compose network endpoint is gone (#1399)."""
+    mode = c.get("network_mode") or ""
+    if c["project"] not in PROJECTS or not c["service"] or not meant_to_run(c):
+        return False
+    if mode in ("host", "none", "default", "bridge") or mode.startswith(("container:", "service:")):
+        return False
+    return mode not in c["networks"]
+
+
+STANDALONE_NETWORK = "nexolab-standalone-runtime"
+# Repository overlay infrastructure/compose/compose.central-standalone.yaml (used in LAN mode).
+STANDALONE_OVERLAY = {"mqtt": ["central-mqtt"], "telemetry-service": []}
+
+
+def minimal_model(project: str, members: list[dict]) -> dict:
+    """Explicit opt-in fallback when the Compose model cannot be read: each container's own
+    primary network (its NetworkMode) with the service alias, plus the repository's
+    standalone-runtime overlay when that network exists. Recorded as such in the evidence."""
+    standalone = subprocess.run(["docker", "network", "inspect", "--format", "{{.Name}}", STANDALONE_NETWORK],
+                                capture_output=True, timeout=30, check=False).returncode == 0
+    services, networks = {}, {}
+    for c in members:
+        nets = {"primary-" + c["service"]: {"aliases": [], "ipv4_address": None}}
+        networks["primary-" + c["service"]] = {"name": c["network_mode"]}
+        if standalone and c["service"] in STANDALONE_OVERLAY:
+            nets["standalone-runtime"] = {"aliases": STANDALONE_OVERLAY[c["service"]], "ipv4_address": None}
+            networks["standalone-runtime"] = {"name": STANDALONE_NETWORK}
+        services[c["service"]] = {"network_mode": None, "networks": nets}
+    return {"name": project, "services": services, "networks": networks, "source": "minimal-fallback"}
+
+
+def preflight(items: list[dict], allow_minimal: bool = False) -> tuple[list[dict], dict]:
+    """Everything is checked before any change. Raises Blocked with a precise reason."""
+    say("preflight: tools and privileges")
+    for tool in (IP, SYSCTL, SUDO_PYTHON):
+        if not Path(tool).exists():
+            raise Blocked(f"PREFLIGHT_TOOL_MISSING {tool}")
+    if subprocess.run(["sudo", "-n", "true"], capture_output=True, timeout=20, check=False).returncode:
+        raise Blocked("PREFLIGHT_SUDO_NOT_CACHED: run `sudo -v` first (the tool never asks for a password mid-run)")
+    if subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=30, check=False).returncode:
+        raise Blocked("PREFLIGHT_DOCKER_COMPOSE_UNAVAILABLE")
+    targets = [c for c in items if endpoint_lost(c)]
+    say(f"preflight: {len(targets)} production container(s) with lost endpoints: {[c['name'] for c in targets] or 'none'}")
+    groups: dict[tuple, list[dict]] = {}
+    for c in targets:
+        key = (c["project"], c["compose"]["project.config_files"], c["compose"]["project.environment_file"])
+        groups.setdefault(key, []).append(c)
     models: dict[tuple, dict] = {}
-    for c in items:
-        if c["project"] in PROJECTS and c["service"]:
-            key = (c["project"], c["compose"]["project.config_files"], c["compose"]["project.environment_file"])
-            if key not in models:
-                say(f"compose model: {c['project']} files={key[1]}")
-                models[key] = compose_config(c["project"], c["compose"])
-    plan = endpoint_plan(items, models)
-    dump(ev, "endpoint_plan.json", plan)
-    if not plan:
-        say("no missing network endpoints")
-    for t in plan:
-        say(f"plan: {t['name']} ({t['state']}) missing {list(t['missing'])} has {t['had'] or 'NONE'}")
-    for dev in compat_holders():
-        if dev not in ("lo", DUMMY):
-            raise Blocked(f"COMPAT_IP_HELD_BY_PHYSICAL_INTERFACE {dev}")
+    for key, members in groups.items():
+        say(f"preflight: privileged read-only Compose model {key[0]} ({len(key[1].split(','))} file(s)) "
+            f"for {[c['service'] for c in members]}")
+        try:
+            models[key] = compose_config(key[0], members[0]["compose"], [c["service"] for c in members])
+        except Blocked as exc:
+            if not allow_minimal or not str(exc).startswith(("COMPOSE_MODEL_BLOCKED", "NO_COMPOSE_LABELS")):
+                raise
+            say(f"WARNING Compose model unavailable ({exc}); using the explicit minimal network model")
+            models[key] = minimal_model(key[0], members)
+    plan = endpoint_plan(targets, models)
+    for target in plan:
+        for net in target["missing"]:
+            if subprocess.run(["docker", "network", "inspect", "--format", "{{.Name}}", net],
+                              capture_output=True, timeout=30, check=False).returncode:
+                raise Blocked(f"PREFLIGHT_NETWORK_MISSING {net} (this tool never creates networks)")
+    holders = compat_holders()
+    if [h for h in holders if h not in ("lo", DUMMY)]:
+        raise Blocked(f"COMPAT_IP_HELD_BY_PHYSICAL_INTERFACE {holders}")
     if physical_routes_covering():
         raise Blocked("PHYSICAL_ROUTE_COVERS_COMPAT_IP: refusing on the former laboratory LAN")
+    return plan, models
+
+
+def repair_networks(share_to: str | None = None, allow_minimal: bool = False) -> int:
+    if os.getuid() != 1000:
+        print("NEXOLAB_NETWORK_REPAIR_BLOCKED RUN_AS_OPERATOR_UID_1000 (never run this tool as root)", flush=True)
+        return 3
+    others = run("pgrep", "-af", "nexolab-network-compat-recovery|recover-v2.py|recover-v3", check=False).splitlines()
+    others = [o for o in others if str(os.getpid()) not in o.split()[0:1] and "pgrep" not in o]
+    if others:
+        print(f"NEXOLAB_NETWORK_REPAIR_BLOCKED ANOTHER_RECOVERY_RUNNING {others}", flush=True)
+        return 3
+    ev = evidence_dir()
+    handle = None
+    say("phase 1/6 preflight (no changes)")
+    try:
+        handle = lock()
+        dump(ev, "provenance.json", provenance())
+        before = diagnose(ev)
+        items = before["containers"]
+        plan, models = preflight(items, allow_minimal)
+        dump(ev, "network_models.json", {" | ".join(k): v for k, v in models.items()})  # projections only
+    except Exception as exc:  # noqa: BLE001 - any preflight failure is BLOCKED with evidence, nothing changed
+        reason = f"{exc.__class__.__name__}: {exc}" if not isinstance(exc, Blocked) else str(exc)
+        dump(ev, "preflight_blocked.json", {"reason": reason})
+        if handle:
+            handle.close()
+        try:
+            share(ev, share_to)
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"NEXOLAB_NETWORK_REPAIR_BLOCKED {reason} (no change made) evidence={ev}", flush=True)
+        return 3
+    dump(ev, "endpoint_plan.json", plan)
+    if not plan:
+        say("no lost network endpoints on production containers")
+    for t in plan:
+        say(f"plan: {t['name']} ({t['state']}) missing {list(t['missing'])} has {t['had'] or 'NONE'}")
     alias_added = False
     if not ({"lo", DUMMY} & set(compat_holders())) and any(COMPAT_IP in c["bound_ips"] for c in items):
         say("phase 2/6 compatibility address")
@@ -835,7 +996,7 @@ def main(argv: list[str]) -> int:
         if mode == "verify":
             return verify(share_to)
         if mode == "repair-networks":
-            return repair_networks(share_to)
+            return repair_networks(share_to, allow_minimal="--minimal-network-model" in args)
         provenance()
         return {"rollback": rollback, "install-boot-compat": install_boot, "remove-boot-compat": remove_boot}[mode]()
     except KeyError:
