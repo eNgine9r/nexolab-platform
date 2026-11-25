@@ -1,3 +1,12 @@
+## 2026-11-25 — Pending owner actions (resume point after any reboot)
+
+1. **Operator Broker install (#1758),** after the PR merges: a single checksum-pinned command, given in the PR/issue. It touches no production service.
+2. **Wi-Fi LAB KK1 (#1735):** router-side check of the PSK and any MAC block or ACL for the Pi. Then the guarded `nexolab-wifi-recover.sh apply`, with Ethernet staying primary.
+3. **WP2c Stage 2 (#1734):** exact approval of the same-origin LAN frontend activation, once the agent presents the preflight and binding plan.
+4. **Reboot cause:** owner read-only `vcgencmd get_throttled` / previous-boot journal (or `system.power` via the broker once it is installed).
+5. **SSD cleanup:** owner decision on the T1/T2 batches in the private cleanup plan. Nothing is deleted without approval.
+6. **#1428 DR evidence (hard gate):** real encrypted backup, off-device copy and isolated restore.
+
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 
 New device-agent, telemetry-service and telegram-gateway images fail the vulnerability policy on CVE-2026-107494 (`libssl3t64 3.5.9-1~deb13u1`, OpenSSL QUIC, no fixed version).
