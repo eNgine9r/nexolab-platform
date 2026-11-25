@@ -12,6 +12,7 @@ from app.nodes.domain import (
     ClockStatus,
     NodeState,
     NodeTopicStream,
+    bounded_clock_offset_ms,
     classify_clock_offset,
     parse_node_topic,
 )
@@ -117,7 +118,7 @@ class NodeIngressAuthorizer:
                     cursor.last_captured_at = node_time
                     cursor.updated_at = observed
 
-                offset_ms = round((node_time - observed).total_seconds() * 1000)
+                offset_ms = bounded_clock_offset_ms(node_time, observed)
                 clock_status = classify_clock_offset(
                     offset_ms,
                     warning_ms=node.clock_warning_ms,

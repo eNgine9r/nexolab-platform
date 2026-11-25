@@ -6,6 +6,7 @@ import json
 import re
 import secrets
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Final
 
@@ -128,6 +129,18 @@ def validate_clock_thresholds(warning_ms: int, critical_ms: int) -> None:
         raise NodeDomainError("clock_warning_ms must be positive")
     if critical_ms <= warning_ms:
         raise NodeDomainError("clock_critical_ms must be greater than clock_warning_ms")
+
+
+# central_nodes.last_clock_offset_ms is INTEGER (int32). Offsets beyond about +/-24.8 days
+# (an RTC reset to 1970, or store-and-forward replay of old samples) must not fail
+# the ingestion transaction (#1753): saturate. A saturated value is always CRITICAL.
+CLOCK_OFFSET_MS_LIMIT: Final = 2_147_483_647
+
+
+def bounded_clock_offset_ms(node_time: datetime, observed: datetime) -> int:
+    """Rounded `node_time - observed` in ms, saturated to the INTEGER column range."""
+    offset = round((node_time - observed).total_seconds() * 1000)
+    return max(-CLOCK_OFFSET_MS_LIMIT, min(CLOCK_OFFSET_MS_LIMIT, offset))
 
 
 def classify_clock_offset(
