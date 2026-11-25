@@ -1,8 +1,9 @@
-"""Source-only, opt-in atomic PostgreSQL-committed receipt ledger for Edge SQLite.
+"""Opt-in atomic PostgreSQL-committed receipt ledger for Edge SQLite.
 
-This class is NOT wired to the production DeviceAgent or MQTT callbacks.
-The trusted publisher authorization argument must originate from separately
-verified broker identity/ACL, NEVER from the untrusted receipt body/topic.
+Used by the Device Agent only when DEVICE_AGENT_COMMITTED_RECEIPTS=enabled
+(#1762 slice 2, default disabled; see committed_receipt_mode.py). The trusted
+publisher authorization argument must originate from separately verified
+broker identity/ACL configuration, NEVER from the untrusted receipt body/topic.
 """
 from __future__ import annotations
 
@@ -45,6 +46,32 @@ class CommittedReceiptQueue(OfflineQueue):
         PostgreSQL acknowledgement and is forbidden for this queue class.
         """
         raise ReceiptProtocolError("postgres_committed_receipt_required")
+
+    def pending_after(
+        self, record_id: int, limit: int = 100
+    ) -> list[tuple[int, str, str]]:
+        """Read rows with id greater than ``record_id`` in FIFO order, read-only.
+
+        Used for the first QoS1 transmission of rows in receipt mode. Nothing
+        is deleted; a broker PUBACK is never a prune authorization.
+        """
+        if type(record_id) is not int or record_id < 0:
+            raise ValueError("invalid_record_cursor")
+        if type(limit) is not int or not 0 < limit <= 1000:
+            raise ValueError("invalid_limit")
+
+        def operation() -> list[tuple[int, str, str]]:
+            rows = self._connection.execute(
+                """
+                SELECT id, topic, payload FROM outbound_queue
+                WHERE id > ? ORDER BY id LIMIT ?
+                """,
+                (record_id, limit),
+            ).fetchall()
+            return [(int(row[0]), str(row[1]), str(row[2])) for row in rows]
+
+        with self._lock:
+            return self._retry_busy("pending_after", operation)
 
     def oldest_receipt_replay_candidate(self) -> tuple[int, str, str, str] | None:
         """Read the oldest immutable SQLite event without modifying it.

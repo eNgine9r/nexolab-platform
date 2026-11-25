@@ -580,6 +580,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                 self.modbus_client.close()
             if self.operational is not None and self.state.mqtt_connected:
                 self.operational.publish_graceful_offline()
+            self.stop_committed_receipts()
             self.client.disconnect()
             self.client.loop_stop()
 

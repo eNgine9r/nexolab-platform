@@ -12274,13 +12274,15 @@
       "permitted_paths": [
         "services/telemetry-service/",
         "docs/architecture/",
-        ".project/"
+        ".project/",
+        "services/device-agent/"
       ],
       "evidence": {
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
-        "default_off": true
+        "default_off": true,
+        "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED."
       }
     }
   ],
