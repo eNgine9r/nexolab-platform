@@ -1,3 +1,10 @@
+## 2026-11-25 — P0 network: WP2b LAN gateway merged; WP2e blocked by vulnerability policy; WP1 recovery unverified
+
+- **WP2b (#1740) merged.** A dependency-free LAN gateway on all interfaces serves the dashboard and the same-origin API/WebSocket from loopback upstreams. Photos load through the authenticated API. Not installed.
+- **WP2e (#1741).** Device Agent clock-synchronization health and a time-source runbook. The RTC has no working battery. Blocked only by two new base-image CVEs (Product Owner decision).
+- **WP1.** The owner reported GREEN, but the runtime check shows the alias absent and no container started. Production is still degraded and evidence has been requested.
+- **WP2c.** The guarded migration waits for the owner's `diagnose` output of the installed Compose authority.
+
 ## 2026-11-25 — P0 network: WP1 tool, WP4 guard and WP2a same-origin mode merged; owner run pending
 
 - **WP1 #1733.** Recovery tool merged (#1736, `6b04db2d`). Checksum `3b64b483…` matches the owner-staged copy. Production stays degraded until the owner runs `diagnose` + `apply`.
