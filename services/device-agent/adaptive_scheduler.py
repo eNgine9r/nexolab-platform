@@ -217,6 +217,14 @@ class AdaptiveAcquisitionScheduler:
                     self._start_bus(bus_id)
             self._condition.notify_all()
 
+    def register_bus_lock(self, bus_id: str, lock: threading.Lock) -> None:
+        """Install the same physical-bus lock used by commissioning reads."""
+        with self._condition:
+            existing = self._bus_locks.get(bus_id)
+            if existing is not None and existing is not lock:
+                raise ValueError("A different scheduler lock already owns this bus")
+            self._bus_locks[bus_id] = lock
+
     def start(self) -> None:
         with self._condition:
             if self._started:

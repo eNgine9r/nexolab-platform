@@ -31,7 +31,9 @@ services:
     init: true
     command: ["python", "/opt/nexolab/scripts/serve-prometheus-textfile.py"]
     environment:
-      NEXOLAB_TEXTFILE_PATH: /var/lib/nexolab-observability/disaster-recovery.prom
+      # Safe default is the existing DR file. Only a separately approved
+      # observability rollout may opt into directory collection for LAN metrics.
+      NEXOLAB_TEXTFILE_PATH: ${NEXOLAB_TEXTFILE_PATH:-/var/lib/nexolab-observability/disaster-recovery.prom}
     volumes:
       - ../../scripts/serve-prometheus-textfile.py:/opt/nexolab/scripts/serve-prometheus-textfile.py:ro
       - ${OBSERVABILITY_TEXTFILE_DIR:-../../runtime/observability}:/var/lib/nexolab-observability:ro

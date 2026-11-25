@@ -1,8 +1,9 @@
 import type { ComponentProps } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
+import { createLayoutDraft } from "@/features/refrigeration/layout-repository";
 
 import { RefrigerationDetailScreen } from "./refrigeration-detail-screen";
 
@@ -125,6 +126,80 @@ describe("RefrigerationDetailScreen", () => {
     fireEvent.click(within(filterMenu).getByRole("button", { name: "2" }));
     expect(screen.getByRole("button", { name: "Вибрати датчик 07R на схемі" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Вибрати датчик 01R на схемі" })).not.toBeInTheDocument();
+  });
+
+  it("expires a commissioned reading on an open scheme while retaining the marker", async () => {
+    vi.useFakeTimers();
+    try {
+      const now = new Date("2026-11-16T18:00:00Z");
+      vi.setSystemTime(now);
+      const channelId = "rs485:1-S01";
+      const fixture = referenceEquipment();
+      const equipment = { ...fixture, sensors: [{ ...fixture.sensors[0]!, id: channelId }] };
+      const capturedAt = now.toISOString();
+      const placement = { sensorId: channelId, x: 0.3, y: 0.4 };
+      render(
+        <RefrigerationDetailScreen
+          equipment={equipment}
+          navigation={{ schemeEntry: true, editRequested: false, returnHref: "/equipment-layouts" }}
+          initialSnapshot={{
+            equipment,
+            activeImage: equipment.image,
+            layout: createLayoutDraft({
+              equipmentId: equipment.id,
+              id: "draft",
+              placements: [placement],
+              createdAt: capturedAt,
+            }),
+            layoutRevision: 1,
+            placementsCount: 1,
+            generatedAt: capturedAt,
+            bindings: [
+              {
+                id: "binding",
+                equipmentId: equipment.id,
+                nodeId: "edge-01",
+                channelId,
+                slotKey: "front-01",
+                label: "Щуп 1",
+                side: "front",
+                shelf: 1,
+                position: 1,
+                version: 1,
+                boundBy: "operator",
+                boundAt: capturedAt,
+                unboundBy: null,
+                unboundAt: null,
+              },
+            ],
+            channels: [
+              {
+                channelId,
+                metric: "temperature.probe",
+                unit: "degC",
+                latestValue: 5.5,
+                quality: "valid",
+                capturedAt,
+                sampleState: "known",
+                inputNumber: 1,
+                sampleValidUntil: new Date(now.getTime() + 2000).toISOString(),
+                isBound: true,
+                boundEquipmentId: equipment.id,
+                boundSlotKey: "front-01",
+              },
+            ],
+          }}
+        />,
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      const marker = () => screen.getByRole("button", { name: "Вибрати датчик Щуп 1 на схемі" });
+      expect(marker()).toHaveTextContent(/5[.,]5\s?°/);
+      await act(async () => vi.advanceTimersByTimeAsync(2000));
+      expect(marker()).toHaveTextContent("—");
+      expect(marker()).not.toHaveTextContent(/5[.,]5\s?°/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("uses scroll-free contour fit by default and keeps manual zoom available", async () => {

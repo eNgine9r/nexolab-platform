@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { buildChartYAxisModel, chartSeriesKey } from "@/features/charts";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { buildLiveChartGroups, liveSampleChartIdentity, liveStatusChartFreshness } from "./live-chart";
+import {
+  buildLiveChartGroups,
+  liveSampleChartIdentity,
+  liveSeriesFreshness,
+  liveStatusChartFreshness,
+} from "./live-chart";
+import { LIVE_SELECTION_LIMIT, liveChannelKey } from "./live-telemetry";
 
 function sample(
   eventId: string,
@@ -48,6 +54,28 @@ describe("Live Data canonical chart mapping", () => {
     expect(groups[0].scene.series[0].freshness).toBe("reconnecting");
     expect(groups[0].scene.series[0].segments[0].points[0].quality).toBe("valid");
     expect(liveStatusChartFreshness("forbidden")).toBe("offline");
+  });
+
+  it("shows authorized channel names in chart legend without changing history or keys", () => {
+    const identity = sample("latest", "2026-08-11T12:59:00Z", 5);
+    const named = buildLiveChartGroups({
+      selectedIdentities: [identity],
+      historySamples: [identity],
+      status: "live",
+      xDomain: domain,
+      displayNames: { "edge-01/t1": "Подача повітря" },
+    });
+    const unnamed = buildLiveChartGroups({
+      selectedIdentities: [identity],
+      historySamples: [identity],
+      status: "live",
+      xDomain: domain,
+      displayNames: { "other-node/t1": "Інший датчик" },
+    });
+    expect(named[0].scene.series[0].name).toContain("Подача повітря");
+    expect(unnamed[0].scene.series[0].name).toContain("t1");
+    expect(named[0].scene.series[0].identity).toEqual(unnamed[0].scene.series[0].identity);
+    expect(named[0].scene.series[0].segments).toEqual(unnamed[0].scene.series[0].segments);
   });
 
   it("preserves explicit history gaps as separate chart segments", () => {
@@ -182,5 +210,74 @@ describe("Live Data canonical chart mapping", () => {
       xDomain: domain,
     });
     expect(groups[0].scene.series[0].semanticMode).toBe("cumulative_counter");
+  });
+});
+
+describe("per-series freshness (chart audit 2026-11-21)", () => {
+  const now = Date.parse("2026-08-11T13:00:00Z");
+  const fresh = sample("fresh", "2026-08-11T12:59:50Z", 4.2, "°C", { channel_id: "t1" });
+  const silent = sample("silent", "2026-08-11T12:40:00Z", 3.9, "°C", { channel_id: "t2" });
+  const unknown = sample("unknown", "2026-08-11T12:59:55Z", null, "°C", {
+    channel_id: "t3",
+    quality: "unknown",
+  });
+  const latest = Object.fromEntries([fresh, silent, unknown].map((item) => [liveChannelKey(item), item]));
+
+  it("never lets one live channel mark a silent or invalid channel as live", () => {
+    const [group] = buildLiveChartGroups({
+      selectedIdentities: [fresh, silent, unknown],
+      historySamples: [fresh, silent],
+      status: "live", // page-wide status is live because t1 is fresh
+      xDomain: domain,
+      latestSamples: latest,
+      now,
+    });
+    const byChannel = Object.fromEntries(group.scene.series.map((item) => [item.identity.channelId, item]));
+    expect(byChannel.t1.freshness).toBe("live");
+    expect(byChannel.t2.freshness).toBe("stale");
+    expect(byChannel.t3.freshness).toBe("invalid");
+    expect(byChannel.t3.latest).toEqual({
+      timestampMs: Date.parse(unknown.captured_at),
+      value: null,
+      quality: "unknown",
+    });
+  });
+
+  it("keeps connectivity states and the legacy page-wide behaviour when no latest samples are supplied", () => {
+    expect(liveSeriesFreshness("reconnecting", fresh, liveChannelKey(fresh), undefined, now)).toBe(
+      "reconnecting",
+    );
+    expect(liveSeriesFreshness("offline", fresh, liveChannelKey(fresh), undefined, now)).toBe("offline");
+    const [legacy] = buildLiveChartGroups({
+      selectedIdentities: [silent],
+      historySamples: [silent],
+      status: "live",
+      xDomain: domain,
+    });
+    expect(legacy.scene.series[0].freshness).toBe("live");
+    expect(legacy.scene.series[0].latest).toBeUndefined();
+  });
+});
+
+describe("Live Data with the full comparison limit (#1654)", () => {
+  it("plots every one of the maximum selected channels across equipment and keeps each scene within five Y axes", () => {
+    const units = ["°C", "%", "V", "A", "W", "Hz"];
+    const identities = Array.from({ length: LIVE_SELECTION_LIMIT }, (_, index) =>
+      sample(`id-${index}`, "2026-08-11T12:59:00Z", index, units[index % units.length], {
+        equipment_id: `device-${index % 4}`,
+        channel_id: `ch-${index}`,
+        metric: `metric-${index % units.length}`,
+      }),
+    );
+    const groups = buildLiveChartGroups({
+      selectedIdentities: identities,
+      historySamples: identities,
+      status: "live",
+      xDomain: domain,
+    });
+    expect(groups.flatMap((group) => group.scene.series)).toHaveLength(LIVE_SELECTION_LIMIT);
+    for (const group of groups) {
+      expect(buildChartYAxisModel(group.scene.series).allAxes.length).toBeLessThanOrEqual(5);
+    }
   });
 });

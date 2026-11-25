@@ -1,5 +1,9 @@
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import type {
+  ChannelNameRepository,
+  CommissionedChannel,
+} from "@/features/equipment/channel-name-repository";
+import type {
   CommissioningRepository,
   CommissioningSession,
   SupportedDeviceProfile,
@@ -69,6 +73,20 @@ export type CommissionedControllerRegistryAsset = EquipmentRegistryCommon & {
   chamber: ClimateChamber | null;
 };
 
+export type ActiveCommissionedControllerRegistryAsset = EquipmentRegistryCommon & {
+  category: "temperature-controller";
+  commissionedController: true;
+  source: CommissionedChannel[];
+  nodeId: string;
+};
+
+export type CommissionedInputRegistryAsset = EquipmentRegistryCommon & {
+  category: "physical-sensor";
+  commissionedInput: true;
+  source: CommissionedChannel;
+  nodeId: string;
+};
+
 export type PhysicalSensorRegistryAsset = EquipmentRegistryCommon & {
   category: "physical-sensor";
   source: PhysicalSensor;
@@ -81,7 +99,14 @@ export type EquipmentRegistryAsset =
   | RefrigerationRegistryAsset
   | MeasurementDeviceRegistryAsset
   | CommissionedControllerRegistryAsset
+  | ActiveCommissionedControllerRegistryAsset
+  | CommissionedInputRegistryAsset
   | PhysicalSensorRegistryAsset;
+
+export type EditableEquipmentRegistryAsset = Exclude<
+  EquipmentRegistryAsset,
+  ActiveCommissionedControllerRegistryAsset | CommissionedInputRegistryAsset
+>;
 
 export type EquipmentRegistryFailure = {
   chamberId: string;
@@ -92,6 +117,7 @@ export type EquipmentRegistryFailure = {
 export type EquipmentRegistryLoadResult = {
   assets: EquipmentRegistryAsset[];
   failures: EquipmentRegistryFailure[];
+  commissionedState: "available" | "unavailable";
 };
 
 export type EquipmentRegistryLoadProgress = EquipmentRegistryLoadResult & {
@@ -118,6 +144,7 @@ export type LoadEquipmentRegistryOptions = {
   equipmentRepository: RefrigerationEquipmentRepository;
   climateCatalogRepository: ClimateCatalogRepository;
   commissioningRepository?: CommissioningRepository | null;
+  channelNameRepository?: ChannelNameRepository | null;
   concurrency?: number;
   signal?: AbortSignal;
   onProgress?: (progress: EquipmentRegistryLoadProgress) => void;
@@ -147,15 +174,17 @@ export async function loadEquipmentRegistry({
   equipmentRepository,
   climateCatalogRepository,
   commissioningRepository = null,
+  channelNameRepository = null,
   concurrency = DEFAULT_CONCURRENCY,
   signal,
   onProgress,
 }: LoadEquipmentRegistryOptions): Promise<EquipmentRegistryLoadResult> {
   throwIfAborted(signal);
-  const [refrigerationEquipment, chambers, commissioning] = await Promise.all([
+  const [refrigerationEquipment, chambers, commissioning, active] = await Promise.all([
     equipmentRepository.list(),
     climateCatalogRepository.listChambers(),
     loadCommissioningInventory(commissioningRepository, signal),
+    loadActiveCommissionedChannels(channelNameRepository, signal),
   ]);
   throwIfAborted(signal);
 
@@ -168,6 +197,9 @@ export async function loadEquipmentRegistry({
         chamberLabel: "Комісіоноване обладнання",
         error: commissioning.error,
       }
+    : null;
+  const commissionedFailure: EquipmentRegistryFailure | null = active.error
+    ? { chamberId: "active-dixell", chamberLabel: "Активні Dixell", error: active.error }
     : null;
   const workerCount = Math.min(normalizeConcurrency(concurrency), Math.max(1, sortedChambers.length));
   let nextIndex = 0;
@@ -182,10 +214,13 @@ export async function loadEquipmentRegistry({
         catalogs.filter((catalog): catalog is ClimateChamberEquipment => catalog !== null),
         commissioning.sessions,
         commissioning.profiles,
+        active.items,
       ),
+      commissionedState: active.state,
       failures: [
         ...failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
         ...(commissioningFailure ? [commissioningFailure] : []),
+        ...(commissionedFailure ? [commissionedFailure] : []),
       ],
       completedChambers,
       totalChambers: sortedChambers.length,
@@ -227,10 +262,13 @@ export async function loadEquipmentRegistry({
       catalogs.filter((catalog): catalog is ClimateChamberEquipment => catalog !== null),
       commissioning.sessions,
       commissioning.profiles,
+      active.items,
     ),
+    commissionedState: active.state,
     failures: [
       ...failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
       ...(commissioningFailure ? [commissioningFailure] : []),
+      ...(commissionedFailure ? [commissionedFailure] : []),
     ],
   };
 }
@@ -241,6 +279,7 @@ export function normalizeEquipmentRegistry(
   climateCatalogs: readonly ClimateChamberEquipment[],
   commissioningSessions: readonly CommissioningSession[] = [],
   commissioningProfiles: readonly SupportedDeviceProfile[] = [],
+  activeChannels: readonly CommissionedChannel[] = [],
 ): EquipmentRegistryAsset[] {
   const chamberById = new Map(chambers.map((chamber) => [chamber.id, chamber] as const));
   const assets: EquipmentRegistryAsset[] = refrigerationEquipment.map((equipment) =>
@@ -296,7 +335,34 @@ export function normalizeEquipmentRegistry(
     );
   }
 
+  const controllers = new Map<string, CommissionedChannel[]>();
+  for (const channel of activeChannels) {
+    const key = `${channel.nodeId}/${channel.equipmentId}`;
+    controllers.set(key, [...(controllers.get(key) ?? []), channel]);
+    assets.push(normalizeCommissionedInput(channel));
+  }
+  for (const channels of controllers.values()) assets.push(normalizeActiveController(channels));
   return sortEquipmentRegistry(assets);
+}
+
+export function isHistoricalDixellCatalogAsset(asset: EquipmentRegistryAsset): boolean {
+  if (isCommissionedInputAsset(asset) || isActiveCommissionedControllerAsset(asset)) return false;
+  if (asset.category !== "temperature-controller" && asset.category !== "physical-sensor") return false;
+  const device = asset.category === "physical-sensor" ? asset.controller : asset;
+  if (!device) return false;
+  return /dixell/i.test(device.manufacturer ?? "") || /xjp60d/i.test(device.model ?? "");
+}
+
+export function isCommissionedInputAsset(
+  asset: EquipmentRegistryAsset,
+): asset is CommissionedInputRegistryAsset {
+  return "commissionedInput" in asset;
+}
+
+export function isActiveCommissionedControllerAsset(
+  asset: EquipmentRegistryAsset,
+): asset is ActiveCommissionedControllerRegistryAsset {
+  return "commissionedController" in asset;
 }
 
 export function isCommissionedControllerAsset(
@@ -374,6 +440,27 @@ export function chamberDisplayLabel(chamber: ClimateChamber): string {
   return `${chamber.code} · ${chamber.name}`;
 }
 
+async function loadActiveCommissionedChannels(
+  repository: ChannelNameRepository | null,
+  signal: AbortSignal | undefined,
+): Promise<{ items: CommissionedChannel[]; state: "available" | "unavailable"; error: string | null }> {
+  if (!repository) return { items: [], state: "unavailable", error: null };
+  try {
+    const result = await repository.list(signal);
+    return {
+      items: result.items,
+      state: result.state,
+      error:
+        result.state === "unavailable"
+          ? "Device Agent не повернув підтверджений реєстр. Стан старих контролерів невідомий."
+          : null,
+    };
+  } catch (error) {
+    if (isEquipmentRegistryAbort(error)) throw error;
+    return { items: [], state: "unavailable", error: registryErrorMessage(error) };
+  }
+}
+
 async function loadCommissioningInventory(
   repository: CommissioningRepository | null,
   signal: AbortSignal | undefined,
@@ -447,6 +534,69 @@ function normalizeCommissionedControllerAsset(
     commissioningProfile: profile,
     targetEquipment: target,
     chamber,
+  };
+}
+
+function normalizeActiveController(
+  channels: CommissionedChannel[],
+): ActiveCommissionedControllerRegistryAsset {
+  const first = channels[0];
+  const label = first.controllerLabel;
+  return {
+    key: `commissioned-controller:${first.nodeId}:${first.equipmentId}`,
+    id: first.equipmentId,
+    category: "temperature-controller",
+    primaryIdentifier: first.equipmentId,
+    displayName: label,
+    manufacturer: "Dixell",
+    model: "XJP60D",
+    serialNumber: null,
+    chamberId: null,
+    chamberLabel: null,
+    locationLabel: first.nodeId,
+    lifecycleStatus: "active",
+    healthStatus: null,
+    connectionStatus: null,
+    catalogStatus: "active",
+    calibrationStatus: "not-applicable",
+    statusKeys: ["active"],
+    canonicalHref: null,
+    searchText: searchable([
+      label,
+      first.equipmentId,
+      first.nodeId,
+      ...channels.map((item) => item.channelId),
+    ]),
+    source: channels,
+    nodeId: first.nodeId,
+    commissionedController: true,
+  };
+}
+
+function normalizeCommissionedInput(item: CommissionedChannel): CommissionedInputRegistryAsset {
+  return {
+    key: `commissioned-input:${item.nodeId}:${item.channelId}`,
+    id: item.channelId,
+    category: "physical-sensor",
+    primaryIdentifier: item.channelId,
+    displayName: item.displayName,
+    manufacturer: "Dixell",
+    model: "XJP60D",
+    serialNumber: null,
+    chamberId: null,
+    chamberLabel: null,
+    locationLabel: `${item.controllerLabel} · Вхід ${item.inputNumber}`,
+    lifecycleStatus: "active",
+    healthStatus: null,
+    connectionStatus: null,
+    catalogStatus: "active",
+    calibrationStatus: "untracked",
+    statusKeys: ["active"],
+    canonicalHref: null,
+    searchText: searchable([item.displayName, item.channelId, item.controllerLabel, item.nodeId]),
+    source: item,
+    nodeId: item.nodeId,
+    commissionedInput: true,
   };
 }
 

@@ -75,7 +75,7 @@ describe("SettingsWorkspace", () => {
     expect(screen.queryByRole("link", { name: /Холодильне обладнання/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Тривоги/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Звіти/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
+    expect(screen.queryByRole("link", { name: "Перевірити стан камер" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Прилади та сигнали" })).toHaveAttribute(
       "href",
       "/settings/instrumentation",
@@ -120,6 +120,7 @@ describe("SettingsWorkspace", () => {
       "href",
       "/settings/system/version",
     );
+    expect(screen.getByRole("link", { name: "Перевірити стан камер" })).toHaveAttribute("href", "/cameras");
   });
 
   it("preserves preference semantics across General and Appearance", () => {

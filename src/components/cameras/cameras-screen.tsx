@@ -48,6 +48,7 @@ export function CamerasScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Камери"
         onClose={() => setSidebarOpen(false)}

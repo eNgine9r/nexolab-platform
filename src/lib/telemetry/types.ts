@@ -19,6 +19,8 @@ export interface TelemetrySample {
   raw_value: number | null;
   raw_status: number | null;
   received_at?: string;
+  /** Optional authoritative server freshness threshold; absent when unknown. */
+  stale_after_seconds?: number | null;
 }
 
 export interface TelemetryCollectionResponse {

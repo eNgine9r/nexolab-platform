@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from pydantic import ValidationError
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -13,9 +14,13 @@ from app.climate_catalog.models import (
     MeasurementChannel,
     MeasurementDevice,
 )
-from app.db import Database
+from app.db import Database, TelemetryLatest
 from app.live_dashboard.models import LiveDashboard, LiveDashboardItem
-from app.live_dashboard.schemas import LiveDashboardItemWrite, LiveDashboardWrite
+from app.live_dashboard.schemas import (
+    LiveDashboardItemWrite,
+    LiveDashboardViewSettings,
+    LiveDashboardWrite,
+)
 from app.live_dashboard.telemetry_identity import MAX_MODBUS_UNIT_ID
 from app.nodes.models import CentralNode
 from app.security.repository import AuditEventInput, SecurityRepository
@@ -28,13 +33,15 @@ DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 class DashboardItemRecord:
     id: str
     position: int
-    channel_ref_id: str
+    channel_ref_id: str | None
     channel_id: str
     metric: str
     native_unit: str
     visualization: str
     color: str | None
     display_unit: str | None
+    node_id: str | None = None
+    equipment_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +62,7 @@ class DashboardRecord:
     archived_by: str | None
     archived_at: datetime | None
     items: tuple[DashboardItemRecord, ...]
+    view_settings: dict[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +195,7 @@ class LiveDashboardRepository:
                     updated_at=now,
                     archived_by=None,
                     archived_at=None,
+                    view_settings=_dump_view_settings(payload.view_settings),
                 )
                 session.add(dashboard)
                 session.flush()
@@ -238,6 +247,9 @@ class LiveDashboardRepository:
                 dashboard.description = payload.description
                 dashboard.refresh_seconds = payload.refresh_seconds
                 dashboard.time_window = payload.time_window.value
+                # Omitted keeps the stored analysis view (older clients); explicit null clears it.
+                if "view_settings" in payload.model_fields_set:
+                    dashboard.view_settings = _dump_view_settings(payload.view_settings)
                 dashboard.updated_by = actor_id
                 dashboard.updated_at = now
                 dashboard.version += 1
@@ -340,9 +352,30 @@ class LiveDashboardRepository:
         *,
         organization_id: str,
         items: list[LiveDashboardItemWrite],
-    ) -> list[tuple[LiveDashboardItemWrite, MeasurementChannel]]:
-        resolved: list[tuple[LiveDashboardItemWrite, MeasurementChannel]] = []
+    ) -> list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]]:
+        resolved: list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]] = []
         for item in items:
+            if item.node_id is not None:
+                observed = session.scalar(
+                    select(TelemetryLatest)
+                    .join(CentralNode, CentralNode.node_id == TelemetryLatest.node_id)
+                    .where(
+                        CentralNode.organization_id == organization_id,
+                        CentralNode.state != "revoked",
+                        TelemetryLatest.node_id == item.node_id,
+                        TelemetryLatest.equipment_id == item.equipment_id,
+                        TelemetryLatest.channel_id == item.channel_id,
+                        TelemetryLatest.metric == item.metric,
+                    )
+                )
+                if observed is None:
+                    raise LiveDashboardChannelNotFoundError("Observed series is unavailable in this organization")
+                if item.display_unit is not None and item.display_unit != observed.unit:
+                    raise LiveDashboardUnitConversionUnsupportedError(
+                        f"display unit must match the observed native unit {observed.unit!r}"
+                    )
+                resolved.append((item, observed))
+                continue
             channel = session.scalar(
                 select(MeasurementChannel)
                 .join(
@@ -408,7 +441,7 @@ class LiveDashboardRepository:
         session: Session,
         *,
         dashboard: LiveDashboard,
-        resolved_items: list[tuple[LiveDashboardItemWrite, MeasurementChannel]],
+        resolved_items: list[tuple[LiveDashboardItemWrite, MeasurementChannel | TelemetryLatest]],
     ) -> None:
         session.execute(
             delete(LiveDashboardItem).where(
@@ -422,7 +455,9 @@ class LiveDashboardRepository:
                 organization_id=dashboard.organization_id,
                 dashboard_id=dashboard.id,
                 position=position,
-                channel_ref_id=channel.id,
+                channel_ref_id=channel.id if isinstance(channel, MeasurementChannel) else None,
+                node_id=item.node_id,
+                equipment_id=item.equipment_id,
                 channel_id=channel.channel_id,
                 metric=item.metric,
                 native_unit=channel.unit,
@@ -507,6 +542,20 @@ class LiveDashboardRepository:
         )
 
 
+def _dump_view_settings(settings: LiveDashboardViewSettings | None) -> dict[str, object] | None:
+    return None if settings is None else settings.model_dump(mode="json")
+
+
+def _load_view_settings(raw: object) -> dict[str, object] | None:
+    """Tolerant read: a stored value this release cannot understand is ignored, never an error."""
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return LiveDashboardViewSettings.model_validate(raw).model_dump(mode="json")
+    except ValidationError:
+        return None
+
+
 def _dashboard_record(
     dashboard: LiveDashboard,
     items: list[LiveDashboardItem],
@@ -527,11 +576,14 @@ def _dashboard_record(
         updated_at=dashboard.updated_at,
         archived_by=dashboard.archived_by,
         archived_at=dashboard.archived_at,
+        view_settings=_load_view_settings(dashboard.view_settings),
         items=tuple(
             DashboardItemRecord(
                 id=item.id,
                 position=item.position,
                 channel_ref_id=item.channel_ref_id,
+                node_id=item.node_id,
+                equipment_id=item.equipment_id,
                 channel_id=item.channel_id,
                 metric=item.metric,
                 native_unit=item.native_unit,
@@ -558,10 +610,13 @@ def _snapshot(record: DashboardRecord) -> dict[str, object]:
         "created_by": record.created_by,
         "updated_by": record.updated_by,
         "archived_by": record.archived_by,
+        "view_settings": record.view_settings,
         "items": [
             {
                 "position": item.position,
                 "channel_ref_id": item.channel_ref_id,
+                "node_id": item.node_id,
+                "equipment_id": item.equipment_id,
                 "channel_id": item.channel_id,
                 "metric": item.metric,
                 "native_unit": item.native_unit,

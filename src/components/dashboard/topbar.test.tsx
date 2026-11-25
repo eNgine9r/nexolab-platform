@@ -27,7 +27,7 @@ const session: SecuritySession = {
 
 describe("Topbar operator actions", () => {
   it("offers real destinations and does not invent account or notification data", () => {
-    render(<Topbar title="Огляд" onMenuOpen={vi.fn()} />);
+    render(<Topbar title="Огляд" onMenuOpen={vi.fn()} showAlerts />);
     expect(screen.getByText("Огляд")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Відкрити тривоги" })).toHaveAttribute("href", "/alerts");
     expect(screen.getByRole("link", { name: "Нова сесія" })).toHaveAttribute("href", "/sessions/new");
@@ -39,7 +39,9 @@ describe("Topbar operator actions", () => {
   });
 
   it("keeps primary mobile touch areas at least 44px without globally resizing icons", () => {
-    render(<Topbar title="Огляд" onMenuOpen={vi.fn()} onSignOut={vi.fn()} showCreateSession={false} />);
+    render(
+      <Topbar title="Огляд" onMenuOpen={vi.fn()} onSignOut={vi.fn()} showCreateSession={false} showAlerts />,
+    );
 
     const primaryActions = [
       screen.getByRole("button", { name: "Відкрити меню" }),
@@ -69,12 +71,36 @@ describe("Topbar operator actions", () => {
     );
     expect(screen.getByText("Оператор")).toBeInTheDocument();
     expect(screen.getByText("viewer")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Відкрити тривоги" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Організація" }), { target: { value: "org-2" } });
     expect(select).toHaveBeenCalledExactlyOnceWith("org-2");
     fireEvent.click(screen.getByRole("button", { name: "Вийти з NEXOLAB" }));
     expect(signOut).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Відкрити меню" }));
     expect(menu).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the alerts link only when the selected membership grants alerts.read", () => {
+    const allowed = { ...session.memberships[0], permissions: ["alerts.read" as const] };
+    const allowedSession = { ...session, memberships: [allowed, session.memberships[1]] };
+    const { rerender } = render(
+      <Topbar
+        title="Огляд"
+        onMenuOpen={vi.fn()}
+        securitySession={allowedSession}
+        selectedMembership={allowed}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Відкрити тривоги" })).toHaveAttribute("href", "/alerts");
+    rerender(
+      <Topbar
+        title="Огляд"
+        onMenuOpen={vi.fn()}
+        securitySession={allowedSession}
+        selectedMembership={session.memberships[1]}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Відкрити тривоги" })).not.toBeInTheDocument();
   });
 
   it("shows a single organization as context without a redundant selector", () => {

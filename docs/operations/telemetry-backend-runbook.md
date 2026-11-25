@@ -58,22 +58,50 @@ Terminal records remain in capacity accounting until a separate approved operato
 
 ## Default PostgreSQL retention policy
 
-| Data class                | Default retention | Action                                                          |
-| ------------------------- | ----------------: | --------------------------------------------------------------- |
-| Normalized telemetry      |          365 days | Delete rows in bounded batches                                  |
-| Original raw JSON payload |           30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
-| Dead-letter payload       |           30 days | Delete rows in bounded batches                                  |
+| Data class                | Default retention | Action                                                                                  |
+| ------------------------- | ----------------: | --------------------------------------------------------------------------------------- |
+| Normalized telemetry      |           30 days | Delete **ordinary monitoring** rows in bounded batches — only when explicitly enabled   |
+| Session evidence          |       not expired | Samples attributed to a laboratory session are never deleted by retention               |
+| Latest reading per series |       not expired | `telemetry_latest` keeps its own copy and is never touched by retention                 |
+| Original raw JSON payload |           30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` (session evidence kept) |
+| Dead-letter payload       |           30 days | Delete rows in bounded batches                                                          |
 
-Each scheduled cleanup processes at most `RETENTION_BATCH_SIZE` rows per data class. The default interval is one hour.
+Ordinary telemetry is kept 30 days (Product Owner policy, #1551). A sample is **session evidence** when `telemetry_session_contexts` references it; that foreign key cascades on delete, so retention excludes such samples in both the selection and the `DELETE` itself.
 
-Run cleanup once manually:
+**Deleting telemetry is off by default** (`RETENTION_TELEMETRY_DELETE_ENABLED=false`). Enable it only after a verified backup and independent restore (#1428). Raw payload redaction and dead-letter cleanup run regardless.
+
+Each cycle runs short batches, one transaction each, until nothing eligible is left, `RETENTION_MAX_BATCHES_PER_CYCLE` batches ran or `RETENTION_CYCLE_BUDGET_SECONDS` elapsed, pausing `RETENTION_BATCH_PAUSE_SECONDS` between batches. A cycle that stops with work left is followed after `RETENTION_BACKLOG_INTERVAL_SECONDS` (default 5 minutes) instead of `RETENTION_INTERVAL_SECONDS` (default 1 hour). With the defaults a cycle removes at most 120,000 rows in at most about one minute, so a large backlog drains over days without long locks; batches use `FOR UPDATE SKIP LOCKED`.
+
+| Variable                             | Default | Meaning                                             |
+| ------------------------------------ | ------: | --------------------------------------------------- |
+| `TELEMETRY_RETENTION_DAYS`           |      30 | Age after which ordinary telemetry is eligible      |
+| `RETENTION_TELEMETRY_DELETE_ENABLED` |   false | Gate for irreversible telemetry deletion            |
+| `RETENTION_BATCH_SIZE`               |    2000 | Rows per batch and data class                       |
+| `RETENTION_MAX_BATCHES_PER_CYCLE`    |      60 | Batch limit per cycle                               |
+| `RETENTION_CYCLE_BUDGET_SECONDS`     |      60 | Time budget per cycle                               |
+| `RETENTION_BATCH_PAUSE_SECONDS`      |    0.25 | Pause between batches                               |
+| `RETENTION_BACKLOG_INTERVAL_SECONDS` |     300 | Delay after a cycle that stopped with work left     |
+| `RETENTION_INTERVAL_SECONDS`         |    3600 | Delay after a cycle that finished all eligible work |
+
+Observability: `nexolab_telemetry_retention_deleted_telemetry_total`, `..._retention_last_batches`, `..._retention_last_duration_seconds`, `..._retention_backlog_remaining`, `..._retention_telemetry_delete_enabled` and `..._retention_failure_total`.
+
+Count eligible and preserved samples first (read-only, changes nothing):
 
 ```bash
 cd infrastructure/compose
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
+  run --rm telemetry-service python -m app.retention --dry-run
+```
+
+Run one cleanup cycle manually:
+
+```bash
+docker compose --env-file .env.backend -f compose.backend.yaml \
   run --rm telemetry-service python -m app.retention
 ```
+
+Deleting rows makes space reusable inside PostgreSQL but does not shrink the files on disk; returning space to the operating system is a separate, owner-scheduled step (`docs/operations/postgresql-storage-reclamation.md`).
 
 ## Health and metrics
 

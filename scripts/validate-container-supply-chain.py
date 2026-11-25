@@ -12,6 +12,7 @@ IMAGE_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 IMAGE_NAME = re.compile(r"^ghcr\.io/[a-z0-9-]+/[a-z0-9-]+$")
 CVE_ID = re.compile(r"^CVE-[0-9]{4}-[0-9]{4,}$")
 PACKAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+:-]*$")
+PACKAGE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+:~!-]*$")
 SUPPORTED_PLATFORMS = {"linux/amd64", "linux/arm64"}
 MAX_EXCEPTION_LIFETIME_DAYS = 45
 
@@ -116,6 +117,10 @@ def validate_exceptions(path: Path, today: date) -> None:
             raise ValidationFailure(f"{label}.package has invalid format")
         if not CVE_ID.fullmatch(vulnerability):
             raise ValidationFailure(f"{label}.vulnerability must be an exact CVE identifier")
+        if "installed_version" in item:
+            version = require_string(item["installed_version"], f"{label}.installed_version")
+            if version != item["installed_version"] or not PACKAGE_VERSION.fullmatch(version):
+                raise ValidationFailure(f"{label}.installed_version must be an exact package version")
         if len(reason) < 20:
             raise ValidationFailure(f"{label}.reason must document a specific risk decision")
         if len(owner) < 3:

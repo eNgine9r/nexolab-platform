@@ -4,6 +4,11 @@
  * server-side RBAC/session verification MUST call the private Telemetry API.
  * Explicit external staging fails closed when the server-only origin is absent.
  */
+import { SAME_ORIGIN } from "@/lib/runtime/public-endpoints";
+
+/** Exact Compose service name of the private API on the internal network (#1734). */
+const PRIVATE_API_SERVICE_NAME = "telemetry-service";
+
 export type ServerTelemetryApiEnv = Readonly<Record<string, string | undefined>>;
 
 function allowedPrivateIPv4(host: string): boolean {
@@ -38,7 +43,12 @@ export function getServerTelemetryApiBaseUrl(env: ServerTelemetryApiEnv = proces
       url.pathname !== "/" ||
       url.search ||
       url.hash ||
-      !(url.hostname === "localhost" || url.hostname === "[::1]" || allowedPrivateIPv4(url.hostname))
+      !(
+        url.hostname === "localhost" ||
+        url.hostname === "[::1]" ||
+        url.hostname === PRIVATE_API_SERVICE_NAME ||
+        allowedPrivateIPv4(url.hostname)
+      )
     ) {
       throw new Error("NEXOLAB private server API must use a trusted local address on port 8082");
     }
@@ -49,6 +59,10 @@ export function getServerTelemetryApiBaseUrl(env: ServerTelemetryApiEnv = proces
   const currentLanValue = env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
   if (!currentLanValue) {
     throw new Error("NEXOLAB API base URL is not configured");
+  }
+  if (currentLanValue === SAME_ORIGIN) {
+    // The browser origin is a gateway, never the private API (#1734).
+    throw new Error("NEXOLAB same-origin LAN mode requires a private server-only API origin");
   }
   return new URL(currentLanValue);
 }

@@ -20,6 +20,7 @@ import {
   defaultEquipmentRegistryFilters,
   filterEquipmentRegistry,
   isEquipmentRegistryAbort,
+  isHistoricalDixellCatalogAsset,
   loadEquipmentRegistry,
   normalizeEquipmentRegistry,
   summarizeEquipmentRegistry,
@@ -480,3 +481,22 @@ function commissioningSession(overrides: Partial<CommissioningSession> = {}): Co
     ...overrides,
   };
 }
+
+describe("Historical Dixell filtering", () => {
+  it("keeps other active climate controllers visible while separating old Dixell", () => {
+    const assets = normalizeEquipmentRegistry([refrigeration], [chamberOne], [chamberOneCatalog]);
+    const legacyController = assets.find((item) => item.category === "temperature-controller");
+    if (!legacyController) throw new Error("Missing legacy controller");
+    expect(isHistoricalDixellCatalogAsset(legacyController)).toBe(true);
+    expect(
+      isHistoricalDixellCatalogAsset({
+        ...legacyController,
+        manufacturer: "Danfoss",
+        model: "AK-CC25",
+      }),
+    ).toBe(false);
+    const meter = assets.find((item) => item.category === "energy-meter");
+    if (!meter) throw new Error("Missing energy meter");
+    expect(isHistoricalDixellCatalogAsset(meter)).toBe(false);
+  });
+});

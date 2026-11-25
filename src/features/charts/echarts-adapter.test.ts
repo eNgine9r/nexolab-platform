@@ -229,6 +229,17 @@ describe("ECharts renderer adapter lifecycle", () => {
         ],
       },
     });
+
+    onRangeSelectionChange.mockClear();
+    container.dispatchEvent(
+      new MouseEvent("pointerdown", { button: 0, clientX: 40, clientY: 100, bubbles: true }),
+    );
+    window.dispatchEvent(new MouseEvent("pointermove", { buttons: 1, clientX: 100, clientY: 100 }));
+    window.dispatchEvent(new Event("pointercancel"));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 110, clientY: 100 }));
+    expect(onRangeSelectionChange).not.toHaveBeenCalled();
+    adapter.dispose();
+    container.remove();
   });
 
   it("reuses the instance for bounded incremental live-tail updates", () => {

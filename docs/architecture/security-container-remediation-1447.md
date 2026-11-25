@@ -1,0 +1,110 @@
+# NEXOLAB #1447 — exact-image container security revalidation
+
+## Product Owner decision on 2026-11-16
+
+The Product Owner approved temporary exceptions through **2026-11-23 inclusive** for exactly the 18 Telemetry HIGH findings listed in [issue #1447](https://github.com/eNgine9r/nexolab-platform/issues/1447). The approval covers source CI and merge. Raspberry Pi activation requires its own decision.
+
+The approval is tied to exact image, binary package, CVE and installed package version from [run 43859841072](https://github.com/eNgine9r/nexolab-platform/actions/runs/43859841072), source `b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb`, Trivy report SHA-256 `163584bb22e1b51cf92f8cbd0a3acba806e6a905cb543578c051eaa349f9d297`. The sorted four-field approval tuples hash to `36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253`. The register preserves the 15 previous rationales and records separate assessments for the three SQLite findings. A different package version, a reported compatible fix, a stale entry, or a CRITICAL remains grounds to fail CI. Approval is a temporary risk decision for the unfixed findings.
+
+Exact-head scan and required CI must pass before merging. The following sections record earlier states of the register and evidence.
+
+## 2026-11-16 Telemetry image reduction
+
+The Telemetry build now installs only the byte-identical Debian `mosquitto_ctrl` executable and its runtime dependencies. The derived package preserves the original Debian source name and version in `dpkg` and the CycloneDX report. APT resolves and verifies the official archive during the build. The broker image and broker-control wrapper stay on their existing entry points. The Telemetry image also purges unused system login, mount and terminal utilities from its Debian base. A network-disabled CI smoke test checks the non-root UID, package identity, SSL, SQLite, report fonts and native Python dependencies before scanning.
+
+In a local linux/amd64 root filesystem assembled from the official Python image and current signed Debian packages, Trivy counted **18 OS HIGH / 0 CRITICAL**. The prior CI image contained 52 OS HIGH. The same package/CVE comparison showed 34 removals and no added Debian findings. The smaller root retained cJSON, SQLite and several shared libraries; it no longer included the Mosquitto daemon or libwebsockets. The original and installed client binaries had SHA-256 `8229d9895f30537894a0ebf46bf89a84f7362f978e8c2ab856748b21376a16a4`.
+
+An isolated Mosquitto 2.0.22 broker accepted provisioning, repeat provisioning, password rotation, disable, enable and delete through the existing wrapper with the derived Debian client, over both plain MQTT and TLS. The test used a loopback broker and a temporary dynamic-security configuration.
+
+[GitHub Container Supply Chain run 43858765272](https://github.com/eNgine9r/nexolab-platform/actions/runs/43858765272) at `bdcae8b445aac912299a0fa553a55b67b8456db2` confirmed **18 HIGH and 0 CRITICAL** in Telemetry. The image archive hash matched GitHub metadata and all three internal evidence hashes matched the manifest. Trivy report SHA-256 is `a974885bfbcc3fddb2a1535c16d0499c4cbe16e25bd5390e2df430d28546cac2`. The SBOM lists `nexolab-mosquitto-ctrl` 2.0.21-1 with Debian source name `mosquitto`. The existing [Broker Control Acceptance](https://github.com/eNgine9r/nexolab-platform/actions/runs/43858765210) passed on that commit.
+
+The registry removes only 33 entries for binary packages absent from both the exact SBOM and vulnerability report. The canonical sorted retired tuples hash to `6d68d1f1185d4c33b67788ff3b0349211b61056b1078b24559a765b2a1b67572`. The complete historical registry is available at `d260abe0722ce888c51c94813b0708e7ea2f20bf`. The remaining 15 entries retain their original 2026-10-20 expiry and rationale. The three unlisted SQLite findings remain open in the Trixie tracker.
+
+A separate local compatibility experiment installed the signed Debian testing SQLite package 3.54.1-2 on the same Debian base. Python loaded SQLite 3.54.1, while Trivy's Debian Trixie advisories still reported the same three HIGH findings for the newer version. The PR retains the Trixie-supported package. The remaining findings require a source-proven fix or an explicit bounded review under the existing policy.
+
+## 2026-11-16 source reconciliation
+
+PR #1448 incorporates the current `main` and keeps the fail-closed policy and the approval register. The 48 existing entries expired on 2026-10-20.
+
+- The GitHub artifact SHA-256 digests matched for the five baseline images from run [43851624610](https://github.com/eNgine9r/nexolab-platform/actions/runs/43851624610) at `181bf421a8e2c264c611f2be10401788481a67e5`. The linux/amd64 Telemetry scan reported 5 CRITICAL and 77 HIGH package/CVE tuples. Object Storage had 2 HIGH. Device Agent, Telegram Gateway and MQTT had zero HIGH and CRITICAL. The Debian-based Device Agent, Telegram Gateway and Telemetry images include `zlib1g` `1:1.3.dfsg+really1.3.1-1+deb13u1`, the [Debian security update](https://lists.debian.org/debian-security-announce/2026/msg00532.html); the earlier zlib findings are absent.
+- The earlier #1448 Telemetry artifact at `d1f47a3a280ac3789dc0735b06022729fd292304` from run [42219823187](https://github.com/eNgine9r/nexolab-platform/actions/runs/42219823187) had zero CRITICAL after the Pillow and msgpack updates. Comparing the matched reports leaves 52 Debian Telemetry HIGH tuples with no scanner-reported fixed version at the baseline date. This comparison does not establish the new candidate's scan result.
+- Object Storage now builds the pinned VersityGW release with Go 1.27.3 and `golang.org/x/net` v0.62.0. The latter is the [Go project’s fixed version for CVE-2026-78661](https://pkg.go.dev/vuln/GO-2026-6860). The original pin drifted behind the available fix, and current baseline evidence reported the two HIGH Object Storage findings separately.
+- The remaining Telemetry tuples include Debian Trixie's open [util-linux](https://security-tracker.debian.org/tracker/source-package/util-linux), [cJSON](https://security-tracker.debian.org/tracker/source-package/cjson), [SQLite](https://security-tracker.debian.org/tracker/source-package/sqlite3), [libwebsockets](https://security-tracker.debian.org/tracker/source-package/libwebsockets), ACL, ncurses and systemd findings. Review fresh exact-head reports before selecting the next package-level remediation. The approval register and required merge checks still apply.
+
+Focused local verification passed 89 policy, packaging, codec and broker-adapter tests. The pinned Object Storage release compiled with the verified SDK for linux/amd64 and linux/arm64. Both binaries report the intended SDK and module versions. The amd64 binary also reports the expected VersityGW release and source. It passed a loopback-only health check and authenticated S3 PUT, GET, LIST and DELETE with temporary storage.
+
+[Container Supply Chain run 43855165424](https://github.com/eNgine9r/nexolab-platform/actions/runs/43855165424) at `b04a5cf4e65896b3f309a7f44fe81ccf58b13c21` built and scanned all five linux/amd64 images. The five archive hashes matched GitHub metadata. All 15 report/SBOM hashes matched their source-bound manifests. There were zero CRITICAL findings, zero HIGH in Object Storage, Device Agent, Telegram Gateway and MQTT, and 52 HIGH findings (16 CVEs) in Telemetry. All 48 existing exceptions matched older findings and have expired. The four findings outside the register are `libsqlite3-0` CVE-2026-119373, CVE-2026-119374, CVE-2026-119379 and `libwebsockets19t64` CVE-2026-95114. No raw report specified a fixed version for the 52 findings. All 16 CVEs are open for Trixie in Debian's tracker. The policy job failed on the existing expiry, as intended. The [Broker Control Acceptance run](https://github.com/eNgine9r/nexolab-platform/actions/runs/43855165808) succeeded at the same head.
+
+ELF inspection of the exact Trixie Mosquitto package showed that the broker needs `libwebsockets.so.19` and `libsystemd.so.0`. The `mosquitto_ctrl` binary requires `libmosquitto.so.1`, `libcrypto.so.3`, `libcjson.so.1` and `libc.so.6`; `libmosquitto.so.1` does not require either broker-only library. Evaluate a smaller Debian runtime and a client-only package that retains verifiable package provenance. Alpine is not a drop-in replacement with the current pins: PyPI has no compatible CPython 3.13 musllinux wheel for CoolProp 8.0.0 on either target architecture. The tested packages were unchanged in this experiment.
+
+ARM64 runtime acceptance is pending. The remainder of this document retains historical evidence.
+
+> **2026-11-06 reconciliation:** All counts and proposed exceptions below describe historical image reviews. The current branch retains the main-branch registry unchanged: 48 entries, expired 2026-10-20; no new or renewed exception is approved. The latest separate #1529 candidate scan reports 5 CRITICAL and 83 HIGH amd64 image/package/CVE tuples before this remediation; it does not establish installed ARM64 exposure. Fresh builds and policy review are required. The owner requested an update; the bounded residual-risk decision described below remains a separate, as-yet-unmade decision.
+
+**Status:** source-only risk review. The seven-day exception registry is a narrow risk decision, **not** proof of vulnerability elimination or permission to merge/deploy. The production site, credentials, field buses and data volumes were not changed.
+
+## Source-bound scan and fixes
+
+Source head: `66c30bd496193e4ea334df9d80deac07aea0f772`, GitHub Actions `Container Supply Chain` run `41071197854` (linux/amd64 images).
+
+- `telemetry-service`: before 73 HIGH / 5 CRITICAL, after 49 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `176a86e51affe51805aecf4fc1987093705aacd5db500a1b16940c3c7e330fd5`.
+- `object-storage`: before 1 HIGH / 0 CRITICAL, after 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `717f4c3f8b52da68953aff3c62adac0e5a8fc7925529937dde93f73ddefc4675`.
+- `device-agent`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `95b6f5a7bf1bfdae50fa3f8873c5b65a9477895ce5de026f80a26dcc692feb83`.
+- `telegram-gateway`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `a3b238b6c59b366b61b7c1164880fe960451a4fbed8b906769e2a01a84750355`.
+- `mqtt-dynamic-security`: 0 HIGH / 0 CRITICAL; Trivy JSON SHA-256 `34cb9f676015640fbb3e0024ae749120fc22a0f006f51859379ab25bfbd9b120`.
+
+Fixed using **Pillow 13.0.0**, **msgpack 1.2.3**, and Object Storage **Go 1.27.3**. Go downloads checksums came from [official downloads](https://go.dev/dl/). This source-only security PR does not modify runtime networking, authentication, package installation or deployed storage.
+
+## Exactly scoped residual findings
+
+**49 distinct telemetry HIGH** findings remain. All have empty Trivy `FixedVersion`; none is CRITICAL. The 48 historical image/package/CVE tuples match the current scan exactly, and retain their existing individual issue-specific rationale and owner `platform-security`. Their previous expiry was 2026-10-20. A new 49th HIGH is `libwebsockets19t64 / CVE-2026-95114`. No exceptions exist for findings not in the current list.
+
+Current Debian Trixie Security Tracker references: [util-linux](https://security-tracker.debian.org/tracker/source-package/util-linux), [ncurses](https://security-tracker.debian.org/tracker/source-package/ncurses), [acl](https://security-tracker.debian.org/tracker/source-package/acl), [cjson](https://security-tracker.debian.org/tracker/source-package/cjson), [systemd](https://security-tracker.debian.org/tracker/source-package/systemd), and [libwebsockets](https://security-tracker.debian.org/tracker/CVE-2026-95114). The latter describes a potentially remotely triggered LEJP JSON parsing denial of service; current Trixie has no fixed version. The telemetry runtime uses `mosquitto_ctrl` as an outbound broker-management CLI, while the actual Mosquitto broker resides in a different container. This narrows direct service exposure but **does not demonstrate absence of indirect native-library exploitability**.
+
+The 49 bounded records expire on **2026-11-06**. They are **not** blanket version or severity waivers. Each exception is keyed by exact image/package/CVE, and the 48 existing reasons are preserved. A fixed package or new reachable path requires immediate removal or re-review. A fresh exact-head CI scan is required after this change; preserve automated fail-closed reconciliation and require security-owner review before merge.
+
+## Open release gates
+
+- Exact-head post-exception-policy Container Supply Chain GREEN with image hashes and matching vulnerability findings; no new HIGH or CRITICAL.
+- Changed-source formatting, telemetry integration tests, offline bundle and independent policy regression checks.
+- ARM64 cross-build/isolated use evidence and runtime installed package verification.
+- Owner-approved protected production backups and restore, plus separate site change approval, before release.
+- No hardware acceptance; no Modbus/hardware writes, broker ACL modifications or storage cutover.
+
+A policy regression in this Work Package also rejects any exceptional HIGH with a non-empty Trivy `FixedVersion`; a newly available patch must be investigated rather than silently overridden by the previous exception. This is enforced by an isolated unit test and exact-head CI.
+
+## 2026-11-04 technical review for the Product Owner
+
+This section supersedes the historical count of 49 remaining findings. The owner authorized technical review/preparation; no specific risk waiver or production/site cutover was given. Repository CODEOWNERS identifies `@eNgine9r`; `platform-security` in the exception registry is a logical role string, not proof of a separate human reviewer.
+
+### Evidence and limits
+
+Downloaded all five image artifact ZIPs from exact-head run `41076486729`, source `0b50d7df348ea4234607a84ce4c692ee0c66ff59`, verified the source and all 15 CycloneDX/SPDX/raw-report digests against their manifests, then rescanned the immutable CycloneDX package inventories with checksum-pinned Trivy **0.70.0** and vulnerability DB updated **2026-11-04 07:16:25 UTC**. This is a current vulnerability lookup against previously built **linux/amd64** images, not a new image build, binary reachability proof, ARM64 acceptance or installed-site scan. Exact source/image/SBOM/rescan/DB hashes and all 50 exact HIGH tuples are in [the machine-readable review](security-container-review-20261104.json).
+
+| Existing candidate image | HIGH | CRITICAL |
+| ------------------------ | ---: | -------: |
+| telemetry-service        |   50 |        0 |
+| device-agent             |    0 |        0 |
+| mqtt-dynamic-security    |    0 |        0 |
+| telegram-gateway         |    0 |        0 |
+| object-storage           |    0 |        0 |
+
+Candidate SBOMs confirm Pillow **13.0.0**, msgpack **1.2.3**, and Go stdlib **1.27.3**. These remediate the known five Pillow CRITICAL and fixed-version msgpack/Go findings. Native Debian residual findings remain; they have not disappeared because of a policy exception.
+
+The 50 package/CVE tuples represent **14 unique CVEs**. All 14 match the current official [Debian tracker JSON](https://security-tracker.debian.org/tracker/data/json), whose Trixie entries remain `open`; no current rescan HIGH reports a fixed version. The prior 49 exact tuples still match the existing short-lived registry; only `telemetry-service / libsqlite3-0 / CVE-2026-119373` is new. Running the existing candidate's unchanged evaluator against the current report **fails**, blocking this SQLite tuple. No new exception or expiry extension has been written.
+
+### Reachability and residual risk
+
+The new [SQLite advisory](https://security-tracker.debian.org/tracker/CVE-2026-119373) describes heap corruption requiring FTS5 `detail=none` data, attacker-controlled negative rowids and a prefix MATCH query. Debian Trixie `3.46.1-7+deb13u2` remains vulnerable; the reported fixed Debian package is in unstable, not Trixie. Telemetry actively uses SQLite for its MQTT spool and export staging; source paths use ordinary tables and bound values/BLOBs (`app/durable_spool.py:98,297-325`; `app/energy_export/source.py:136-156,225-230`). Scoped source search found no FTS5, virtual-table creation, arbitrary SQL scripts, extension loading or foreign database attachment. This narrows the observed trigger path but does not prove safety against a replaced database, transitive native use or an unverified site configuration.
+
+The existing [libwebsockets advisory](https://security-tracker.debian.org/tracker/CVE-2026-95114) remains a native JSON-parser denial-of-service risk. The telemetry image installs Mosquitto for `mosquitto_ctrl`, while its default process is Uvicorn; broker admin launches a native command. No claim that all native parser entry points are unreachable is justified without actual image linkage/process/listener evidence. Other existing per-CVE reachability rationales remain conditional; current scanner/tracker agreement establishes package status, not exploit impossibility.
+
+Two omitted packaging tests were actually run and failed because they still required msgpack **1.2.1** and Go **1.27.2**. Their assertions now require the already-remediated exact versions/checksums, and the Telemetry workflow explicitly executes both files and triggers on edits to them. Focused policy, packaging and PNG/msgpack codec checks: **67 PASS**. Full final-head CI remains required.
+
+### Concrete decision and recommendation
+
+Recommend allowing continued source development and isolated compatibility/hardware preparation. A source-only risk decision could provisionally retain exactly these **50 named HIGH package/CVE tuples through 2026-11-06**, after a fresh final-source build/scan confirms no further changes. This requires a specific Product Owner risk decision; the current authorization to prepare this review does not grant it. The current 49-entry registry is unchanged and intentionally fails on the 50th finding.
+
+The proposed bounds are: zero CRITICAL; no accepted finding with a reported fixed version; exact image/package/CVE identities only; no wildcard or automatic renewal; remove/review an entry immediately on compatible fix or exposure change; fresh final ARM64 and runtime evidence still required. Final policy/CI must pass before any source merge. Production/site installation also retains the separate backup/restore, rollback, LAN/IPAM and real-device gates, and requires its own explicit cutover authorization.
+
+Until that concrete risk decision and fresh verification exist, **do not merge or deploy** this candidate. This assessment grants no security exception, production approval, hardware write or update signal.

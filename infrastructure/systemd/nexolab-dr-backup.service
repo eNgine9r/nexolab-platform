@@ -1,0 +1,54 @@
+# NEXOLAB #1630 source template only. DO NOT install/enable outside a separately
+# owner-approved protected site activation (see docs/operations/dr-scheduled-backup-1630.md).
+# Read-only capture: never stops, restarts or recreates containers; plaintext never touches disk.
+[Unit]
+Description=NEXOLAB encrypted complete local backup of all eight DR stores (read-only capture)
+Documentation=https://github.com/eNgine9r/nexolab-platform/issues/1630
+After=docker.service
+Requires=docker.service
+ConditionPathExists=/etc/nexolab/dr-backup.json
+
+[Service]
+Type=oneshot
+# Root is required to read Docker volumes and use `docker exec`; capabilities are reduced below.
+User=root
+ExecStart=/usr/bin/python3 -I -B /opt/nexolab/current/scripts/nexolab-dr-scheduled-backup.py --config /etc/nexolab/dr-backup.json
+# 75 = overlapping run skipped (reported via metrics), not a unit failure.
+SuccessExitStatus=75
+# Lowest CPU and I/O priority so acquisition, MQTT and PostgreSQL keep precedence.
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+CPUQuota=60%
+# Streaming design needs well under 256 MiB; SQLite stores are capped in code.
+MemoryMax=768M
+MemoryHigh=512M
+TimeoutStartSec=6h
+RuntimeDirectory=nexolab-dr-backup
+RuntimeDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+# DAC_READ_SEARCH: read container-owned volume files. DAC_OVERRIDE: SQLite read-only WAL access
+# needs the -shm file in container-owned volume directories, and the textfile directory is owned by nexolab.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
+AmbientCapabilities=
+# Only the backup directory and the local Prometheus textfile directory are writable.
+ReadWritePaths=/var/backups/nexolab/dr /home/nexolab/nexolab-platform/runtime/observability

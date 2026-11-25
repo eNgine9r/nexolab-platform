@@ -147,6 +147,7 @@ export function PlatformAccountTopbar({ title, onMenuOpen }: { title: string; on
     : false;
   return (
     <Topbar
+      showAlerts={security?.mode === "demo" ? true : undefined}
       title={title}
       onMenuOpen={onMenuOpen}
       showCreateSession={canCreateSession}

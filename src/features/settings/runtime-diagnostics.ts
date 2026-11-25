@@ -1,3 +1,4 @@
+import { resolvePublicApiBaseUrl, resolvePublicWebSocketUrl } from "@/lib/runtime/public-endpoints";
 export type SettingsConfigurationState = "ready" | "incomplete" | "unsafe";
 
 export type SettingsDataMode = "live" | "demo" | "invalid";
@@ -53,8 +54,8 @@ export function readSettingsRuntimeInput(browserOrigin: string | null): Settings
     profile: "LOCAL_LAN",
     dataMode: process.env.NEXT_PUBLIC_NEXOLAB_DATA_MODE,
     authProvider: process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER,
-    apiBaseUrl: process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL,
-    websocketUrl: process.env.NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL,
+    apiBaseUrl: resolvePublicApiBaseUrl(),
+    websocketUrl: resolvePublicWebSocketUrl(),
     browserOrigin,
   };
 }

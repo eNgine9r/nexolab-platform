@@ -1,0 +1,30 @@
+# NEXOLAB #1630 — OPT-IN only. Do not place in auto-loaded rules/ until the
+# nexolab-dr-backup timer and its textfile metrics are installed with owner
+# approval; otherwise NexolabDrBackupMissing fires immediately (by design).
+groups:
+  - name: nexolab-dr-backup
+    rules:
+      - alert: NexolabDrBackupMissing
+        expr: absent(nexolab_dr_backup_last_success_timestamp_seconds) or (time() - nexolab_dr_backup_last_success_timestamp_seconds > 93600)
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB has no successful encrypted DR backup in the last 26 hours
+          description: The scheduled local backup did not succeed or did not run (missed timer, Pi off, or repeated failures). Recovery evidence is aging.
+      - alert: NexolabDrBackupFailed
+        expr: nexolab_dr_backup_last_run_ok == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB encrypted DR backup run failed
+          description: The last backup run was blocked (capacity or configuration) or failed (capture, consistency or verification). No partial bundle was kept.
+      - alert: NexolabDrBackupHeadroomLow
+        expr: nexolab_dr_backup_free_bytes_after < 21474836480
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB backup left less than the 20 GiB protected reserve
+          description: Free space after the last backup is below the protected reserve; the next run will refuse to start until capacity is restored.

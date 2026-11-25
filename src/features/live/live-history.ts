@@ -1,7 +1,13 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { chartPointBudget } from "@/features/charts/point-budget";
-import { reduceChartSegments } from "@/features/charts/reduction";
+import { reduceChartSegmentsPreservingEvidence } from "@/features/charts/reduction";
+import {
+  CADENCE_OBSERVATION_LIMIT,
+  seedCadenceFromSamples,
+  type CadenceObservations,
+} from "@/features/live/freshness";
+import { recordLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
@@ -14,8 +20,20 @@ export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 export type LiveHistoryWindow = TelemetryHistoryWindow;
 
 export interface LiveHistoryResult {
+  /** Chart series, reduced to the chart point budget. Never use for cadence. */
   samples: TelemetrySample[];
   snapshotAt: string;
+  /**
+   * #1522: newest raw (pre-reduction) accepted samples per channel, bounded to
+   * the cadence observation window. Reduced chart points are spaced by bucket
+   * width, not by acquisition cadence, and would hide stale data.
+   */
+  cadenceSamples: TelemetrySample[];
+  /**
+   * #1660: raw (pre-reduction) per-channel measurement columns for exact interval statistics.
+   * Compact numbers only (timestamp + value), never the reduced chart series.
+   */
+  intervalColumns: LiveIntervalColumns;
 }
 
 export interface LiveHistoryOrderingState {
@@ -58,6 +76,18 @@ function isRenderable(sample: TelemetrySample): boolean {
 function acceptedSample(sample: TelemetrySample, now = Date.now()): boolean {
   const capturedAt = parsedTimestamp(sample.captured_at);
   return Number.isFinite(capturedAt) && capturedAt <= now + LIVE_HISTORY_MAX_FUTURE_SKEW_MS;
+}
+
+/**
+ * Moves a rolling window forward with wall-clock time, keeping its duration. Without this a
+ * silent channel's last line would keep reaching the right edge and look live (chart audit
+ * 2026-11-21). Returns the same object when no move is needed.
+ */
+export function advanceWindowToClock(current: LiveHistoryWindow, nowMs: number): LiveHistoryWindow {
+  const fromMs = current.from.getTime();
+  const toMs = current.to.getTime();
+  if (!Number.isFinite(nowMs) || !(toMs > fromMs) || nowMs <= toMs) return current;
+  return { from: new Date(nowMs - (toMs - fromMs)), to: new Date(nowMs) };
 }
 
 export function advanceLiveHistoryWindow(
@@ -179,7 +209,7 @@ function downsampleChannel(
     };
   });
 
-  const reduced = reduceChartSegments(segments, {
+  const reduced = reduceChartSegmentsPreservingEvidence(segments, {
     maximumPoints,
     bucketOriginMs: window.from.getTime(),
   });
@@ -265,6 +295,7 @@ export async function loadCompleteLiveHistory(
   identities: readonly TelemetrySample[],
   window: LiveHistoryWindow,
   signal?: AbortSignal,
+  maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
 ): Promise<LiveHistoryResult> {
   if (identities.length === 0) {
     throw new Error("At least one channel identity is required for history loading");
@@ -289,10 +320,44 @@ export async function loadCompleteLiveHistory(
     allSamples.push(...result.samples);
   }
 
+  const intervalColumns: LiveIntervalColumns = {};
+  recordLiveIntervalSamples(
+    intervalColumns,
+    allSamples.filter((sample) => acceptedSample(sample)),
+  );
   return {
-    samples: downsampleLiveHistory(allSamples, window),
+    samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
+    intervalColumns,
     snapshotAt: snapshotAt!,
+    cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
   };
+}
+
+/**
+ * #1522: seeds cadence from a history load. Accepts only the raw cadence tail
+ * by type, so the chart-reduced `samples` can never be used by mistake.
+ */
+export function seedCadenceFromHistoryLoad(
+  observations: CadenceObservations,
+  result: Pick<LiveHistoryResult, "cadenceSamples">,
+): CadenceObservations {
+  return seedCadenceFromSamples(observations, result.cadenceSamples, liveChannelKey);
+}
+
+function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: number): TelemetrySample[] {
+  const groups = new Map<string, TelemetrySample[]>();
+  for (const sample of samples) {
+    if (!acceptedSample(sample)) continue;
+    const key = liveChannelKey(sample);
+    const current = groups.get(key);
+    if (current) current.push(sample);
+    else groups.set(key, [sample]);
+  }
+  return [...groups.values()].flatMap((channelSamples) =>
+    channelSamples
+      .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at))
+      .slice(-limit),
+  );
 }
 
 export function mergeLiveHistoryTail(
@@ -300,6 +365,7 @@ export function mergeLiveHistoryTail(
   incoming: readonly TelemetrySample[],
   selectedKeys: ReadonlySet<string>,
   window: LiveHistoryWindow,
+  maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
@@ -322,7 +388,7 @@ export function mergeLiveHistoryTail(
     }
   }
 
-  return downsampleLiveHistory([...byEventId.values()], window);
+  return downsampleLiveHistory([...byEventId.values()], window, maximumPointsPerChannel);
 }
 
 export function liveHistorySegments(samples: readonly TelemetrySample[]): TelemetrySample[][] {

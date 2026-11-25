@@ -9,6 +9,7 @@ import type {
   LiveDashboardItem,
   LiveDashboardStatus,
   LiveDashboardVersioned,
+  LiveDashboardViewSettings,
   LiveDashboardVisualization,
   LiveDashboardWrite,
 } from "./types";
@@ -101,10 +102,29 @@ function statusValue(value: unknown): LiveDashboardStatus {
 function parseItem(value: unknown): LiveDashboardItem {
   if (!isRecord(value))
     throw new LiveDashboardClientError("Dashboard item is invalid.", undefined, "contract");
+  if (
+    value.channel_ref_id === null &&
+    (typeof value.node_id !== "string" ||
+      !value.node_id ||
+      typeof value.equipment_id !== "string" ||
+      !value.equipment_id)
+  ) {
+    throw new LiveDashboardClientError("Standalone dashboard series has no scope.", undefined, "contract");
+  }
   return {
     id: stringValue(value.id, "Dashboard item id"),
     position: numberValue(value.position, "Dashboard item position"),
-    channel_ref_id: stringValue(value.channel_ref_id, "Dashboard channel reference"),
+    channel_ref_id: nullableString(value.channel_ref_id, "Dashboard channel reference"),
+    ...(value.node_id === undefined
+      ? {}
+      : {
+          node_id: nullableString(value.node_id, "Dashboard telemetry node"),
+        }),
+    ...(value.equipment_id === undefined
+      ? {}
+      : {
+          equipment_id: nullableString(value.equipment_id, "Dashboard telemetry device"),
+        }),
     channel_id: stringValue(value.channel_id, "Dashboard channel id"),
     metric: stringValue(value.metric, "Dashboard metric"),
     native_unit: stringValue(value.native_unit, "Dashboard native unit"),
@@ -145,7 +165,18 @@ export function parseLiveDashboard(value: unknown): LiveDashboard {
     archived_by: nullableString(value.archived_by, "Dashboard archiver"),
     archived_at: nullableString(value.archived_at, "Dashboard archived timestamp"),
     items: value.items.map(parseItem),
+    ...(value.view_settings === undefined ? {} : { view_settings: parseViewSettings(value.view_settings) }),
   };
+}
+
+/**
+ * Saved analysis view (#1666). Tolerant like the API: a value this client cannot interpret reads as
+ * "no saved view" instead of failing the dashboard. An absent key (older Telemetry Service) stays absent.
+ */
+function parseViewSettings(value: unknown): LiveDashboardViewSettings | null {
+  if (!isRecord(value) || !Array.isArray(value.hidden_items)) return null;
+  if (!value.hidden_items.every((item) => typeof item === "string")) return null;
+  return value as unknown as LiveDashboardViewSettings;
 }
 
 function parseCollection(value: unknown): LiveDashboardCollection {

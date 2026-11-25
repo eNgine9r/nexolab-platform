@@ -238,6 +238,10 @@ A new segment is required when:
 
 When continuity is uncertain, fail toward a visible break rather than invented continuity.
 
+Per-series freshness (#1643, #1652): freshness is evaluated from each series' own newest sample, never from the page. Builders record `ChartSeries.freshUntilMs` for a live series and `applyFreshnessClock` (src/features/charts/series-freshness.ts) flips expired series to stale on a clock tick without rebuilding scenes and without changing object identity when nothing changed. Saved Dashboards and Overview derive the threshold with the #1522 contract (server stale_after_seconds, observed raw cadence, 30 s); Energy and Refrigeration keep their own threshold owners but report `invalid` when a series' newest sample has no valid measurement.
+
+Image export (#1658): every chart surface offers «Зберегти PNG» (ChartShell onExportImage → EChartsRendererAdapter.exportImage). The PNG is rendered locally from the mounted Canvas (2× pixel ratio, dark background) and shows the visible plot only; it needs no network and never touches telemetry or acquisition. Saved Dashboard CSV remains the authoritative export: it is produced server-side from persisted rows, never from reduced chart vertices, and its local-time column follows the display time-zone preference.
+
 ## 5. Time semantics
 
 ### 5.1 Source time
@@ -330,6 +334,8 @@ Rules:
 - full-window statistics use the full requested evidence set or a backend aggregate proven equivalent;
 - statistics from reduced render points must never be labelled as full-window statistics;
 - if both full-window and visible-viewport statistics exist, the UI distinguishes them explicitly.
+
+Implementation (#1645): `src/features/charts/interval-statistics.ts` keeps a compact raw (pre-reduction) column store and computes min/max/average/count/coverage/gaps for any sub-interval. The average is withheld (`insufficient_coverage`) below 80 % coverage or under three samples; non-valid samples are counted separately and never treated as zero. Saved Dashboards show the result with an explicit scope label (whole requested interval vs visible viewport).
 
 ## 7. Units and y-axis policy
 
@@ -635,7 +641,8 @@ The following are provisional implementation targets, not claims about current c
 
 ### 14.1 Bounded series
 
-- common interactive multi-series plot default: maximum eight visible series, preserving the current Live Data comparison contract;
+- Live Data comparison: maximum 24 channels (#1654, was eight). Scenes remain bounded by equipment/axis partitioning (≤ 5 Y axes) and the aggregate point budget of src/features/charts/density.ts; Saved Dashboards allow 64 series in device-grouped, searchable panels;
+- common interactive multi-series plot default (historical, superseded for Live Data by the line above): maximum eight visible series;
 - larger dashboards split compatible series into explicit groups instead of one unreadable plot;
 - compact single-series sparklines stay separately bounded.
 
@@ -647,6 +654,8 @@ The following are provisional implementation targets, not claims about current c
 - the `240` value is a performance target, not permission to discard required evidence: if continuity boundaries or pinned evidence exceed the target, the shared policy preserves that evidence and allows only the minimum truthful overflow;
 - any ordinary increase requires measured Raspberry Pi browser evidence and the evidence-preserving reducer;
 - full raw history is not rendered merely because a client can temporarily handle it.
+
+User-selectable detail (#1620): Авто / 250 / 500 / 1 000 / 2 500 / 5 000 are maximum budgets per series resolved by src/features/charts/density.ts under an aggregate cap (Auto target 3 840, manual cap 6 000 total points). The measured density matrix, its method and what it does not prove (no Raspberry Pi measurement) are recorded in docs/audits/chart-density-benchmark-1620.md. The control is available on Saved Dashboards and Live Data (#1664); Energy and Refrigeration still use their fixed budgets.
 
 ### 14.3 Provisional render targets
 

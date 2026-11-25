@@ -82,6 +82,20 @@ describe("Overview canonical chart mapping", () => {
     expect(series.segments[1].precedingBreak?.reason).toBe("source_gap");
   });
 
+  it("disambiguates series names when the same channel id exists on two nodes", () => {
+    const groups = buildOverviewChartGroups({
+      samples: [
+        sample("a", 0, 4.1, "valid", "104-03"),
+        sample("b", 0, 5.2, "valid", "104-03", { node_id: "edge-02" }),
+        sample("c", 0, 6.3, "valid", "104-04"),
+      ],
+      status: "live",
+      xDomain: { fromMs: BASE, toMs: BASE + 60_000 },
+    });
+    const names = groups.flatMap((group) => group.scene.series.map((series) => series.name)).sort();
+    expect(names).toEqual(["104-03 · edge-01 · K104", "104-03 · edge-02 · K104", "104-04"]);
+  });
+
   it("deduplicates the same event when history and the latest tail overlap", () => {
     const duplicate = sample("same-event", 10_000, 4.2);
     const series = onlySeries([sample("before", 0, 4.1), duplicate, { ...duplicate }]);
@@ -162,5 +176,39 @@ describe("Overview canonical chart mapping", () => {
 
     expect(domain.toMs).toBe(BASE + 15_000);
     expect(domain.toMs - domain.fromMs).toBe(60 * 60 * 1_000);
+  });
+
+  it("shows a custom period exactly as requested, never stretched by a later sample (#1683)", () => {
+    const window = {
+      from: new Date(BASE - 3 * 60 * 60 * 1_000).toISOString(),
+      to: new Date(BASE).toISOString(),
+    };
+    const domain = overviewResetDomain("custom", window, [sample("after-window", 15_000, 4.3)]);
+
+    expect(domain).toEqual({ fromMs: BASE - 3 * 60 * 60 * 1_000, toMs: BASE });
+  });
+
+  it("never labels a series of a fixed custom period as live, even when its last sample is recent", () => {
+    const build = (historical: boolean) =>
+      buildOverviewChartGroups({
+        samples: [sample("a", 0, 4.1), sample("b", 5_000, 4.2)],
+        status: "live",
+        xDomain: { fromMs: BASE - 60_000, toMs: BASE + 5_000 },
+        now: BASE + 6_000,
+        historical,
+      })[0].scene.series[0];
+
+    expect(build(false).freshness).toBe("live");
+    const historical = build(true);
+    expect(historical.freshness).toBe("historical");
+    expect(historical.freshUntilMs).toBeUndefined();
+
+    const invalidNewest = buildOverviewChartGroups({
+      samples: [sample("a", 0, 4.1), sample("err", 5_000, null, "sensor_error")],
+      status: "live",
+      xDomain: { fromMs: BASE - 60_000, toMs: BASE + 5_000 },
+      historical: true,
+    })[0].scene.series[0];
+    expect(invalidNewest.freshness).toBe("invalid");
   });
 });

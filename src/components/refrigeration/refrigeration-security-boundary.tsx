@@ -69,6 +69,7 @@ export function RefrigerationAccountTopbar({ title, onMenuOpen }: { title: strin
     : false;
   return (
     <Topbar
+      showAlerts={security?.mode === "demo" ? true : undefined}
       title={title}
       onMenuOpen={onMenuOpen}
       showCreateSession={canCreateSession}

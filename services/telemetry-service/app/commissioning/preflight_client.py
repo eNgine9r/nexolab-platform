@@ -5,10 +5,13 @@ import json
 import re
 import socket
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+if TYPE_CHECKING:
+    from app.commissioning.address_search import AddressSearchRequest, AddressSearchResponse
 
 
 class DeviceAgentPreflightError(RuntimeError):
@@ -44,6 +47,10 @@ class DeviceAgentPreflightClient:
     def __init__(self, base_url: str, *, transport_timeout_seconds: float = 12.0) -> None:
         self._base_url = validated_device_agent_base_url(base_url)
         self._transport_timeout_seconds = max(1.0, min(float(transport_timeout_seconds), 15.0))
+
+    def search_address(self, command: AddressSearchRequest) -> AddressSearchResponse:
+        from app.commissioning.address_search import search_address
+        return search_address(self._base_url, command)
 
     def list_connections(self) -> dict[str, Any]:
         request = Request(
@@ -112,12 +119,18 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
         ownership = item.get("ownership")
         present = item.get("present")
         available = item.get("available_for_preflight")
+        search_available = item.get("available_for_isolated_search", False)
+        read_search = item.get("available_for_read_search", False)
         serial = item.get("serial")
         if (
             not isinstance(bus_id, str) or not bus_id or bus_id in seen_bus_ids
             or not isinstance(stable, str) or not stable.startswith("/dev/serial/by-id/") or stable in seen_paths
             or ownership not in {"production_bus", "available_commissioning"}
             or not isinstance(present, bool) or not isinstance(available, bool)
+            or not isinstance(search_available, bool)
+            or not isinstance(read_search, bool)
+            or (read_search and present is not True)
+            or (search_available and (ownership != "available_commissioning" or present is not True))
         ):
             raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent connection identity is invalid")
         if serial is not None:
@@ -147,14 +160,25 @@ def validate_connection_inventory(payload: object) -> dict[str, Any]:
             "ownership": ownership,
             "present": present,
             "available_for_preflight": available,
+            "available_for_isolated_search": search_available,
+            "available_for_read_search": read_search,
             "serial": serial,
         })
     return {"schema_version": 1, "node_id": payload["node_id"], "connections": sanitized}
 
 
+def read_contract(profile_id: str, profile_version: str) -> tuple[str, list[int]]:
+    if (profile_id, profile_version) == ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1"):
+        return "modbus_rtu_fc03_fc04", [3, 4]
+    if (profile_id, profile_version) == ("eastron-sdm120m", "eastron-sdm120m-fc04-v1"):
+        return "modbus_rtu_fc04", [4]
+    return "modbus_rtu_fc03", [3]
+
+
 def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCommand) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight evidence must be an object")
+    method, codes = read_contract(command.profile_id, command.profile_version)
     required_exact = {
         "schema_version": 1,
         "node_id": command.node_id,
@@ -163,7 +187,7 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         "unit_id": command.unit_id,
         "profile_id": command.profile_id,
         "profile_version": command.profile_version,
-        "read_method": "modbus_rtu_fc03",
+        "read_method": method,
         "modbus_writes": "none",
         "hardware_writes": "none",
     }
@@ -177,8 +201,8 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight result is invalid")
     if payload.get("evidence_level") not in {"hardware_verified", "partially_verified", "unsupported", "unverified"}:
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent evidence level is invalid")
-    if payload.get("function_codes") != [3]:
-        raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight must prove FC03-only execution")
+    if payload.get("function_codes") != codes:
+        raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight has incorrect function codes for profile")
     if not isinstance(payload.get("code"), str) or not isinstance(payload.get("checks"), list):
         raise DeviceAgentPreflightError("device_agent_response_invalid", "Device Agent preflight evidence is incomplete")
     if not isinstance(payload.get("observations"), list) or not isinstance(payload.get("warnings"), list):
@@ -197,8 +221,8 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
         "unit_id": payload["unit_id"],
         "profile_id": payload["profile_id"],
         "profile_version": payload["profile_version"],
-        "read_method": "modbus_rtu_fc03",
-        "function_codes": [3],
+        "read_method": method,
+        "function_codes": codes,
         "checks": payload["checks"],
         "observations": payload["observations"],
         "warnings": payload["warnings"],

@@ -4,6 +4,7 @@ export * from "./format";
 export * from "./point-budget";
 export * from "./reduction";
 export * from "./renderer-adapter";
+export * from "./series-freshness";
 export * from "./statistics";
 export * from "./time-ranges";
 export * from "./units";

@@ -6,8 +6,26 @@ import { AlertTriangle, ChevronDown, ChevronUp, LoaderCircle, RotateCcw, Thermom
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
 import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { overviewStatisticsRows } from "@/features/dashboard/overview-statistics";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { annotateChartGroups } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
+import { applyFreshnessClock } from "@/features/charts/series-freshness";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
-import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
+import { CustomHistoryRangeForm } from "@/components/charts/custom-history-range-form";
+import {
+  CUSTOM_HISTORY_FIXED_NOTICE,
+  CUSTOM_HISTORY_RANGE_LABEL,
+  customHistoryRangeKey,
+  formatCustomHistoryWindow,
+} from "@/features/charts/custom-history-range";
+import type {
+  DashboardHistoryPreset,
+  DashboardHistoryRange,
+  DashboardHistoryStatus,
+} from "@/hooks/use-dashboard-telemetry";
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
@@ -15,11 +33,17 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const COMPACT_SENSOR_LIMIT = 8;
 
-const ranges: Array<{ value: DashboardHistoryRange; label: string }> = [
-  { value: "1h", label: "1г" },
-  { value: "6h", label: "6г" },
-  { value: "24h", label: "24г" },
+const ranges: Array<{ value: DashboardHistoryPreset; label: string }> = [
+  { value: "1h", label: "1 година" },
+  { value: "6h", label: "6 годин" },
+  { value: "24h", label: "24 години" },
+  { value: "7d", label: "7 днів" },
 ];
+
+const rangeButtonClass = (active: boolean) =>
+  `min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium ${
+    active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-white/[0.06]"
+  }`;
 
 function compareChannels(left: string, right: string): number {
   const [leftUnit = 0, leftInput = 0] = left.split("-").map(Number);
@@ -47,6 +71,7 @@ function HistoryChart({
   historyWindow,
   error,
   onRangeChange,
+  onApplyCustomRange,
   onRetry,
 }: {
   samples: TelemetrySample[];
@@ -55,9 +80,12 @@ function HistoryChart({
   telemetryStatus: DashboardTelemetryStatus;
   historyWindow: { from: string; to: string } | null;
   error: Error | null;
-  onRangeChange: (range: DashboardHistoryRange) => void;
+  onRangeChange: (range: DashboardHistoryPreset) => void;
+  onApplyCustomRange?: (fromMs: number | null, toMs: number | null) => void;
   onRetry: () => void;
 }) {
+  const historical = range === "custom";
+  const [customOpen, setCustomOpen] = useState(false);
   const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
   const [soloSeriesKey, setSoloSeriesKey] = useState<string | null>(null);
   const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
@@ -68,7 +96,13 @@ function HistoryChart({
     [historyWindow, range, samples],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
-  const groups = useMemo(
+  const displayTimeZone = useDisplayTimeZone();
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
+  const builtGroups = useMemo(
     () =>
       buildOverviewChartGroups({
         samples,
@@ -76,9 +110,24 @@ function HistoryChart({
         xDomain: effectiveDomain,
         hiddenSeriesKeys,
         soloSeriesKey,
+        historical,
       }),
-    [effectiveDomain, hiddenSeriesKeys, samples, soloSeriesKey, telemetryStatus],
+    [effectiveDomain, hiddenSeriesKeys, historical, samples, soloSeriesKey, telemetryStatus],
   );
+  // The clock only flips silent series to stale; it never rebuilds scenes.
+  const alertEvents = useDashboardAlertEvents({
+    enabled: samples.length > 0,
+    rangeKey:
+      historical && historyWindow ? `overview:${customHistoryRangeKey(historyWindow)}` : `overview:${range}`,
+  });
+  // A fixed period ends at its own `to`: open alerts extend to the end of the shown window, not to now.
+  const fixedWindowEndMs = historical && historyWindow ? Date.parse(historyWindow.to) : Number.NaN;
+  const annotationNowMs = Number.isFinite(fixedWindowEndMs) ? fixedWindowEndMs : clockMs;
+  const annotatedGroups = useMemo(
+    () => annotateChartGroups(builtGroups, alertEvents.alerts, annotationNowMs),
+    [alertEvents.alerts, builtGroups, annotationNowMs],
+  );
+  const groups = useMemo(() => applyFreshnessClock(annotatedGroups, clockMs), [annotatedGroups, clockMs]);
   const seriesCount = groups.reduce((count, group) => count + group.scene.series.length, 0);
   const renderedPointCount = groups.reduce(
     (count, group) =>
@@ -91,7 +140,10 @@ function HistoryChart({
       ),
     0,
   );
-  const rangeLabel = ranges.find((item) => item.value === range)?.label ?? range;
+  const rangeLabel =
+    historical && historyWindow
+      ? formatCustomHistoryWindow(historyWindow, displayTimeZone)
+      : (ranges.find((item) => item.value === range)?.label ?? range);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -123,40 +175,75 @@ function HistoryChart({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-medium text-slate-200">Історія температур</p>
-          <p className="mt-0.5 text-[9px] text-slate-500">
+          <p className="text-sm font-semibold text-slate-100">Історія температур</p>
+          <p className="mt-0.5 text-xs text-slate-400">
             {samples.length} записів · {seriesCount} каналів
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl border border-white/[0.06] p-1">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-white/[0.06] p-1">
           {ranges.map((item) => (
             <button
               key={item.value}
               type="button"
-              onClick={() => onRangeChange(item.value)}
-              className={`rounded-lg px-2.5 py-1.5 text-[9px] ${
-                range === item.value ? "bg-blue-600 text-white" : "text-slate-500"
-              }`}
+              onClick={() => {
+                setCustomOpen(false);
+                onRangeChange(item.value);
+              }}
+              aria-pressed={range === item.value}
+              className={rangeButtonClass(range === item.value)}
             >
               {item.label}
             </button>
           ))}
+          {onApplyCustomRange ? (
+            <button
+              type="button"
+              onClick={() => setCustomOpen(true)}
+              aria-pressed={historical}
+              className={rangeButtonClass(historical)}
+            >
+              {CUSTOM_HISTORY_RANGE_LABEL}
+            </button>
+          ) : null}
         </div>
       </div>
 
+      {customOpen && onApplyCustomRange ? (
+        <CustomHistoryRangeForm
+          testId="overview-custom-range-form"
+          initialWindow={historyWindow}
+          onApply={(fromMs, toMs) => {
+            onApplyCustomRange(fromMs, toMs);
+            setCustomOpen(false);
+          }}
+          onCancel={() => setCustomOpen(false)}
+        />
+      ) : null}
+      {historical ? (
+        <p className="mt-2 text-xs text-slate-400" data-testid="overview-custom-range-notice">
+          {historyWindow ? `${formatCustomHistoryWindow(historyWindow, displayTimeZone)} · ` : null}
+          {CUSTOM_HISTORY_FIXED_NOTICE}
+        </p>
+      ) : null}
+
       {status === "loading" ? (
-        <p className="mt-4 inline-flex items-center gap-2 text-[10px] text-cyan-200">
+        <p className="mt-4 inline-flex items-center gap-2 text-xs text-cyan-200">
           <LoaderCircle className="h-4 w-4 animate-spin" /> Завантаження історії…
         </p>
       ) : status === "error" ? (
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-amber-300/15 p-3 text-[10px] text-amber-100">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300/15 p-3 text-xs text-amber-100">
           <span>{error?.message ?? "Не вдалося завантажити історію."}</span>
-          <button type="button" onClick={onRetry} aria-label="Повторити завантаження історії">
+          <button
+            type="button"
+            onClick={onRetry}
+            aria-label="Повторити завантаження історії"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-amber-300/15"
+          >
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
       ) : renderedPointCount === 0 ? (
-        <p className="mt-4 text-[10px] text-slate-500">Немає валідної температурної історії.</p>
+        <p className="mt-4 text-xs text-slate-400">Немає валідної температурної історії.</p>
       ) : (
         <div className="mt-3 grid min-w-0 gap-3">
           {groups.map((group) => (
@@ -173,6 +260,19 @@ function HistoryChart({
               onSoloSeries={soloSeries}
             />
           ))}
+          <DashboardAlertEvents
+            events={groups.flatMap((group) => group.scene.events ?? [])}
+            status={alertEvents.status}
+            message={alertEvents.message}
+            displayTimeZone={displayTimeZone}
+          />
+          <DashboardIntervalStatistics
+            rows={overviewStatisticsRows(groups, samples, effectiveDomain)}
+            fromMs={effectiveDomain.fromMs}
+            toMs={effectiveDomain.toMs}
+            isViewport={viewportDomain !== null}
+            displayTimeZone={displayTimeZone}
+          />
         </div>
       )}
     </section>
@@ -188,6 +288,7 @@ function LiveTemperatureGrid({
   historyWindow,
   historyError,
   onHistoryRangeChange,
+  onHistoryCustomRange,
   onHistoryRetry,
   targetDiagnostics,
   allMonitoredChannelsHidden,
@@ -199,7 +300,8 @@ function LiveTemperatureGrid({
   historyStatus: DashboardHistoryStatus;
   historyWindow: { from: string; to: string } | null;
   historyError: Error | null;
-  onHistoryRangeChange: (range: DashboardHistoryRange) => void;
+  onHistoryRangeChange: (range: DashboardHistoryPreset) => void;
+  onHistoryCustomRange?: (fromMs: number | null, toMs: number | null) => void;
   onHistoryRetry: () => void;
   targetDiagnostics: Xjp60dTargetDiagnostic[];
   allMonitoredChannelsHidden: boolean;
@@ -365,6 +467,7 @@ function LiveTemperatureGrid({
           historyWindow={historyWindow}
           error={historyError}
           onRangeChange={onHistoryRangeChange}
+          onApplyCustomRange={onHistoryCustomRange}
           onRetry={onHistoryRetry}
         />
       ) : null}
@@ -382,6 +485,7 @@ export function TemperatureChart({
   historyWindow = null,
   historyError = null,
   onHistoryRangeChange = () => undefined,
+  onHistoryCustomRange,
   onHistoryRetry = () => undefined,
   targetDiagnostics = [],
   allMonitoredChannelsHidden = false,
@@ -394,7 +498,8 @@ export function TemperatureChart({
   historyStatus?: DashboardHistoryStatus;
   historyWindow?: { from: string; to: string } | null;
   historyError?: Error | null;
-  onHistoryRangeChange?: (range: DashboardHistoryRange) => void;
+  onHistoryRangeChange?: (range: DashboardHistoryPreset) => void;
+  onHistoryCustomRange?: (fromMs: number | null, toMs: number | null) => void;
   onHistoryRetry?: () => void;
   targetDiagnostics?: Xjp60dTargetDiagnostic[];
   allMonitoredChannelsHidden?: boolean;
@@ -410,6 +515,7 @@ export function TemperatureChart({
         historyWindow={historyWindow}
         historyError={historyError}
         onHistoryRangeChange={onHistoryRangeChange}
+        onHistoryCustomRange={onHistoryCustomRange}
         onHistoryRetry={onHistoryRetry}
         targetDiagnostics={targetDiagnostics}
         allMonitoredChannelsHidden={allMonitoredChannelsHidden}

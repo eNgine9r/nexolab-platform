@@ -48,6 +48,10 @@ class RuntimeSnapshot:
     retention_deleted_telemetry_total: int = 0
     retention_redacted_raw_payload_total: int = 0
     retention_deleted_dead_letter_total: int = 0
+    retention_telemetry_delete_enabled: bool | None = None
+    retention_last_batches: int | None = None
+    retention_last_duration_seconds: float | None = None
+    retention_backlog_remaining: bool | None = None
     websocket_clients: int = 0
     websocket_connect_total: int = 0
     websocket_disconnect_total: int = 0
@@ -202,8 +206,20 @@ class RuntimeState:
         telemetry_deleted: int,
         raw_payloads_redacted: int,
         dead_letters_deleted: int,
+        batches: int | None = None,
+        duration_seconds: float | None = None,
+        backlog_remaining: bool | None = None,
+        telemetry_delete_enabled: bool | None = None,
     ) -> None:
         with self._lock:
+            if batches is not None:
+                self._snapshot.retention_last_batches = batches
+            if duration_seconds is not None:
+                self._snapshot.retention_last_duration_seconds = duration_seconds
+            if backlog_remaining is not None:
+                self._snapshot.retention_backlog_remaining = backlog_remaining
+            if telemetry_delete_enabled is not None:
+                self._snapshot.retention_telemetry_delete_enabled = telemetry_delete_enabled
             self._snapshot.retention_runs_total += 1
             self._snapshot.retention_deleted_telemetry_total += telemetry_deleted
             self._snapshot.retention_redacted_raw_payload_total += (

@@ -1,6 +1,281 @@
-## 2026-11-02 — #1449 broker ACL source-only main synchronization
+## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 
-The opt-in provisioning code remains separate from installed Mosquitto Dynamic Security configuration; **do not install** receipt publisher or subscriber ACLs until #1447 security risk-owner review and #1428 protected backup/restore and site network #1399 acceptance. A synthetic static broker test on source #1445 cannot substitute for actual installed Dynamic Security acceptance. No hardware/Modbus/site writes.
+New device-agent, telemetry-service and telegram-gateway images fail the vulnerability policy on CVE-2026-107494 (`libssl3t64 3.5.9-1~deb13u1`, OpenSSL QUIC, no fixed version).
+
+- Evidence run 45589190384 (native amd64 and arm64): no QUIC client or server API outside libssl, and no UDP.
+- CVE-2026-124851 (`libzstd1`) is fixed in PR #1744 by an exact Debian package overlay.
+- The exact exception request (expiry 2026-12-15) is in `docs/security/cve-2026-107494-assessment.md` §4 and is not applied.
+
+This blocks #1744, #1741 (WP2e) and the receipt chain #1445/#1451 from merging.
+
+## 2026-11-23 — resolved: CVE-2026-124709 exception drift
+
+The Product Owner approved the exact re-pin of the device-agent and telegram-gateway CVE-2026-124709 exceptions to `libssl3t64 3.5.9-1~deb13u1` (expiry 2026-12-15 unchanged) after the native amd64/arm64 revalidation (run 45151013470). Recorded in PR #1723; the Container Supply Chain policy passes again. Still open and separate: the 18 telemetry-service exceptions expire 2026-11-30; retire all three libssl entries when Debian ships OpenSSL 3.5.10 (#1692).
+
+## 2026-11-23 — CVE-2026-124709 exception no longer matches the Device Agent image (blocks #1699 and any Device Agent rebuild)
+
+The Container Supply Chain run on PR #1714 (head `96939f50`) blocked **HIGH CVE-2026-124709** in `libssl3t64 3.5.9-1~deb13u1` of the Device Agent image (Debian 13.8, still no fixed version). The Product Owner decision of 2026-11-22 approved exact tuples; the Device Agent and Telegram Gateway entries in `security/vulnerability-exceptions.json` pin `3.5.7-1~deb13u3`, while the Telemetry Service entry already pins `3.5.9-1~deb13u1`. Exposure is unchanged (same CVE, no QUIC server use, no UDP port; docs/security/cve-2026-124709-assessment.md), but re-pinning the installed version is a new exact risk acceptance and is **not self-approvable**. Options for the owner: approve the exact `3.5.9-1~deb13u1` tuples for device-agent (and telegram-gateway when it rebuilds) through 2026-12-15, or wait for the Debian fix (OpenSSL 3.5.10 scheduled 2026-12-01, #1692). No exception was changed and no check was bypassed. Frontend-only and CI-governance PRs are unaffected.
+
+## 2026-11-22 — update: #1428 source complete, evidence owner-only
+
+All three DR leaves and the health-gate integration are merged and rehearsed on synthetic data (latest REHEARSAL_PASS_WITH_WAIVERS on main). Still unproven and still a HARD gate for any backend/migration release: a real encrypted backup, an off-device copy with the internet disconnected, an independent isolated restore from that copy, key custody. Requires the owner's media, custodians and an isolated host. Also open: #1606, #1409/#1399. CVE-2026-124709 exceptions (to 2026-12-15) and 18 telemetry exceptions (to 2026-11-30) are Product Owner decisions already recorded.
+
+## 2026-11-22 — update: CVE-2026-124709 decision package ready
+
+Evidence and the exact proposed exception scope are in docs/security/cve-2026-124709-assessment.md (merged, PR #1686). Upstream fix release 2026-12-01; Debian trixie unfixed; no QUIC server use; unused openssl CLI removal in draft PR #1687. Still blocked pending the Product Owner's decision; 18 existing telemetry exceptions expire 2026-11-23.
+
+## 2026-11-22 — new unfixed HIGH CVE blocks every backend-classified PR (WP-L backend #1667)
+
+Container Supply Chain job on PR #1667 (run on head `4905e504`) blocked **HIGH CVE-2026-124709** in `libssl3t64 3.5.7-1~deb13u3` of the Device Agent image (Debian 13.7, **no fixed version** published; layer `sha256:2cef49ad…`; no Device Agent source was changed by the PR). `security/vulnerability-exceptions.json` entries are explicit Product Owner / platform-security risk acceptances, so this is **not** self-approvable by an implementation agent and the gate must not be bypassed. Effect: any PR that classifies as backend/migration (WP-L backend, and later WP-O/WP-R backend work) cannot pass the NEXOLAB Merge Gate until either Debian ships a fix and the images are rebuilt, the Device Agent image no longer ships the affected OpenSSL, or the risk owner records an exact, time-limited exception with exposure analysis. Frontend-only PRs are unaffected. Independent frontend work packages continue; the WP-L frontend refuses to report a view save the server did not persist, so it is safe to merge before the API. No exception was added and no check was bypassed.
+
+## 2026-11-20 — #1625 frontend temperature display live, hardware and backend DR gates still open
+
+Embraco ×0.01 frontend **LAN+HTTPS is actually installed** as a rollback-bound, source-pinned frontend-only release; previous entries saying #1621 is not installed describe historical states. Physical HMI cabin sensor identity is owner confirmed, but scale ×0.01 is still provisional and **not independently hardware-calibrated**; require a second precisely time-correlated HMI comparison or manufacturer documentation. Actual Google-authenticated user graph/CSV review not completed; anonymous OAuth 302 is not proof of signed-in acceptance. Independent offline reboot/site power-cycle not tested.
+
+Server-side Saved Dashboard CSV remains source-only on running old Telemetry Service; corrected backend source #1622 has merged but **must not** be deployed without complete encrypted off-device backup, independent restore and no-loss service cutover authorization (#1428). Previously staged backend image with stale ×0.1 MUST NEVER be deployed. Site disk free after release >20 GiB protected reserve; backend/Device Agent and all other service identities are unchanged. No Modbus/hardware write.
+
+## 2026-11-20 — #1622 provisional CSV source has NO site authority
+
+Frontend #1621 PR #1623 merged after exact-head GREEN but not installed on Pi pending physical mapping and explicit frontend release gate. New backend CSV #1622 candidate aligns its source-derived value/provenance to unverified ×0.01; **do not activate the superseded ×0.1 API image**. DR #1428 remains hard blocker to any protected Telemetry API restart: actual full-store encrypted backup, independent restore, no-loss ingestion evidence, and >20 GiB site free space are absent. Current ~19 GiB root SSD free; avoid local production builds. Owner's HMI +0.1°C does NOT independently prove cabinet/defrost probe identities or manufacture-correct raw coefficient. Modbus write prohibited. Preserve original live acquisition.
+
+## 2026-11-20 — #1621 new physical HMI contradiction blocks old Embraco Celsius scale and #1615 backend CSV site cutover
+
+New owner physical Embraco HMI **+0.1 °C** conflicts with deployed `signed raw ×0.1 °C` frontend; real signed cabinet raw −22 would display -2.2 °C, evaporator +24 would display +2.4 °C. Simultaneous condenser +3202 counts makes old 320.2 °C implausible; ×0.01 is a candidate, not an accepted calibration. Need identify HMI displayed physical probe and independently correlate both installed cabinet/evaporator probe raw words at two distinct concurrent points before hardware acceptance; do not fabricate proof or hardcode an offset. Source-only corrected frontend #1621 retains `quality=unknown`, old live release unchanged until CI/operator confirmation and guarded site activation. All hardware Modbus writes forbidden.
+
+**Hard release block:** Previous staged Telemetry API image `nexolab/telemetry-service:issue-1615-1e5537cb-arm64` has now known stale temperature candidate ×0.1; MUST NOT activate even if earlier source CI GREEN. New backend-only issue #1622 is required to correct Saved Dashboard CSV first. Global offline disaster recovery #1428 remains BLOCKED (incomplete independently verified encrypted backup and isolated restore), and SSD site has about 19 GiB free vs protected 20 GiB minimum. Do not perform full backend cutover or massive site builds. Source and targeted tests do not remove these gates.
+
+## 2026-11-19 — #1617 high-severity upstream VersityGW Go vulnerability blocks #1616 merge
+
+Container Supply Chain job 135862419900 (run 44608818848, PR #1616 source `9cfd8979...`) blocked **HIGH CVE-2026-97054** in VersityGW binary Go stdlib `1.27.3` (fixed in Go 1.27.4). Required NEXOLAB Merge Gate correctly failed. Do not whitelist, downgrade or merge #1616 while red. Focused Issue #1617 pins Go 1.27.4 and official architecture checksums, requires successful fresh image scan and exact-head CI. No storage/site cutover. Independently, #1616 had outdated CSV header expectation in E2E; corrected in its new branch head `567d431fd3e484895fd440250303b967c8b547c2`; new CI still subject to the same security gate until #1617 merges. Running Telemetry API stays unchanged.
+
+## 2026-11-19 — #1613 site UI COMPLETE; #1615 backend CSV export still requires independent rollout
+
+Original #1613 v2→v3 dashboard selection and frontend-only releases are now GREEN with localized authenticated browser evidence and full audit/rollback snapshots; old notes below are historical. **Remaining CSV blocker #1615:** production API still exports original unknown/null Celsius `value`; new source code exists only in `feature/1615-saved-embraco-csv`. Review backend-only Telemetry Service compatible image, precise deployment authority and rollback, live MQTT persistence/ack/ingest behavior and available backups before approved backend restart. CI source-only pass does not grant site authorization. Operator-confirmed scale ×0.1 is NOT independently hardware-verified. Public OAuth gate still requires actual signed-in Google HTTPS browser acceptance, and offline power-cycle/reboot #1606 and off-device backup/DR #1428 remain unverified.
+
+## 2026-11-19 — #1611 remaining gates after verified #1609 frontend releases
+
+Both LAN and OAuth-protected HTTPS frontend-only cutovers to source `27b273865a96a60e5a6c1766fc55dc29cecf72ef` succeeded, without backend restarts or gateway modification. Existing signed raw telemetry is unchanged; UI/CSV temperature in °C uses owner-provided ×0.1, **not independently verified calibration**. Public anonymous OAuth 302 and live source/build readiness are verified, but signed-in human browser chart/CSV acceptance remains pending. Offline reboot, recovery and durable version-manager adoption #1606, complete off-device DR #1428, and protected network acceptance remain unverified. Do not mistake these for a full-stack or hardware-verified release.
+
+## 2026-11-19 — #1609 Embraco operator scale 0.1 is not hardware calibration
+
+Product Owner accepts a provisional/operational `×0.1 °C` signed-FC03-register conversion for Embraco Sync Unit 2 KK1, without supplying a photographed HMI comparison. A frontend-only source candidate renders this as operator-estimated °C and exports separate source-preserving derived CSV columns. **Hardware verification remains NOT DONE**; do not mark raw telemetry `valid`, rewrite PostgreSQL or say the controller is temperature-calibrated. Outlier plausibility and historical older KK2 values were not physically correlated to the new scale. The frontend conversion must not become a required runtime API/cloud service.
+
+Pending #1609 gates: exact-head PR CI GREEN, ARM64 LAN+HTTPS builds, guarded site activation with old frontend rollback, real authenticated user browser graph/CSV review and offline restart. Global full-site DR #1428 and protected network #1409 blockers remain open.
+
+## 2026-11-19 — #1607 HTTPS Embraco UI activated; user/browser and offline gates remain
+
+The HTTPS-only frontend release to the existing OAuth-protected Funnel URL is **site-activated and rollback-bound**: source `edd04b4aabdd28c7c46ada056cc746434796bdde`, build `qe-NDhbsh-6WHXhvG0luq`, direct 3105 identity/HTTP 200 and anonymous HTTPS OAuth denial 302 verified, original gateway and five backend containers unchanged. First stale `NEXOLAB_RUNTIME_IDENTITY_FILE` candidate rolled back; corrected second activation GREEN. No further unguarded site switch is authorized.
+
+**Remaining acceptance gates:** (1) authenticated physical operator browser must verify both KK1 probe graph traces, period selection, CSV export and no UI regressions; anonymous 302 is not authenticated acceptance, (2) Embraco temperature scale and cabinet/defrost probe assignment require actual contemporaneous HMI/device evidence before any numeric °C, (3) site restart/offline recovery and protected Version Manager catalog adoption require independently reviewed narrow scope in #1606, (4) global full-site DR proof #1428 and network/CIDR blocker #1409 remain open. Do not claim full-stack release, °C hardware verification or offline-reboot acceptance.
+
+## 2026-11-19 — #1460 staged preflight source review does not resolve #1428
+
+PR #1461 read-only diagnostic source was reconciled with latest main, including its workflow filters and dedicated negative tests. The current-local source suite passed 15/15; however, protected backup capacity alone is insufficient and **no backup or restore was executed**. The existing policy is missing Edge SQLite/outbox and still uses legacy unverified object-storage authority, while encrypted off-device custody and an independently restored full-store test remain unverified. Exact-head CI/required workflows and final source review are the next software gate, not a production release authorization. #1428, #1409/#1399 and #1587 stay blocked for physical/site acceptance.
+
+## 2026-11-19 — #1598 Sequenced P0 blockers and PR review backlog
+
+Current policy and traceable issue/PR inventory are under `docs/operations/nexolab-execution-roadmap.md` and the T0–T7 matrix. Source-accepted and site-accepted must not be merged into one status.
+
+- **G1 / #1428 — HARD for protected cutover:** no verified complete encrypted off-device backup and independent isolated full-store restore. Existing PG incident dump and synthetic DR tests do not satisfy this. Owner-provided independent storage/access and explicit approval may be required for a real backup or restore. Safe read-only review of draft **#1460/PR #1461** remains independent. PR #1461 is open Draft, GitHub reports mergeable=false on 2026-11-19; inspect conflicts/base/CI before publication.
+- **G2 / #1409 and #1399 — blocked protected network operations:** after G1 restore proof, verify physical LAN vs Docker subnet, stable actual routes and rollback. No network/cutover/reboot authorized by documentation updates. #1400 requires actual object-storage runtime validation, not source-only guard pass.
+- **G3 / #1397 — unaccepted durable delivery:** #1445/#1449/#1451 staged receipt components require exact same protocol, CI, broker/SQLite/postgreSQL outage evidence. Broker-only QoS1 is not proof of committed replay.
+- **G4 / #1587 — protected unified operator release blocked:** require backup/rollback, exact ARM64/source manifest and compatible custom Device Agent, API/schema, authorized actual auth/browser/hardware acceptance on LAN + Funnel.
+- **G5 / #1528 and #1530 — unmerged permission candidates:** PR #1529/PR #1531 are open Draft and GitHub currently reports mergeable=false. No grant enforcement or site acceptance is implied; #1526 is a coordination parent, not executable Ready.
+- **Queue / #1522 — Ready for software-only investigation:** freshness thresholds must be proven against actual polling cadence; no Modbus writes and no premature deployment. Source tests do not establish real site acquisition acceptance.
+- **Older review/dependency PRs:** 46 open PRs at this audit, including 10 dependency automation. Freeze non-urgent merges pending diff/overlap/required exact-head CI; do not close on age alone.
+
+The previous ACTIVE_SPRINT dependency `#1428 -> #1399` was inappropriate at the source-preflight level. The real protected network change depends downstream on DR (#1428), not vice versa. Only an actual lack of independent storage/owner authority stops the protected site action; it does not prevent unrelated safe source work. No Modbus/hardware/site mutation performed in #1598.
+
+## 2026-11-19 — #1596 Board reconciliation: merged source is not a release
+
+Seven closed GitHub Issues (#1594, #1592, #1590, #1583, #1479, #1431, #1525) are completed _bounded source/documentation_ tasks with merged PRs. Their closure **does not** resolve these still-open acceptance blockers:
+
+- **#1428**: actual, complete encrypted off-device backup, an independent isolated restore and safe local recovery/storage capacity remain unproven.
+- **#1587**: one compatible, pinned and authorized frontend/API/Device Agent release across all operator entrypoints is not installed/accepted. #1592 contributed a read-only source parity gate; it did not perform cutover.
+- **#1409 / #1399**: protected Docker bridge/LAN network remediation and reliable full offline boot recovery require separate verified site execution.
+- **#1577 / #1567 / #1564 / #1569**: independently verify installed source behavior and real user/browser/runtime acceptance before closing the operational defects.
+- **#1526 / #1528 / #1530 / #1522**: independently enforced page grants and actual-cadence live freshness remain unfinished; older #1525 navigation filtering is not granular authorization.
+- **Hardware**: preserve the installed 6+2 commissioned Dixell evidence; other reserve/future channels and untested controllers are not hardware-verified.
+
+No hard-blocker approval was implied by administrative Issue closure. The state-only #1596 PR requires its own GREEN integrity gate. Historical blocker entries below retain their original time-specific meaning.
+
+## 2026-11-18 — #1592 released source checks are not installed site authority
+
+#1594 CI-governance repair merged with five GREEN exact-head workflows, unblocking read-only parity tool classification. #1592 still requires its own exact-head PR checks and review and a separately approved #1587 protected ARM64 site update with installed Device Agent preservation, independent backup/restore (#1428), network safety (#1409), schema/auth compatibility and rollback. Distinct LAN/HTTPS build IDs may be allowed only by independently approved manifest and verified same merged-main source; never substitute local offline with mandatory public HTTPS. No site cutover performed.
+
+## 2026-11-18 — #1592 one-version release and protected equipment enrollment
+
+Three live operator entrypoints currently report different source/build identities. Issue #1592 / PR #1593 adds read-only identity verification, not a release. Real parity is FAIL as expected. Protected site Device Agent image nexolab/quick-agent:1490 and its commissioned 6+2 Dixell channels must not be replaced by generic main. An exact merged-main release package, consistent API/schema, source provenance, independent off-device DR/rollback evidence (#1428), LAN bridge overlap mitigation (#1409), and owner-approved guarded site activation (#1587) are required before a single installed version may be claimed. CI and browser/hardware acceptance are not inferred from source tests. No live site edits or Modbus writes were performed.
+
+## 2026-11-18 — #1594 Required workflow registration mismatch blocks #1593
+
+On #1593, exact-head NEXOLAB Merge Gate failed after Telemetry Service passed because unclassified new parity tooling demanded three specialized workflows that did not trigger. #1594 narrows classification for only the two non-mutating verification files, retaining full Core and all required checks for the classifier change itself. #1593 must rebase after #1594 GREEN merge, rerun exact-head checks and preserve existing Agent. This is not authority for production deployment (#1587 remains blocked).
+
+## 2026-11-18 — #1590 Overview alert UX source acceptance pending
+
+Frontend-only source correction has local test/typecheck/lint/format evidence. Exact-head CI, browser acceptance, source review and compatibility with pending PR #1589 are required before source merge. Live #1587 protected ARM64 site deployment remains independently blocked. No source-only pass authorizes a site cutover or database migration.
+
+## 2026-11-18 — #1588 initial browser CI failed; selector correction pending new head
+
+First #1589 CI source-quality checks passed, but Authenticated Dashboard Acceptance timed out on five old English-placeholder locators. The supported UI is now Ukrainian. The focused Playwright fix and accessible label component test are ready locally; a new exact-head run and merge gate remain required. Do not merge until GREEN and do not roll out from a feature branch.
+
+## 2026-11-18 — #1588 source CI and #1587 site release boundaries
+
+#1588 passed local targeted verification; exact-head PR CI, review and installed browser acceptance are pending. No production build was run on the 4 GiB site Pi.
+
+#1585 / PR #1586 merged to source main 8ab3be4a with 20/20 exact-head CI; older notes below demanding its CI rerun are historical. The site release #1587 is blocked on protected deployment-authority reconciliation, an exact ARM64 package, backup/rollback and separate target-specific site approval. No generic implementation instruction authorizes database migration, container replacement or cutover.
+
+## 2026-11-18 — #1585 CI exact-head rerun required
+
+Prior head 50af9a4b cannot merge: Telemetry Service failed a version-pinned legacy test and NEXOLAB Merge Gate correctly blocked. Assertion fixed to compare against Alembic's actual single head. A new PR exact-head GitHub full CI is mandatory before merge. Hardware/site deployment remains separately gated.
+
+## 2026-11-18 — #1585 Exact-head verification and installed acceptance
+
+The new source has not been activated at site. Required: exact-head PR/CI/browser verification and protected ARM64 + matching Telemetry Service bundle, offline/rollback evidence, production migration evidence and separate approved site activation. Keep missing Device Agent registry state unavailable rather than incorrectly inactive. No Modbus/device write or persistent data deletion.
+
+## 2026-11-16 — #1583 Refrigeration schemes and commissioned Dixell inputs
+
+Site acceptance requires the matching Dashboard and Telemetry Service release and access to the local Device Agent registry from the existing commissioning origin. Verify the two installed Dixell groups in the browser after a separately approved rollout. Seven additional controls have not been physically verified.
+
+## 2026-11-16 — #1581 Saved Live Dashboard browser acceptance
+
+The #1579 required source and browser verification passed. #1581 needs its own exact-head GitHub gate. These read-only chart changes are source work packages. A Raspberry site activation requires a separately approved release.
+
+## 2026-11-16 — #1579 controller chart acceptance
+
+The source candidate requires exact-head checks and the existing Refrigeration Browser Acceptance workflow. Local Chromium cannot create the OS socket required to start. Production hardware and deployment remain separately unverified.
+
+## 2026-11-16 — #1577 collection restored; Overview integration candidate
+
+Owner console confirms canonical registry revision 46: replacement Dixell Unit 1 has six eligible inputs and Unit 7 has two; its other four inputs remain reserve. Old targets stay inactive. Following explicit owner approval, a frontend-only API-origin override and restart completed with `FRONTEND_API_FIXED` and unchanged build. The actual private API listens on `172.18.48.66:8082`; journal `/home/nexolab/nexolab-1577-ui-e86e61no`. Do not repeat either owner mutation.
+
+After manual Google reauthentication, Chrome showed all eight valid Dixell timestamps advancing by 10 seconds (16:11:59–16:12:03 to 16:12:09–16:12:13 Europe/Kyiv). Saved Dashboard 1h history visually rendered six Unit 1 series since about 16:01. Unit 7 persisted history and full Overview acceptance still need explicit proof. The earlier history fetch error cleared after login. No history was deleted or synthetic hardware evidence used.
+
+Remaining installed UI defects: Overview relies on legacy numeric enrollment and excludes section IDs; cadence rejects the agent's supported `waveshare_8ai` family. Source candidate reads active, read-eligible temperatures from the canonical registry for Overview, supports Waveshare cadence, and guards legacy PUT/POST against section enrollment replacement. It preserves auth, display preferences, offline runtime, section identity and the installed custom agent. 44 additional targeted tests passed across seven files. Initial source PR head d3570e94 passed all four triggered workflows; verify new exact-head CI before merge. Only the earlier environment repair was approved/deployed; this new source is not installed.
+
+Commander execution remains unavailable. Preserve the installed section-profile agent: main does not contain that implementation. Next: finish source CI/review, prepare a matching frontend-only artifact with rollback and obtain separate approval for its activation. Further seven modules remain hardware-unverified until connected and commissioned.
+
+## 2026-11-16 — #1575 Raspberry Live Dashboard activation pending
+
+PR #1576 preserves the deployed Telemetry commissioning/catalog paths and reconciles the database revision on the Pi. The earlier staged `eb6302b` Telemetry image lacks this compatibility. Paired rollout needs required exact-head CI, matching ARM64 artifacts, a local recovery point and the owner-only activation path. This scoped update uses the existing central network. The broader Edge subnet issue remains separate.
+
+## 2026-11-16 — container security #1447
+
+Container remediation PR #1448 merged in 87e3d484f0e8f0ec002cd06c56c6c0dca2f967df after all 22 exact-head GitHub workflows passed. The 18 version-bound Telemetry HIGH exceptions expire after 2026-11-23. Live data PR #1574 is based on this merge and awaits its own exact-head gate. Raspberry Pi activation is a separate step.
+
+## 2026-11-16 — #1573 connected sensors source acceptance pending
+
+The local execution environment denies Chromium and PostgreSQL Unix sockets. Isolated backend and frontend tests run locally; PostgreSQL migration and authenticated browser evidence will come from exact-head GitHub CI. A production release needs the matching frontend and Telemetry Service, a recovery plan for migration 0038 and separate site approval.
+
+## 2026-11-16 — #1564 source verified; protected HTTPS activation pending
+
+The validator correction and byte-exact rollback passed isolated verification. The required GitHub checks apply to the published source. Verify the root-owned Nginx baseline and the active and staged frontend identities on the Pi before offering an operator command. Keep #1428 and #1409 as separate full-site blockers.
+
+## 2026-11-16 — #1569 protected frontend acceptance pending
+
+PR #1570 passed nine exact-head workflows and merged. The ARM64 build is staged and passed isolated Chromium on the Pi. Its source and build differ from the original #1560 handoff pins. Reconcile the active gateway and rollback frontend, then prepare a verified handoff tied to #1569. After separate site approval, live verification requires an administrator sign-in and an owner-approved account creation.
+
+## 2026-11-16 — #1567 live private lab lifecycle acceptance pending
+
+The lifecycle change needs the Raspberry Pi root console. Run the approved procedure in `docs/operations/private-lab-tunnel-recovery.md`, then verify the affected tailnet client across a separately approved interruption or reboot. The legacy private HTTPS `8443` frontend policy and its stable upstream require separate verification. #1399 and #1409 remain independent LAN/Docker recovery work.
+
+## 2026-11-10 — #1562 Overview visual source isolated from protected site blocker
+
+Overview redesign source work is independent and browser-visible in explicit demo mode; protected site installation still requires safe Nginx/frontend transition. Owner's latest #1560 \`promote\` returned \`Command runuser failed: exit=1\` and automatic Nginx validator also failed; subsequent read-only host checks show old original Nginx config/hash, both frontend services active, telemetry and device-agent HTTP200. A frontend visual task must not bypass root-command policy or add risky unrelated Nginx operations. Follow-up site handoff remains blocked pending a separate bounded root-cause fix; #1428 complete encrypted isolated restore and #1409 physical LAN/Docker overlap remain unresolved. Do not call the new Overview installed until real authenticated operator browser confirms it.
+
+## 2026-11-10 — #1560 frontend deployment failed-closed, corrected, awaiting guarded promotion
+
+First protected user-run `execute` failed before gateway cutover; `EXTERNAL_NGINX_ROLLBACK_VERIFIED`. New `3104` service was healthy but runtime identity source rejected unsupported `identity_source`. Non-secret manifest corrected; GET `3104/api/runtime-identity` now returns exact requested source and build. Old external frontend `3100` and Nginx remain active with original configuration. Root-protected handoff journal and new unit remain; rerunning `execute` is unsafe and intentionally rejected. Dedicated resume `promote` source-only candidate requires full exact-head GitHub CI and a separate authorized root operator action, with old service kept as fallback. Complete independent off-device DR (#1428) remains unproven and Docker/LAN overlap (#1409) remains unresolved; absolutely no full site/Docker migration approved.
+
+## 2026-11-10 — #1560 main UI build READY but protected HTTPS activation unperformed
+
+Both exact-source ARM64 frontend artifacts are on nexolab-edge-01, verified and isolated smoke-tested. A new guarded frontend-only blue/green procedure and old-port automatic fallback exists as source candidate; it is NOT installed. The connected remote executor specifically disallows privileged sudo/systemd/nginx mutations; do not bypass that access boundary. Human protected console required for a scoped action, and actual full off-device encrypted multi-store backup and isolated restore are NOT proven (#1428). Existing Docker/LAN CIDR overlap #1409 must not be touched as part of UI-only release. Operator must review site risk and original nginx SHA, run bounded action separately, verify live auth/roles and rollback. Old frontend, APIs, acquisition and protected gateway remain active. No green operator update signal.
+
+## 2026-11-10 — #1558 Reports operator UI source acceptance pending
+
+Targeted 9/9 component tests pass in isolated source. Required exact-head GitHub quality/build and authenticated reports browser acceptance at 375/768/1440/1920 remain pending; production installation is not part of this Work Package. Protected Raspberry site gate remains #1428 complete isolated restore/rollback and #1409 physical LAN/Docker CIDR overlap, with source-bound offline package and explicit operator approval required.
+
+## 2026-11-10 — #1550 Sessions operator UI source review
+
+Scoped source candidate passed 7/7 focused tests, ESLint and TypeScript. GitHub exact-head CI/build and authenticated 375/768/1440/1920 browser acceptance remain required before source merge. This is not a production site deployment. Existing hard blockers #1428 protected offline restore/rollback and #1409 physical LAN/Docker CIDR overlap remain. Source update must not be interpreted as a green operator update signal.
+
+## 2026-11-10 — #1553 developer cache cleanup completed; protected storage cleanup still blocked
+
+Safe NEXOLAB ignored build/dependency removal reclaimed +8424194048 bytes of actual filesystem capacity (available 42.55 GiB, 81% used); no running site release, backup, Docker volume or history was pruned. Active host frontend path `.../quick-1490` and active standalone 1520 release were excluded. Two historical, permission-protected `nexolab-compat-1019` artifacts remain. Current storage figures supersede the historical 97%-full preflight below.
+
+Hard blocker remains #1428 independent full offline restore and rollback validation. Therefore do NOT prune the 11.93 GB nominally reclaimable Docker images, 2.58 GB nominally reclaimable Docker volumes, /var/backups, 13 GB version-management catalog, live frontend or audit records. #1551 retention remains source-only until recovery and controlled WAL/reclaim acceptance. Other protected site blockers (LAN CIDR overlap, offline package) unchanged.
+
+## 2026-11-10 — HARD BLOCKER: protected Raspberry deployment capacity and overlapping LAN route
+
+Actual read-only edge preflight: /dev/sda2 234G, 215G used, only 7.2G available (97%). Existing Docker images 21.44 GB (11.91 GB nominal reclaimable), build cache 16.99 GB (10.28 GB nominal reclaimable), 103 local volumes 27.79 GB (only 2.584 GB nominal reclaimable), workspaces 59 GB. **No cleanup/prune has been performed**: previous releases, rollback materials and persistent volumes must be inventoried before any deletion. Docker Edge 172.18.0.0/16 overlaps site LAN 172.18.48.0/21; default gateway 172.18.48.1 via eth0. Last systemd service state shows active containers but protected source still ffdefc4550d7. /opt/nexolab/current is absent. Required gates: establish a safe free-space budget and inventory retained backups/images, prove isolated recoverable backup/restore, resolve/guard CIDR conflict without moving active network, build and verify source-bound offline package/rollback, obtain explicit protected-site authorization. **No production update or green user update signal allowed.**
+
+## 2026-11-10 — #1548 Refrigeration catalog source acceptance pending
+
+Issue #1548 adds presentation-only refrigerated catalog card compression and clarifies persisted Embraco summaries. Verified 13/13 focused tests, Prettier, ESLint and TS noEmit on SHA-verified source/test/browser files; full GitHub exact-head CI/build and authenticated four-viewport browser acceptance not yet completed. No backend/Modbus/device/runtime change. Open access #1531 and onboarding #1519 may later require regression integration and .project state reconciliation.
+
+## 2026-11-09 — #1546 Energy parameters UI source acceptance pending
+
+Issue #1546 / feature branch feat/1546-energy-parameter-picker is display-only. Ten targeted Energy Vitest cases and Prettier/ESLint/TypeScript noEmit passed on exact three matched source/test/E2E blobs. Required GitHub exact-head CI, production build, authenticated Energy browser at 375/390/768/1440/1920 px, offline and permissions review, and source-merge are not yet verified. No meter integration, runtime modification or hardware proof. Draft integration #1519 and permission grants #1531 remain open; reconcile when merged. Do not deploy protected Pi without offline matching release, verified backup/rollback and explicit site boundary.
+
+## 2026-11-09 — #1544 Equipment source accepted, runtime update separate
+
+Equipment Connections PR #1545 passed exact-head CI #42600416268 and authenticated Equipment acceptance #42600416103 GREEN (6/6) before source merge 9caffc8f0a106f2b151ce12a15ee0e26a974bc53. No production installation, Modbus write or hardware acceptance followed.
+
+## 2026-11-09 — #1536 source-only merge complete, site release separate
+
+Live Data PR #1539 passed exact-head CI #42285423569 and Authenticated Dashboard Acceptance #42285423714 (42/42) and merged into main as b854590323e3213ad2ef32a8828de502324a4b98. Raspberry deployed release not updated; guarded package and rollback required.
+
+## 2026-11-06 — #1537 source-merged; ongoing production release gates
+
+#1537 / PR #1538 passed exact-head CI #42283567771 and selected authenticated browser acceptance #42283567775 (13/13) before source merge 767fa6f3b82790dba52219cc389103c6c5806797. Previously observed 41/42 intermittent test failure led to waiting for connected UI before publishing both live/retry MQTT samples; the test retains actual delivery assertions and exactly-one retry. No Raspberry protected runtime update, hardware acceptance or source-bound installer follows automatically.
+
+## 2026-11-06 — #1534 Overview source CI accepted, deployment separate
+
+#1534 / PR #1535 completed candidate 693d983cd280fbb453b588303d4048b67bc879fb CI #42238642725 and Authenticated Dashboard Acceptance #42238642310 GREEN (42/42). Newly adapted device-first E2E checks seven responsive widths and retains no acquisition writes. Await exact-head CI after final documentation-only state commits before merge. Permission PR #1531 has an overlapping E2E file at separate scenario lines and shared .project state; review integration on merge order. The protected Raspberry runtime has NOT been deployed. Exact matching offline package, backups/rollback, and explicit production release authorization remain required. No Modbus/hardware writes or protected data mutation.
+
+## 2026-11-06 — #1532 Overview release remains gated (source checks GREEN)
+
+PR #1533 source candidate dd660a49... passed exact-head CI #42233327149 and 42/42 authenticated browser cases #42233327115 (Overview responsive at 360/1440/1920; shared header at 320/375/768/1280; no acquisition writes). Captured browser evidence artifact 13510498719. No independent manual visual pixel review was recorded, but required automated browser/API and build checks have succeeded. The open stacked permission PRs #1529/#1531 share four .project state files but not the three modified dashboard UI components; reconcile state changes if their merge order changes. Runtime/offline installation and backup/rollback, exact accepted package, protected Pi release, and explicit production/site authorization remain separate blockers. No hardware or Modbus write.
+
+## 2026-11-06 — per-page access is not yet independently enforced (#1526)
+
+Existing dashboard.read and telemetry.read cover multiple pages, while cameras and planned lockers have no independently grantable page permission. #1525 filters navigation by current grants but does not create page-level authorization or secure the camera direct URL. Do not claim independent per-page or direct-URL enforcement until #1526 is implemented and verified. No production deployment of #1525 yet.
+
+## 2026-11-05 — obsolete adapters and onboarding acceptance
+
+Owner does not need the two absent CP2104 adapters. Their 12 active instrument records and 53 active targets still require a device-by-device disposition; do not silently disable, rebind or delete them. Protect the two live XJP60D section devices on FTDI A10Q34QC and retain history. #1513 tracks reversible preparation; site cutover is separately gated. #1508 browser acceptance failed on an outdated onboarding step; #1514 / PR #1515 is under exact-head browser verification. New SDM/Waveshare source remains draft and not hardware-accepted. PR #1512 fixed the unrelated backup fixture and merged; no runtime mutation.
+
+## 2026-11-03 — #1474 optional assets cannot be mistaken for active site monitoring
+
+The current NEXOLAB Pi runtime still uses accepted ffdefc... source. The existing offline release builder omitted new LAN monitoring files despite earlier source-only merges. The #1474 opt-in hashed source asset payload corrects packaging but does not create /opt/nexolab/current, install a safe source path, enable an alert timer, or verify actual alert delivery. Protected offline package source mapping and rollback must be independently reviewed with owner consent before live activation; original local Dashboard/API remain accessible. Site Docker Edge 172.18.0.0/16 overlaps LAN 172.18.48.0/21 (#1409), so post-reboot automatic repair #1399 is prohibited pending site CIDR allocation/physical acceptance. Unverified hardware/RS485 cannot be presented as healthy.
+
+## 2026-11-03 — #1472 monitor source not in accepted installed package
+
+Actual NEXOLAB Pi exporter host directory /home/nexolab/nexolab-platform/runtime/observability is private 0700 owner nexolab; its original DR metric file exists (0600). Docker exporter bind is read-only, and current container uses single disaster-recovery.prom, not directory mode. The prior #1468 timer output path incorrectly targeted /var/lib/... on the host. Corrected source-only #1472 unit and added fail-closed installed-source/host-mount/permissions gate; site accepted source ffdefc... differs from requested source 4f0923..., so no site install is authorized. Existing timer and optional alert rules not loaded. A future protected offline package, installation/rollback evidence and separate owner approval are required before enabling scheduled local alerting. #1409 Edge Docker / physical LAN overlap still blocks #1399 protected automatic network recovery. Hardware unverified.
+
+## 2026-11-03 — #1468 automatic local alerts not yet active; avoid false confidence
+
+New LAN availability gauges, safe read-only textfile directory-mode source and opt-in Prometheus alerts are software-verified only. No systemd unit, timer, site metrics directory, exporter directory setting or optional alert rule activation has been installed in the protected Pi release. A source-only GREEN build or a test-metric file outside production does not mean a recurring monitor exists. Live activation requires exact protected package source/mount/owner/permissions, verified missing/failed/recovered alert deliveries, and separate operator approval. Physical Edge Docker 172.18.0.0/16 still overlaps eth0 LAN 172.18.48.0/21; #1409/ #1399 actual IPAM cutover and boot auto-recovery blocked, CP2104 hardware evidence #1429 incomplete.
+
+## 2026-11-03 — #1469 protected Edge subnet migration still lacks human site allocation and rollback
+
+Real Pi read-only root-level inspection validates existing protected bundle identities, running Edge MQTT+Device Agent image/labels/network identity and named persistent SQLite/MQTT volume mounts. Host Edge Docker 172.18.0.0/16 overlaps actual physical LAN 172.18.48.0/21. Provisional 172.26.0.0/24 is locally disjoint but **not reserved** against upstream/LAN/VPN networks. Full data recoverability, independent rollback, physical USB identities/read-only acquisition and actual reboot acceptance are not proven. Therefore live IPAM migration is a hard blocker; no cutover/daemon restart/network removal. Until #1409 resolved and approved, source-only #1399 auto-healing must remain disabled. This follows owner priority of keeping the existing LAN monitoring running rather than undertaking unrelated backup work.
+
+## 2026-11-03 — #1466 access smoke must not be mistaken for full hardware/site acceptance
+
+The source-only local login probe detects a closed Dashboard port, unusable login HTML, unready API dependencies, unexpected session authorization result or incorrect CORS. A positive run proves only **unauthenticated** path reachability from the probing Raspberry; it is not an owner login, independent LAN client, fresh telemetry/hardware acceptance or automatic recovery. No timer, alert rule, or site package installation was executed. Original site still has Edge Docker CIDR overlap #1409, real hardware faults #1429, no reboot acceptance #1399; #1464 source-only Compose overlay was merged GREEN but the live Docker Edge network was not migrated.
+
+## 2026-11-03 — #1462 source-only merge does not remove site boot blocker
+
+PR #1463 source recovery code is merged GREEN; it is not installed as a Raspberry systemd auto-repair agent. The real site still has physical LAN versus Edge Docker bridge overlap and cannot execute the fail-closed network recovery. Parent #1399 and #1409 physical site acceptance remain blocked.
+
+## 2026-11-03 — #1464 source-only edge subnet override not production IPAM approval
+
+The new source-only Edge IPAM overlay requires an explicit subnet, not a guessed/default 10.x or 172.x range. An operator-nominated 172.26.0.0/24 is only locally disjoint in existing Pi route inventory and remains candidate_unapproved; no site reservation evidence exists. #1409 live network cutover must protect bound Device Agent, MQTT queue, Edge SQLite and real RS485 buses with actual rollback and separate owner approval. Inherited eth0/Edge Docker CIDR collision still blocks #1462 guarded automatic network recovery. Live Docker daemon changes, APT holds, service reloads and hardware writes not authorized by this source-only WP.
+
+## 2026-11-03 — #1462 cannot auto-recover while LAN and Docker routes overlap
+
+Manual November 3 reconnect restored original LAN monitoring after Docker attachment loss; it did not fix Docker sandbox behavior across reboot. The follow-on source-only #1462 reconnect tool is blocked on read-only live site by physical LAN 172.18.48.0/21 versus edge Docker 172.18.0.0/16 (#1409). Device Agent remains unhealthy and must never be auto-fixed via hardware write or silently marked healthy. Root service activation, network/IPAM migration, independent data rollback and real reboot acceptance are not performed/verified. Do not install or run --execute on the conflicted production site. Parent #1399 remains open.
 
 ## 2026-11-02 — main governance corrected, deployment still blocked
 
@@ -9,10 +284,6 @@ The stale main selection of merged Issue #1453 is cleared in state-only #1458. T
 ## 2026-11-01 — #1453 isolated hostname fix still requires remote CI
 
 Invalid IDNA A-labels were accepted by the main-derived offline bundle source; source-only #1453 adds `domainToUnicode` fail-closed and 383/383 local CI contract checks (one skipped). Initial PR #1454 exact-head CI reproduced runner-specific Unicode/ICU behavior and failed three negative A-label cases; additional decoded-category/unchanged-label fail-closed guard is staged. Re-run exact-head GitHub workflows and Offline Bundle before merge. The unrelated #1447 inherited 2026-10-20 expired vulnerability exceptions still fail Container Supply Chain pending risk-owner decision/independent PR. Never bypass acceptance or use a healthy host-URL test as site DR/hardware approval.
-
-## 2026-10-30 — #1449 ACL source gate not a site authorization
-
-Draft PR #1450 / Issue #1449 verified synthetic Mosquitto Dynamic Security role restrictions and QoS1 receipt routing at source `b2107165e8d111690688410d2f805083a484f7c5` (Broker Security acceptance GREEN). Does NOT authorize real broker changes: credentials are not provisioned on installed Raspberry; no Edge authenticated receipt consumer or atomic SQLite prune; no real broker/site restored after failure; no remote TLS/field hardware acceptance. The 49 HIGH residual records in independent #1447 Draft PR #1448 require platform-security approval despite 22 GREEN CI workflows; `main` still contains expired 48 CVE exceptions, so non-security feature PRs remain blocked on their own exact-head Container Supply Chain. #1428 encrypted backups and isolated restore plus #1399 site network recovery remain hard-gated.
 
 ## 2026-10-30 — #1410 durable ACK contract cannot guarantee telemetry retention
 
@@ -1087,3 +1358,23 @@ The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown becau
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+
+## Issue #1601 — HARD BLOCKER: Embraco Unit 2 legacy identity conflict and implementation capacity (2026-11-19)
+
+Live read-only evidence confirms new Embraco `A10Q2SIF` / Unit `2` is physically responsive but cannot be safely activated and linked to **CoolesSlim VCC L1250 / KK1**. The same legacy `EMBRACO-2` identity is actively bound to **CoolJet / KK2**, and the existing binding uniqueness/telemetry ID excludes physical `bus_id`. Three activation attempts returned HTTP 422 / `recovery_required`. Never bypass the error by direct SQL or repurposing a legacy registry identity, hiding the KK2 binding, or weakening the unique index. Preserve historical telemetry.
+
+A separate feature worktree for GitHub Issue #1601 was created, but the Codex implementation request failed with `You've hit your usage limit` (2026-11-19); NEXUS providers returned internal errors. No code was modified. Hard gates: working implementation capacity, reviewed bus-scoped persistence/migration and targeted verification; protected site deployment is not authorized. A fresh read-only FC03 preflight passed with zero hardware writes, but ongoing acquisition and KK1 association remain **not verified/not activated**.
+
+The Project Owner may clarify whether the KK2 record is a distinct historical controller or physically relocated; until then preserve KK2 as a separate identity (the safe default). New site cutover requires the already established release gate and its explicit approval.
+
+## Issue #1601 — cleared for confirmed same-controller relocation (2026-11-19)
+
+Product Owner confirmed the Embraco at `A10Q2SIF` / Unit 2 was **physically moved from KK2 to KK1**, not a different device with a colliding Unit ID. The earlier distinct-device identity hard blocker and Codex implementation limit were not applicable to this specific relocation. The original `EMBRACO-2` history and old KK2 binding record are retained; the old binding is soft-unbound, KK1 is actively bound and read-only polling is verified (13 targets, 26/26 cycles, 0 communication failures). No source implementation or new bus-scoped controller ID was introduced.
+
+**Residual (separate follow-up):** 9 Embraco metrics including temperature have quality `unknown` and must not be shown as valid live measurements; one FTDI USB disconnect and intermittent FC03 preflight timeout was observed; post-activation restart/offline persistence and authenticated browser acceptance remain unverified. Docker/physical-LAN CIDR overlap (#1399/#1409) is unchanged. No further site-cutover authorization is implied.
+
+## Issue #1603 — temperature °C hardware-calibration/release gate (2026-11-19T13:55:59Z)
+
+The Raspberry Pi currently receives read-only FC03 raw cabinet/evaporator registers from `EMBRACO-2` bound to KK1, but `EMBRACO_TEMPERATURE_SCALE` is unset. Sensor values in `telemetry_latest` are `unknown` / `NULL`; the scale (possible x0.01) has **NOT** been correlated against contemporaneous controller display or independent temperature evidence. Do not apply guessed coefficient, falsify quality or show raw register counts as °C. The source-only probe graphs intentionally mark raw counts as `not °C`; CSV retains raw and semantic quality. Confirm both probe HMI values and sensor assignment before authorizing protected offline/site release of calibrated Celsius.
+
+Software feature branch `feature/1603-embraco-probes-chart-export` for Issue #1603 is _not deployed_; GitHub CI and source review remain outstanding. No existing runtime services were changed for this issue. Unrelated Docker/LAN overlapping CIDR risk (#1399/#1409) persists. Historical KK2 samples must remain preserved and excluded from KK1 post-bind graphs.

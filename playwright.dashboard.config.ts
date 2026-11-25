@@ -30,6 +30,8 @@ export default defineConfig({
         "telegram-miniapp.production.e2e.ts",
         "telemetry-acquisition-invariant.production.e2e.ts",
         "telemetry-navigation.production.e2e.ts",
+        "saved-analysis-view.production.e2e.ts",
+        "custom-range.production.e2e.ts",
       ],
   fullyParallel: false,
   workers: 1,

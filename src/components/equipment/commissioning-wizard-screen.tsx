@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
+import { Rs485AdapterFinder } from "@/components/equipment/rs485-adapter-finder";
+import { Rs485AddressSearch } from "@/components/equipment/rs485-address-search";
+import { QuickDeviceSetup } from "@/components/equipment/quick-device-setup";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
@@ -36,6 +39,7 @@ import {
   type SupportedDeviceProfile,
 } from "@/features/equipment/commissioning-repository";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
+import { reconcileLiveConnection, useLiveConnections } from "@/features/equipment/use-live-connections";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 
 const steps = [
@@ -65,6 +69,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [advanced, setAdvanced] = useState(
+    Boolean(commissioningId) || Boolean(searchParams.get("target")) || searchParams.get("advanced") === "1",
+  );
   const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [connections, setConnections] = useState<CommissioningConnectionInventory | null>(null);
@@ -76,6 +83,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [draft, setDraft] = useState<CommissioningSessionWrite>(emptyDraft);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
+  const [addressSearchBusy, setAddressSearchBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preflight, setPreflight] = useState<CommissioningPreflightAttempt | null>(null);
   const [preflightLoadKey, setPreflightLoadKey] = useState<string | null>(null);
@@ -102,27 +110,32 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     activeRepository.current = repository;
   }, [repository]);
 
+  const receiveConnections = (inventory: CommissioningConnectionInventory) => {
+    setConnections((previous) =>
+      JSON.stringify(previous) === JSON.stringify(inventory) ? previous : inventory,
+    );
+    setConnectionError(null);
+    setConnectionRepository(repository);
+    setDraft((current) => reconcileLiveConnection(current, inventory));
+  };
+  useLiveConnections(
+    repository,
+    security.state === "ready" && Boolean(organizationId && runtime.equipmentRepository),
+    receiveConnections,
+    (cause) => {
+      setConnections(null);
+      setConnectionError(message(cause));
+      setConnectionRepository(repository);
+    },
+  );
+
   useEffect(() => {
     if (security.state !== "ready" || !organizationId || !repository || !runtime.equipmentRepository) return;
     const controller = new AbortController();
     const target = normalize(searchParams.get("target"));
-    void repository
-      .listConnections(controller.signal)
-      .then((loadedConnections) => {
-        if (controller.signal.aborted || activeRepository.current !== repository) return;
-        setConnections(loadedConnections);
-        setConnectionError(null);
-        setConnectionRepository(repository);
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted || activeRepository.current !== repository) return;
-        setConnections(null);
-        setConnectionError(message(cause));
-        setConnectionRepository(repository);
-      });
     void Promise.all([
       repository.listProfiles(controller.signal),
-      runtime.equipmentRepository.list(),
+      runtime.equipmentRepository.list().catch(() => []),
       commissioningId ? repository.getSession(commissioningId, controller.signal) : Promise.resolve(null),
     ])
       .then(([loadedProfiles, loadedEquipment, loadedSession]) => {
@@ -472,6 +485,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Обладнання"
         onClose={() => setSidebarOpen(false)}
@@ -479,7 +493,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
-          title="Чернетка підключення"
+          title={advanced ? "Налаштування підключення" : "Додати прилад"}
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={false}
           securitySession={security.session}
@@ -498,11 +512,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 <ArrowLeft className="h-4 w-4" />
               </Link>
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Commissioning intent</p>
+                <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Прилади та підключення</p>
                 <h1 className="truncate text-base font-semibold text-white sm:text-lg">
-                  {visibleSession
-                    ? `${visibleSession.manufacturer} ${visibleSession.model}`
-                    : "Нова чернетка підключення"}
+                  {visibleSession ? `${visibleSession.manufacturer} ${visibleSession.model}` : "Новий прилад"}
                 </h1>
               </div>
               <span className="rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-1 text-[10px] text-amber-100">
@@ -528,7 +540,26 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
               </div>
             ) : null}
             {visibleLoadState === "error" ? <Unavailable message={error ?? "Чернетка недоступна."} /> : null}
-            {visibleLoadState === "ready" ? (
+            {visibleLoadState === "ready" && !advanced ? (
+              <QuickDeviceSetup
+                key={organizationId}
+                repository={repository}
+                profiles={profiles}
+                inventory={visibleConnections}
+                inventoryError={visibleConnectionError}
+                draft={draft}
+                onDraft={setDraft}
+                onInventory={receiveConnections}
+                onSaved={(saved) => {
+                  setSession(saved);
+                  setDraft(sessionToWrite(saved));
+                }}
+                onAdvanced={() => setAdvanced(true)}
+                onNew={() => setSession(null)}
+                canManage={canManage}
+              />
+            ) : null}
+            {visibleLoadState === "ready" && advanced ? (
               <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
                 <aside className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-3 xl:sticky xl:top-24 xl:self-start">
                   <p className="px-2 pb-2 text-[9px] tracking-[0.16em] text-slate-500 uppercase">
@@ -584,6 +615,10 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     profiles={profiles}
                     connections={visibleConnections}
                     connectionError={visibleConnectionError}
+                    connectionRepository={connectionRepository === repository ? repository : null}
+                    searchRunning={addressSearchBusy}
+                    onSearchRunningChange={setAddressSearchBusy}
+                    onConnectionsChanged={receiveConnections}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
@@ -598,7 +633,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         <PreflightPanel
                           session={visibleSession}
                           attempt={visiblePreflight}
-                          busy={preflightBusy}
+                          busy={preflightBusy || addressSearchBusy}
                           error={visiblePreflightError}
                           canManage={canManage}
                           onRun={() => void runPreflight()}
@@ -609,7 +644,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         profile={selectedProfile}
                         plan={visibleActivationPlan}
                         attempt={visibleActivation}
-                        busy={activationBusy}
+                        busy={activationBusy || addressSearchBusy}
                         error={visibleActivationError}
                         canManage={canManage}
                         onRun={() => void runActivation()}
@@ -622,9 +657,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   !unsupported ? (
                     <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.04] p-3 text-xs leading-5 text-slate-300">
                       <span className="font-semibold text-cyan-100">Що станеться:</span> система збереже
-                      чернетку, виконає лише bounded read-only FC03 перевірку і після успіху покаже контролер
-                      у реєстрі та на вибраній вітрині. Моніторинг, polling і запис параметрів залишаться
-                      вимкненими.
+                      чернетку, виконає безпечну read-only перевірку і після успіху покаже контролер у реєстрі
+                      та на вибраній вітрині. Моніторинг, polling і запис параметрів залишаться вимкненими.
                     </div>
                   ) : null}
 
@@ -659,7 +693,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       canManage ? (
                         <button
                           type="button"
-                          disabled={busy || preflightBusy}
+                          disabled={busy || preflightBusy || addressSearchBusy}
                           onClick={() => void cancel()}
                           className="rounded-xl border border-rose-400/20 px-4 py-2 text-xs text-rose-200 hover:bg-rose-400/[0.07] disabled:opacity-50"
                         >
@@ -673,7 +707,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       visibleSession?.lifecycle !== "verified" ? (
                         <button
                           type="button"
-                          disabled={busy || preflightBusy}
+                          disabled={busy || preflightBusy || addressSearchBusy}
                           onClick={() => void save()}
                           className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/[0.05] disabled:opacity-50"
                         >
@@ -697,7 +731,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                         ) : (
                           <button
                             type="button"
-                            disabled={busy || preflightBusy}
+                            disabled={busy || preflightBusy || addressSearchBusy}
                             onClick={() => void completeDiscoveryOnlyOnboarding()}
                             className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 disabled:opacity-50"
                           >
@@ -738,6 +772,10 @@ function WizardStep({
   profiles,
   connections,
   connectionError,
+  connectionRepository,
+  searchRunning,
+  onSearchRunningChange,
+  onConnectionsChanged,
   equipment,
   selectedProfile,
   selectedEquipment,
@@ -751,6 +789,10 @@ function WizardStep({
   profiles: SupportedDeviceProfile[];
   connections: CommissioningConnectionInventory | null;
   connectionError: string | null;
+  connectionRepository: CommissioningRepository | null;
+  searchRunning: boolean;
+  onSearchRunningChange: (running: boolean) => void;
+  onConnectionsChanged: (inventory: CommissioningConnectionInventory) => void;
   equipment: RefrigerationEquipment[];
   selectedProfile: SupportedDeviceProfile | null;
   selectedEquipment: RefrigerationEquipment | null;
@@ -775,6 +817,11 @@ function WizardStep({
         setDraft={setDraft}
         inventory={connections}
         inventoryError={connectionError}
+        repository={connectionRepository}
+        searchRunning={searchRunning}
+        onSearchRunningChange={onSearchRunningChange}
+        onInventoryChanged={onConnectionsChanged}
+        profile={selectedProfile}
         disabled={disabled}
       />
     );
@@ -868,19 +915,29 @@ function ConnectionStep({
   setDraft,
   inventory,
   inventoryError,
+  repository,
+  searchRunning,
+  onSearchRunningChange,
+  onInventoryChanged,
+  profile,
   disabled,
 }: {
   draft: CommissioningSessionWrite;
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
   inventory: CommissioningConnectionInventory | null;
   inventoryError: string | null;
+  repository: CommissioningRepository | null;
+  searchRunning: boolean;
+  onSearchRunningChange: (running: boolean) => void;
+  onInventoryChanged: (inventory: CommissioningConnectionInventory) => void;
+  profile: SupportedDeviceProfile | null;
   disabled: boolean;
 }) {
   const field = (key: keyof CommissioningSessionWrite, value: string | number | null) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const selected = inventory?.connections.find((item) => item.busId === draft.busId) ?? null;
   const chooseConnection = (busId: string) => {
-    const connection = inventory?.connections.find((item) => item.busId === busId) ?? null;
+    const connection = inventory?.connections.find((item) => item.busId === busId && item.present) ?? null;
     setDraft((current) => ({
       ...current,
       nodeId: connection ? (inventory?.nodeId ?? null) : null,
@@ -895,25 +952,37 @@ function ConnectionStep({
       description="Оберіть фізичний RS-485 адаптер із фактичного локального інвентарю. Система сама підставить Node, логічний Bus ID і стабільний transport identity."
     >
       <div className="grid gap-3">
+        {repository ? (
+          <Rs485AdapterFinder
+            repository={repository}
+            disabled={disabled || searchRunning}
+            onInventoryChanged={onInventoryChanged}
+            onSelect={chooseConnection}
+          />
+        ) : null}
         <label className={labelClass}>
           RS-485 підключення
           <select
             aria-label="RS-485 підключення"
-            disabled={disabled || !inventory}
+            disabled={disabled || searchRunning || !inventory}
             value={draft.busId ?? ""}
             onChange={(event) => chooseConnection(event.target.value)}
             className={inputClass}
           >
             <option value="">Оберіть підключення</option>
-            {inventory?.connections.map((connection) => (
-              <option
-                key={connection.busId}
-                value={connection.busId}
-                disabled={!connection.availableForPreflight}
-              >
-                {connectionLabel(connection)}
-              </option>
-            ))}
+            {inventory?.connections
+              .filter((connection) => connection.present)
+              .map((connection) => (
+                <option
+                  key={connection.busId}
+                  value={connection.busId}
+                  disabled={
+                    !connection.availableForPreflight && connection.availableForIsolatedSearch !== true
+                  }
+                >
+                  {connectionLabel(connection)}
+                </option>
+              ))}
           </select>
         </label>
         {selected ? (
@@ -959,7 +1028,7 @@ function ConnectionStep({
           Modbus Unit ID
           <input
             aria-label="Modbus Unit ID"
-            disabled={disabled}
+            disabled={disabled || searchRunning}
             type="number"
             min={1}
             max={247}
@@ -968,6 +1037,25 @@ function ConnectionStep({
             className={inputClass}
           />
         </label>
+        {repository &&
+        selected &&
+        (selected.availableForReadSearch === true || selected.availableForIsolatedSearch === true) &&
+        inventory &&
+        profile ? (
+          <Rs485AddressSearch
+            repository={repository}
+            connection={{
+              nodeId: inventory.nodeId,
+              busId: selected.busId,
+              stableTransportIdentifier: selected.stableTransportIdentifier,
+            }}
+            disabled={disabled}
+            profiles={[profile]}
+            serial={selected.serial}
+            onSelect={(unitId) => field("unitId", unitId)}
+            onRunningChange={onSearchRunningChange}
+          />
+        ) : null}
       </div>
       <p className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3 text-xs leading-5 text-slate-400">
         Перелік підключень читається локально без Modbus-сканування. Вибір адаптера не змінює Device Agent,
@@ -1058,8 +1146,19 @@ function BindingStep({
     <StepFrame
       eyebrow="Крок 4"
       title="Прив'язка до обладнання"
-      description="Оберіть актив, для якого створюється намір підключення контролера."
+      description="Прилад може працювати самостійно; прив’язка до обладнання необов’язкова."
     >
+      <label className={labelClass}>
+        Назва приладу
+        <input
+          aria-label="Назва приладу"
+          disabled={disabled}
+          value={draft.displayName ?? ""}
+          maxLength={255}
+          onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
+          className={inputClass}
+        />
+      </label>
       <label className={labelClass}>
         Цільове обладнання
         <select
@@ -1070,7 +1169,7 @@ function BindingStep({
           }
           className={inputClass}
         >
-          <option value="">Не вибрано</option>
+          <option value="">Самостійний прилад</option>
           {equipment.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name} · {item.code}
@@ -1147,8 +1246,7 @@ function PreflightPanel({
             <ShieldCheck className="h-4 w-4 text-cyan-300" /> Read-only перевірка підключення
           </h3>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
-            Exact node / bus / stable adapter / Unit ID / profile. Дозволений лише repository-owned FC03 read
-            path.
+            Exact node / bus / stable adapter / Unit ID / profile. Дозволене лише визначене профілем читання.
           </p>
         </div>
         <button
@@ -1174,7 +1272,7 @@ function PreflightPanel({
         <EvidenceStatus
           label="software verified"
           state="passed"
-          detail="Fixed repository-owned FC03-only contract; write fields are not representable."
+          detail="Фіксований read-only профіль; команди запису недоступні."
         />
         <EvidenceStatus
           label={attempt ? evidenceLabel(attempt.evidenceLevel) : "hardware unverified"}
@@ -1334,7 +1432,14 @@ function ActivationPanel({
               </div>
               <div>
                 <dt className="inline text-slate-500">Polling: </dt>
-                <dd className="inline">FC03 read-only</dd>
+                <dd className="inline">
+                  {plan.pollingMode === "read_only_fc03_fc04"
+                    ? "FC03 + FC04"
+                    : plan.pollingMode === "read_only_fc04"
+                      ? "FC04"
+                      : "FC03"}{" "}
+                  read-only
+                </dd>
               </div>
               <div>
                 <dt className="inline text-slate-500">Binding: </dt>
@@ -1495,6 +1600,7 @@ function Unavailable({ message: value }: { message: string }) {
 
 function sessionToWrite(session: CommissioningSession): CommissioningSessionWrite {
   return {
+    displayName: session.displayName ?? null,
     deviceClass: session.deviceClass,
     manufacturer: session.manufacturer,
     model: session.model,

@@ -16,6 +16,7 @@ export interface LiveDashboardInventoryClientOptions {
   fetch?: LiveDashboardInventoryFetch;
   timeoutMs?: number;
   credentialProvider?: SecurityCredentialProvider;
+  includeObserved?: boolean;
 }
 
 export interface LiveDashboardInventoryQuery {
@@ -121,14 +122,24 @@ function parseItem(value: unknown): LiveDashboardInventoryItem {
   const channelId = stringValue(value.channel_id, "Inventory channel id");
   const metric = stringValue(value.metric, "Inventory metric");
   return {
-    key: inventoryKey(channelId, metric),
-    channel_ref_id: stringValue(value.channel_ref_id, "Inventory channel reference"),
+    key:
+      value.channel_ref_id === null
+        ? [
+            stringValue(value.node_id, "Inventory node"),
+            stringValue(value.equipment_id, "Inventory equipment"),
+            channelId,
+            metric,
+          ]
+            .map(encodeURIComponent)
+            .join("|")
+        : inventoryKey(channelId, metric),
+    channel_ref_id: nullableStringValue(value.channel_ref_id, "Inventory channel reference"),
     node_id: stringValue(value.node_id, "Inventory node"),
     equipment_id: stringValue(value.equipment_id, "Inventory equipment"),
     equipment_name: stringValue(value.equipment_name, "Inventory equipment name"),
-    climate_chamber_id: stringValue(value.climate_chamber_id, "Inventory climate chamber id"),
-    climate_chamber_code: stringValue(value.climate_chamber_code, "Inventory climate chamber code"),
-    climate_chamber_name: stringValue(value.climate_chamber_name, "Inventory climate chamber name"),
+    climate_chamber_id: nullableStringValue(value.climate_chamber_id, "Inventory climate chamber id"),
+    climate_chamber_code: nullableStringValue(value.climate_chamber_code, "Inventory climate chamber code"),
+    climate_chamber_name: nullableStringValue(value.climate_chamber_name, "Inventory climate chamber name"),
     equipment_type: stringValue(value.equipment_type, "Inventory equipment type"),
     laboratory: nullableStringValue(value.laboratory, "Inventory laboratory"),
     zone: nullableStringValue(value.zone, "Inventory zone"),
@@ -169,6 +180,7 @@ function errorDetail(body: unknown, fallback: string): { message: string; code: 
 export class LiveDashboardInventoryClient {
   private readonly fetchImpl: LiveDashboardInventoryFetch;
   private readonly timeoutMs: number;
+  private readonly includeObserved: boolean;
 
   constructor(
     private readonly apiBaseUrl: string,
@@ -176,6 +188,7 @@ export class LiveDashboardInventoryClient {
   ) {
     this.fetchImpl = options.fetch ?? fetch.bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? 8_000;
+    this.includeObserved = options.includeObserved ?? false;
   }
 
   async list(
@@ -186,6 +199,7 @@ export class LiveDashboardInventoryClient {
       limit: String(query.limit ?? 500),
       offset: String(query.offset ?? 0),
     });
+    if (this.includeObserved) params.set("include_observed", "true");
     const controller = new AbortController();
     let timedOut = false;
     const onAbort = () => controller.abort(signal?.reason);

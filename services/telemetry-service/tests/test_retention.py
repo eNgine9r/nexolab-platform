@@ -7,6 +7,10 @@ from sqlalchemy import text
 
 from app.contracts import TelemetryEvent
 from app.db import Database
+from app.model_registry import register_models
+
+# Production migrations create every table; retention references session contexts.
+register_models()
 
 
 def event(event_id: str, captured_at: datetime) -> TelemetryEvent:

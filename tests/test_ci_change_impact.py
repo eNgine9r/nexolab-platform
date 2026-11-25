@@ -36,6 +36,61 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             self.assertIn('deployment_runtime', result['classes'])
             self.assertTrue(result['verification']['offline_bundle'])
 
+    def test_offline_backup_readonly_preflight_is_known_dr_and_triggers_offline_bundle(self) -> None:
+        source = "scripts/nexolab-offline-backup-preflight.py"
+        test = "scripts/tests/test_nexolab_offline_backup_preflight.py"
+        for path in (source, test):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertEqual(
+                    result["verification"]["required_external_workflows"],
+                    ["Offline Bundle"],
+                )
+
+        paths = [
+            source, test,
+            "docs/operations/offline-backup-preflight-1460.md",
+            ".project/ACTIVE_SPRINT.json",
+        ]
+        combined = classify(paths)
+        self.assertFalse(combined["fail_closed"])
+        self.assertEqual(
+            combined["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
+        # A change to the classifier itself intentionally requires the
+        # broader external lanes; verify those workflows register via their
+        # existing classifier path trigger, never suppress the merge gate.
+        classifier_change = classify([*paths, "scripts/classify-ci-impact.py"])
+        self.assertFalse(classifier_change["fail_closed"])
+        self.assertEqual(
+            set(classifier_change["verification"]["required_external_workflows"]),
+            {
+                "Offline Bundle", "Authenticated Dashboard Acceptance",
+                "Refrigeration Browser Acceptance",
+            },
+        )
+        offline_workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        offline_triggers = offline_workflow.split("  pull_request:", 1)[1].split(
+            "  workflow_dispatch:", 1
+        )[0]
+        for path in (source, test):
+            self.assertIn(f'      - "{path}"', offline_triggers)
+        for workflow_file in (
+            "authenticated-dashboard-acceptance.yml",
+            "refrigeration-browser-acceptance.yml",
+        ):
+            other = (ROOT / ".github/workflows" / workflow_file).read_text(
+                encoding="utf-8"
+            )
+            self.assertIn('      - "scripts/classify-ci-impact.py"', other)
+
     def test_incident_pg_backup_helpers_require_offline_bundle_not_unknown_broadening(self) -> None:
         result = classify([
             "scripts/nexolab-safe-pg-incident-backup.sh",
@@ -77,6 +132,27 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 
+    def test_scheduled_encrypted_backup_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-stream.py",
+            "scripts/nexolab-dr-scheduled-backup.py",
+            "tests/test_nexolab_dr_stream.py",
+            "tests/test_nexolab_dr_scheduled_backup.py",
+            "tests/test_nexolab_dr_backup_review_fixes.py",
+            "infrastructure/systemd/nexolab-dr-backup.service",
+            "infrastructure/systemd/nexolab-dr-backup.timer",
+            "infrastructure/systemd/nexolab-dr-backup.example.json",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        workflow = (ROOT / ".github/workflows/disaster-recovery-acceptance.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("  pull_request:", 1)[1].split("  push:", 1)[0]
+        for path in paths[:5]:
+            with self.subTest(path=path):
+                self.assertIn(f'      - "{path}"', triggers)
+
     def test_dr_readonly_health_monitor_is_offline_routed(self) -> None:
         paths = [
             "scripts/nexolab-dr-readonly-health.py",
@@ -92,6 +168,80 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         for path in paths:
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
+
+    def test_dr_offdevice_copy_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-offdevice-copy.py",
+            "tests/test_ci_dr_offdevice_copy.py",
+            "docs/operations/dr-offdevice-copy-1631.md",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+
+    def test_dr_isolated_restore_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-dr-isolated-restore.py",
+            "scripts/nexolab-dr-isolated-restore-rehearsal.py",
+            "tests/test_ci_dr_isolated_restore.py",
+            "docs/operations/dr-isolated-restore-1632.md",
+            "tests/test_ci_dr_health_restore_receipt.py",
+            "docs/operations/dr-readonly-backup-health-1441.md",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+
+    def test_dr_object_metadata_xattr_fix_is_dr_routed_without_unknown_paths(self) -> None:
+        paths = [
+            "scripts/nexolab-volume-archive.py",
+            "scripts/nexolab-dr-scheduled-backup.py",
+            "scripts/nexolab-dr-isolated-restore.py",
+            "scripts/nexolab-dr-isolated-restore-rehearsal.py",
+            "tests/test_ci_dr_object_metadata_xattrs.py",
+            "docs/operations/dr-scheduled-backup-1630.md",
+            "docs/operations/dr-isolated-restore-1632.md",
+        ]
+        result = classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+
+    def test_local_textfile_exporter_is_known_offline_workflow_tool(self) -> None:
+        path = "scripts/serve-prometheus-textfile.py"
+        result = classify([path])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        trigger = workflow.split("  pull_request:", 1)[1].split(
+            "  workflow_dispatch:", 1
+        )[0]
+        self.assertIn('      - "scripts/serve-prometheus-textfile.py"', trigger)
+        # Other unknown scripts must still trigger fail-closed routing.
+        unknown = classify(["scripts/unregistered-new-external-agent.py"])
+        self.assertTrue(unknown["fail_closed"])
+
+    def test_exact_lan_monitor_offline_payload_is_known_and_bundle_required(self) -> None:
+        path = "scripts/tests/test_lan_monitor_offline_payload.py"
+        result = classify([path])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        self.assertIn('      - "' + path + '"', trigger)
+        unknown = classify(["scripts/unregistered-new-external-agent.py"])
+        self.assertTrue(unknown["fail_closed"])
 
     def test_site_capture_handoff_is_offline_routed(self) -> None:
         paths = [
@@ -204,6 +354,53 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertIn("cross_surface_or_unknown", result["classes"])
         self.assertTrue(result["needs_full_quality"])
         self.assertFalse(result["fail_closed"])
+
+    def test_frontend_release_parity_tools_get_full_core_without_false_external_gates(self) -> None:
+        paths = [
+            "scripts/check-frontend-entrypoint-parity.py",
+            "scripts/tests/test_frontend_entrypoint_parity.py",
+            "docs/operations/nexolab-unified-operator-release-parity.md",
+            ".project/CURRENT_STATE.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/LAST_CHECKPOINT.json",
+        ]
+        result = classify(paths)
+        self.assertEqual(result["classes"], ["verification_tooling"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["state_only"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+        # Docs still trigger their own actual Telemetry workflow on GitHub;
+        # the merge gate must wait for every workflow that *did* run.
+
+    def test_frontend_parity_allowlist_does_not_waive_other_unknown_tools(self) -> None:
+        result = classify(["scripts/unregistered-frontend-entrypoint-parity.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn("scripts/unregistered-frontend-entrypoint-parity.py", result["unknown_files"])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"],
+        )
+
+    def test_classifier_change_still_triggers_all_matched_specialized_workflows(self) -> None:
+        result = classify(["scripts/classify-ci-impact.py"])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        required = result["verification"]["required_external_workflows"]
+        self.assertEqual(
+            required,
+            ["Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"],
+        )
+        for filename in (
+            "authenticated-dashboard-acceptance.yml",
+            "offline-bundle.yml",
+            "refrigeration-browser-acceptance.yml",
+        ):
+            workflow = (ROOT / ".github/workflows" / filename).read_text(encoding="utf-8")
+            trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+            self.assertIn('      - "scripts/classify-ci-impact.py"', trigger)
 
     def test_pi_energy_export_benchmark_is_explicit_verification_only_tool(self) -> None:
         result = classify([
@@ -687,6 +884,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
 
     def test_core_ci_governance_does_not_force_unrelated_external_acceptance(self) -> None:
         result = classify([".github/workflows/ci.yml"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_project_state_writer_is_ci_governance_not_cross_surface(self) -> None:
+        result = classify(["scripts/project-state.py", "tests/test_ci_project_state_v2.py"])
+        self.assertEqual(result["classes"], ["ci_governance"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
     def test_core_only_toolchain_changes_do_not_require_unrelated_external_lanes(self) -> None:

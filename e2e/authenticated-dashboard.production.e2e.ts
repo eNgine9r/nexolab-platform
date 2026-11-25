@@ -313,7 +313,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       expect(requests.every((item) => !item.url.includes("Bearer"))).toBe(true);
       expect(requests.every((item) => !item.url.includes("access_token"))).toBe(true);
 
-      await page.getByRole("button", { name: "1г", exact: true }).click();
+      await page.getByRole("button", { name: "1 година", exact: true }).click();
       await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(2);
       const oneHourRequest = requests.filter((item) => item.url.includes("/history")).at(-1);
       expect(oneHourRequest).toBeDefined();
@@ -427,11 +427,21 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
           throw new Error(`Overview layout missing at ${width}px`);
         }
 
-        expect(primaryBox.y).toBeLessThan(attentionBox.y);
-        expect(attentionBox.y).toBeLessThan(secondaryBox.y);
-        expect(Math.abs(primaryBox.x - attentionBox.x)).toBeLessThanOrEqual(2);
-        expect(Math.abs(primaryBox.width - attentionBox.width)).toBeLessThanOrEqual(2);
-        expect(Math.abs(primaryBox.width - commandBox.width)).toBeLessThanOrEqual(2);
+        // Overview V2: stacked on mobile; temperature 8/12 and insights 4/12 on desktop.
+        if (width < 1280) {
+          expect(primaryBox.y).toBeLessThan(attentionBox.y);
+          expect(attentionBox.y).toBeLessThan(secondaryBox.y);
+          expect(Math.abs(primaryBox.x - attentionBox.x)).toBeLessThanOrEqual(2);
+          expect(Math.abs(primaryBox.width - attentionBox.width)).toBeLessThanOrEqual(2);
+          expect(Math.abs(primaryBox.width - commandBox.width)).toBeLessThanOrEqual(2);
+        } else {
+          expect(Math.abs(primaryBox.y - attentionBox.y)).toBeLessThanOrEqual(2);
+          expect(primaryBox.x + primaryBox.width).toBeLessThan(attentionBox.x + 4);
+          expect(primaryBox.width).toBeGreaterThan(attentionBox.width);
+          expect(attentionBox.y).toBeLessThan(secondaryBox.y);
+          expect(Math.abs(attentionBox.x - secondaryBox.x)).toBeLessThanOrEqual(2);
+          expect(Math.abs(attentionBox.width - secondaryBox.width)).toBeLessThanOrEqual(2);
+        }
       }
 
       expect(acquisitionMutations).toEqual([]);
@@ -456,9 +466,10 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             canonicalOverviewChart: true,
             overviewHistorySvg: false,
             overviewGraphFirst: true,
-            overviewPrimaryFullWidth: true,
-            overviewAttentionBelowGraph: true,
+            overviewPrimaryFullWidth: false,
+            overviewAttentionBelowGraph: false,
             overviewSupportingStateBelow: true,
+            overviewResponsiveSideBySide: true,
             overviewResponsiveWidths: [360, 1440, 1920],
             cursorLayoutStable: true,
             liveCanvasIdentityStable: true,
@@ -685,14 +696,15 @@ test("Overview groups real catalog sensors and preserves display-only choices", 
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const opener = page.getByRole("button", { name: "Налаштувати датчики на графіку Огляду" });
     const dialog = page.getByRole("dialog", { name: "Датчики на графіку Огляду" });
-    for (const width of [320, 390, 1280]) {
+    for (const width of [320, 375, 390, 768, 1280, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(opener).toBeEnabled();
       await opener.click();
       const device = dialog.getByRole("checkbox", { name: /Показувати всі датчики приладу:.*106/ });
+      await expect(dialog.getByText("Розташування: Кліматична камера №2")).toBeVisible();
       await expect(
         dialog.getByRole("checkbox", { name: "Показувати всі датчики камери: Кліматична камера №2" }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(device).toBeChecked();
       await dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді", exact: true }).uncheck();
       await expect(device).toHaveAttribute("aria-checked", "mixed");
@@ -757,7 +769,7 @@ test("Overview groups real catalog sensors and preserves display-only choices", 
   }
 });
 
-test("grouped navigation preserves every destination and labels planned Lockers", async ({ browser }) => {
+test("grouped navigation shows destinations allowed for the viewer", async ({ browser }) => {
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
   const mutations = observeAcquisitionMutations(page);
@@ -767,12 +779,10 @@ test("grouped navigation preserves every destination and labels planned Lockers"
     "/equipment-layouts",
     "/refrigeration",
     "/alerts",
-    "/cameras",
     "/energy",
     "/sessions",
     "/reports",
     "/nodes",
-    "/lockers",
     "/equipment",
     "/settings",
   ];
@@ -796,12 +806,12 @@ test("grouped navigation preserves every destination and labels planned Lockers"
         if (index < destinations.length - 1) await page.keyboard.press("Tab");
       }
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
-      const lockers = navigation.getByRole("link", { name: "Поштомати", exact: true });
-      await expect(lockers).toHaveAccessibleDescription("Заплановано");
-      await expect(lockers.getByText("Заплановано", { exact: true })).toBeVisible();
-      await lockers.focus();
+      await expect(navigation.getByRole("link", { name: "Поштомати", exact: true })).toHaveCount(0);
+      await expect(navigation.getByRole("link", { name: "Камери", exact: true })).toHaveCount(0);
+      const sessions = navigation.getByRole("link", { name: "Сесії випробувань", exact: true });
+      await sessions.focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/lockers$/);
+      await expect(page).toHaveURL(/\/sessions$/);
       await expect(
         page.getByTestId("platform-topbar").getByText("Viewer Acceptance", { exact: true }),
       ).toBeVisible();
@@ -811,6 +821,43 @@ test("grouped navigation preserves every destination and labels planned Lockers"
           .toBeLessThanOrEqual(0);
     }
     expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("navigation follows a restricted selected membership on mobile and desktop", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  await context.route("**/api/v1/auth/session", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    const payload = await response.json();
+    for (const membership of payload.memberships) {
+      membership.permissions = ["dashboard.read", "reports.read"];
+    }
+    await route.fulfill({ response, json: payload });
+  });
+  const page = await context.newPage();
+  try {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+      if (width < 1024) {
+        await page.getByTestId("platform-topbar").getByRole("button", { name: "Відкрити меню" }).click();
+      }
+      const navigation = page.getByRole("navigation", { name: "Головна навігація" });
+      for (const name of ["Огляд", "Сесії випробувань", "Звіти", "Налаштування"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toBeVisible();
+      }
+      for (const name of ["Live дані", "Енергомоніторинг", "Тривоги", "Вузли", "Камери", "Поштомати"]) {
+        await expect(navigation.getByRole("link", { name, exact: true })).toHaveCount(0);
+      }
+      await expect(page.getByRole("link", { name: "Відкрити тривоги" })).toHaveCount(0);
+    }
   } finally {
     await context.close();
   }

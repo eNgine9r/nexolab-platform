@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronRight, Settings2 } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Settings2 } from "lucide-react";
 
 import { readCameraInventory } from "@/features/cameras/domain";
 import { hasPermission } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
 import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
+import { useMonitoredTemperatureChannels } from "@/hooks/use-monitored-temperature-channels";
 
 import { AlarmsPanel } from "./alarms-panel";
 import { KpiCard } from "./kpi-card";
@@ -22,12 +23,13 @@ import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
 import { TemperatureVisibilityDialog } from "./temperature-visibility-dialog";
 import { SessionsPanel } from "./sessions-panel";
-import { Sidebar } from "./sidebar";
+import { canSeePlatformDestination, Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
 import {
   filterOverviewTemperatureDiagnostics,
+  overviewTemperatureChannelFilter,
   useOverviewTemperatureVisibility,
 } from "./use-overview-temperature-visibility";
 
@@ -35,7 +37,7 @@ function PanelAction({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 rounded-lg border border-white/[0.065] bg-white/[0.02] px-2.5 py-1.5 text-[8px] font-medium text-slate-500 transition hover:border-blue-400/25 hover:text-slate-200"
+      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-cyan-300/30 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
     >
       {label}
       <ChevronRight className="h-3 w-3" />
@@ -54,15 +56,27 @@ export function DashboardShell() {
     enabled: security.mode === "live" && securityReady,
     organizationId,
   });
+  const monitored = useMonitoredTemperatureChannels({
+    enabled: security.mode === "live" && securityReady,
+    organizationId,
+  });
   const temperatureVisibility = useOverviewTemperatureVisibility({
     enabled: security.mode === "live" && securityReady,
     organizationId,
-    monitoredChannelIds: monitoring.monitoredChannelIds,
+    monitoredChannelIds: monitored.channelIds,
   });
+  // When the monitoring registry cannot be read, an empty allow-list would hide every
+  // real temperature sample and show "0 channels". Fall back to all commissioned
+  // temperature probes and say so explicitly instead of silently hiding live data.
+  const monitoringRegistryUnavailable = security.mode === "live" && monitored.error !== null;
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
     organizationId,
-    temperatureChannelIds: security.mode === "live" ? temperatureVisibility.visibleChannelIds : null,
+    temperatureChannelIds: overviewTemperatureChannelFilter({
+      live: security.mode === "live",
+      registryError: monitored.error,
+      visibleChannelIds: temperatureVisibility.visibleChannelIds,
+    }),
   });
 
   if (
@@ -85,12 +99,6 @@ export function DashboardShell() {
 
   const cameraInventory = readCameraInventory();
   const liveSamples = telemetry.view?.samples ?? [];
-  const mobileStatusTone =
-    telemetry.status === "live"
-      ? "border-emerald-300/10 bg-emerald-400/[0.04] text-emerald-400"
-      : telemetry.status === "demo"
-        ? "border-blue-300/10 bg-blue-400/[0.04] text-blue-300"
-        : "border-amber-300/10 bg-amber-400/[0.04] text-amber-300";
   const canCreateSession =
     security.mode === "demo" ||
     Boolean(
@@ -100,10 +108,11 @@ export function DashboardShell() {
     );
 
   return (
-    <div className="min-h-screen bg-[#06142a] text-slate-100">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="min-h-screen bg-[#07111f] text-slate-100">
+      <Sidebar security={security} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
+          showAlerts={security.mode === "demo" ? true : undefined}
           title="Огляд"
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={canCreateSession}
@@ -114,20 +123,48 @@ export function DashboardShell() {
             void security.signOut().then(() => router.replace("/login"));
           }}
         />
-        <main className="relative overflow-hidden p-3 sm:p-4 xl:p-5 2xl:p-6">
-          <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
-
-          <div className="relative mx-auto max-w-[1800px]">
-            <div className="mb-4 flex items-end justify-between gap-4 px-1 lg:hidden">
-              <div>
-                <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">Control center</p>
-                <h1 className="mt-1 text-xl font-semibold text-white">Огляд лабораторії</h1>
+        <main className="overview-shell relative overflow-hidden px-3 py-5 sm:px-5 lg:px-6 lg:py-6 2xl:px-8">
+          <div
+            className="pointer-events-none absolute -top-48 right-0 h-[480px] w-[650px] rounded-full bg-cyan-500/[0.045] blur-[110px]"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute top-72 -left-64 h-[420px] w-[420px] rounded-full bg-indigo-500/[0.04] blur-[110px]"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto max-w-[1680px]">
+            <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.07] pb-5">
+              <div className="min-w-0">
+                <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-cyan-300/85 uppercase">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" aria-hidden="true" />
+                  NEXOLAB <span className="text-slate-600">/</span> Лабораторія
+                </p>
+                <h1 className="text-[1.7rem] leading-tight font-semibold tracking-[-0.045em] text-white sm:text-[2rem]">
+                  Огляд лабораторії
+                </h1>
+                <p className="mt-1.5 text-[13px] leading-5 text-slate-400">
+                  Показники, температури та події — в одному місці.
+                </p>
               </div>
-              <span className={`rounded-full border px-3 py-1.5 text-[9px] capitalize ${mobileStatusTone}`}>
-                ● {telemetry.status}
-              </span>
-            </div>
+              <nav className="flex flex-wrap items-center gap-2" aria-label="Швидкі переходи">
+                {canSeePlatformDestination(security, "/live") ? (
+                  <Link
+                    href="/live"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.09] px-3.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                  >
+                    Live дані <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {canSeePlatformDestination(security, "/sessions") ? (
+                  <Link
+                    href="/sessions"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3.5 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                  >
+                    Сесії <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                ) : null}
+              </nav>
+            </header>
 
             <TelemetryStatusBar
               mode={telemetry.mode}
@@ -139,13 +176,18 @@ export function DashboardShell() {
               onRetry={telemetry.retry}
             />
 
-            <section
-              className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6"
-              aria-label="Ключові показники"
-            >
-              {telemetry.kpis.map((item) => (
-                <KpiCard key={item.label} item={item} />
-              ))}
+            <section className="mt-5" aria-label="Ключові показники">
+              <div className="mb-3 flex items-center justify-between px-0.5">
+                <h2 className="text-xs font-semibold tracking-[0.08em] text-slate-300 uppercase">
+                  Ключові показники
+                </h2>
+                <span className="text-[11px] text-slate-500">Поточний стан</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6 xl:gap-3">
+                {telemetry.kpis.map((item) => (
+                  <KpiCard key={item.label} item={item} variant="overview" />
+                ))}
+              </div>
             </section>
 
             <OverviewWorkspaceLayout
@@ -157,10 +199,10 @@ export function DashboardShell() {
                       <button
                         type="button"
                         onClick={() => setTemperatureVisibilityOpen(true)}
-                        disabled={monitoring.isLoading}
+                        disabled={monitored.isLoading || monitoring.isLoading}
                         aria-label="Налаштувати датчики на графіку Огляду"
                         title="Налаштувати відображення на Огляді"
-                        className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200 disabled:cursor-wait disabled:opacity-45"
+                        className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-300/30 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:cursor-wait disabled:opacity-45"
                       >
                         <Settings2 className="h-3.5 w-3.5" />
                       </button>
@@ -168,6 +210,16 @@ export function DashboardShell() {
                   }
                   className="min-w-0"
                 >
+                  {monitoringRegistryUnavailable ? (
+                    <p
+                      role="status"
+                      data-testid="overview-monitoring-registry-unavailable"
+                      className="mb-3 rounded-lg border border-amber-300/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100"
+                    >
+                      ⚠ Реєстр моніторингу недоступний ({monitored.error}). Показано всі температурні канали
+                      XJP60D без фільтра відображення.
+                    </p>
+                  ) : null}
                   <TemperatureChart
                     mode={telemetry.mode}
                     status={telemetry.status}
@@ -178,50 +230,76 @@ export function DashboardShell() {
                     historyWindow={telemetry.historyWindow}
                     historyError={telemetry.historyError}
                     onHistoryRangeChange={telemetry.setHistoryRange}
+                    onHistoryCustomRange={telemetry.applyCustomHistoryRange}
                     onHistoryRetry={telemetry.retryHistory}
-                    targetDiagnostics={filterOverviewTemperatureDiagnostics(
-                      monitoring.configuration?.target_diagnostics ?? [],
-                      temperatureVisibility.visibleChannelIds,
-                    )}
+                    targetDiagnostics={
+                      monitoringRegistryUnavailable
+                        ? (monitoring.configuration?.target_diagnostics ?? [])
+                        : filterOverviewTemperatureDiagnostics(
+                            monitoring.configuration?.target_diagnostics ?? [],
+                            temperatureVisibility.visibleChannelIds,
+                          )
+                    }
                     allMonitoredChannelsHidden={
                       temperatureVisibility.loaded &&
-                      monitoring.monitoredChannelIds.length > 0 &&
+                      monitored.channelIds.length > 0 &&
                       temperatureVisibility.visibleChannelIds.length === 0
                     }
                   />
                 </Panel>
               }
               attention={
-                <Panel
-                  title={telemetry.mode === "live" ? "Потребує уваги" : "Тривоги · demo"}
-                  action={<PanelAction label="Всі тривоги" href="/alerts" />}
-                  className="min-w-0"
-                >
-                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
-                </Panel>
+                canSeePlatformDestination(security, "/alerts") ? (
+                  <Panel
+                    title={telemetry.mode === "live" ? "Потребує уваги" : "Тривоги · demo"}
+                    action={
+                      canSeePlatformDestination(security, "/alerts") ? (
+                        <PanelAction label="Всі тривоги" href="/alerts" />
+                      ) : null
+                    }
+                    className="min-w-0"
+                  >
+                    <AlarmsPanel
+                      mode={telemetry.mode}
+                      organizationId={organizationId}
+                      samples={liveSamples}
+                    />
+                  </Panel>
+                ) : null
               }
               supporting={
-                <Panel
-                  title={telemetry.mode === "live" ? "Стан інфраструктури" : "Вузли системи · demo"}
-                  action={<PanelAction label="Всі вузли" href="/nodes" />}
-                  className="min-w-0"
-                >
-                  {telemetry.mode === "live" ? (
-                    <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
-                  ) : (
-                    <NodesPanel />
-                  )}
-                </Panel>
+                canSeePlatformDestination(security, "/nodes") ? (
+                  <Panel
+                    title={telemetry.mode === "live" ? "Стан інфраструктури" : "Вузли системи · demo"}
+                    action={
+                      canSeePlatformDestination(security, "/nodes") ? (
+                        <PanelAction label="Всі вузли" href="/nodes" />
+                      ) : null
+                    }
+                    className="min-w-0"
+                  >
+                    {telemetry.mode === "live" ? (
+                      <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
+                    ) : (
+                      <NodesPanel />
+                    )}
+                  </Panel>
+                ) : null
               }
             />
 
             <OverviewSecondaryWorkspace
               cameraInventory={cameraInventory}
+              showCameras={canSeePlatformDestination(security, "/cameras")}
               cameraAction={<PanelAction label="Всі камери" href="/cameras" />}
               sessions={
                 <Panel
                   title="Активні лабораторні сесії"
-                  action={<PanelAction label="Всі сесії" href="/sessions" />}
+                  action={
+                    canSeePlatformDestination(security, "/sessions") ? (
+                      <PanelAction label="Всі сесії" href="/sessions" />
+                    ) : null
+                  }
                 >
                   <SessionsPanel organizationId={organizationId} />
                 </Panel>
@@ -229,7 +307,11 @@ export function DashboardShell() {
               layouts={
                 <Panel
                   title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
-                  action={<PanelAction label="Всі схеми" href="/equipment-layouts" />}
+                  action={
+                    canSeePlatformDestination(security, "/equipment-layouts") ? (
+                      <PanelAction label="Всі схеми" href="/equipment-layouts" />
+                    ) : null
+                  }
                 >
                   <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
                 </Panel>
@@ -244,10 +326,10 @@ export function DashboardShell() {
         organizationId={security.mode === "live" && securityReady ? organizationId : null}
         nodeId={monitoring.configuration?.node_id ?? null}
         open={temperatureVisibilityOpen}
-        monitoredChannelIds={monitoring.monitoredChannelIds}
+        monitoredChannelIds={monitored.channelIds}
         visibleChannelIds={temperatureVisibility.visibleChannelIds}
         targetDiagnostics={monitoring.configuration?.target_diagnostics ?? []}
-        monitoringError={monitoring.error}
+        monitoringError={monitored.error}
         onApply={temperatureVisibility.setVisibleChannelIds}
         onClose={() => setTemperatureVisibilityOpen(false)}
       />
