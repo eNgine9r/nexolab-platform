@@ -10,6 +10,7 @@ from uuid import uuid4
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 import pytest
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
