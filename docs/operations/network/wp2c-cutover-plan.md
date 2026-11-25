@@ -36,7 +36,9 @@ A wildcard listener cannot share a port with a specific-address bind, so the LAN
   - The compiled public contract must report `same_origin_browser_bundle=no-absolute-host-origin`, meaning no IP literal and no origin on a NEXOLAB service port (8082, 1884, 3000) in the browser bundle.
 - **Server side:** the dashboard container additionally gets `NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082` (allowed by #1738). Without it, server routes fail closed.
   - Before the switch, the preview container proves that Docker DNS resolves `telemetry-service` from the `nexolab-central` network.
-- **Activate** with the guarded #1643 frontend-only procedure: preview on `127.0.0.1:3125`, switch, then automatic rollback to the current LAN image (`7db6e1a8`, build `CWBsCWWebOZGHa5YyWp18`) on identity or health failure, or on any backend container ID change.
+- **Activate** with `wp2c-stage2-frontend.py` (modes `stage`, `build`, `preview`, `check`, `execute`, `rollback`; see the [README](README.md#wp2c-stage-2-same-origin-lan-frontend-wp2c-stage2-frontendpy)), which reuses the guarded #1643 frontend-only procedure:
+  - candidate and rollback Compose files are derived from `docker inspect` of the current container; only the image changes and the server-only API origin is added, and both are proven by a scratch `create` before the switch;
+  - preview on `127.0.0.1:3125`, switch, then automatic rollback to the current LAN image (`7db6e1a8`, build `CWBsCWWebOZGHa5YyWp18`) on identity, gateway, Docker DNS or health failure, or on any backend container change.
 - **Verify** through the gateway on Ethernet and on Wi-Fi: login, Live Data over `ws://<host>/api/v1/telemetry/live`, charts, photos (authenticated API, #1740), logout.
 - **Also affected:** `tailscale serve :8444` proxies to the same LAN container and must be re-verified. The HTTPS UI `:3105` is a separate release and stays unchanged.
 - **Gates:** the dashboard is stateless (no mounts) and the release is frontend-only, so the #1428 backup gate does not apply to this phase (Option F). It still applies to phase 3.
