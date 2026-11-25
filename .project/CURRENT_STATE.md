@@ -7,6 +7,7 @@
   - #1452 Edge receipt ledger.
 
   Activation needs the publisher and subscriber wiring, MQTT identities, isolated acceptance and an approved release.
+
 - **Other fixes.**
   - #1754: the node clock offset overflowed INTEGER beyond ±24.8 days (#1753).
   - #1752: the flaky energy e2e test came from the 5-minute boundary bucket (#1751).
