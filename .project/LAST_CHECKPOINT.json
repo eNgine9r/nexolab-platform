@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-23T14:23:15Z",
-  "actor": "Claude",
-  "event": "xweb_activation_command_ready",
+  "timestamp": "2026-11-25T08:04:24Z",
+  "actor": "claude",
+  "event": "P0 network change (#1733): WP1 compat recovery tool ready for owner; WP2 #1734 and WP3 #1735 opened",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -30,7 +30,9 @@
     "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1733
+  },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
       "review_date": "2026-11-21",
@@ -1501,12 +1503,11 @@
     "active_issue_evidence": {
       "hardware_verified": false,
       "site_cutover": false,
-      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
-      "local_checks": "telemetry-service retention/latest/metrics/health/cors/openapi tests OK on the Pi (SQLite); PostgreSQL retention test added for CI",
-      "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
-      "supersedes_draft_pr": 1552,
-      "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
-      "source_merge": "pending"
+      "site_acceptance": "pending_owner_run",
+      "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
+      "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
+      "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
+      "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3871,6 +3872,16 @@
       "pull_request": 1714,
       "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
       "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
+    },
+    "superseded_active_issue_evidence_2026-11-23T14:23:15Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "telemetry-service retention/latest/metrics/health/cors/openapi tests OK on the Pi (SQLite); PostgreSQL retention test added for CI",
+      "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
+      "supersedes_draft_pr": 1552,
+      "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
     }
   },
   "observations": [
@@ -5501,7 +5512,7 @@
       }
     }
   ],
-  "next_action": "Owner: optionally stop the external-frontend crash loop (reversible), then run the XWEB activation command as nexolab (artifacts expire 2026-11-29); report the output; then authenticated browser checks of the XWEB charts on LAN and HTTPS. Afterwards #1428 A (backup) -> C -> B -> #1551. Telemetry exceptions expire 2026-11-30.",
+  "next_action": "Owner runs #1733 diagnose+apply; then WP4 guard endpoint (#1706) and WP2a same-origin mode (#1734)",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
