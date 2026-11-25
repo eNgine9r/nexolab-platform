@@ -16,6 +16,7 @@
 // cap and a request-body cap protect the Pi.
 import http from "node:http";
 import net from "node:net";
+import os from "node:os";
 import { pathToFileURL } from "node:url";
 
 const env = process.env;
@@ -25,6 +26,31 @@ const MAX_CONNECTIONS = Number(env.NEXOLAB_LAN_GATEWAY_MAX_CONNECTIONS ?? "512")
 const MAX_BODY_BYTES = Number(env.NEXOLAB_LAN_GATEWAY_MAX_BODY_BYTES ?? String(32 * 1024 * 1024));
 const IDLE_MS = Number(env.NEXOLAB_LAN_GATEWAY_IDLE_MS ?? "120000");
 const ALLOWED_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "telemetry-service", "dashboard"]);
+// Interim only (#1733 -> WP2c phase 3): the exact compatibility address may be allowed explicitly.
+const COMPAT_UPSTREAM = env.NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT ?? "";
+if (COMPAT_UPSTREAM === "172.18.48.66") ALLOWED_HOSTS.add(COMPAT_UPSTREAM);
+// `auto`: listen on the current IPv4 addresses of LAN interfaces only (never tailscale0,
+// Docker bridges, veth or the compatibility dummy), re-scanned so DHCP changes and
+// Ethernet <-> Wi-Fi switching need no configuration. A wildcard bind would collide with
+// tailscaled's own :80 listener and would expose the gateway on the tailnet without OAuth.
+const AUTO_INTERFACES = (env.NEXOLAB_LAN_GATEWAY_INTERFACES ?? "lo,eth*,en*,wlan*,wl*")
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean);
+const NEVER_INTERFACES = [
+  "tailscale*",
+  "docker*",
+  "br-*",
+  "veth*",
+  "nxcompat*",
+  "virbr*",
+  "cni*",
+  "flannel*",
+  "zt*",
+  "wg*",
+  "tun*",
+];
+const RESCAN_MS = Number(env.NEXOLAB_LAN_GATEWAY_RESCAN_MS ?? "5000");
 const API_PREFIX = "/api/v1";
 const HOP_BY_HOP = new Set([
   "connection",
@@ -36,6 +62,32 @@ const HOP_BY_HOP = new Set([
   "transfer-encoding",
   "upgrade",
 ]);
+
+function globMatch(pattern, name) {
+  return pattern.endsWith("*") ? name.startsWith(pattern.slice(0, -1)) : name === pattern;
+}
+
+/** IPv4 addresses the `auto` mode listens on, from an os.networkInterfaces()-shaped object. */
+export function selectAddresses(interfaces, allow = AUTO_INTERFACES) {
+  const result = [];
+  for (const [name, entries] of Object.entries(interfaces ?? {})) {
+    if (NEVER_INTERFACES.some((pattern) => globMatch(pattern, name))) continue;
+    if (!allow.some((pattern) => globMatch(pattern, name))) continue;
+    for (const entry of entries ?? []) {
+      const v4 = entry.family === "IPv4" || entry.family === 4;
+      if (!v4 || !entry.address || entry.address.startsWith("169.254.")) continue;
+      if (name === "lo" && entry.address !== "127.0.0.1") continue;
+      if (
+        entry.address.startsWith("100.") &&
+        Number(entry.address.split(".")[1]) >= 64 &&
+        Number(entry.address.split(".")[1]) <= 127
+      )
+        continue; // CGNAT / Tailscale range
+      result.push(entry.address);
+    }
+  }
+  return [...new Set(result)].sort();
+}
 
 export function parseUpstream(value, name) {
   let url;
@@ -182,6 +234,37 @@ export function createGateway({ api, dashboard }) {
   return server;
 }
 
+function startAuto(upstreams) {
+  const listeners = new Map();
+  const log = (event, extra) => console.log(JSON.stringify({ event, ...extra }));
+  const scan = () => {
+    const wanted = new Set(selectAddresses(os.networkInterfaces()));
+    for (const [address, server] of listeners) {
+      if (!wanted.has(address)) {
+        server.close();
+        listeners.delete(address);
+        log("address_removed", { address });
+      }
+    }
+    for (const address of wanted) {
+      if (listeners.has(address)) continue;
+      const server = createGateway(upstreams);
+      listeners.set(address, server);
+      server.once("error", (error) => {
+        listeners.delete(address);
+        log("listen_failed", { address, port: LISTEN_PORT, code: error.code });
+      });
+      server.listen(LISTEN_PORT, address, () => log("listening", { address, port: LISTEN_PORT }));
+    }
+  };
+  scan();
+  const timer = setInterval(scan, RESCAN_MS);
+  return () => {
+    clearInterval(timer);
+    for (const server of listeners.values()) server.close();
+  };
+}
+
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   try {
@@ -195,21 +278,40 @@ if (isMain) {
     );
     if (!Number.isInteger(LISTEN_PORT) || LISTEN_PORT < 1 || LISTEN_PORT > 65535)
       throw new Error("invalid listen port");
-    const server = createGateway({ api, dashboard });
-    server.listen(LISTEN_PORT, LISTEN_HOST, () => {
+    if (LISTEN_HOST === "auto") {
+      const stopAuto = startAuto({ api, dashboard });
       console.log(
         JSON.stringify({
-          event: "listening",
-          host: LISTEN_HOST,
-          port: LISTEN_PORT,
+          event: "auto_mode",
+          interfaces: AUTO_INTERFACES,
+          never: NEVER_INTERFACES,
           api: api.origin,
           dashboard: dashboard.origin,
         }),
       );
-    });
-    const stop = () => server.close(() => process.exit(0));
-    process.on("SIGTERM", stop);
-    process.on("SIGINT", stop);
+      const stop = () => {
+        stopAuto();
+        setTimeout(() => process.exit(0), 200);
+      };
+      process.on("SIGTERM", stop);
+      process.on("SIGINT", stop);
+    } else {
+      const server = createGateway({ api, dashboard });
+      server.listen(LISTEN_PORT, LISTEN_HOST, () => {
+        console.log(
+          JSON.stringify({
+            event: "listening",
+            host: LISTEN_HOST,
+            port: LISTEN_PORT,
+            api: api.origin,
+            dashboard: dashboard.origin,
+          }),
+        );
+      });
+      const stop = () => server.close(() => process.exit(0));
+      process.on("SIGTERM", stop);
+      process.on("SIGINT", stop);
+    }
   } catch (error) {
     console.error(`NEXOLAB_LAN_GATEWAY_CONFIG_REFUSED ${error.message}`);
     process.exit(64);

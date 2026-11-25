@@ -203,10 +203,88 @@ class UnitContractTests(unittest.TestCase):
     def test_unit_is_bounded_and_binds_all_interfaces(self) -> None:
         unit = UNIT.read_text(encoding="utf-8")
         for line in ("NoNewPrivileges=yes", "ProtectSystem=strict", "MemoryMax=", "Restart=always",
-                     "NEXOLAB_LAN_GATEWAY_HOST=0.0.0.0", "NEXOLAB_LAN_GATEWAY_API=http://127.0.0.1:8082/"):
+                     "NEXOLAB_LAN_GATEWAY_HOST=auto", "NEXOLAB_LAN_GATEWAY_PORT=80",
+                     "NEXOLAB_LAN_GATEWAY_API=http://127.0.0.1:8082/",
+                     "CapabilityBoundingSet=CAP_NET_BIND_SERVICE", "AmbientCapabilities=CAP_NET_BIND_SERVICE"):
             self.assertIn(line, unit)
-        self.assertNotIn("172.18.48.66", unit)
+        self.assertNotIn("0.0.0.0", unit.split("[Service]", 1)[1])
+        self.assertNotIn("172.18.48.66", unit.split("[Service]", 1)[1])
+        dropin = (UNIT.parent / "nexolab-lan-gateway-stage1-compat.conf").read_text(encoding="utf-8")
+        self.assertIn("NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT=172.18.48.66", dropin)
         self.assertNotIn("192.168.", unit)
+
+
+@unittest.skipUnless(Path(NODE).exists(), "node is required")
+class AutoBindTests(unittest.TestCase):
+    def select(self, interfaces: dict) -> list[str]:
+        code = ("import(process.argv[1]).then(m => console.log(JSON.stringify(m.selectAddresses(JSON.parse(process.argv[2])))))")
+        out = subprocess.run([NODE, "--input-type=module", "-e", code, GATEWAY.as_uri(), json.dumps(interfaces)],
+                             capture_output=True, text=True, timeout=20)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return json.loads(out.stdout)
+
+    def test_listens_on_lan_and_loopback_never_tailnet_docker_or_compat(self) -> None:
+        v4 = lambda a: {"address": a, "family": "IPv4"}
+        interfaces = {
+            "lo": [v4("127.0.0.1")], "eth0": [v4("192.168.1.220"), {"address": "fe80::1", "family": "IPv6"}],
+            "wlan0": [v4("10.20.30.40")], "tailscale0": [v4("100.113.204.81")], "docker0": [v4("172.17.0.1")],
+            "br-f9c3e2a71ba5": [v4("172.18.0.1")], "veth1": [v4("169.254.1.1")], "nxcompat0": [v4("172.18.48.66")],
+            "enp1s0": [v4("100.64.0.5"), v4("169.254.9.9")],
+        }
+        self.assertEqual(self.select(interfaces), ["10.20.30.40", "127.0.0.1", "192.168.1.220"])
+
+    def test_dhcp_change_is_followed_without_configuration(self) -> None:
+        before = self.select({"eth0": [{"address": "192.168.1.220", "family": "IPv4"}]})
+        after = self.select({"eth0": [{"address": "192.168.1.77", "family": "IPv4"}]})
+        self.assertEqual((before, after), (["192.168.1.220"], ["192.168.1.77"]))
+
+    def test_auto_mode_serves_on_loopback(self) -> None:
+        api = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Api)
+        dash = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Dashboard)
+        for server in (api, dash):
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+        port = _free_port()
+        env = {**os.environ, "NEXOLAB_LAN_GATEWAY_HOST": "auto", "NEXOLAB_LAN_GATEWAY_PORT": str(port),
+               "NEXOLAB_LAN_GATEWAY_INTERFACES": "lo", "NEXOLAB_LAN_GATEWAY_RESCAN_MS": "200",
+               "NEXOLAB_LAN_GATEWAY_API": f"http://127.0.0.1:{api.server_address[1]}",
+               "NEXOLAB_LAN_GATEWAY_DASHBOARD": f"http://127.0.0.1:{dash.server_address[1]}"}
+        proc = subprocess.Popen([NODE, str(GATEWAY)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            body = None
+            for _ in range(50):
+                try:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v1/x", timeout=1) as res:
+                        body = json.loads(res.read())
+                        break
+                except OSError:
+                    time.sleep(0.1)
+            self.assertEqual(body and body["upstream"], "api")
+        finally:
+            proc.terminate()
+            proc.communicate(timeout=5)
+            for server in (api, dash):
+                server.shutdown()
+                server.server_close()
+
+    def test_compat_upstream_needs_the_exact_explicit_flag(self) -> None:
+        def start(extra):
+            env = {**os.environ, "NEXOLAB_LAN_GATEWAY_HOST": "127.0.0.1", "NEXOLAB_LAN_GATEWAY_PORT": str(_free_port()),
+                   "NEXOLAB_LAN_GATEWAY_API": "http://172.18.48.66:8082/", **extra}
+            proc = subprocess.Popen([NODE, str(GATEWAY)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                return proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                proc.terminate()
+                proc.communicate(timeout=5)
+                return "running"
+            finally:
+                if proc.stdout:
+                    proc.stdout.close()
+                if proc.stderr:
+                    proc.stderr.close()
+        self.assertEqual(start({}), 64)
+        self.assertEqual(start({"NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT": "192.168.1.220"}), 64)
+        self.assertEqual(start({"NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT": "172.18.48.66"}), "running")
 
 
 if __name__ == "__main__":
