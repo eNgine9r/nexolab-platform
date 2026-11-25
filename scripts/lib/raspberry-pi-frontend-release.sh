@@ -131,15 +131,18 @@ for key, value in expected.items():
 
 # Same-origin LAN profile (#1734): the literal also appears in fetch(credentials), so
 # its presence proves nothing. Require both endpoints together and prove the browser
-# bundle compiles no absolute host origin (IP literal, localhost or the API port).
+# bundle compiles no absolute host origin (IP literal or a NEXOLAB service port).
 same_origin_errors = []
 api_same = expected["NEXT_PUBLIC_NEXOLAB_API_BASE_URL"] == "same-origin"
 ws_same = expected["NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL"] == "same-origin"
 if api_same != ws_same:
     same_origin_errors.append("same_origin_mixed=api-and-websocket-must-both-be-same-origin")
 if api_same and ws_same:
-    absolute = re.compile(r"\b(?:https?|wss?)://(?:\d{1,3}(?:\.\d{1,3}){3}|localhost|\[[0-9a-fA-F:]+\])(?::\d+)?"
-                          r"|\b(?:https?|wss?)://[A-Za-z0-9.-]+:8082\b")
+    # IP literals and the NEXOLAB API/MQTT/dashboard ports are LAN host origins. A bare
+    # `localhost` default inside a library (Supabase auth-js GOTRUE_URL
+    # http://localhost:9999, unused with local auth) is not.
+    absolute = re.compile(r"\b(?:https?|wss?)://(?:\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-fA-F:]+\])(?::\d+)?"
+                          r"|\b(?:https?|wss?)://[A-Za-z0-9.-]+:(?:8082|1884|3000)\b")
     static = build / "static"
     for path, text in files:
         if static in path.parents:

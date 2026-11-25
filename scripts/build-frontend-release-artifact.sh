@@ -152,9 +152,13 @@ cmp -s package.json "$STAGING/package.json"
 cmp -s package-lock.json "$STAGING/package-lock.json"
 
 source scripts/lib/raspberry-pi-frontend-release.sh
-nexolab_frontend_verify_public_contract \
+if ! nexolab_frontend_verify_public_contract \
   "$STAGING" live "$API_BASE_URL" "$WEBSOCKET_URL" "$AUTH_PROVIDER" "$ORGANIZATION_ID" \
-  "$OUTPUT/frontend-public-contract.txt"
+  "$OUTPUT/frontend-public-contract.txt"; then
+  echo "ERROR: compiled public contract failed:" >&2
+  cat "$OUTPUT/frontend-public-contract.txt" >&2 || true
+  exit 70
+fi
 {
   find "$STAGING/.next" "$STAGING/node_modules" -type f -exec file {} + \
     | grep -E 'ELF|Mach-O|PE32' || true
