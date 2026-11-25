@@ -91,6 +91,8 @@ class InventoryTests(unittest.TestCase):
         self.assertTrue(assessment["affected_package_present"])
         self.assertFalse(assessment["fix_available"])
         self.assertFalse(assessment["quic_server_api_used_outside_openssl"])
+        self.assertFalse(assessment["quic_client_api_used_outside_openssl"])
+        self.assertEqual(result["quic_client_api_outside_openssl_libraries"], [])
         self.assertFalse(assessment["udp_exposed"])
         self.assertEqual(assessment["other_high_critical"], [])
         self.assertEqual(result["trivy"]["severity_counts"], {"HIGH": 1, "LOW": 1})
@@ -117,6 +119,17 @@ class InventoryTests(unittest.TestCase):
         row = INV.markdown_row(result)
         self.assertIn("YES", row)
         self.assertIn("4433/udp", row)
+
+    def test_detects_quic_client_consumer(self) -> None:
+        files = {
+            "usr/lib/aarch64-linux-gnu/libssl.so.3": _elf(b"OSSL_QUIC_client_method", b"SSL_new_listener"),
+            "usr/bin/quic-fetch": _elf(b"libssl.so.3", b"OSSL_QUIC_client_method", b"SSL_set1_initial_peer_addr"),
+        }
+        result = self.summary(files, {"Config": {}})
+        self.assertEqual(result["quic_client_api_outside_openssl_libraries"], ["usr/bin/quic-fetch"])
+        self.assertEqual(result["quic_server_api_outside_openssl_libraries"], [])
+        self.assertTrue(result["assessment"]["quic_client_api_used_outside_openssl"])
+        self.assertEqual(INV.markdown_row(result).count("YES"), 1)
 
     def test_fix_available_is_reported(self) -> None:
         trivy = json.loads(json.dumps(TRIVY))
