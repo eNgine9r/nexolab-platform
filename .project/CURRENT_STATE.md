@@ -1,3 +1,18 @@
+## 2026-11-25 (evening) — broker, Stage 2 tooling and receipt wiring merged; owner actions prepared
+
+- **#1759 Operator Broker merged** (source only). Owner install payload is in `~/recovery-p0/broker-v1`, with the installer pinned at `42bf8b5b…`.
+- **#1760 inventory fix:**
+  - The cleanup candidates no longer include the `*-protected-arm64` recovery images or release folders.
+  - The broker handler is repinned.
+  - Flake fix in the gateway test.
+- **WP2c Stage 2 (#1734):** source complete (#1761, #1764, #1766).
+  - The ARM64 same-origin artifact was built from main `c5bb48a1` (zip `f916352c…`, build `xRUAt2U9c3oug1ETWuLsT`). Its browser bundle contains no host origin.
+  - Owner script `owner-2026-11-25-stage2.sh` (`19c0085c…`): `prepare` (stage, offline build, isolated preview, read-only check) makes no production change. `execute` needs separate Stage 2 approval.
+- **Committed receipts (#1762):** central (#1763) and Edge (#1765) wiring merged, both default OFF.
+  - Slice 3 still needs isolated end-to-end acceptance and dedicated receipt broker identities.
+  - Site activation still needs #1428 and an approved release.
+- **Production unchanged by this work:** telemetry ready, Stage 1 gateway active.
+
 ## 2026-11-25 — WP2c Stage 1 GREEN; autonomous engineering mode; Operator Broker #1758 in review
 
 - **Stage 1 (#1734) installed by the owner, verified at 16:13Z.**

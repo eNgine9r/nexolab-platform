@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-25T16:37:58Z",
+  "timestamp": "2026-11-25T19:26:23Z",
   "actor": "claude",
-  "event": "WP2c Stage 1 GREEN verified; Operator Broker #1758 PR prepared; autonomous engineering mode documented",
+  "event": "Broker, WP2c Stage 2 tooling+artifact, committed-receipt wiring merged; owner packages pinned",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,7 +31,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1758
+    "issue": 1762
   },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
@@ -1503,8 +1503,10 @@
     "active_issue_evidence": {
       "hardware_verified": false,
       "site_cutover": false,
-      "site_acceptance": "owner_install_pending",
-      "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi"
+      "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
+      "default_off": true,
+      "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
+      "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762)."
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3929,6 +3931,12 @@
       "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)",
       "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
       "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)"
+    },
+    "superseded_active_issue_evidence_2026-11-25T16:37:58Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "owner_install_pending",
+      "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi"
     }
   },
   "observations": [
@@ -5559,7 +5567,7 @@
       }
     }
   ],
-  "next_action": "Merge #1758 after GREEN, hand owner the pinned broker install command; prepare WP2c Stage 2 same-origin frontend activation plan; Wi-Fi router-side check",
+  "next_action": "#1762 slice 3 isolated acceptance + receipt identities; await owner broker install, SSD cleanup, Stage 2 prepare",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

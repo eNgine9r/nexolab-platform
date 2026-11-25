@@ -68,7 +68,7 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1758
+      "issue": 1762
     },
     "next_work_package": {
       "issue": 1734
@@ -12126,7 +12126,8 @@
         "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply.",
         "strict_scan_dedupe": "PR #1729 merged a0b09a53: strict reference scan (missing/unreadable root, unreadable dir/file, escaping symlinked dir -> all image/release candidates withheld; every regular file streamed); hard-link dedupe of byte-identical archives with checksum-pinned plan",
         "owner_report_v2": "Owner reported 2026-11-23: v2 manifest /var/lib/nexolab-storage/manifest-20261123T123701Z.json sha256 ec909e83...e21e27, 5,261,205,689 bytes (8 frontend releases, 1 dangling image; APT already cleaned); guarded-update-1313: 20 GiB, no active systemd/process/mount references, historical deployment/recovery references, 3 byte-identical archives 2.21 GiB; free 23.90 GiB. Consolidated gated owner command prepared (identity gate + strict apply + hard-link dedupe).",
-        "cleanup_result_2026_11_23": "Owner ran the consolidated gated cleanup (manifest ec909e83 + guarded-update-1313 hard-link dedupe): free space 23.90 -> 30.29 GiB (agent-observed df 30.29 GiB, guard last run exit 0)."
+        "cleanup_result_2026_11_23": "Owner ran the consolidated gated cleanup (manifest ec909e83 + guarded-update-1313 hard-link dedupe): free space 23.90 -> 30.29 GiB (agent-observed df 30.29 GiB, guard last run exit 0).",
+        "inventory_fix_1760": "Inventory no longer lists tagged *-protected-arm64 images or release folders as CLEAN (containerd dangling=true lists tagged images). Owner cleanup script owner-2026-11-25-ssd-cleanup.sh (9782098...) t1 ~4.8 GiB / t2a ~16 GiB pending approval."
       },
       "branch": "ops/1710-persistent-dev-session"
     },
@@ -12219,7 +12220,8 @@
         "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)",
         "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
         "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)",
-        "wp2c_stage1": "2026-11-25 16:13Z owner ran Stage 1 v3 (8a48f62b...): NEXOLAB_STAGE1_GATEWAY_GREEN, real systemd sandbox SANDBOX_OK, gateway enabled+active on 127.0.0.1:80 and 192.168.1.220:80, login 200/API 400/WS 101 parity, OAuth gate 302, tailnet listener untouched, telemetry ready. Evidence p0-evidence/owner-stage1-20261125T161322Z.log. Stage 2/3 not approved."
+        "wp2c_stage1": "2026-11-25 16:13Z owner ran Stage 1 v3 (8a48f62b...): NEXOLAB_STAGE1_GATEWAY_GREEN, real systemd sandbox SANDBOX_OK, gateway enabled+active on 127.0.0.1:80 and 192.168.1.220:80, login 200/API 400/WS 101 parity, OAuth gate 302, tailnet listener untouched, telemetry ready. Evidence p0-evidence/owner-stage1-20261125T161322Z.log. Stage 2/3 not approved.",
+        "wp2c_stage2": "Source complete: #1761 same-origin artifact profile, #1764 actionable contract check (Supabase GOTRUE localhost default allowed; IP literals and 8082/1884/3000 forbidden), #1766 guarded tool docs/operations/network/wp2c-stage2-frontend.py (stage/build/preview/check/execute/rollback, compose fidelity proof, gateway verification, auto rollback). ARM64 artifact run 45682123670 from main c5bb48a1, zip sha256 f916352c..., build xRUAt2U9c3oug1ETWuLsT, same_origin_browser_bundle=no-absolute-host-origin. Owner: owner-2026-11-25-stage2.sh (19c0085c...) prepare, then execute only after Stage 2 approval. Not run on site."
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12242,7 +12244,7 @@
     {
       "issue": 1758,
       "title": "Autonomous Raspberry Pi operations via a bounded local operator broker",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Root-owned socket-activated broker: SO_PEERCRED uid 1001, fixed typed ops (read diagnostics, two down-only recover ops, approval-gated framework), redaction, replay protection, hash-chained audit, immutable-handler self check; checksum-pinned owner install/uninstall. No live installation by agent.",
       "depends_on": [
@@ -12260,7 +12262,8 @@
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "owner_install_pending",
-        "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi"
+        "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi",
+        "source_merge": "PR #1759 merged 19a0f4c1 (exact-head GREEN); inventory handler repinned in #1760. Owner install pending (payload ~/recovery-p0/broker-v1, installer sha256 42bf8b5b...)."
       }
     },
     {
@@ -12282,7 +12285,8 @@
         "site_cutover": false,
         "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
         "default_off": true,
-        "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED."
+        "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
+        "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762)."
       }
     }
   ],
