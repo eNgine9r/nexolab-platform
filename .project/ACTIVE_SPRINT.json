@@ -12216,7 +12216,9 @@
         "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
         "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
         "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
-        "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
+        "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)",
+        "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
+        "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)"
       },
       "branch": "feat/1734-same-origin-runtime"
     },

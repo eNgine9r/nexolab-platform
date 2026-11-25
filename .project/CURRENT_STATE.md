@@ -1,3 +1,22 @@
+## 2026-11-25 — receipt chain merged (source only), image CVEs resolved, reboot recovered automatically
+
+- **Security (#1743).** #1744 merged: exact libzstd1 fix overlay, plus the Product Owner-approved CVE-2026-107494 exceptions (three images, expiry 2026-12-15, no automatic extension).
+- **Committed-receipt chain #1397, source only and opt-in, not deployed:**
+  - #1450 MQTT receipt ACL;
+  - #1446 central receipt intents (migration `20261125_0042` rebased onto `20261122_0041`);
+  - #1452 Edge receipt ledger.
+
+  Activation needs the publisher and subscriber wiring, MQTT identities, isolated acceptance and an approved release.
+
+- **Other fixes.**
+  - #1754: the node clock offset overflowed INTEGER beyond ±24.8 days (#1753).
+  - #1752: the flaky energy e2e test came from the 5-minute boundary bucket (#1751).
+  - #1741: WP2e Device Agent clock status.
+- **Unplanned reboot (about 13:54Z).** Recovered without manual steps: `nxcompat0` restored, boot-repair success, telemetry ready within about 4 minutes.
+- **Pending owner actions:**
+  - WP2c Stage 1 gateway (v2 command `8bb6eda3…`, includes the SSD inventory and Wi-Fi diagnostics);
+  - then Stage 2 (same-origin LAN build) and Stage 3 (loopback backend, retire `nxcompat0`).
+
 ## 2026-11-25 — P0 network incident: production recovered (interim), data impact measured
 
 Recovery v3.2 (#1746) produced `GREEN_STABLE`, and the agent verified it independently at 11:04Z: readiness `ready`, ingestion lag 0.82 s, the Edge bridge delivering, new PostgreSQL rows, and LAN/HTTPS/lab identities as expected. The interim boot unit keeps `172.18.48.66/32` on `nxcompat0`.
