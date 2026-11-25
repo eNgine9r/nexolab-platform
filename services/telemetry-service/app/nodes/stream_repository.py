@@ -11,6 +11,7 @@ from app.db import Database
 from app.nodes.domain import (
     NodeState,
     NodeTopicStream,
+    bounded_clock_offset_ms,
     classify_clock_offset,
     parse_node_topic,
 )
@@ -315,7 +316,7 @@ class NodeStreamRepository:
             cursor.last_captured_at = event.captured_at
             cursor.updated_at = received_at
 
-        offset_ms = round((event.captured_at - received_at).total_seconds() * 1000)
+        offset_ms = bounded_clock_offset_ms(event.captured_at, received_at)
         node.last_seen_at = received_at
         node.last_clock_offset_ms = offset_ms
         node.clock_status = classify_clock_offset(

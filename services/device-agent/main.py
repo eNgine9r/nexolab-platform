@@ -18,6 +18,7 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 
+from clock_status import clock_status
 from embraco import EmbracoSyncReader, REGISTERS as EMBRACO_REGISTERS
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
@@ -750,6 +751,9 @@ class AgentState:
                 "last_publish_at": self.last_publish_at,
                 "last_error": self.last_error,
                 "started_at": self.started_at.isoformat(),
+                # Honest timestamps (#1734 WP2e): samples captured while the
+                # kernel clock is unsynchronized may carry wrong captured_at.
+                "clock": clock_status(),
             }
 
 

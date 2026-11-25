@@ -545,6 +545,20 @@ function acquisitionServiceCounters(metrics: AcquisitionMetrics) {
   };
 }
 
+// Cumulative boundary history is cached per 5-minute bucket of the window start
+// (energy-consumption-cache.ts DEFAULT_BUCKET_MS). A test that spans a 5-minute
+// wall-clock boundary legitimately reads the new bucket once more (#1751). Start
+// such tests inside one bucket instead of relaxing the exact read-count assertion.
+const ENERGY_BOUNDARY_BUCKET_MS = 5 * 60 * 1000;
+const ENERGY_BUCKET_HEADROOM_MS = 120 * 1000;
+
+async function startInsideOneBoundaryBucket(): Promise<void> {
+  const untilNextBucket = ENERGY_BOUNDARY_BUCKET_MS - (Date.now() % ENERGY_BOUNDARY_BUCKET_MS);
+  if (untilNextBucket < ENERGY_BUCKET_HEADROOM_MS) {
+    await new Promise((resolve) => setTimeout(resolve, untilNextBucket + 2_000));
+  }
+}
+
 function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boolean }>): number {
   return requests.filter((item) => {
     const url = new URL(item.url);
@@ -555,9 +569,11 @@ function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boole
 test("renders selectable heterogeneous energy meters from verified cumulative boundaries", async ({
   browser,
 }) => {
+  test.setTimeout(300_000); // up to ~122 s bucket alignment plus the unchanged test body
   mkdirSync(evidenceDirectory, { recursive: true });
   seedEnergyEvidence();
   await new Promise((resolve) => setTimeout(resolve, 2_000));
+  await startInsideOneBoundaryBucket();
 
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
