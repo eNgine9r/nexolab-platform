@@ -11,16 +11,17 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Callable
+from typing import Any, Callable, Sequence
 from uuid import uuid4
 
-from sqlalchemy import and_, exists, func, or_, select, update
+from sqlalchemy import func, or_, select, update
 
 from app.db import Database, TelemetryCommittedReceipt
 
 ReceiptSender = Callable[[str, bytes], bool]
 
 MAX_RECEIPT_BYTES = 2048
+MAX_RECEIPT_BATCH = 500
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,12 +31,27 @@ class PublishAttempt:
     attempts: int = 0
 
 
+@dataclass(frozen=True, slots=True)
+class _Claim:
+    event_id: str
+    attempts: int
+    receipt_id: str
+    topic: str
+    body: bytes | None
+
+
 class CommittedReceiptPublisher:
-    """Crash-recoverable, bounded one-intent-at-a-time send loop.
+    """Crash-recoverable, bounded batch receipt publisher.
 
     send_acknowledged must return True ONLY after a real QoS1 broker PUBACK
     from an independently authorized dedicated central publishing identity.
     A broker PUBACK still does not establish delivery to the Edge subscriber.
+
+    #1762 slice 4: the Edge binds each receipt to its exact pending row, so a
+    receipt no longer waits for older receipts of the same node. Intents are
+    claimed in commit order, in bounded batches, each with its own durable
+    retry lease. A sender that exposes ``send_batch(items) -> list[bool]``
+    publishes a batch with per-message QoS1 PUBACK tracking.
     """
 
     def __init__(
@@ -65,13 +81,91 @@ class CommittedReceiptPublisher:
         self._max_payload_bytes = max_payload_bytes
 
     def run_once(self, *, now: datetime | None = None) -> PublishAttempt:
+        """Claim and publish at most one intent (kept for single-step use)."""
+        attempts = self.run_batch(limit=1, now=now)
+        return attempts[0] if attempts else PublishAttempt("idle")
+
+    def run_batch(
+        self, *, limit: int = 50, now: datetime | None = None
+    ) -> list[PublishAttempt]:
+        """Claim up to ``limit`` due intents, publish them, mark the PUBACKed.
+
+        Returns one PublishAttempt per claimed intent (empty when idle). Each
+        claim first takes a durable retry lease in its own committed
+        transaction; ``published_at`` is set only after that intent's PUBACK.
+        """
+        if type(limit) is not int or not 1 <= limit <= MAX_RECEIPT_BATCH:
+            raise ValueError("invalid_receipt_batch_limit")
         observed = now or datetime.now(UTC)
         if observed.tzinfo is None or observed.utcoffset() is None:
             raise ValueError("receipt_clock_must_be_aware")
+        claims = self._claim(observed, limit)
+        if not claims:
+            return []
+
+        results: dict[str, bool] = {}
+        sendable = [claim for claim in claims if claim.body is not None]
+        if sendable:
+            confirmations = self._send(
+                [(claim.topic, claim.body) for claim in sendable]  # type: ignore[misc]
+            )
+            for claim, confirmed in zip(sendable, confirmations):
+                results[claim.event_id] = confirmed is True
+
+        acknowledged = [claim for claim in sendable if results.get(claim.event_id)]
+        published: set[str] = set()
+        if acknowledged:
+            table = TelemetryCommittedReceipt.__table__
+            # This mark follows each broker ACK, NEVER precedes it. If the
+            # worker crashes here, the durable lease expires and retry may
+            # redeliver the same receipt; the Edge dedupes receipt_id.
+            with self._database.engine.begin() as connection:
+                for claim in acknowledged:
+                    changed = connection.execute(
+                        update(table)
+                        .where(
+                            table.c.event_id == claim.event_id,
+                            table.c.attempts == claim.attempts,
+                            table.c.receipt_id == claim.receipt_id,
+                            table.c.published_at.is_(None),
+                        )
+                        .values(published_at=observed)
+                    ).rowcount
+                    if changed == 1:
+                        published.add(claim.event_id)
+        return [
+            PublishAttempt(
+                "published" if claim.event_id in published else "retry",
+                claim.event_id,
+                claim.attempts,
+            )
+            for claim in claims
+        ]
+
+    def _send(self, items: list[tuple[str, bytes]]) -> list[bool]:
+        batch_sender: Any = getattr(self._sender, "send_batch", None)
+        if callable(batch_sender):
+            try:
+                confirmations = list(batch_sender(items))
+            except Exception:  # noqa: BLE001 - transport remains retryable
+                return [False] * len(items)
+            if len(confirmations) != len(items):
+                return [False] * len(items)
+            return [value is True for value in confirmations]
+        results = []
+        for topic, body in items:
+            try:
+                confirmed = self._sender(topic, body)
+            except Exception:  # noqa: BLE001 - transport remains retryable
+                confirmed = False
+            results.append(confirmed is True)
+        return results
+
+    def _claim(self, observed: datetime, limit: int) -> list[_Claim]:
         table = TelemetryCommittedReceipt.__table__
-        earlier = table.alias("earlier_unpublished_receipt")
+        claims: list[_Claim] = []
         with self._database.engine.begin() as connection:
-            record = connection.execute(
+            records: Sequence[Any] = connection.execute(
                 select(table)
                 .where(
                     table.c.published_at.is_(None),
@@ -79,100 +173,71 @@ class CommittedReceiptPublisher:
                         table.c.next_attempt_at.is_(None),
                         table.c.next_attempt_at <= observed,
                     ),
-                    # Edge only accepts the oldest pending sequence. A
-                    # backed-off older receipt must prevent claiming a
-                    # newer receipt for the SAME organization and node;
-                    # otherwise newer broker PUBACK could permanently
-                    # retire an ACK the Edge has not accepted.
-                    ~exists(
-                        select(earlier.c.event_id).where(
-                            and_(
-                                earlier.c.organization_id == table.c.organization_id,
-                                earlier.c.node_id == table.c.node_id,
-                                earlier.c.node_sequence < table.c.node_sequence,
-                                earlier.c.published_at.is_(None),
-                            )
-                        )
-                    ),
                 )
                 .order_by(table.c.committed_at, table.c.event_id)
-                .limit(1)
+                .limit(limit)
                 .with_for_update(skip_locked=True)
-            ).mappings().first()
-            if record is None:
-                return PublishAttempt("idle")
-            event_id = str(record["event_id"])
-            attempts = int(record["attempts"]) + 1
-            retry_delay = min(
-                self._max_retry_seconds,
-                self._initial_retry_seconds * (2 ** min(attempts - 1, 16)),
-            )
-            connection.execute(
-                update(table)
-                .where(table.c.event_id == event_id)
-                .values(
-                    attempts=attempts,
-                    next_attempt_at=observed + timedelta(seconds=retry_delay),
-                )
-            )
-            topic = str(record["topic"])
-            payload = record["payload"]
-            receipt_id = str(record["receipt_id"])
-
-            # The Edge validator refuses receipts older than seven days.
-            # Reissue a fresh receipt (not a fresh sample commit) from the
-            # durable PostgreSQL row before an aged retry is published.
-            stamp = payload.get("accepted_at")
-            if not isinstance(stamp, str):
-                return PublishAttempt("retry", event_id, attempts)
-            try:
-                accepted_at = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
-            except ValueError:
-                return PublishAttempt("retry", event_id, attempts)
-            if accepted_at.tzinfo is None or accepted_at.utcoffset() is None:
-                return PublishAttempt("retry", event_id, attempts)
-            if accepted_at <= observed - timedelta(days=6):
-                receipt_id = str(uuid4())
-                payload = dict(payload)
-                payload["receipt_id"] = receipt_id
-                payload["accepted_at"] = observed.astimezone(UTC).isoformat().replace(
-                    "+00:00", "Z"
+            ).mappings().all()
+            for record in records:
+                event_id = str(record["event_id"])
+                attempts = int(record["attempts"]) + 1
+                retry_delay = min(
+                    self._max_retry_seconds,
+                    self._initial_retry_seconds * (2 ** min(attempts - 1, 16)),
                 )
                 connection.execute(
                     update(table)
                     .where(table.c.event_id == event_id)
-                    .values(receipt_id=receipt_id, payload=payload)
+                    .values(
+                        attempts=attempts,
+                        next_attempt_at=observed + timedelta(seconds=retry_delay),
+                    )
                 )
+                topic = str(record["topic"])
+                payload = record["payload"]
+                receipt_id = str(record["receipt_id"])
 
-        try:
-            body = json.dumps(
-                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-            ).encode("utf-8")
-            if not (0 < len(body) <= self._max_payload_bytes):
-                return PublishAttempt("retry", event_id, attempts)
-            confirmed = self._sender(topic, body)
-        except Exception:  # noqa: BLE001 - transport remains retryable
-            confirmed = False
-        if confirmed is not True:
-            return PublishAttempt("retry", event_id, attempts)
-
-        # This mark follows the callback's broker ACK, NEVER precedes it.
-        # If the worker crashes here, the durable lease expires and retry
-        # may redeliver the same receipt; receiver must dedupe receipt_id.
-        with self._database.engine.begin() as connection:
-            changed = connection.execute(
-                update(table)
-                .where(
-                    table.c.event_id == event_id,
-                    table.c.attempts == attempts,
-                    table.c.receipt_id == receipt_id,
-                    table.c.published_at.is_(None),
-                )
-                .values(published_at=observed)
-            ).rowcount
-        return PublishAttempt(
-            "published" if changed == 1 else "retry", event_id, attempts
-        )
+                # The Edge validator refuses receipts older than seven days.
+                # Reissue a fresh receipt (not a fresh sample commit) from the
+                # durable PostgreSQL row before an aged retry is published.
+                body: bytes | None = None
+                stamp = payload.get("accepted_at")
+                accepted_at: datetime | None = None
+                if isinstance(stamp, str):
+                    try:
+                        accepted_at = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                    except ValueError:
+                        accepted_at = None
+                if accepted_at is not None and (
+                    accepted_at.tzinfo is None or accepted_at.utcoffset() is None
+                ):
+                    accepted_at = None
+                if accepted_at is not None:
+                    if accepted_at <= observed - timedelta(days=6):
+                        receipt_id = str(uuid4())
+                        payload = dict(payload)
+                        payload["receipt_id"] = receipt_id
+                        payload["accepted_at"] = (
+                            observed.astimezone(UTC).isoformat().replace("+00:00", "Z")
+                        )
+                        connection.execute(
+                            update(table)
+                            .where(table.c.event_id == event_id)
+                            .values(receipt_id=receipt_id, payload=payload)
+                        )
+                    try:
+                        encoded = json.dumps(
+                            payload,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ).encode("utf-8")
+                    except (TypeError, ValueError):
+                        encoded = b""
+                    if 0 < len(encoded) <= self._max_payload_bytes:
+                        body = encoded
+                claims.append(_Claim(event_id, attempts, receipt_id, topic, body))
+        return claims
 
     def pending_stats(self, *, now: datetime | None = None) -> dict[str, float | int | None]:
         observed = now or datetime.now(UTC)

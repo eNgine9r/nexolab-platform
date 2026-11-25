@@ -36,6 +36,7 @@ RECEIPT_SECRET = "nxl_edge_receipt_secret"
 
 
 class FakeResult:
+
     def __init__(self, acknowledged: bool) -> None:
         self.rc = 0
         self._acknowledged = acknowledged
@@ -95,6 +96,7 @@ class FakeClient:
 
 
 class Clock:
+
     def __init__(self) -> None:
         self.value = 1000.0
 
@@ -125,6 +127,7 @@ def receipt(
 
 
 class Fixture(unittest.TestCase):
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -197,6 +200,7 @@ class Fixture(unittest.TestCase):
 
 
 class ConfigurationTests(Fixture):
+
     def test_flag_defaults_to_disabled(self) -> None:
         settings = self.settings(self.environment())
         self.assertIsNone(settings.committed_receipts)
@@ -219,6 +223,30 @@ class ConfigurationTests(Fixture):
         self.assertEqual(config.telemetry_topic, TELEMETRY_TOPIC)
         self.assertEqual(config.client_id, f"nexolab-{ORG}-{NODE}-receipts")
         self.assertEqual(config.replay_after_seconds, 30.0)
+        self.assertEqual(config.catch_up_window, 50)
+        self.assertEqual(config.catch_up_max_rows_per_second, 200.0)
+
+    def test_catch_up_window_and_rate_are_validated(self) -> None:
+        config = self.settings(self.enabled_environment(
+            DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW="8",
+            DEVICE_AGENT_RECEIPT_CATCHUP_MAX_ROWS_PER_SECOND="40",
+        )).committed_receipts
+        assert config is not None
+        self.assertEqual((config.catch_up_window, config.catch_up_max_rows_per_second), (8, 40.0))
+        for value in ("0", "501", "1.5", "many"):
+            with self.subTest(window=value):
+                self.assert_config_error(
+                    self.enabled_environment(DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW=value),
+                    "DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW must be an integer",
+                )
+        for value in ("0", "-1", "inf", "1001"):
+            with self.subTest(rate=value):
+                self.assert_config_error(
+                    self.enabled_environment(
+                        DEVICE_AGENT_RECEIPT_CATCHUP_MAX_ROWS_PER_SECOND=value
+                    ),
+                    "DEVICE_AGENT_RECEIPT_CATCHUP_MAX_ROWS_PER_SECOND",
+                )
 
     def assert_config_error(self, environment: dict[str, str], fragment: str) -> None:
         with self.assertRaises(ValueError) as caught:
@@ -308,6 +336,7 @@ class ConfigurationTests(Fixture):
 
 
 class DisabledPathTests(Fixture):
+
     def test_disabled_keeps_legacy_queue_and_deletes_on_puback(self) -> None:
         agent, clients = self.agent(self.environment())
         self.assertIs(type(agent.queue), OfflineQueue)
@@ -327,12 +356,13 @@ class DisabledPathTests(Fixture):
 
 
 class EnabledPathTests(Fixture):
+
     def setUp(self) -> None:
         super().setUp()
         self.clock = Clock()
 
-    def enabled_agent(self) -> tuple[DeviceAgent, FakeClient, FakeClient]:
-        agent, clients = self.agent(self.enabled_environment())
+    def enabled_agent(self, **extra: str) -> tuple[DeviceAgent, FakeClient, FakeClient]:
+        agent, clients = self.agent(self.enabled_environment(**extra))
         runtime: CommittedReceiptRuntime = agent.committed_receipts
         runtime._monotonic = self.clock
         runtime._sent_batches.clear()
@@ -430,29 +460,35 @@ class EnabledPathTests(Fixture):
                 ),
             ),
             "invalid_receipt_json": (RECEIPT_TOPIC, b"{not json"),
-            # A later event cannot be acknowledged before the oldest pending.
-            "receipt_identity_mismatch_out_of_order": (
+            # Exact-row binding: a receipt naming one row with another row's
+            # sequence never prunes either row.
+            "receipt_sequence_mismatch": (RECEIPT_TOPIC, receipt(second_event, seq)),
+            # An unknown (or already pruned) event never prunes anything.
+            "no_matching_pending_telemetry": (
                 RECEIPT_TOPIC,
-                receipt(second_event, second_seq),
+                receipt(str(uuid.uuid4()), second_seq),
             ),
         }
-        for _, (topic, payload) in cases.items():
-            self.assertEqual(runtime.handle_receipt(topic, payload), "rejected")
+        for reason, (topic, payload) in cases.items():
+            with self.subTest(reason=reason):
+                self.assertEqual(runtime.handle_receipt(topic, payload), "rejected")
         self.assertEqual(agent.queue.size(), 2)
 
-        valid = receipt(event, seq)
+        # Out of order is accepted for its exact pending row only.
+        valid = receipt(second_event, second_seq)
         self.assertEqual(runtime.handle_receipt(RECEIPT_TOPIC, valid), "pruned")
         # Exact duplicate (same receipt_id) is rejected by the durable ledger.
         self.assertEqual(runtime.handle_receipt(RECEIPT_TOPIC, valid), "rejected")
-        self.assertEqual(self.queued(agent)[0][1], second_event)
+        self.assertEqual([row[1] for row in self.queued(agent)], [event])
+        self.assertEqual(runtime.handle_receipt(RECEIPT_TOPIC, receipt(event, seq)), "pruned")
+        self.assertEqual(agent.queue.size(), 0)
 
         reasons = runtime.snapshot()["receipts_rejected_by_reason"]
-        self.assertEqual(reasons["unexpected_receipt_topic"], 1)
-        self.assertEqual(reasons["receipt_identity_mismatch"], 2)
-        self.assertEqual(reasons["stale_receipt_timestamp"], 1)
-        self.assertEqual(reasons["invalid_receipt_json"], 1)
+        for reason in cases:
+            self.assertEqual(reasons[reason], 1, reason)
         self.assertEqual(reasons["receipt_id_already_processed"], 1)
-        self.assertEqual(runtime.snapshot()["receipts_rejected_total"], 6)
+        self.assertEqual(runtime.snapshot()["receipts_rejected_total"], 7)
+        self.assertEqual(runtime.snapshot()["receipts_applied_total"], 2)
 
     def test_publisher_authorization_never_comes_from_message(self) -> None:
         agent, _, _ = self.enabled_agent()
@@ -469,12 +505,12 @@ class EnabledPathTests(Fixture):
         )
         self.assertEqual(agent.queue.size(), 1)
 
-    def test_replay_waits_for_age_then_is_rate_bounded(self) -> None:
+    def test_catch_up_waits_for_age_then_resends_fifo_with_stall_backoff(self) -> None:
         agent, telemetry, _ = self.enabled_agent()
         runtime = agent.committed_receipts
         for _ in range(3):
             agent.publish_or_queue(self.record())
-        head_payload = agent.queue.oldest()[0][2]
+        payloads = [payload for _, _, payload in agent.queue.oldest()]
         sent = len(telemetry.published)
 
         for _ in range(100):
@@ -483,35 +519,119 @@ class EnabledPathTests(Fixture):
 
         self.clock.value += 30
         outcomes = [runtime.replay_tick() for _ in range(1000)]
-        self.assertEqual(outcomes.count("puback_waiting_receipt"), 1)
-        self.assertEqual(outcomes.count("deferred"), 999)
-        self.assertEqual(telemetry.published[sent:], [(TELEMETRY_TOPIC, head_payload)])
+        self.assertEqual(outcomes.count("resent"), 1)
+        self.assertEqual(outcomes.count("waiting_receipt"), 999)
+        # One FIFO window with every eligible row, in SQLite id order.
+        self.assertEqual(
+            telemetry.published[sent:], [(TELEMETRY_TOPIC, p) for p in payloads]
+        )
 
-        replays = []
+        resends = []
         for step in range(1, 200):  # 199 simulated seconds
             self.clock.value += 1
-            if runtime.replay_tick() == "puback_waiting_receipt":
-                replays.append(step)
-        # Exponential backoff 5, 10, 20, 40 (capped at 40).
-        self.assertEqual(replays, [5, 15, 35, 75, 115, 155, 195])
-        # Only the head row was ever replayed; FIFO is never skipped.
-        self.assertTrue(all(p == head_payload for _, p in telemetry.published[sent:]))
+            before = len(telemetry.published)
+            if runtime.replay_tick() == "resent":
+                resends.append(step)
+                self.assertEqual(
+                    telemetry.published[before:], [(TELEMETRY_TOPIC, p) for p in payloads]
+                )
+        # No receipt ever came back (central down): each expired window adds
+        # an exponential stall backoff 5, 10, 20, 40 (capped at 40).
+        self.assertEqual(resends, [35, 75, 125, 195])
         snapshot = runtime.snapshot()
-        self.assertEqual(snapshot["replay_attempts_total"], 8)
+        self.assertEqual(snapshot["replay_pubacks_total"], 15)
+        self.assertEqual(snapshot["catch_up"]["stalls_total"], 4)
         self.assertEqual(agent.queue.size(), 3)
 
-    def test_receipt_advances_replay_to_next_head(self) -> None:
+    def test_applied_receipt_ends_stall_backoff(self) -> None:
         agent, telemetry, _ = self.enabled_agent()
         runtime = agent.committed_receipts
-        agent.publish_or_queue(self.record())
-        agent.publish_or_queue(self.record())
-        (_, event, seq), (_, second_event, _) = self.queued(agent)
-        self.clock.value += 31
-        self.assertEqual(runtime.replay_tick(), "puback_waiting_receipt")
+        for _ in range(3):
+            agent.publish_or_queue(self.record())
+        (_, event, seq), *_rest = self.queued(agent)
+        self.clock.value += 30
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.clock.value += 30
+        self.assertEqual(runtime.replay_tick(), "deferred")
         self.assertEqual(runtime.handle_receipt(RECEIPT_TOPIC, receipt(event, seq)), "pruned")
+        before = len(telemetry.published)
+        # The expired sweep ends, then a new one starts without the backoff.
+        self.assertEqual(runtime.replay_tick(), "waiting_receipt")
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.assertEqual(len(telemetry.published) - before, 2)
+
+    def test_window_bounds_in_flight_rows_and_rate(self) -> None:
+        agent, telemetry, _ = self.enabled_agent(DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW="2")
+        runtime = agent.committed_receipts
+        for _ in range(5):
+            agent.publish_or_queue(self.record())
+        rows = self.queued(agent)
+        sent = len(telemetry.published)
+        self.clock.value += 31
+
+        def resent_sequences() -> list[int]:
+            return [json.loads(p)["node_sequence"] for _, p in telemetry.published[sent:]]
+
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.assertEqual(resent_sequences(), [1, 2])
+        for _ in range(50):
+            self.assertEqual(runtime.replay_tick(), "window_full")
+        # An out-of-order exact-row receipt frees one slot in the window.
+        _, second_event, second_seq = rows[1]
+        self.assertEqual(
+            runtime.handle_receipt(RECEIPT_TOPIC, receipt(second_event, second_seq)),
+            "pruned",
+        )
         self.assertTrue(runtime._wake.is_set())
-        self.assertEqual(runtime.replay_tick(), "puback_waiting_receipt")
-        self.assertEqual(json.loads(telemetry.published[-1][1])["event_id"], second_event)
+        # The token bucket is empty until time passes (bounded rate).
+        self.assertEqual(runtime.replay_tick(), "rate_limited")
+        self.clock.value += 0.01
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.assertEqual(resent_sequences(), [1, 2, 3])
+        self.assertEqual(runtime.replay_tick(), "window_full")
+        self.assertEqual(runtime.snapshot()["catch_up"]["in_flight"], 2)
+        self.assertEqual(agent.queue.size(), 4)
+
+    def test_publish_failure_keeps_rows_and_backs_off(self) -> None:
+        agent, telemetry, _ = self.enabled_agent()
+        runtime = agent.committed_receipts
+        for _ in range(2):
+            agent.publish_or_queue(self.record())
+        self.clock.value += 31
+        telemetry.acknowledge = False
+        self.assertEqual(runtime.replay_tick(), "retry_scheduled")
+        self.assertEqual(runtime.replay_tick(), "deferred")
+        telemetry.acknowledge = True
+        self.clock.value += 5
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.assertEqual(agent.queue.size(), 2)
+        self.assertEqual(runtime.snapshot()["replay_failures_total"], 1)
+
+    def test_corrupt_local_head_row_is_skipped_and_reported(self) -> None:
+        agent, telemetry, _ = self.enabled_agent()
+        runtime = agent.committed_receipts
+        for _ in range(2):
+            agent.publish_or_queue(self.record())
+        (head_id, _, _), (_, second_event, _) = self.queued(agent)
+        with agent.queue._connection:
+            agent.queue._connection.execute(
+                "UPDATE outbound_queue SET payload=? WHERE id=?",
+                (json.dumps({"event_id": str(uuid.uuid4()), "node_id": NODE}), head_id),
+            )
+        sent = len(telemetry.published)
+        self.clock.value += 31
+        self.assertEqual(runtime.replay_tick(), "resent")
+        self.assertEqual(
+            [json.loads(p)["event_id"] for _, p in telemetry.published[sent:]],
+            [second_event],
+        )
+        health = agent._state_snapshot_for_health()
+        self.assertEqual(health["status"], "degraded")
+        self.assertEqual(
+            health["committed_receipts"]["head_blocked_reason"],
+            "invalid_local_replay_identity",
+        )
+        self.assertEqual(agent.queue.size(), 2)
 
     def test_replay_never_runs_while_telemetry_disconnected(self) -> None:
         agent, telemetry, _ = self.enabled_agent()
@@ -540,7 +660,7 @@ class EnabledPathTests(Fixture):
             agent.publish_or_queue(self.record())
         before = self.queued(agent)
         self.clock.value += 31
-        self.assertEqual(agent.committed_receipts.replay_tick(), "puback_waiting_receipt")
+        self.assertEqual(agent.committed_receipts.replay_tick(), "resent")
         agent.stop_committed_receipts()
         agent.queue._connection.close()
 
@@ -565,19 +685,27 @@ class EnabledPathTests(Fixture):
         )
         self.assertEqual(len(self.queued(third)), 2)
 
-    def test_foreign_topic_head_blocks_and_degrades_health(self) -> None:
+    def test_foreign_head_row_is_never_resent_and_degrades_health(self) -> None:
         agent, telemetry, _ = self.enabled_agent()
         agent.queue.enqueue("nexolab/telemetry", json.dumps({"event_id": "x"}), "legacy-1")
         agent.publish_or_queue(self.record())
+        agent.flush_queue()
+        sent = len(telemetry.published)
         self.clock.value += 1000
-        self.assertEqual(
-            agent.committed_receipts.replay_tick(), "blocked_foreign_queue_topic"
+        # The scoped row behind it still catches up (exact-row receipts).
+        self.assertEqual(agent.committed_receipts.replay_tick(), "resent")
+        self.assertTrue(
+            all(topic == TELEMETRY_TOPIC for topic, _ in telemetry.published[sent:])
         )
         self.assertEqual(agent.queue.size(), 2)
         health = agent._state_snapshot_for_health()
         self.assertEqual(health["status"], "degraded")
         self.assertEqual(
             health["committed_receipts"]["head_blocked_reason"], "foreign_topic_row"
+        )
+        self.assertEqual(
+            health["committed_receipts"]["catch_up"]["skipped_rows_by_reason"],
+            {"foreign_topic_row": 1},
         )
 
     def test_health_reports_capacity_and_replay_metrics(self) -> None:

@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     nexolab_receipt_publisher_idle_seconds: float = Field(
         default=1.0, ge=0.05, le=60.0
     )
+    # #1762 slice 4: receipts published per batch (QoS1 PUBACK per message).
+    nexolab_receipt_publisher_batch_size: int = Field(default=50, ge=1, le=500)
 
     broker_control_enabled: bool = False
     broker_control_encryption_key_file: str | None = None

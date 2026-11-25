@@ -11,6 +11,7 @@ import json
 import re
 from datetime import UTC, datetime, timedelta
 from threading import Event
+from time import monotonic
 from typing import Any
 from uuid import UUID
 
@@ -192,3 +193,38 @@ class CommittedReceiptMqttSender:
             # Transport remains retryable; do not leak credentials or payload.
             self._connected.clear()
             return False
+
+    def send_batch(self, items: list[tuple[str, bytes]]) -> list[bool]:
+        """Publish a bounded batch; report each message's own QoS1 PUBACK.
+
+        Every message is validated exactly like ``__call__``. All valid
+        messages are handed to Paho first, then each PUBACK is awaited against
+        one shared deadline, so a batch costs about one broker round trip.
+        True means that message's PUBACK was observed, nothing more.
+        """
+        results = [False] * len(items)
+        if not self._started or not items:
+            return results
+        valid = [
+            index
+            for index, (topic, payload) in enumerate(items)
+            if self._identity_matches(topic, payload)
+        ]
+        if not valid or not self._connected.wait(self._connect_timeout_seconds):
+            return results
+        in_flight: list[tuple[int, Any]] = []
+        try:
+            for index in valid:
+                topic, payload = items[index]
+                published = self._client.publish(topic, payload, qos=1, retain=False)
+                if published.rc != self._mqtt.MQTT_ERR_SUCCESS:
+                    break
+                in_flight.append((index, published))
+            deadline = monotonic() + self._puback_timeout_seconds
+            for index, published in in_flight:
+                published.wait_for_publish(timeout=max(0.0, deadline - monotonic()))
+                results[index] = published.is_published() is True
+        except Exception:
+            # Transport remains retryable; unconfirmed messages stay False.
+            self._connected.clear()
+        return results

@@ -274,8 +274,8 @@ Runtime behaviour when enabled:
 - **Receipts.** A separate Paho client (dedicated identity) subscribes to the
   exact node receipt topic. Each message goes through
   `apply_committed_receipt`: forged, wrong-tenant, wrong-node, wrong-event,
-  out-of-order, stale, future, malformed and duplicate receipts are rejected
-  and counted by reason; `durably_spooled` is informational and never prunes.
+  out-of-order (until slice 4, see below), stale, future, malformed and
+  duplicate receipts are rejected and counted by reason; `durably_spooled` is informational and never prunes.
   The receipt ledger is durable across restarts.
 - **Replay.** A `committed-receipt-replay` thread re-publishes only the oldest
   pending row, only after it waited `REPLAY_AFTER_SECONDS` since it was sent,
@@ -347,3 +347,73 @@ without live flow, and head replay cannot catch up with the site's
 row that is not the Edge head is rejected and central does not re-send it,
 so after a gap every later row also needs its own replay. This is recorded as a follow-up; activation must not
 rely on head replay alone. Hardware and site remain **UNVERIFIED**.
+
+## 2026-11-25 — Bounded bulk catch-up (#1762 slice 4)
+
+Slice 3 measured recovery at about 1.1 rows/s (head replay) and 2.3 rows/s
+overall. Slice 4 removes the three causes. Both flags stay `disabled` by
+default and the legacy paths are unchanged.
+
+**Exact-row binding replaces the FIFO-head rule.** The Edge accepts a valid
+`postgres_committed` receipt for **any** pending row, but only for the one
+row whose `event_id`, `node_sequence`, organization, node and exact
+org-scoped telemetry topic all match. `validate_for_pending` drops the
+`oldest_pending_sequence` argument and takes `pending_row_topic` (the stored
+topic of the named row) instead; it rejects `pending_row_topic_not_scoped`.
+`apply_committed_receipt` looks the row up by the receipt `event_id` inside
+the same `BEGIN IMMEDIATE` transaction as the durable `receipt_id` ledger
+insert and the single-row delete. Unknown or already pruned rows are rejected
+(`no_matching_pending_telemetry`); another row's sequence is rejected
+(`receipt_sequence_mismatch`). Duplicate, stale, future, forged, wrong-node,
+wrong-tenant, malformed and unauthenticated receipts are rejected as before.
+A legacy or foreign-tenant row is never pruned, but it no longer blocks
+receipts for the node's own rows; `/health` stays `degraded` while it is
+there (`head_blocked_reason=foreign_topic_row`).
+
+**Edge windowed catch-up** (`receipt_replay.CommittedReceiptCatchUp`, used by
+`CommittedReceiptRuntime.replay_tick`). Pending rows first sent more than
+`DEVICE_AGENT_RECEIPT_REPLAY_AFTER_SECONDS` ago are re-published in SQLite id
+order, in windows:
+
+- at most `DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW` (default 50, 1..500) resent
+  rows are in flight (resent, still pending, resent less than replay-after
+  ago);
+- a token bucket caps the resend rate at
+  `DEVICE_AGENT_RECEIPT_CATCHUP_MAX_ROWS_PER_SECOND` (default 200, at most
+  1000);
+- one sweep walks the outbox once; the next sweep starts only replay-after
+  seconds after the last window, so a row is never resent more often;
+- a window that expires without a single receipt (central down) and a
+  publish failure back off exponentially (`..._REPLAY_INITIAL_RETRY_SECONDS`
+  to `..._REPLAY_MAX_RETRY_SECONDS`); any applied receipt ends a stall
+  backoff;
+- nothing is resent while the telemetry connection is down; corrupt local
+  rows are skipped (never resent, never pruned) and counted;
+- a window is handed to Paho at once and each PUBACK is awaited against one
+  deadline. A PUBACK never deletes a row.
+
+`/health.committed_receipts.catch_up` reports window, rate cap, in flight,
+sweeps, windows, rows resent, publish failures, stalls and skipped rows by
+reason. `replay_attempts_total`, `replay_pubacks_total`,
+`replay_failures_total` and `replay_next_retry_seconds` now report the
+catch-up. `CommittedReceiptReplay` (head replay) stays in the module but the
+runtime no longer uses it.
+
+**Central publisher.** `CommittedReceiptPublisher.run_batch` claims up to
+`NEXOLAB_RECEIPT_PUBLISHER_BATCH_SIZE` (default 50, 1..500) due intents in
+commit order with `FOR UPDATE SKIP LOCKED`, takes each durable retry lease in
+one committed transaction, publishes them, and marks `published_at` per
+intent only after that intent's own PUBACK (same `attempts`/`receipt_id`
+guard as before). The earlier rule that an unpublished older receipt blocks
+newer receipts of the same node is removed: the Edge no longer needs order.
+`CommittedReceiptMqttSender.send_batch` validates every message like the
+single-message path, hands the batch to Paho and reports each PUBACK. The
+ingestion commit path wakes the publisher (`CommittedReceiptIngress` calls
+`CommittedReceiptPublisherLoop.wake` after the telemetry and receipt intent
+commit), so the 1.0 s idle poll is only a fallback. Retry backoff is never
+shortened by wakes. The outbox bound and the outbox-full legacy fallback are
+unchanged. `run_once` remains as a one-intent batch.
+
+The acceptance gate and measured numbers are in
+`docs/operations/committed-receipt-acceptance.md`. Hardware and site remain
+**UNVERIFIED**.

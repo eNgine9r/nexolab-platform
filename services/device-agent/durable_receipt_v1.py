@@ -3,6 +3,13 @@
 Contract-only (Issue #1410). Not wired to MQTT, SQLite deletion or the
 production Device Agent. The local broker's *actual* publisher ACL must be
 verified by a future integration before passing central_publisher_authorized.
+
+Exact-row binding (#1762 slice 4). A final ``postgres_committed`` receipt may
+prune ANY pending outbox row, not only the oldest, but only the one row whose
+event_id, node_sequence, organization, node and exact org-scoped telemetry
+topic all match the receipt. It never authorizes pruning a different, earlier
+or later row. Unknown or already pruned rows are rejected by the caller's
+outbox lookup before this call.
 """
 from __future__ import annotations
 
@@ -56,14 +63,16 @@ def validate_for_pending(
     expected_organization_id: str,
     expected_node_id: str,
     expected_node_sequence: int,
-    oldest_pending_sequence: int,
+    pending_row_topic: str,
     seen_receipt_ids: set[str] | frozenset[str] | None = None,
     now: datetime | None = None,
 ) -> str:
     """Return 'informational' or 'prune_allowed', otherwise raise.
 
-    All expected_* arguments MUST come from trusted local node configuration
-    and a matching existing SQLite outbox record (not from MQTT payload).
+    All expected_* arguments and pending_row_topic MUST come from trusted
+    local node configuration and the ONE existing SQLite outbox record the
+    receipt names (not from the MQTT payload). That record's stored topic must
+    be exactly this node's org-scoped telemetry topic.
     The caller MUST verify central MQTT publisher ACL/auth separately.
     Replayed/deleted events are rejected by outbox lookup before this call.
     No storage mutation or network I/O occurs here.
@@ -80,14 +89,18 @@ def validate_for_pending(
         raise ReceiptProtocolError("invalid_expected_node_id")
     if type(expected_node_sequence) is not int or expected_node_sequence < 1:
         raise ReceiptProtocolError("invalid_pending_sequence")
-    if type(oldest_pending_sequence) is not int or oldest_pending_sequence < 1:
-        raise ReceiptProtocolError("invalid_oldest_pending_sequence")
     expected_topic = (
         f"nexolab/v1/{expected_organization_id}/"
         f"{expected_node_id}/{TOPIC_SUFFIX}"
     )
     if topic != expected_topic:
         raise ReceiptProtocolError("receipt_topic_identity_mismatch")
+    # Exact-row binding: the pending row itself must be this node's scoped
+    # telemetry. Legacy, foreign-tenant or other-stream rows are never pruned.
+    if pending_row_topic != (
+        f"nexolab/v1/{expected_organization_id}/{expected_node_id}/telemetry"
+    ):
+        raise ReceiptProtocolError("pending_row_topic_not_scoped")
 
     try:
         receipt = json.loads(payload.decode("utf-8"), object_pairs_hook=_reject_duplicates)
@@ -137,7 +150,6 @@ def validate_for_pending(
     # Informational spool acceptance is NEVER a final SQLite deletion ACK.
     if receipt["receipt_level"] == "durably_spooled":
         return "informational"
-    # Do not delete later sequence while an earlier event still awaits receipt.
-    if expected_node_sequence != oldest_pending_sequence:
-        raise ReceiptProtocolError("out_of_order_final_receipt")
+    # Exact-row binding replaces the former FIFO-head rule: every identity
+    # field above matched the one named pending row, so only it may be pruned.
     return "prune_allowed"

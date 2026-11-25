@@ -86,7 +86,7 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         self.assertEqual(self.apply(self.receipt(event_id)), "prune_allowed")
         self.assertEqual(self.queue.size(), 0)
 
-    def test_final_receipt_deletes_exactly_oldest_and_persists_replay_ledger(self) -> None:
+    def test_final_receipt_deletes_exactly_its_row_and_persists_replay_ledger(self) -> None:
         first, second = self.pending(2)
         raw = self.receipt(first)
         self.assertEqual(self.apply(raw), "prune_allowed")
@@ -97,84 +97,101 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
         self.assertEqual(self.apply(self.receipt(second, 2)), "prune_allowed")
         self.assertEqual(self.queue.size(), 0)
 
-    def test_older_foreign_topics_block_later_valid_receipt_without_prune(self) -> None:
-        # The replay path refuses to bypass an older foreign/legacy queue row.
-        # Receipt acceptance must enforce the same global FIFO invariant.
+    def ledger_rows(self) -> int:
+        exists = self.queue._connection.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name='committed_receipt_ledger'"
+        ).fetchone()[0]
+        if not exists:
+            return 0
+        return int(self.queue._connection.execute(
+            "SELECT COUNT(*) FROM committed_receipt_ledger"
+        ).fetchone()[0])
+
+    def test_out_of_order_receipt_prunes_only_its_exact_pending_row(self) -> None:
+        # #1762 slice 4: exact-row binding replaces the FIFO-head rule.
+        first, second, third = self.pending(3)
+        self.assertEqual(self.apply(self.receipt(third, 3)), "prune_allowed")
+        self.assertEqual(
+            [row[0] for row in self.queue._connection.execute(
+                "SELECT event_id FROM outbound_queue ORDER BY id"
+            )],
+            [first, second],
+        )
+        self.assertEqual(self.ledger_rows(), 1)
+        # A receipt for the already pruned row (fresh receipt_id) is rejected.
+        with self.assertRaisesRegex(ReceiptProtocolError, "no_matching_pending_telemetry"):
+            self.apply(self.receipt(third, 3))
+        # An unknown event is rejected and never prunes another row.
+        with self.assertRaisesRegex(ReceiptProtocolError, "no_matching_pending_telemetry"):
+            self.apply(self.receipt(str(uuid.uuid4()), 2))
+        # A receipt naming one row with another row's sequence never prunes.
+        with self.assertRaisesRegex(ReceiptProtocolError, "receipt_sequence_mismatch"):
+            self.apply(self.receipt(second, 1))
+        self.assertEqual(self.queue.size(), 2)
+        self.assertEqual(self.ledger_rows(), 1)
+        self.assertEqual(self.apply(self.receipt(second, 2)), "prune_allowed")
+        self.assertEqual(self.apply(self.receipt(first, 1)), "prune_allowed")
+        self.assertEqual(self.queue.size(), 0)
+        self.assertEqual(self.ledger_rows(), 3)
+
+    def test_foreign_rows_are_never_pruned_and_do_not_block_scoped_rows(self) -> None:
         for foreign_topic in (
             "nexolab/telemetry",
             f"nexolab/v1/{uuid.uuid4()}/{NODE}/telemetry",
             f"nexolab/v1/{ORG}/{NODE}/health",
+            f"nexolab/v1/{ORG}/edge-02/telemetry",
         ):
             with self.subTest(foreign_topic=foreign_topic):
                 foreign_event = str(uuid.uuid4())
                 self.queue.enqueue(
                     foreign_topic,
-                    json.dumps({"event_id": foreign_event, "node_id": NODE}),
+                    json.dumps({
+                        "event_id": foreign_event, "node_id": NODE, "node_sequence": 1,
+                    }),
                     foreign_event,
                 )
                 (scoped_event,) = self.pending()
-                raw = self.receipt(
-                    scoped_event,
-                    sequence=json.loads(self.queue.oldest()[1][2])["node_sequence"],
-                )
-                ledger_existed = self.queue._connection.execute(
-                    "SELECT COUNT(*) FROM sqlite_master "
-                    "WHERE name='committed_receipt_ledger'"
-                ).fetchone()[0]
-                ledger_count = (
-                    self.queue._connection.execute(
-                        "SELECT COUNT(*) FROM committed_receipt_ledger"
-                    ).fetchone()[0]
-                    if ledger_existed else 0
-                )
+                scoped_sequence = json.loads(self.queue.oldest()[1][2])["node_sequence"]
+                ledger_before = self.ledger_rows()
+                # A receipt that names the foreign row is rejected fail-closed.
                 with self.assertRaisesRegex(
-                    ReceiptProtocolError, "oldest_pending_topic_not_scoped"
+                    ReceiptProtocolError, "pending_row_topic_not_scoped"
                 ):
-                    self.apply(raw)
+                    self.apply(self.receipt(foreign_event, 1))
                 self.assertEqual(self.queue.size(), 2)
+                self.assertEqual(self.ledger_rows(), ledger_before)
+                # The scoped row behind it prunes on its own exact receipt.
                 self.assertEqual(
-                    self.queue._connection.execute(
-                        "SELECT COUNT(*) FROM sqlite_master "
-                        "WHERE name='committed_receipt_ledger'"
-                    ).fetchone()[0],
-                    ledger_existed,
+                    self.apply(self.receipt(scoped_event, scoped_sequence)),
+                    "prune_allowed",
                 )
-                if ledger_existed:
-                    self.assertEqual(
-                        self.queue._connection.execute(
-                            "SELECT COUNT(*) FROM committed_receipt_ledger"
-                        ).fetchone()[0], ledger_count,
-                    )
-                # Synthetic fixture-only repair/removal of the blocking row;
-                # public receipt-mode delete() must remain forbidden.
+                self.assertEqual(
+                    [row[0] for row in self.queue._connection.execute(
+                        "SELECT event_id FROM outbound_queue ORDER BY id"
+                    )],
+                    [foreign_event],
+                )
+                # Synthetic fixture-only removal of the foreign row; public
+                # receipt-mode delete() must remain forbidden.
                 with self.queue._connection:
                     self.queue._connection.execute(
                         "DELETE FROM outbound_queue WHERE event_id=?", (foreign_event,)
                     )
-                self.assertEqual(self.apply(raw), "prune_allowed")
-                self.assertEqual(self.queue.size(), 0)
 
     def test_older_foreign_queue_row_remains_after_informational_receipt(self) -> None:
         foreign_id = str(uuid.uuid4())
         self.queue.enqueue("nexolab/telemetry", "{}", foreign_id)
         (scoped_event,) = self.pending()
         raw = self.receipt(scoped_event, level="durably_spooled")
-        with self.assertRaisesRegex(
-            ReceiptProtocolError, "oldest_pending_topic_not_scoped"
-        ):
-            self.apply(raw)
+        self.assertEqual(self.apply(raw), "informational")
         self.assertEqual(
             [row[0] for row in self.queue._connection.execute(
                 "SELECT event_id FROM outbound_queue ORDER BY id"
             )],
             [foreign_id, scoped_event],
         )
-        self.assertEqual(
-            self.queue._connection.execute(
-                "SELECT name FROM sqlite_master WHERE name='committed_receipt_ledger'"
-            ).fetchall(),
-            [],
-        )
+        with self.assertRaisesRegex(ReceiptProtocolError, "receipt_id_already_processed"):
+            self.apply(raw)
 
     def test_spool_only_is_informational_and_duplicate_is_rejected(self) -> None:
         (event_id,) = self.pending()
@@ -198,7 +215,8 @@ class CommittedReceiptLedgerTests(unittest.TestCase):
     def test_wrong_topic_node_event_sequence_and_staleness_are_rejected(self) -> None:
         first, second = self.pending(2)
         invalid = [
-            (self.receipt(second, 2), RECEIPT_TOPIC),
+            (self.receipt(second, 1), RECEIPT_TOPIC),
+            (self.receipt(first, 2), RECEIPT_TOPIC),
             (self.receipt(first, overrides={"organization_id": str(uuid.uuid4())}), RECEIPT_TOPIC),
             (self.receipt(first, overrides={"node_id": "edge-02"}), RECEIPT_TOPIC),
             (self.receipt(first, overrides={"event_id": str(uuid.uuid4())}), RECEIPT_TOPIC),

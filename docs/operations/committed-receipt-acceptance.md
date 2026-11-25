@@ -1,4 +1,4 @@
-# Committed-receipt end-to-end acceptance (#1762 slice 3)
+# Committed-receipt end-to-end acceptance (#1762 slices 3-4)
 
 This runbook covers the isolated GitHub Actions acceptance for the committed-receipt chain, how to read its summary, and how the owner provisions the two dedicated receipt identities.
 
@@ -20,31 +20,46 @@ Topology: the Device Agent connects directly to the central broker, as in `compo
 
 ## Scenario and assertions
 
-| Phase                   | What happens                                                                                                                                                                                            | Assertion                                                                                                                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Steady flow          | 4 rows/s (simulator)                                                                                                                                                                                    | Receipts are applied; the Edge outbox stays bounded.                                                                                                                                                                                            |
-| 2. Central outage       | `telemetry-service` stopped until at least 200 rows are pending                                                                                                                                         | Broker logs `Outgoing messages are being dropped for client nexolab-central-ingestion`.                                                                                                                                                         |
-| 3. Invalid receipts     | Valid-looking receipt for the head row from another node, the Edge receipt identity and the node telemetry identity; then a wrong-node, an out-of-order and a duplicate receipt from the real publisher | Forged receipts are not delivered (ACL). The others are rejected (`receipt_identity_mismatch`, `receipt_id_already_processed`). No receipt is applied; the head row stays.                                                                      |
-| 4. Edge restart         | Device Agent recreated during the outage (live interval 10 s)                                                                                                                                           | No pending row is lost.                                                                                                                                                                                                                         |
-| 5. Central restart      | `telemetry-service` started                                                                                                                                                                             | Head replay commits rows one by one.                                                                                                                                                                                                            |
-| 6. Edge restart         | Device Agent restarted mid-replay                                                                                                                                                                       | Pending rows and the receipt ledger survive.                                                                                                                                                                                                    |
-| 7. Drain and accounting | Wait until the Edge outbox is empty                                                                                                                                                                     | PostgreSQL holds every sequence `1..last_sequence` exactly once, with no duplicate `event_id` or sequence. Every row pending at the outage snapshot is in PostgreSQL with its original sequence. The forged-receipt head row is committed once. |
+| Phase                   | What happens                                                                                                                                                                                                                                 | Assertion                                                                                                                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Steady flow          | 4 rows/s (simulator)                                                                                                                                                                                                                         | Receipts are applied; the Edge outbox stays bounded.                                                                                                                                                                                              |
+| 2. Central outage       | `telemetry-service` stopped; Device Agent recreated with a 0.04 s sample interval until at least 1,200 rows are pending                                                                                                                      | Broker logs `Outgoing messages are being dropped for client nexolab-central-ingestion`.                                                                                                                                                           |
+| 3. Invalid receipts     | Valid-looking receipt for a pending row that is not in PostgreSQL, from another node, the Edge receipt identity and the node telemetry identity; then wrong-node, wrong-sequence, unknown-row and duplicate receipts from the real publisher | Forged receipts are not delivered (ACL). The others are rejected (`receipt_identity_mismatch`, `receipt_sequence_mismatch`, `no_matching_pending_telemetry`, `receipt_id_already_processed`). No receipt is applied; no row is pruned.            |
+| 4. Edge restart         | Device Agent recreated during the outage with a 0.25 s live interval                                                                                                                                                                         | No pending row is lost.                                                                                                                                                                                                                           |
+| 5. Central restart      | `telemetry-service` started; bounded bulk catch-up while live flow continues                                                                                                                                                                 | Live rows keep being generated. Net backlog drain from readiness until half the backlog is gone is at least **50 rows/s** (throughput gate).                                                                                                      |
+| 6. Edge restart         | Device Agent restarted mid-catch-up                                                                                                                                                                                                          | Pending rows and the receipt ledger survive.                                                                                                                                                                                                      |
+| 7. Drain and accounting | Wait until the Edge outbox is empty                                                                                                                                                                                                          | PostgreSQL holds every sequence `1..last_sequence` exactly once, with no duplicate `event_id` or sequence. Every row pending at the outage snapshot is in PostgreSQL with its original sequence. The forged-receipt target row is committed once. |
+
+The invalid-receipt target is the oldest pending row that is not yet in PostgreSQL. A row committed just before the outage can still be waiting for its receipt, and with exact-row binding any pending row is a valid target, so the check must use a row whose loss the accounting would detect.
 
 The run is bounded: every wait has a timeout, the scenario step has a 15-minute limit and the job 20 minutes.
 
 ## Reading the summary
 
-The job writes `summary.md` to the job summary page and uploads the artifact `committed-receipt-acceptance-evidence` (`summary.json`, `accounting.json`, `timeline.log`, health snapshots, broker overflow log, service logs).
+The job writes `summary.md` to the job summary page and uploads the artifact `committed-receipt-acceptance-evidence` (`summary.json`, `accounting.json`, `catch-up-samples.csv`, `timeline.log`, health snapshots, broker overflow log, service logs).
 
-The **Measured recovery throughput** table has three rows:
+The **Measured recovery throughput** table has four rows:
 
-- **Head replay after central restart.** Rows committed per second while the Edge replays only its oldest row and waits for its receipt. This is the rate of the replay design: one row per receipt round trip, bounded by the Edge replay interval (0.2 s) and the central publisher idle poll (1.0 s).
-- **After the mid-replay Edge restart.** After a restart the Device Agent sends every retained row once. Central deduplicates by `event_id` and returns receipts in sequence order, so this phase is much faster.
+- **Catch-up, net backlog drain with live flow.** From central readiness until half of the backlog present at readiness is gone. Rows are Edge pending rows removed, net of the live rows generated at the same time. This is the gated number (at least 50 rows/s). Central start-up time is reported separately and is not in the window.
+- **Catch-up, PostgreSQL commits.** Rows committed in PostgreSQL in the same window (backlog and live).
+- **After the mid-catch-up Edge restart.** The Device Agent sends every retained row once, then the catch-up resends what the broker dropped.
 - **Whole recovery.** From central restart to an empty Edge outbox.
 
-The summary also extrapolates the head-replay rate to the 2026-11-25 loss (about 53,000 rows) and says whether head replay converges while the site keeps producing about 4.5 rows/s.
+The summary is written before the throughput gate is enforced, so a run below the gate still shows its numbers. A correctness failure (lost row, duplicate, wrong prune, forged receipt delivered) stops the run before the summary; read `timeline.log` first, then `services.log`.
 
-A FAIL summary means a correctness assertion failed. Read `timeline.log` first, then `services.log`.
+### How the catch-up works (#1762 slice 4)
+
+- The Edge accepts a valid receipt for any pending row, but only for the exact row it names (event id, sequence, organization, node and telemetry topic). Receipts for live rows are applied at once, even while older rows are still missing.
+- The Edge resends pending rows first sent more than `DEVICE_AGENT_RECEIPT_REPLAY_AFTER_SECONDS` ago in FIFO windows: at most `DEVICE_AGENT_RECEIPT_CATCHUP_WINDOW` (50) rows in flight and at most `DEVICE_AGENT_RECEIPT_CATCHUP_MAX_ROWS_PER_SECOND` (200). A window that gets no receipt at all backs off exponentially, so a long central outage is not flooded. Nothing is resent while the telemetry connection is down.
+- Central wakes its receipt publisher on each ingestion commit and publishes up to `NEXOLAB_RECEIPT_PUBLISHER_BATCH_SIZE` (50) receipts per batch, each with its own QoS 1 PUBACK and durable retry lease.
+- Keep the catch-up window below the broker's per-client capacity for the central ingestion consumer (`max_inflight_messages` plus `max_queued_messages`), or the broker drops resent rows again. The production broker config has 100 and 10,000.
+
+### Measured throughput
+
+| Run                                         | Catch-up (rows/s)                | Whole recovery (rows/s) |
+| ------------------------------------------- | -------------------------------- | ----------------------- |
+| Slice 3 (head replay), run 45688608839      | 1.14 (head replay)               | 2.3                     |
+| Slice 4 (bulk catch-up), see the PR summary | measured in CI, gate &ge; 50 net | measured in CI          |
 
 ## Owner provisioning of the two receipt identities
 
@@ -88,4 +103,5 @@ The real-broker deny cases for both identities are in `scripts/run-mqtt-broker-s
 
 - No real hardware, Modbus device, site broker, site ACL, TLS site identity or site PostgreSQL was used. Site behaviour stays **UNVERIFIED**.
 - No power loss, Edge-to-central bridge, network move or clock step was simulated.
-- The Edge replay-after interval is 5 s in the fixture (default 60 s) to keep the job short. The replay interval and publisher idle poll use their defaults.
+- The Edge replay-after interval is 5 s in the fixture (default 60 s) to keep the job short. The catch-up window, rate cap, publisher batch size and idle poll use their defaults.
+- The CI runner is not a Raspberry Pi. Site catch-up throughput on the Pi, with real PostgreSQL load and the site broker, is **UNVERIFIED**.

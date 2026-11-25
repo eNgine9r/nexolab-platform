@@ -528,6 +528,89 @@ def test_loop_rejects_invalid_policy() -> None:
             retry_initial_seconds=5.0,
             retry_max_seconds=1.0,
         )
+    for batch_size in (0, 501, True):
+        with pytest.raises(ValueError):
+            CommittedReceiptPublisherLoop(
+                FakePublisher([]), CommittedReceiptStats(), batch_size=batch_size
+            )
+
+
+class FakeBatchPublisher(FakePublisher):
+    """#1762 slice 4: one bounded batch per loop iteration."""
+
+    def __init__(self, batches: list[Any]) -> None:
+        super().__init__([])
+        self.batches = list(batches)
+        self.limits: list[int] = []
+
+    def run_batch(self, *, limit: int, now=None) -> list[PublishAttempt]:
+        self.limits.append(limit)
+        batch = self.batches.pop(0) if self.batches else []
+        if isinstance(batch, Exception):
+            raise batch
+        return [PublishAttempt(status, str(uuid4()), 1) for status in batch]
+
+
+def test_loop_publishes_bounded_batches_and_counts_each_receipt() -> None:
+    publisher = FakeBatchPublisher(
+        [["published"] * 3, ["published", "retry"], ["retry", "retry"], []]
+    )
+    stats = CommittedReceiptStats()
+    loop = CommittedReceiptPublisherLoop(
+        publisher, stats, idle_seconds=0.5, retry_initial_seconds=1.0, batch_size=7
+    )
+    assert loop.run_iteration(1.0) == ("published", 0.0)
+    # A partial batch keeps going; failed rows keep their own durable lease.
+    assert loop.run_iteration(1.0) == ("published", 0.0)
+    assert loop.run_iteration(1.0) == ("retry", 1.0)
+    assert loop.run_iteration(1.0) == ("idle", 0.5)
+    assert publisher.limits == [7, 7, 7, 7]
+    snapshot = stats.snapshot()
+    assert snapshot["publish_attempts_total"] == 7
+    assert snapshot["published_total"] == 4
+    assert snapshot["publish_failures_total"] == 3
+    assert snapshot["consecutive_failures"] == 0
+
+
+def test_commit_wake_ends_idle_wait_promptly() -> None:
+    publisher = FakeBatchPublisher([])
+    stats = CommittedReceiptStats()
+    loop = CommittedReceiptPublisherLoop(
+        publisher, stats, idle_seconds=30.0, stop_timeout_seconds=2.0
+    )
+    loop.start()
+    try:
+        wait_for(lambda: len(publisher.limits) == 1)
+        publisher.batches.append(["published"])
+        started = time.monotonic()
+        loop.wake()
+        wait_for(lambda: stats.snapshot()["published_total"] == 1, timeout=2.0)
+        assert time.monotonic() - started < 2.0
+    finally:
+        loop.stop()
+    assert not any(thread_name_is_receipt(name) for name in live_thread_names())
+
+
+def test_ingress_wakes_publisher_only_after_a_commit() -> None:
+    wakes: list[int] = []
+    results = iter([(True, "authorized", "ok", True), (False, "denied", "no", None)])
+    ingress = CommittedReceiptIngress(
+        lambda *_: next(results), CommittedReceiptStats(), on_committed=lambda: wakes.append(1)
+    )
+    event = SimpleNamespace()
+    assert ingress.persist(event, {}, NODE_TOPIC, datetime.now(UTC))[0] is True
+    assert wakes == [1]
+    assert ingress.persist(event, {}, NODE_TOPIC, datetime.now(UTC))[0] is False
+    assert wakes == [1]
+
+    def broken_wake() -> None:
+        raise RuntimeError("wake failed")
+
+    ingress.set_commit_notifier(broken_wake)
+    ingress._persist = lambda *_: (True, "authorized", "ok", True)
+    assert ingress.persist(event, {}, NODE_TOPIC, datetime.now(UTC))[0] is True
+    with pytest.raises(TypeError):
+        CommittedReceiptIngress(lambda *_: None, CommittedReceiptStats(), on_committed=1)
 
 
 # ------------------------------------------------ readiness / metrics split

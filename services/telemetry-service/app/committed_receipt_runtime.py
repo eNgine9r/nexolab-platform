@@ -113,11 +113,25 @@ class CommittedReceiptStats:
 class CommittedReceiptIngress:
     """Selects the committed path for org-scoped node telemetry topics only."""
 
-    def __init__(self, persist: CommittedPersist, stats: CommittedReceiptStats) -> None:
+    def __init__(
+        self,
+        persist: CommittedPersist,
+        stats: CommittedReceiptStats,
+        *,
+        on_committed: Callable[[], None] | None = None,
+    ) -> None:
         if not callable(persist):
             raise TypeError("committed_persist_required")
+        if on_committed is not None and not callable(on_committed):
+            raise TypeError("committed_notifier_must_be_callable")
         self._persist = persist
         self.stats = stats
+        self._on_committed = on_committed
+
+    def set_commit_notifier(self, on_committed: Callable[[], None] | None) -> None:
+        if on_committed is not None and not callable(on_committed):
+            raise TypeError("committed_notifier_must_be_callable")
+        self._on_committed = on_committed
 
     @staticmethod
     def applies_to(topic: str | None) -> bool:
@@ -137,7 +151,16 @@ class CommittedReceiptIngress:
         observed_at: datetime,
     ) -> tuple[bool, str, str, bool | None]:
         self.stats.increment("committed_ingress_total")
-        return self._persist(event, raw, topic, observed_at)
+        result = self._persist(event, raw, topic, observed_at)
+        # The telemetry row and its receipt intent are committed when persist
+        # returns. Wake the publisher now instead of waiting for its idle poll.
+        notifier = self._on_committed
+        if result[0] and notifier is not None:
+            try:
+                notifier()
+            except Exception:  # noqa: BLE001 - a wake hint never fails ingestion
+                LOGGER.warning("Committed receipt publisher wake failed", exc_info=True)
+        return result
 
 
 class ReceiptTransport(Protocol):
@@ -149,17 +172,22 @@ class ReceiptTransport(Protocol):
 class ReceiptPublisherCore(Protocol):
     def run_once(self, *, now: datetime | None = None) -> PublishAttempt: ...
 
+    # Optional: ``run_batch(*, limit, now=None) -> list[PublishAttempt]``.
+
     def pending_stats(
         self, *, now: datetime | None = None
     ) -> dict[str, float | int | None]: ...
 
 
 class CommittedReceiptPublisherLoop:
-    """Bounded background loop around CommittedReceiptPublisher.run_once.
+    """Bounded background loop around CommittedReceiptPublisher.
 
-    One intent per iteration; a failed send or database error waits with a
-    bounded exponential backoff. Per-row retry leases stay in PostgreSQL, so
-    a restart resumes from the durable outbox.
+    Each iteration publishes one bounded batch (``run_batch``, or one intent
+    with ``run_once``). An idle loop sleeps ``idle_seconds`` but wakes at once
+    when the ingestion path commits a new intent (``wake``). A failed send or
+    database error waits with a bounded exponential backoff and is not
+    shortened by wakes. Per-row retry leases stay in PostgreSQL, so a restart
+    resumes from the durable outbox.
     """
 
     def __init__(
@@ -174,9 +202,12 @@ class CommittedReceiptPublisherLoop:
         retry_max_seconds: float = 300.0,
         stats_interval_seconds: float = 5.0,
         stop_timeout_seconds: float = 10.0,
+        batch_size: int = 50,
     ) -> None:
         if (
-            idle_seconds <= 0
+            type(batch_size) is not int
+            or not 1 <= batch_size <= 500
+            or idle_seconds <= 0
             or retry_initial_seconds <= 0
             or retry_max_seconds < retry_initial_seconds
             or stats_interval_seconds <= 0
@@ -192,9 +223,15 @@ class CommittedReceiptPublisherLoop:
         self._retry_max_seconds = retry_max_seconds
         self._stats_interval_seconds = stats_interval_seconds
         self._stop_timeout_seconds = stop_timeout_seconds
+        self._batch_size = batch_size
         self._stop = Event()
+        self._wake = Event()
         self._thread: Thread | None = None
         self._next_stats_at = 0.0
+
+    def wake(self) -> None:
+        """Hint that a new receipt intent was committed. Never blocks."""
+        self._wake.set()
 
     @property
     def stats(self) -> CommittedReceiptStats:
@@ -224,6 +261,7 @@ class CommittedReceiptPublisherLoop:
 
     def stop(self) -> None:
         self._stop.set()
+        self._wake.set()
         thread = self._thread
         if thread is not None:
             thread.join(timeout=self._stop_timeout_seconds)
@@ -247,7 +285,13 @@ class CommittedReceiptPublisherLoop:
         """
         self._refresh_stats()
         try:
-            attempt = self._publisher.run_once()
+            run_batch = getattr(self._publisher, "run_batch", None)
+            if callable(run_batch):
+                attempts = list(run_batch(limit=self._batch_size))
+            else:
+                attempts = [self._publisher.run_once()]
+                if attempts[0].status == "idle":
+                    attempts = []
         except Exception as exc:  # noqa: BLE001 - DB outage keeps retrying
             failures = self._stats.snapshot()["consecutive_failures"] + 1
             self._stats.increment("loop_errors_total")
@@ -261,20 +305,24 @@ class CommittedReceiptPublisherLoop:
                 retry_delay,
             )
             return "error", retry_delay
-        if attempt.status == "idle":
+        if not attempts:
             self._stats.update(consecutive_failures=0)
             return "idle", self._idle_seconds
-        self._stats.increment("publish_attempts_total")
-        if attempt.status == "published":
-            self._stats.increment("published_total")
+        published = sum(1 for attempt in attempts if attempt.status == "published")
+        self._stats.increment("publish_attempts_total", len(attempts))
+        if published:
+            self._stats.increment("published_total", published)
+        if len(attempts) - published:
+            self._stats.increment("publish_failures_total", len(attempts) - published)
+        if published:
+            # Partial failures keep their own durable per-row retry lease.
             self._stats.update(
                 consecutive_failures=0,
                 last_published_at=datetime.now(UTC).isoformat(),
-                last_error=None,
+                last_error=None if published == len(attempts) else "publish_not_acknowledged",
             )
             return "published", 0.0
         failures = self._stats.snapshot()["consecutive_failures"] + 1
-        self._stats.increment("publish_failures_total")
         self._stats.update(
             consecutive_failures=failures,
             last_error="publish_not_acknowledged",
@@ -284,13 +332,17 @@ class CommittedReceiptPublisherLoop:
     def _run(self) -> None:
         retry_delay = self._retry_initial_seconds
         while not self._stop.is_set():
+            # Clear before the step so a commit during the step is not lost.
+            self._wake.clear()
             outcome, delay = self.run_iteration(retry_delay)
             if outcome in {"error", "retry"}:
                 retry_delay = min(retry_delay * 2, self._retry_max_seconds)
-            else:
-                retry_delay = self._retry_initial_seconds
-            if delay > 0:
+                # Backoff is never shortened by commit wakes.
                 self._stop.wait(delay)
+                continue
+            retry_delay = self._retry_initial_seconds
+            if delay > 0:
+                self._wake.wait(delay)
 
     def _refresh_stats(self) -> None:
         if self._connected is not None:
@@ -354,10 +406,6 @@ def build_committed_receipt_runtime(
         max_retry_seconds=settings.nexolab_receipt_publisher_retry_max_seconds,
     )
     stats = CommittedReceiptStats()
-    ingress = CommittedReceiptIngress(
-        authorizer.authorize_and_persist_committed,
-        stats,
-    )
     loop = CommittedReceiptPublisherLoop(
         publisher,
         stats,
@@ -366,5 +414,11 @@ def build_committed_receipt_runtime(
         idle_seconds=settings.nexolab_receipt_publisher_idle_seconds,
         retry_initial_seconds=settings.nexolab_receipt_publisher_retry_initial_seconds,
         retry_max_seconds=settings.nexolab_receipt_publisher_retry_max_seconds,
+        batch_size=settings.nexolab_receipt_publisher_batch_size,
+    )
+    ingress = CommittedReceiptIngress(
+        authorizer.authorize_and_persist_committed,
+        stats,
+        on_committed=loop.wake,
     )
     return ingress, loop
