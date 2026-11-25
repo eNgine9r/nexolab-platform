@@ -312,6 +312,150 @@ class BrokerTrustTests(unittest.TestCase):
         self.assertEqual(out.returncode, 77)
 
 
+class FakeDocker:
+    """Fake runner: a host with NEXOLAB and foreign workloads (#1769)."""
+
+    PS_SCOPE = "\n".join([
+        "nexolab-central-dashboard-1\tnexolab-central\tnexolab/dashboard:issue-1643-7db6e1a8-arm64",
+        "nexolab-edge-device-agent-1\tnexolab-edge\tnexolab/device-agent:quick-agent-1490",
+        "nexolab-standalone-x\t\tnexolab/tool:1",
+        "sellora-backend-1\tsellora\tsellora/backend:latest",
+        "nexolab-impostor-1\tsellora\tsellora/backend:latest",
+    ])
+
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+
+    def __call__(self, argv, _timeout):
+        self.calls.append(argv)
+        joined = " ".join(argv)
+        if argv[:2] == ["docker", "ps"] and "com.docker.compose.project" in joined:
+            out = self.PS_SCOPE
+        elif argv[:2] == ["docker", "ps"] and "{{.Networks}}" in joined:
+            out = "nexolab-central-dashboard-1\tnexolab-central\nsellora-backend-1\tsellora_default"
+        elif argv[:2] == ["docker", "ps"]:
+            out = ("nexolab-central-dashboard-1\timg\trunning\tUp\t\tnexolab-central\n"
+                   "sellora-backend-1\tsellora/backend\trunning\tUp\t\tsellora_default")
+        elif argv[:3] == ["docker", "network", "ls"]:
+            out = "nexolab-central\tbridge\tlocal\tid1\nsellora_default\tbridge\tlocal\tid2\nbridge\tbridge\tlocal\tid3"
+        elif argv[:3] == ["docker", "image", "ls"]:
+            out = ("nexolab/dashboard:issue-1643-7db6e1a8-arm64\tsha256:a\t<none>\t1 day\t1GB\n"
+                   "sellora/backend:latest\tsha256:b\t<none>\t1 day\t1GB\n"
+                   "postgres:16\tsha256:c\t<none>\t1 day\t1GB")
+        else:
+            out = "ok"
+        return broker_module.RunResult(0, out, False, False)
+
+
+class BrokerNexolabScopeTests(unittest.TestCase):
+    def fake(self):
+        runner = FakeDocker()
+        return type("B", (), {"runner": staticmethod(runner)})(), runner
+
+    def test_only_nexolab_containers_are_visible(self) -> None:
+        broker, _ = self.fake()
+        self.assertEqual(broker_module.container_names(broker),
+                         {"nexolab-central-dashboard-1", "nexolab-edge-device-agent-1", "nexolab-standalone-x"})
+        out = broker_module.op_docker_containers(broker, {})["steps"][0]["output"]
+        self.assertIn("nexolab-central-dashboard-1", out)
+        self.assertNotIn("sellora", out)
+
+    def test_foreign_container_metadata_and_logs_are_refused_before_any_call(self) -> None:
+        for op in (broker_module.op_docker_logs, broker_module.op_docker_container):
+            for name in ("sellora-backend-1", "nexolab-impostor-1", "does-not-exist"):
+                broker, runner = self.fake()
+                with self.assertRaises(broker_module.Rejected) as ctx:
+                    op(broker, {"name": name, "lines": 10, "since_minutes": 5})
+                self.assertEqual(ctx.exception.code, "unknown_container")
+                self.assertFalse([c for c in runner.calls if c[:2] in (["docker", "logs"], ["docker", "inspect"])])
+
+    def test_nexolab_container_logs_are_allowed(self) -> None:
+        broker, runner = self.fake()
+        broker_module.op_docker_logs(broker, {"name": "nexolab-central-dashboard-1", "lines": 10, "since_minutes": 5})
+        self.assertIn(["docker", "logs", "--timestamps", "--tail", "10", "--since", "5m", "--",
+                       "nexolab-central-dashboard-1"], runner.calls)
+
+    def test_networks_and_images_are_scoped(self) -> None:
+        broker, _ = self.fake()
+        nets = broker_module.op_docker_networks(broker, {})["steps"]
+        self.assertEqual(nets[0]["output"], "nexolab-central\tbridge\tlocal\tid1")
+        self.assertNotIn("sellora", nets[1]["output"])
+        images = broker_module.op_docker_images(broker, {})["steps"]
+        self.assertIn("nexolab/dashboard", images[0]["output"])
+        self.assertNotIn("sellora", images[0]["output"])
+        self.assertNotIn("postgres:16", images[0]["output"])
+        self.assertNotIn("sellora", images[1]["output"])
+
+
+class InventorySanitizingTests(unittest.TestCase):
+    REPORT = "\n".join([
+        "NEXOLAB storage inventory, read-only",
+        "===== Filesystems =====", "/dev/sda2 234G 199G 23G 90% /",
+        "===== Commander workspaces =====", "5.5G /home/nexolab/commander-workspaces/unified-update-c296",
+        "2.3G /home/nexolab/commander-workspaces/sellora-design",
+        "===== Git state of operator checkouts (in-use and unpushed work is PROTECTED) =====",
+        "/home/nexolab/commander-workspaces/sellora-design branch=secret-feature",
+        "===== Directories in use by running processes (PROTECTED) =====", "123 /x node --token=abc",
+        "===== PostgreSQL database and largest relations (read-only queries) =====", "telemetry_samples 22 GB",
+        "===== Cleanup candidates (estimates only; nothing deleted) =====",
+        "M5 CLEAN 883MiB regenerable caches in /home/nexolab/commander-workspaces/sellora-design:",
+        "M4 PROTECTED sha256:aa (used by a container)",
+    ])
+
+    def test_only_allow_listed_sections_leave_and_foreign_workspaces_are_masked(self) -> None:
+        out = broker_module.sanitize_inventory(self.REPORT)
+        self.assertIn("/dev/sda2", out)
+        self.assertIn("commander-workspaces/unified-update-c296", out)
+        self.assertIn("M4 PROTECTED", out)
+        for hidden in ("sellora", "secret-feature", "--token", "telemetry_samples", "Git state"):
+            self.assertNotIn(hidden, out)
+        self.assertIn("<non-nexolab-workspace>", out)
+
+    def test_raw_report_is_root_only(self) -> None:
+        source = BROKER.read_text()
+        self.assertIn("os.chmod(report, 0o600)", source)
+        self.assertNotIn("report_group", source)
+
+
+class InstallerContractTests(unittest.TestCase):
+    def test_owner_root_and_dev_boundaries(self) -> None:
+        text = INSTALLER.read_text()
+        self.assertIn('[[ "$owner" == "DENIED_FS EACCES" ]]', text)
+        self.assertIn('[[ "$root" == "False unauthorized_peer"* ]]', text)
+        self.assertIn('[[ "$dev" == "True None"* ]]', text)
+        dev_call = text[text.index("dev) #"):text.index("esac", text.index("dev) #"))]
+        for prop in ("NoNewPrivileges=yes", "PrivateDevices=yes", "ProtectSystem=strict", "-/run/docker.sock"):
+            self.assertIn(prop, dev_call)
+        self.assertNotIn("SocketMode=0666", SOCKET_UNIT.read_text())
+
+    def test_staging_and_rollback_are_global_and_verified(self) -> None:
+        text = INSTALLER.read_text()
+        self.assertNotIn("local src=\"${1:?payload directory required}\" stage", text)
+        self.assertIn("trap cleanup_stage EXIT", text)
+        self.assertIn("ROLLBACK_VERIFIED", text)
+        self.assertIn("HARD_BLOCKER_ROLLBACK_INCOMPLETE", text)
+        self.assertIn("socket not enabled", text)
+        self.assertIn("-m 0700 /var/lib/nexolab-operator /var/lib/nexolab-operator/reports", text)
+
+    def test_installer_client_reports_kernel_denial_at_the_socket_file(self) -> None:
+        text = INSTALLER.read_text()
+        client = text[text.index("CLIENT='") + len("CLIENT='"):text.index("'\nclient()")]
+        broker = RunningBroker()
+        try:
+            os.chmod(broker.socket, 0o000)  # stands in for "not in the socket group"
+            out = subprocess.run([sys.executable, "-I", "-c", client, "broker.list", broker.socket],
+                                 capture_output=True, text=True, timeout=30)
+            if os.geteuid() == 0:
+                self.skipTest("root bypasses file permissions")
+            self.assertEqual(out.stdout.strip(), "DENIED_FS EACCES", out.stderr)
+            os.chmod(broker.socket, 0o600)
+            out = subprocess.run([sys.executable, "-I", "-c", client, "broker.list", broker.socket],
+                                 capture_output=True, text=True, timeout=30)
+            self.assertTrue(out.stdout.startswith("True None"), out.stdout + out.stderr)
+        finally:
+            broker.close()
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
