@@ -33,7 +33,7 @@ A wildcard listener cannot share a port with a specific-address bind, so the LAN
 
 - **Build** in GitHub Actions (`Frontend Release Artifact`, ARM64) from main with `api_base_url=same-origin`, `websocket_url=same-origin`, `auth_provider=local` and no `external_origin`.
   - The builder accepts `same-origin` only for both endpoints together, with local auth and never for the protected HTTPS stage.
-  - The compiled public contract must report `same_origin_browser_bundle=no-absolute-host-origin`, meaning no IP literal, `localhost` or `:8082` origin in the browser bundle.
+  - The compiled public contract must report `same_origin_browser_bundle=no-absolute-host-origin`, meaning no IP literal and no origin on a NEXOLAB service port (8082, 1884, 3000) in the browser bundle.
 - **Server side:** the dashboard container additionally gets `NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082` (allowed by #1738). Without it, server routes fail closed.
   - Before the switch, the preview container proves that Docker DNS resolves `telemetry-service` from the `nexolab-central` network.
 - **Activate** with the guarded #1643 frontend-only procedure: preview on `127.0.0.1:3125`, switch, then automatic rollback to the current LAN image (`7db6e1a8`, build `CWBsCWWebOZGHa5YyWp18`) on identity or health failure, or on any backend container ID change.
