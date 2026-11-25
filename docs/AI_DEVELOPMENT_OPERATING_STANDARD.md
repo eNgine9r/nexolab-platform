@@ -113,6 +113,14 @@ A dedicated post-merge state Issue/branch/PR is **not required** merely to recor
 
 Continuity is implemented as a chain of small resumable sessions, not one unbounded conversation.
 
+On the Raspberry Pi control plane the Product Owner authorized maximum practical autonomy (2026-11-25):
+
+- continuous selection of the next independent Ready Work Package, without stopping after a merge;
+- independent work while CI runs or owner approval is pending;
+- bounded privileged diagnostics and recovery through the Operator Broker (#1758).
+
+Hard blockers, merge gates and the production approval boundary are unchanged. See `docs/operations/raspberry-pi-development-control-plane.md`.
+
 ## 7. Blocker policy
 
 ### Soft blockers
