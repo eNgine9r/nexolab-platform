@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { loadSessionHistory } from "@/components/sessions/session-history-loader";
 import { invalidateSessionListReadModels } from "@/features/test-sessions/use-session-list-read-model";
 import {
   createIdempotencyKey,
@@ -36,6 +37,10 @@ export interface SessionWorkspaceData {
   audit: AuditLogEntry[];
   latest: AttributedTelemetrySample[];
   history: AttributedTelemetrySample[];
+  /** True when the session history exceeded the safety page cap, so the chart is incomplete (#1649). */
+  historyTruncated: boolean;
+  /** Requested history window (ms), used as the chart x domain (#1662); null without a started session. */
+  historyWindow?: { fromMs: number; toMs: number } | null;
 }
 
 export interface SessionWorkspaceModel {
@@ -69,6 +74,7 @@ export function useSessionWorkspace(
   const [generation, setGeneration] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
   const mutationKeys = useRef(new Map<string, string>());
+  const historyCache = useRef<{ sessionId: string; items: AttributedTelemetrySample[] } | null>(null);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -85,6 +91,7 @@ export function useSessionWorkspace(
           : null;
         const historyTo = new Date();
 
+        const cached = historyCache.current?.sessionId === sessionId ? historyCache.current.items : undefined;
         const [configuration, events, stages, notes, audit, latest, history] = await Promise.all([
           client.getConfiguration(sessionId, signal),
           client.listEvents(sessionId, signal),
@@ -93,19 +100,18 @@ export function useSessionWorkspace(
           canReadAudit ? client.listAudit(sessionId, signal) : Promise.resolve({ items: [] }),
           client.latestTelemetry(sessionId, { limit: 500 }, signal),
           historyFrom
-            ? client.historyTelemetry(
-                sessionId,
-                {
-                  from: historyFrom,
-                  to: historyTo,
-                  limit: 1000,
-                },
-                signal,
-              )
-            : Promise.resolve({ items: [], count: 0, limit: 1000, offset: 0, next_offset: null }),
+            ? loadSessionHistory<AttributedTelemetrySample>({
+                windowFrom: historyFrom,
+                windowTo: historyTo,
+                existing: cached,
+                fetchPage: ({ from, to, offset, limit }) =>
+                  client.historyTelemetry(sessionId, { from, to, offset, limit }, signal),
+              })
+            : Promise.resolve({ items: [] as AttributedTelemetrySample[], truncated: false }),
         ]);
 
         if (signal.aborted) return;
+        historyCache.current = { sessionId, items: history.items };
         setData({
           session,
           configuration,
@@ -115,6 +121,8 @@ export function useSessionWorkspace(
           audit: audit.items,
           latest: latest.items,
           history: history.items,
+          historyTruncated: history.truncated,
+          historyWindow: historyFrom ? { fromMs: historyFrom.getTime(), toMs: historyTo.getTime() } : null,
         });
         setError(null);
         setClock(Date.now());

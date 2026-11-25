@@ -37,6 +37,13 @@ describe("chart formatting", () => {
     expect(short).not.toContain("19/08");
     expect(day).toContain("19/08");
     expect(day).toContain("05:06");
+    const midnight = Date.parse("2026-08-19T00:10:00.000Z");
+    const crossing = formatChartAxisTimestamp(
+      midnight,
+      { fromMs: midnight - 60 * 60_000, toMs: midnight },
+      { locale: "en-GB", timeZone: "UTC" },
+    );
+    expect(crossing).toContain("19/08");
   });
   it("formats exact inspection timestamps with date, seconds and timezone context", () => {
     const text = formatChartExactTimestamp(Date.parse("2026-08-19T05:06:07.000Z"), {

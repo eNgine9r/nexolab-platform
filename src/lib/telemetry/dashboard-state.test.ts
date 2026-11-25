@@ -31,6 +31,26 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 const NOW = new Date("2026-07-23T18:00:10Z");
 
 describe("dashboard telemetry state", () => {
+  it("includes all 54 inputs from nine newly commissioned controllers in temperature selection and mean", () => {
+    const inputs = Array.from({ length: 9 }, (_, index) => index * 6 + 1).flatMap((unit) =>
+      Array.from({ length: 6 }, (_, channel) =>
+        sample({
+          event_id: `new-${unit}-${channel + 1}`,
+          equipment_id: `XJP60D-S:rs485-test:${unit}`,
+          channel_id: `rs485-test:${unit}-S0${channel + 1}`,
+          value: 5,
+        }),
+      ),
+    );
+    const view = deriveDashboardTelemetry(
+      mergeDashboardTelemetry(createDashboardTelemetryStore(), inputs, { now: NOW }),
+      { now: NOW, hasLoadedSnapshot: true, connectionState: "connected", error: null },
+    );
+    expect(selectProductionTemperatures(view)).toHaveLength(54);
+    expect(buildLiveDashboardKpis(view).find((item) => item.label === "Середня температура")?.detail).toBe(
+      "54 валідних каналів XJP60D",
+    );
+  });
   it("deduplicates event ids and keeps the newest series sample", () => {
     const initial = createDashboardTelemetryStore();
     const first = mergeDashboardTelemetry(initial, [sample(), sample({ event_id: "duplicate" })], {
@@ -147,7 +167,11 @@ describe("dashboard telemetry state", () => {
     const kpis = buildLiveDashboardKpis(view);
 
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("—");
-    expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.value).toBe("1");
+    expect(kpis.find((item) => item.label === "Сигнали з відхиленнями")?.trend).toBe(
+      "Події журналу тривог — окремо",
+    );
+    expect(kpis.some((item) => item.label === "Активних тривог")).toBe(false);
   });
 
   it("maps every discovered XJP60D temperature and production power channel", () => {
@@ -203,5 +227,24 @@ describe("dashboard telemetry state", () => {
     expect(selectProductionTemperatures(view)).toHaveLength(4);
     expect(kpis.find((item) => item.label === "Поточне споживання")?.value).toBe("2,00 kW");
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("5,7 °C");
+  });
+
+  it("applies a per-sample cadence-aware threshold instead of the fixed 30 s (#1634)", () => {
+    const slow = sample({ event_id: "slow", channel_id: "slow-ch", captured_at: "2026-07-23T17:59:10Z" });
+    const store = mergeDashboardTelemetry(createDashboardTelemetryStore(), [slow], { now: NOW });
+    const base = { now: NOW, hasLoadedSnapshot: true, connectionState: "connected" as const, error: null };
+    // 60 s old: stale under the fixed 30 s rule …
+    expect(deriveDashboardTelemetry(store, { ...base, staleAfterMs: 30_000 }).status).toBe("stale");
+    // … but live for a 60 s channel (threshold 105 s), and stale again once that threshold passes.
+    expect(
+      deriveDashboardTelemetry(store, { ...base, staleAfterMs: 30_000, staleAfterMsFor: () => 105_000 }),
+    ).toMatchObject({ status: "live", freshSamples: [slow] });
+    expect(
+      deriveDashboardTelemetry(store, {
+        ...base,
+        now: new Date("2026-07-23T18:01:00Z"),
+        staleAfterMsFor: () => 105_000,
+      }).status,
+    ).toBe("stale");
   });
 });

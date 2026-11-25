@@ -75,20 +75,9 @@ def create_refrigeration_structural_router(
                 include_history=False,
                 organization_id=organization_id,
             )
-            if equipment.climate_chamber_id is not None:
-                _, available_channels = (
-                    sensor_configuration_repository.list_climate_chamber_channels(
-                        equipment.climate_chamber_id,
-                        organization_id=organization_id,
-                    )
-                )
-            elif equipment.node_id is not None:
-                _, available_channels = lifecycle_repository.list_available_sensors(
-                    equipment_id,
-                    organization_id=organization_id,
-                )
-            else:
-                available_channels = []
+            available_channels = sensor_configuration_repository.list_scheme_channels(
+                equipment, bindings, organization_id=organization_id
+            )
         except EquipmentNotFoundError as error:
             raise HTTPException(
                 status_code=404,
@@ -129,7 +118,12 @@ def create_refrigeration_structural_router(
                     quality=item.quality,
                     captured_at=item.captured_at,
                     sample_state=_sample_state(item.latest_value, item.quality),
+                    sample_valid_until=item.sample_valid_until,
                     is_bound=item.binding is not None,
+                    controller_label=item.controller_label,
+                    display_name=item.display_name,
+                    input_number=item.input_number,
+                    selectable=item.selectable,
                     bound_equipment_id=(
                         item.binding.equipment_id if item.binding is not None else None
                     ),

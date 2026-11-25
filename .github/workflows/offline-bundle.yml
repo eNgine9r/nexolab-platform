@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/offline-bundle.yml"
       - "scripts/classify-ci-impact.py"
+      - "scripts/nexolab-1560-bluegreen-handoff.py"
+      - "scripts/tests/test_nexolab_1560_bluegreen_handoff.py"
       - "scripts/prepare-version-update-lock.py"
       - "scripts/tests/test_prepare_version_update_lock.py"
       - "scripts/deploy-complete-partial-frontends.py"
@@ -23,6 +25,8 @@ on:
       - "scripts/build-offline-bundle.sh"
       - "scripts/lib/postgresql-backup-client.sh"
       - "scripts/nexolab-safe-pg-incident-backup.sh"
+      - "scripts/nexolab-offline-backup-preflight.py"
+      - "scripts/tests/test_nexolab_offline_backup_preflight.py"
       - "scripts/tests/test_nexolab_incident_pg_backup.py"
       - "scripts/validate-site-dr-inventory-v2.py"
       - "scripts/nexolab-site-dr-preflight.py"
@@ -31,6 +35,8 @@ on:
       - "scripts/verify-host-container-runtime-package-policy.py"
       - "scripts/tests/test_host_container_runtime_package_policy.py"
       - "scripts/nexolab-dr-readonly-health.py"
+      - "scripts/serve-prometheus-textfile.py"
+      - "scripts/tests/test_lan_monitor_offline_payload.py"
       - "tests/test_ci_dr_readonly_health.py"
       - "tests/test_ci_site_dr_capture_handoff.py"
       - "tests/test_ci_site_dr_fixture_harness.py"
@@ -93,6 +99,11 @@ on:
         required: false
         default: ""
         type: string
+      upgrade_from_schema_heads:
+        description: Optional comma-separated Alembic revisions of already-installed databases this bundle may upgrade from, in addition to its own head (each must be a revision of the runtime source)
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   group: offline-bundle-${{ github.ref }}
@@ -138,6 +149,7 @@ jobs:
           DISPATCH_WEBSOCKET_URL: ${{ inputs.websocket_url }}
           DISPATCH_AUTH_PROVIDER: ${{ inputs.auth_provider }}
           DISPATCH_EXTERNAL_ORIGIN: ${{ inputs.external_origin }}
+          DISPATCH_UPGRADE_FROM_SCHEMA_HEADS: ${{ inputs.upgrade_from_schema_heads }}
         run: |
           set -Eeuo pipefail
           tooling_sha="$(git rev-parse HEAD)"
@@ -149,6 +161,7 @@ jobs:
             websocket_url="$DISPATCH_WEBSOCKET_URL"
             auth_provider="$DISPATCH_AUTH_PROVIDER"
             external_origin="$DISPATCH_EXTERNAL_ORIGIN"
+            upgrade_from_schema_heads="${DISPATCH_UPGRADE_FROM_SCHEMA_HEADS:-}"
           else
             platform="linux/amd64"
             runtime_source_ref="$tooling_sha"
@@ -157,6 +170,7 @@ jobs:
             websocket_url="ws://127.0.0.1:8082/api/v1/telemetry/live"
             auth_provider="disabled"
             external_origin=""
+            upgrade_from_schema_heads=""
           fi
 
           case "$platform" in
@@ -186,6 +200,21 @@ jobs:
             echo "Runtime source must be an ancestor of the reviewed tooling commit" >&2
             exit 2
           }
+          normalized_upgrade_heads=""
+          if [[ -n "$upgrade_from_schema_heads" ]]; then
+            IFS="," read -r -a requested_heads <<< "$upgrade_from_schema_heads"
+            for requested in "${requested_heads[@]}"; do
+              requested="${requested//[[:space:]]/}"
+              [[ "$requested" =~ ^[0-9]{8}_[0-9]{4}$ ]] || {
+                echo "Invalid upgrade-from schema head: $requested" >&2; exit 2
+              }
+              # The revision must exist in the runtime source tree: a typo must not widen the update contract.
+              git grep -qE "^revision = [\"']${requested}[\"']" "$runtime_source_sha" -- services/telemetry-service/migrations/versions || {
+                echo "Schema head is not a revision of the runtime source: $requested" >&2; exit 2
+              }
+              normalized_upgrade_heads="${normalized_upgrade_heads:+$normalized_upgrade_heads,}$requested"
+            done
+          fi
           local_host="$(
             node - "$dashboard_origin" "$api_base_url" "$websocket_url" <<'JSURL'
           const { isIP } = require("node:net");
@@ -332,6 +361,7 @@ jobs:
             echo "auth_provider=$auth_provider"
             echo "local_auth=$local_auth"
             echo "external_origin=$external_origin"
+            echo "upgrade_from_schema_heads=$normalized_upgrade_heads"
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Python
@@ -517,10 +547,18 @@ jobs:
           WEBSOCKET_URL: ${{ steps.contract.outputs.websocket_url }}
           AUTH_PROVIDER: ${{ steps.contract.outputs.auth_provider }}
           EXTERNAL_ORIGIN: ${{ steps.contract.outputs.external_origin }}
+          UPGRADE_FROM_SCHEMA_HEADS: ${{ steps.contract.outputs.upgrade_from_schema_heads }}
           NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache
         run: |
           set -Eeuo pipefail
           external_args=()
+          upgrade_args=()
+          if [[ -n "$UPGRADE_FROM_SCHEMA_HEADS" ]]; then
+            IFS="," read -r -a upgrade_heads <<< "$UPGRADE_FROM_SCHEMA_HEADS"
+            for upgrade_head in "${upgrade_heads[@]}"; do
+              upgrade_args+=(--upgrade-from-schema-head "$upgrade_head")
+            done
+          fi
           if [[ -n "$EXTERNAL_ORIGIN" ]]; then
             external_args+=(--external-frontend-artifact "$RUNNER_TEMP/nexolab-package-external-frontend")
           fi
@@ -533,6 +571,7 @@ jobs:
             --websocket-url "$WEBSOCKET_URL" \
             --auth-provider "$AUTH_PROVIDER" \
             --output "$PWD/dist/offline" \
+            "${upgrade_args[@]}" \
             "${external_args[@]}"
           archive="$PWD/dist/offline/nexolab-offline-${VERSION}-${ARCH}.tar.gz"
           test -f "$archive"

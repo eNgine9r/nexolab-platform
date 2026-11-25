@@ -3,7 +3,7 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 import type { RefrigerationControllerBinding } from "./controller-binding-repository";
 
-export type RefrigerationHistoryPreset = "1h" | "12h" | "24h" | "custom";
+export type RefrigerationHistoryPreset = "1h" | "6h" | "12h" | "24h" | "7d" | "custom";
 export type RefrigerationHistoryRange = { from: Date; to: Date };
 
 export const EMBRACO_METRICS = {
@@ -83,7 +83,7 @@ export function resolveRefrigerationHistoryRange(
     }
     return { from, to: customTo };
   }
-  const hours = preset === "1h" ? 1 : preset === "12h" ? 12 : 24;
+  const hours = { "1h": 1, "6h": 6, "12h": 12, "24h": 24, "7d": 168 }[preset];
   return { from: new Date(to.getTime() - hours * 60 * 60 * 1000), to };
 }
 
@@ -139,12 +139,21 @@ export async function loadEmbracoHistory(
   range: RefrigerationHistoryRange,
   signal?: AbortSignal,
 ): Promise<Map<string, TelemetrySample[]>> {
+  // The same physical Embraco can be moved between assets. Never attribute
+  // history captured before this binding to the new refrigeration equipment.
+  const boundAtMs = Date.parse(binding.boundAt);
+  if (!Number.isFinite(boundAtMs)) throw new Error("Invalid controller binding timestamp");
+  const fromMs = Math.max(range.from.getTime(), boundAtMs);
+  if (fromMs >= range.to.getTime()) {
+    return new Map<string, TelemetrySample[]>(EMBRACO_HISTORY_METRICS.map((metric) => [metric, []]));
+  }
+  const boundRange = { from: new Date(fromMs), to: range.to };
   const entries = await Promise.all(
     EMBRACO_HISTORY_METRICS.map(async (metric) => {
       const result = await loadCompleteTelemetryHistory(
         adapter,
         { node_id: binding.nodeId, equipment_id: binding.controllerEquipmentId, metric },
-        range,
+        boundRange,
         { signal },
       );
       return [metric, result.samples] as const;

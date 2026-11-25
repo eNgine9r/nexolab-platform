@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-02T09:30:02Z",
-  "actor": "ChatGPT",
-  "event": "1451_durable_outbox_independent_process_replay_source_only",
+  "timestamp": "2026-11-25T11:07:10Z",
+  "actor": "claude",
+  "event": "P0 #1733 production recovered (v3.2 GREEN_STABLE, agent-verified 11:04Z); data impact measured",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_build_id": "zkjro8zBIxIPXErg7sqY0",
-    "frontend_release": "validated_package:ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
+    "frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "frontend_build_id": "PyM62Vg07TywCAwHY6JjL",
+    "frontend_release": "docker:nexolab/dashboard:issue-1638-f0295409-arm64@sha256:c6c5ae801e658d544f65e8e64330f789a8347baaa8e049addb83f687e05fc76a",
+    "frontend_rollback_release": "docker:nexolab/dashboard:issue-1522-469485b0-arm64@sha256:ec4d14d34a41e4573c67cc18759a0ae29890928c89f0358eca7d351976d97715; https external-ui/469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
+    "frontend_runtime_evidence": "private /home/nexolab/commander-workspaces/nexolab-1638-release-f0295409/site-activation-report-1638.json",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -27,16 +27,106 @@
     "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
+    "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1451,
-    "branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-    "status": "source_only_process_restart_verified_github_ci_pending_independent_security_blocked",
-    "production_mutation": false
+    "issue": 1734
   },
   "evidence_snapshot": {
+    "issue_1522_cadence_aware_freshness": {
+      "review_date": "2026-11-21",
+      "base_main_sha": "9abf080add5690972634a4d1256fc4342c702efa",
+      "source": "Cowork v2 patches 0001+0002 applied via git am (stray scripts/__pycache__ .pyc excluded); 0002 network probe replaced",
+      "freshness_basis_order": [
+        "server_contract stale_after_seconds",
+        "observed_cadence x1.5 + 15 s (min 30 s, max 3600 s cadence)",
+        "default 30 s"
+      ],
+      "persisted_bootstrap": "seed only from raw newest history tail (cadenceSamples) of already-loaded Live history and raw Saved Dashboard history; never from chart-reduced series; zero additional requests",
+      "previous_active_work_preserved": "1625 remains needs_validation in ACTIVE_SPRINT; its evidence below is unchanged",
+      "state_reconciliation": "1460 completed from verified merged PR #1461 head 7c7bc70e (NEXOLAB Merge Gate SUCCESS)",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "modbus_write": false,
+      "ci_first_run": "PR #1627 head 7497ffa1: E2E request-budget invariants failed (/history 32 vs 15; navigation 29 vs <=3) caused by 0002 probe; fixed by removing probe",
+      "pull_request": 1627,
+      "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
+      "exact_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E (request-budget invariants) SUCCESS; mergeStateStatus CLEAN",
+      "merge": "NOT_PERFORMED - awaiting owner approval",
+      "review_fix_head_sha": "e35ccabaa718f81bfd858472533552be043c7f5f",
+      "review_fix_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E SUCCESS"
+    },
+    "issue_1596_board_reconciliation": {
+      "review_date": "2026-11-19",
+      "reviewed_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
+      "open_issues_before": 79,
+      "open_pull_requests": 46,
+      "source_issues_closed": [
+        1594,
+        1592,
+        1590,
+        1583,
+        1479,
+        1431,
+        1525
+      ],
+      "open_issues_after_creating_1596": 73,
+      "state_only_pr_ci": "PENDING",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "release_issue_remaining": 1587,
+      "offsite_dr_issue_remaining": 1428
+    },
+    "issue_1583_scheme_channels": {
+      "baseline": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c",
+      "acceptance": "Create without a chamber, show active 6+2 section inputs, keep reserve/disabled out, preserve replacement label/coordinates/history and scope access by organization/node.",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "pending": "Required pull request checks and separately scoped site acceptance."
+    },
+    "issue_1573_live_connected_channels": {
+      "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+      "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+      "pending_checks": "Site acceptance after #1575",
+      "site_cutover": false,
+      "source_merged_pr": 1574,
+      "source_revision": "eb6302b0ff1a4fefa399dd07dea15fb48f9d491c"
+    },
+    "issue_1564_nginx_validator": {
+      "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+      "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+      "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+      "offline_runtime_dependency_change": "none",
+      "github_ci": "verify the published #1564 PR head",
+      "protected_site_change": "none in this work package",
+      "protected_https_unsigned_status": 302,
+      "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+    },
+    "issue_1569_user_admin_session_recovery": {
+      "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+      "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+      "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+      "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+      "local_chromium": "not run past browser startup; environment denied browser socket",
+      "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+      "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+      "runtime_dependency_change": "none",
+      "source_merged_pr": 1570,
+      "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+      "arm64_release_run": 43830341904
+    },
+    "issue_1567_private_lab_lifecycle": {
+      "pi_systemd_baseline": "confirmed inactive DNS and HTTP after daemon stop/start",
+      "pi_systemd_candidate": "delayed bind, stop/start and restart pass on isolated user units",
+      "live_lan_dashboard": 200,
+      "live_telemetry_ready": 200,
+      "live_lab_login_from_tailnet": 200,
+      "live_legacy_inspection_login_from_tailnet": 502,
+      "owner_console_installation": "pending",
+      "affected_client_reboot_and_network_return": "unverified"
+    },
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
       "branch": "commander/1184-react-19-3",
@@ -1411,12 +1501,15 @@
       "hardware": "not_touched"
     },
     "active_issue_evidence": {
-      "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
-      "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
-      "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
-      "manual_workflow_dispatches": 0,
-      "packaged_authority": "not_established",
-      "new_owner_command": "not_ready"
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_started",
+      "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+      "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source",
+      "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
+      "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
+      "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
+      "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -2773,40 +2866,6 @@
       "hardware": "unverified",
       "offline_ci": "pending"
     },
-    "issue_1451_replay_20261101": {
-      "verified_branch": "feature/1451-edge-sqlite-committed-receipt-ledger",
-      "arm64_platform": "aarch64_python_3.13.5",
-      "module_tests": 357,
-      "receipt_contract_tests": 23,
-      "replay_tests": 17,
-      "isolated_venv_pinned_requirements": true,
-      "new_runtime_wiring": false,
-      "production_modified": false,
-      "site_backup_restore": "unverified",
-      "hardware_acceptance": "unverified",
-      "external_security_gate": "blocked_pending_independent_merge_and_risk_approval",
-      "post_main_merge_arm64_module_tests": 357,
-      "post_main_merge_arm64_contract_tests": 23,
-      "post_main_merge_arm64_idna_tests": 30,
-      "post_main_merge_arm64_ci_policy_tests": 383,
-      "post_main_merge_ci_policy_skipped": 1,
-      "github_exact_head": "pending",
-      "site_acceptance": "unverified",
-      "global_fifo_receipt_prune": "source_only_fail_closed",
-      "arm64_device_agent_module_tests": 360,
-      "arm64_receipt_protocol_contract_tests": 23,
-      "main_integrated": true,
-      "site_runtime_mutation": false,
-      "sqlite_full_test": "real_bounded_sqlite_page_limit",
-      "sqlite_full_rollback": "verified_source_only",
-      "arm64_durable_protocol_tests": 23,
-      "arm64_ci_contract_tests": 383,
-      "independent_python_process_reopen": "passed_source_only",
-      "two_synthetic_broker_pubacks_no_prune": true,
-      "synthetic_final_receipt_exact_prune": true,
-      "real_broker": "unverified",
-      "field_reboot": "unverified"
-    },
     "issue_1453_idna_20261101": {
       "base_main_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
       "arm64_node_version": "v22.23.1",
@@ -2821,11 +2880,11 @@
       "independent_supply_chain_policy": "blocked_by_expired_security_exceptions",
       "first_remote_ci_job": "124968515497_failed_invalid_a_labels",
       "node_icu_compatibility": "empty_unchanged_or_non_allowed_unicode_decoding_rejected",
-      "source_pr": 1454,
+      "issue_status": "closed",
       "github_ci": "success",
       "offline_bundle": "success",
       "telemetry_service": "success",
-      "issue_status": "closed"
+      "production_mutation": false
     },
     "issue_1458_state_reconciliation": {
       "issue": 1458,
@@ -2834,6 +2893,1023 @@
       "selection": "no_active_main_work_package",
       "site_runtime": "not_modified",
       "hardware": "unverified"
+    },
+    "issue_1462_guarded_central_network_recovery": {
+      "source_only": true,
+      "parent_issue": 1399,
+      "site_cidr_guard": "blocked_172_18_0_0_16_vs_172_18_48_0_21",
+      "local_lan_dashboard": "http_200",
+      "local_lan_api": "http_200",
+      "fixed_reconnect_roles": "mqtt telemetry-service dashboard minio",
+      "unit_tests": 14,
+      "systemd_service": "not_installed",
+      "site_cidr_migration": "not_performed",
+      "production_mutation": false,
+      "hardware": "unverified",
+      "source_unit_tests": 16,
+      "existing_observer_tests": 23,
+      "existing_cidr_tests": 16,
+      "offline_contract_ci_registration": true,
+      "auth_key_bind_mounts": "required_nonwritable",
+      "update_locks": "exclusive_during_recovery",
+      "offline_contract": "passed",
+      "real_linux_flock_reentrancy": "positive_fixture_test_pass",
+      "full_offline_contract": "PASS",
+      "exact_head_checks": "3_of_3_GREEN",
+      "source_only_merged": true,
+      "site_auto_recovery_enabled": false,
+      "source_only_merge": "observed_complete"
+    },
+    "issue_1464_edge_ipam_approval_overlay": {
+      "unit_tests": 14,
+      "source_only": true,
+      "positive_compose_config": "PASS",
+      "missing_explicit_subnet": "FAIL_CLOSED",
+      "site_cidr_conflict": "172.18.48.0/21_vs_172.18.0.0/16",
+      "proposed_candidate": "not_site_approved",
+      "live_migration": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "edge_ipam_source_guard_tests": 18,
+      "ci_policy_contract_tests": 383,
+      "ci_policy_skipped": 1,
+      "standalone_offline_contract": "PASS",
+      "site_readonly_exit": 1,
+      "site_readonly_status": "candidate_unapproved"
+    },
+    "issue_1466_lan_auth_access_smoke": {
+      "source_only": true,
+      "unit_tests": 18,
+      "site_dashboard": "HTTP200",
+      "site_login": "HTTP200_form",
+      "site_api_ready": "HTTP200_database_mqtt_ready",
+      "site_session": "HTTP401_without_credentials",
+      "exact_cors": "PASS",
+      "user_login": "unverified",
+      "hardware": "unverified",
+      "offline_contract": "PASS",
+      "site_automatic_monitor": "not_installed",
+      "site_mutation": false,
+      "github_exact_head": "pending",
+      "ci_contracts": 383,
+      "ci_expected_skips": 1,
+      "actual_pi_readonly": "LOCAL_LAN_AUTH_PATH_REACHABLE"
+    },
+    "issue_1469_edge_site_migration_readiness": {
+      "source_only": true,
+      "source_unit_tests": 17,
+      "existing_lan_cidr": "172.18.48.0/21",
+      "existing_edge_bridge_cidr": "172.18.0.0/16",
+      "candidate": "172.26.0.0/24",
+      "candidate_status": "locally_disjoint_not_site_approved",
+      "pi_protected_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "pi_exact_edge_mqtt_agent_container_images": "verified",
+      "pi_existing_sqlite_mqtt_volume_names": "verified_not_recoverability",
+      "site_cutover": "blocked_missing_reservation_rollback_hardware_acceptance",
+      "actual_reboot": "not_performed",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending",
+      "existing_ipam_tests": 18,
+      "existing_overlay_tests": 14,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 383,
+      "ci_expected_skips": 1,
+      "state_model_v2": "PASS",
+      "pi_site_readonly_exit": 78,
+      "source_only_merged": "3_of_3_GREEN",
+      "live_cutover": false
+    },
+    "issue_1468_local_lan_access_alerts": {
+      "source_only": true,
+      "unit_tests": 18,
+      "ci_impact_tests": 80,
+      "source_numeric_metrics": "verified_no_credentials",
+      "native_arm64_promtool_rules": "5_of_5_PASS",
+      "native_arm64_promtool_alert_firing_and_resolution": "PASS",
+      "live_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+      "test_output_only": "owner_private_temporary_directory",
+      "existing_dr_textfile_single_file_compatible": true,
+      "optional_alert_rule_loaded": false,
+      "site_systemd_unit_installed": false,
+      "site_timer_enabled": false,
+      "production_mutation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "ci_policy_contract_tests": 384,
+      "expected_ci_skips": 1,
+      "offline_contract": "PASS",
+      "native_promtool_alert_fixture": "committed_pass",
+      "site_monitor_activation": false
+    },
+    "issue_1472_lan_monitor_install_gate": {
+      "source_only": true,
+      "source_unit_tests": 18,
+      "site_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "requested_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+      "actual_host_exporter_bind": "home_nexolab_nexolab_platform_runtime_observability",
+      "host_dir_owner_mode": "nexolab_0700",
+      "legacy_dr_file": "present_nexolab_0600",
+      "source_unit_mapping": "corrected_exact_host_path",
+      "real_pi_preflight": "blocked_exit78_old_accepted_source",
+      "site_systemd_timer": "not_installed",
+      "prometheus_optional_rules": "not_loaded",
+      "site_activation": false,
+      "hardware": "unverified",
+      "github_exact_head": "pending",
+      "new_tests": 18,
+      "prior_collector_tests": 18,
+      "prior_lan_probe_tests": 18,
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 384,
+      "ci_expected_skips": 1,
+      "systemd_analyze_verify": "PASS",
+      "state_model_v2": "PASS"
+    },
+    "issue_1474_offline_lan_monitor_payload": {
+      "source_only": true,
+      "assets_allowlisted": 5,
+      "default_bundle_behavior": "unchanged",
+      "opt_in_provenance": "lan-access-monitor-source-only",
+      "hermetic_new_tests": 16,
+      "actual_builder_copy_loop_in_isolated_tmp": "PASS",
+      "real_pi_accepted_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+      "real_pi_systemd_monitor": "not_installed",
+      "source_release_path": "unavailable",
+      "hardware": "unverified",
+      "production_mutation": false,
+      "github_exact_head": "pending_revised_commit",
+      "full_offline_contract": "PASS",
+      "ci_policy_contract_tests": 385,
+      "ci_expected_skip": 1,
+      "preexisting_version_manager_test_fixture_limits": "14_site_external_frontend_topology_guards_64_PASS",
+      "site_activation": false,
+      "ci_impact_tests": 81,
+      "offline_workflow_trigger": "exact_filename",
+      "source_change_impact": "no_unknown_paths",
+      "ci_expected_skips": 1,
+      "change_impact_tests": 81,
+      "sealed_assets_tests": 16
+    },
+    "issue_1511_ci_fixture": {
+      "pr": 1512,
+      "status": "merged",
+      "focused_tests": 9,
+      "telemetry_ci": "42022667354_success",
+      "offline_bundle": "42022667360_success",
+      "merge_gate": "42022667638_success",
+      "production_mutation": false
+    },
+    "issue_1513_obsolete_buses": {
+      "registry_revision": 34,
+      "owner_decision": "two_old_CP2104_adapters_no_longer_required",
+      "old_active_instruments": 12,
+      "old_active_targets": 53,
+      "device_disposition": "not_confirmed",
+      "protected_adapter": "A10Q34QC",
+      "protected_devices": "two_XJP60D_6_and_2_eligible_targets",
+      "runtime_mutation": false
+    },
+    "issue_1514_dashboard_test": {
+      "pr": 1515,
+      "head": "4813e422128ca01ceb28930b9ab81360cb8f89a4",
+      "browser_run": "42024913691_in_progress",
+      "prior_failure": "42023138252_old_wizard_field_hidden_by_quick_add",
+      "hardware_acceptance": "unverified"
+    },
+    "issue_1525_permission_navigation": {
+      "issue": 1525,
+      "branch": "feat/1525-permission-aware-navigation",
+      "state": "source_candidate",
+      "independent_page_grants": "unimplemented_issue_1526",
+      "site_deployed": false,
+      "runtime_user_acceptance": "pending"
+    },
+    "issue_1532_overview_readability": {
+      "issue": 1532,
+      "pull_request": 1533,
+      "branch": "feat/1532-overview-readability",
+      "base_main_sha": "8ba483b6edb3adca75c23923ee74657cc96929c6",
+      "verified_isolated_workspace": "/home/nexolab/commander-workspaces/overview-1532-validation-20261106",
+      "source_file_blob_match": 6,
+      "focused_vitest": "7_passed_3_files",
+      "changed_file_prettier": "passed",
+      "changed_file_eslint": "passed",
+      "typescript_noemit": "passed",
+      "target_node_version": "22.23.1",
+      "tests_vitest_version": "4.1.10",
+      "exact_head_required_ci": "PASS_42233327149_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_verified": true,
+      "production_build_verified": true,
+      "permission_pr_dependency": 1531,
+      "prod_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "runtime_mutation": false,
+      "update_signal": "withheld",
+      "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_on_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+      "browser_viewport_verified_overview": [
+        360,
+        1440,
+        1920
+      ],
+      "browser_viewport_verified_header": [
+        320,
+        375,
+        768,
+        1280
+      ],
+      "browser_evidence_artifact": 13510498719,
+      "manual_pixel_review": "not_recorded",
+      "needs_new_exact_head_ci_after_state_change": true,
+      "merged_pr": 1533,
+      "final_ci": "PASS_42234941179",
+      "final_browser": "PASS_42234941253",
+      "production_installed": false
+    },
+    "issue_1534_overview_device_first": {
+      "issue": 1534,
+      "branch": "feat/1534-overview-sensor-picker",
+      "base_main_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+      "source_blobs_verified": 7,
+      "targeted_tests": "28_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "github_ci": "PASS_42238642725",
+      "browser_acceptance": "PASS_42_of_42_42238642310",
+      "release": "not_installed",
+      "modbus_write": false,
+      "hardware_write": false,
+      "site_mutation": false,
+      "pull_request": 1535,
+      "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+      "responsive_viewport_widths": [
+        320,
+        375,
+        390,
+        768,
+        1280,
+        1440,
+        1920
+      ],
+      "source_completion": "verified_candidate",
+      "final_documentation_ci": "pending"
+    },
+    "issue_1537_live_retry_flake": {
+      "issue": 1537,
+      "pull_request": 1538,
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "source_base_main": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+      "targeted_prettier": "PASS",
+      "targeted_eslint": "PASS",
+      "targeted_tsc": "PASS",
+      "previous_42_browser_rerun": "PASS_42240068804_attempt2",
+      "new_exact_head_ci": "PASS_42283567771",
+      "new_exact_head_browser": "PASS_13_of_13_42283567775",
+      "site_installed": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "source_merged": true,
+      "source_merge_commit_observation_only": "recorded_in_observations"
+    },
+    "issue_1536_live_progressive_filters": {
+      "issue": 1536,
+      "branch": "feat/1536-live-progressive-filters",
+      "base_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+      "vitest": "12_pass",
+      "changed_file_prettier": "PASS",
+      "eslint": "PASS",
+      "tsc_noemit": "PASS",
+      "source_blobs_verified": 2,
+      "github_ci": "PASS_42285423569",
+      "browser_acceptance": "PASS_42_of_42_42285423714",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1544_equipment_connections": {
+      "issue": 1544,
+      "related_discovery_issue": 1478,
+      "branch": "feat/1544-equipment-connections-readability",
+      "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+      "targeted_vitest": "8_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "verified_blobs": 3,
+      "github_ci": "PASS_42600416268",
+      "authenticated_browser_acceptance": "PASS_6_of_6_42600416103",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true
+    },
+    "issue_1546_energy_parameter_picker": {
+      "issue": 1546,
+      "branch": "feat/1546-energy-parameter-picker",
+      "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+      "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+      "focused_vitest": "10_pass",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "source_blobs_verified": 3,
+      "github_ci": "pending",
+      "authenticated_energy_browser": "pending",
+      "production_build": "pending",
+      "site_installed": false,
+      "modbus_write": false,
+      "hardware_write": false,
+      "source_merged": true,
+      "source_merge_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "main_ci": "PASS_42603616206"
+    },
+    "issue_1548_refrigeration_catalog": {
+      "issue": 1548,
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "source_base": "7815a9d503173d5b079ae065c63f82be9f704533",
+      "workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+      "focused_vitest": "PASS_13_of_13",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "sha_matched_files": 3,
+      "ci": "pending",
+      "authenticated_browser": "pending",
+      "production_install": "blocked",
+      "hardware_write": false,
+      "modbus_write": false
+    },
+    "storage_1553": {
+      "issue": 1553,
+      "branch": "chore/1553-safe-cache-reclamation",
+      "before_avail_bytes": 37260357632,
+      "after_avail_bytes": 45684551680,
+      "actual_reclaimed_bytes": 8424194048,
+      "runtime_containers": 13,
+      "telemetry_latest_id_progress": "13482333_to_13482381",
+      "external_frontend": "active",
+      "external_nginx": "active",
+      "production_data_delete": false,
+      "backup_delete": false,
+      "protected_cutover": false,
+      "source_ci": "pending",
+      "manual_rollout": "not_performed"
+    },
+    "sessions_operator_list_1550": {
+      "issue": 1550,
+      "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+      "source_branch": "feat/1550-sessions-list-clarity",
+      "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+      "targeted_tests": "7_passed_2_files",
+      "prettier": "PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "github_exact_head_ci": "pending",
+      "authenticated_browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "browser_target_viewports": [
+        375,
+        768,
+        1440,
+        1920
+      ]
+    },
+    "reports_operator_ui_1558": {
+      "issue": 1558,
+      "branch": "feat/1558-reports-operator-ui",
+      "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+      "targeted_tests": "9_passed_2_files",
+      "format_eslint_typecheck": "PASS",
+      "source_ci": "pending",
+      "browser": "pending",
+      "site_installed": false,
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "protected_ui_release_1560": {
+      "source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+      "artifact_run": 42805566839,
+      "arm64_profiles": "LAN_and_HTTPS_sha256_PASS",
+      "nginx_bluegreen_syntax": "PASS_isolated",
+      "hand_off_preflight": "PASS_READONLY",
+      "smoke": "HTTP200_login_sessions_reports_testfixtures_only",
+      "new_root_service_installed": true,
+      "nginx_config_switched": false,
+      "real_full_site_restore": false,
+      "hardware_write": false,
+      "first_operator_execution": "FAILED_CLOSED",
+      "actual_failure": "unsupported_identity_source",
+      "new_service_3104": "ACTIVE_HTTP200",
+      "new_runtime_identity": "VERIFIED_CORRECT_AFTER_PROVENANCE_METADATA_REPAIR",
+      "nginx_sha256": "b76c1120ae9e0981a8f1ba49caf9c6091d754df4b2649cf32cc36650d4e97f02",
+      "nginx_restored": true,
+      "old_service_3100": "ACTIVE_HTTP200",
+      "resume_operator_action": "promote_after_source_ci_and_root_journal_verification",
+      "targeted_resume_tests": "8_PASS"
+    },
+    "overview_v2_1562": {
+      "base_main": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+      "dev_preview": "http://127.0.0.1:3192/",
+      "browser": "real Next.js dev mode, demo sample data, Chromium desktop/tablet/mobile",
+      "desktop": "HTTP200_1440x900",
+      "tablet": "HTTP200_768x1000",
+      "mobile": "HTTP200_390x844",
+      "horizontal_overflow": false,
+      "js_page_errors": 0,
+      "targeted_tests": "15_PASS",
+      "eslint": "PASS",
+      "typescript": "PASS",
+      "production_site_changed": false,
+      "hardware_write": false
+    },
+    "ci_trivy_1487": {
+      "installer_negative_tests": 4,
+      "container_policy_tests": 53,
+      "actual_official_binary_sha256_verified": true,
+      "actual_version": "0.70.0",
+      "site_mutation": false,
+      "github_ci": "pending",
+      "blocker_issue": 1447,
+      "pull_request": 1489,
+      "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+      "hosted_run": 41800839925,
+      "image_build_and_scan_jobs": "5_of_5_PASS",
+      "unchanged_policy": "FAIL_expired_2026_10_20",
+      "telemetry_high": 74,
+      "telemetry_critical": 5,
+      "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+      "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+      "ci_routing_tests": 82,
+      "final_source_ci": "pending"
+    },
+    "rs485_integration_1486": {
+      "source_only": true,
+      "hardware": "unverified",
+      "site_activation": false,
+      "core_pr": 1483,
+      "adapter_finder_merged_pr": 1480,
+      "ci_marker_fix_merged_pr": 1485,
+      "integration_checks": "342_agent_24_central_1233_frontend_lint_typecheck_build_PASS_CI_pending"
+    },
+    "security_review_20261104": {
+      "pull_request": 1448,
+      "reviewed_immutable_source": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+      "source_image_run": 41076486729,
+      "verified_manifests": 5,
+      "verified_evidence_hashes": 15,
+      "current_db_updated_at": "2026-11-04T07:16:25.226375897Z",
+      "current_telemetry_high": 50,
+      "current_all_images_critical": 0,
+      "current_other_images_high": 0,
+      "unique_high_cves": 14,
+      "debian_trixie_open_cves": 14,
+      "current_tuple_policy": "BLOCKED_new_SQLite_119373",
+      "focused_local_tests": 67,
+      "exception_registry_changed": false,
+      "approval_scope": "technical_review_only",
+      "specific_owner_risk_decision": "pending",
+      "site_activation": false,
+      "hardware": "unverified",
+      "review_evidence": "docs/architecture/security-container-review-20261104.json",
+      "full_updated_head_ci": "pending"
+    },
+    "security_reconciliation_20261116": {
+      "issue": 1447,
+      "pr": 1448,
+      "blocked_live_editor_pr": 1574,
+      "prior_scan_run": 42219823187,
+      "latest_baseline_scan_run": 43851624610,
+      "new_source_verification": "22 exact-head workflows passed",
+      "verified_remediation_head": "67351d3d0717a20c88a149669f24ea499179b086",
+      "telemetry_scan_run": 43862880533,
+      "telemetry_report_sha256": "a974885bfbcc3fddb2a1535c16d0499c4cbe16e25bd5390e2df430d28546cac2",
+      "broker_control_acceptance_run": 43862880406,
+      "telemetry_high": 18,
+      "telemetry_critical": 0,
+      "exception_registry": "33 retired; Product Owner approved 18 exact version-bound HIGH through 2026-11-23 inclusive",
+      "approval_evidence_head": "b4906a44c1baf48d14fcff7491e5a7bbb6d0d5fb",
+      "approval_evidence_run": 43859841072,
+      "approved_tuple_sha256": "36a289af25d9dbcc333a2a4421898b0c57ee5a493ccdb49e6ceaa2b7065b4253",
+      "offline_acceptance_run": 43862880148
+    },
+    "issue_1575_pi_compatibility": {
+      "deployed_telemetry_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+      "source_match": "All 229 tracked Telemetry Python app and migration files match the running service.",
+      "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
+      "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
+      "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
+      "site_cutover": false
+    },
+    "issue_1577_replacement_dixell": {
+      "root_cause": "Parent devices were discovery_only; frontend private API origin absent; source Overview uses legacy numeric enrollment; cadence omits supported waveshare_8ai.",
+      "browser": "All eight latest values advance by 10s; six Unit1 persisted 1h series visually rendered. Monitoring auth error cleared; installed Overview and cadence contract defects remain.",
+      "runtime": "Owner verified registry46 with6+2 eligible inputs. Approved frontend-only origin override completed with FRONTEND_API_FIXED, unchanged build; journal /home/nexolab/nexolab-1577-ui-e86e61no. No agent build replacement or hardware write.",
+      "offline": "No new dependency or external runtime requirement. Hardware data and configuration remain local.",
+      "pending": "New exact-head CI/review; matching frontend-only artifact and separately approved activation; Overview and Unit7 persisted-history acceptance; future seven modules hardware-unverified.",
+      "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
+      "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
+      "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
+    },
+    "issue_1579_controller_cycle": {
+      "baseline": "d92350848fa67705bd74cbd75152495d82ff387e",
+      "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
+      "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
+      "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
+      "pending": "Separate Raspberry site acceptance",
+      "hardware_verified": false,
+      "site_cutover": false,
+      "source_merge": "b57f7dee4532ef23e9ff36e033340e511219233a",
+      "verified_head": "e3ac93a63871564a23e1d9ae9835839539d2a680",
+      "github_workflows": 4,
+      "browser_acceptance_run": 43894681745
+    },
+    "issue_1581_saved_dashboard_legend": {
+      "baseline": "b57f7dee4532ef23e9ff36e033340e511219233a",
+      "behavior": "Saved Live Dashboard legends are grouped by instrument and filter by instrument, node, channel, metric or unit. Every panel derives its readout from the shared cursor and preserves recorded zeros and missing observations.",
+      "local_verification": "Focused chart and legend tests, TypeScript, lint and LOCAL_LAN production build.",
+      "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
+      "hardware_verified": false,
+      "site_cutover": false
+    },
+    "issue_1585_channel_labels": {
+      "base": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+      "scope": "6+2 active read-only channels, persistent names, unchanged channel IDs/history",
+      "python_tests": "18 passed",
+      "frontend_tests": "436 module tests passed (67 files)",
+      "migration": "isolated upgrade and guarded downgrade passed",
+      "hardware_verified": false,
+      "site_cutover": false,
+      "pending": "Exact-head CI, protected runtime package/site acceptance",
+      "source_build": "Next.js 16.3.6 production build PASS",
+      "catalog_scope": "Dixell legacy only; non-Dixell devices visible",
+      "last_failed_head": "50af9a4b9264281c16514977b504eabd3bc735f4",
+      "last_failed_ci": "Telemetry Service 862 pass 1 fail because circuit test expected previous Alembic head 20261116_0039",
+      "fix": "Dynamic Alembic ScriptDirectory.get_current_head assertion; single current head 20261118_0040 validated",
+      "local_targeted_tests": "18 passed; 4 PostgreSQL tests skipped on isolated ARM64 (no dedicated PostgreSQL fixture)",
+      "required": "All exact-head PR workflows GREEN before merge; no site cutover"
+    },
+    "issue_1588": {
+      "source_base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "29/29 PASS",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "site_update": "NOT_PERFORMED",
+      "production_hardware": "NOT_TESTED",
+      "release_1587": "BLOCKED: protected installed source authority / exact ARM64 package / rollback",
+      "ci_initial": "FAIL on 5/13 browser E2E: outdated literal English placeholder; other unit/static/build checks PASS",
+      "browser_locator_fix": "5 Live and 1 multi-axis selectors now use accessible Poshuk textbox; DOM read-order check no longer keys on English placeholder",
+      "new_ui_focus_test": "13/13 PASS"
+    },
+    "issue_1590": {
+      "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+      "tests": "14/14 PASSED",
+      "typescript": "PASS",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "runtime_mutation": "none",
+      "browser_ci": "PENDING",
+      "site": "UNVERIFIED"
+    },
+    "issue_1594_ci_classifier": {
+      "parent_issue": 1592,
+      "blocked_pr": 1593,
+      "failure": "NEXOLAB Merge Gate missing three untriggered workflows on exact old head",
+      "fix": "exact two-file verification_tooling mapping; other unknown scripts fail closed",
+      "targeted_tests": "84 PASS",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "pending": "exact-head CI and actual required external workflows GREEN before merge"
+    },
+    "issue_1592_unified_operator_release": {
+      "source_pr": 1593,
+      "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+      "actual_operators": {
+        "docker": "4be678f6 / CoZ2mvfZvFe67uyyeRe7a",
+        "funnel": "75ceb465 / u5qAvkW0BUJHwhOMa6pHr",
+        "lab": "08f1c8a4 / MCPKmYsrQCxN9zwMwDDnV"
+      },
+      "local_tests": "8 PASS; Prettier check PASS; Python compile PASS",
+      "live_source_parity": "FAIL expected: exit 1",
+      "release_1587": "owner-specific cutover permission required",
+      "device_agent_preservation": "nexolab/quick-agent:1490; commissioning 6+2 channels",
+      "github_ci": "pending",
+      "site_mutation": false,
+      "hardware_verified": false,
+      "source_implementation_commit": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+      "unit_tests": "15/15 PASS",
+      "format": "Prettier PASS",
+      "optional_manifest": "checksum-pinned multiple builds from same approved source",
+      "governance_pr_1595": "merged 17516d14 with 5/5 GREEN",
+      "github_exact_head": "pending new PR #1593 CI"
+    },
+    "issue_1598_execution_governance": {
+      "source_only": true,
+      "roadmap": "docs/operations/nexolab-execution-roadmap.md",
+      "test_matrix": "docs/operations/nexolab-verification-matrix.md",
+      "issues_count_including_1598": 73,
+      "open_pr_count": 46,
+      "open_pr_dep_automation": 10,
+      "stale_in_progress_converted": [
+        1406,
+        1410,
+        1428,
+        1409,
+        1399,
+        1400
+      ],
+      "selected_source_review_issue": 1460,
+      "selected_source_review_pr": 1461,
+      "independent_next_ready_issue": 1522,
+      "full_offsite_dr": "UNVERIFIED",
+      "site_cutover": false,
+      "hardware_verified": false,
+      "github_governance_pr_ci": "PENDING"
+    },
+    "1460_source_review_20261119": {
+      "issue": 1460,
+      "pr": 1461,
+      "local_preflight_pytest": "15_of_15_pass",
+      "python_compile": "pass",
+      "state_validation": "pass",
+      "new_pr_head_ci": "PENDING",
+      "site_backup": false,
+      "site_restore": false,
+      "hardware_write": false,
+      "modbus_write": false,
+      "site_cutover": false
+    },
+    "issue_1601_kk1_embraco": {
+      "github_issue": 1601,
+      "site_hw_preflight": "hardware_verified_FC03_pass",
+      "target_KK1": "CoolesSlim VCC L1250 / 11111",
+      "live_telemetry": "VERIFIED_13_latest_4_valid_9_unknown_26_of_26_scheduled_reads",
+      "source_implementation": "NOT_REQUIRED_SAME_IDENTITY",
+      "legacy_KK2": "preserved",
+      "network_site_mutation": false,
+      "modbus_writes": "none",
+      "preceding_checkpoint_active_work": {
+        "issue": 1460,
+        "branch": "feature/1460-offline-backup-preflight",
+        "status": "review",
+        "site_cutover": false
+      },
+      "preceding_checkpoint_next_action": "Publish only the main-reconciled #1461 read-only source candidate; run exact-head CI and all required offline, dashboard, refrigeration and telemetry workflows. Merge only after GREEN and focused review; parent #1428 independent encrypted off-device backup and isolated restore remain unverified. Then proceed with next independent Ready #1522, keeping one active source implementation.",
+      "status": "completed_same_controller_physical_move",
+      "old_KK2_binding": "historically_retained_soft_unbound",
+      "new_KK1_binding": "e9a84aeb-abe5-4096-bdc1-0cb9d90d8f55",
+      "owner_approved_site_move": true,
+      "edge_registry_revision": 54,
+      "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+      "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+      "device_agent_restart": "healthy",
+      "browser_recheck": "pending",
+      "temperature_sensor_acceptance": "unverified"
+    },
+    "issue_1603_temp_probe_chart_export": {
+      "work_package": 1603,
+      "branch": "feature/1603-embraco-probes-chart-export",
+      "source_only": true,
+      "site_cutover": false,
+      "two_traces": [
+        "temperature.cabinet",
+        "temperature.evaporator"
+      ],
+      "raw_sample_quality": "unverified degC values remain null/unknown; display raw as its own unit",
+      "verified_tests": "27/27 targeted; 271/271 refrigeration module",
+      "eslint": "PASS",
+      "prettier": "PASS",
+      "typecheck": "PASS",
+      "csv": "UTC+local time, value, quality, 16-bit raw, signed raw, channel/event identifiers",
+      "history_scope": "KK1 from active binding timestamp, earlier KK2 remains PostgreSQL history",
+      "ci": "PENDING",
+      "production_deployment": "NOT_PERFORMED",
+      "temperature_scale": "UNVERIFIED",
+      "modbus_writes": "none",
+      "hardware_writes": "none"
+    },
+    "issue_1607_https_frontend_rollout": {
+      "source_pr": 1604,
+      "source_merged_main": "29a043963c6f705384f9eb66b3e8c5653ed89a0f",
+      "source": "edd04b4aabdd28c7c46ada056cc746434796bdde",
+      "site_status": "HTTPS_UI_1607_ACTIVATED_GREEN",
+      "https_build_id": "qe-NDhbsh-6WHXhvG0luq",
+      "lan_build_id": "9B-pHrz8lObcc5N_TX8F1",
+      "previous_https_source": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+      "previous_https_build_id": "u5qAvkW0BUJHwhOMa6pHr",
+      "gateway_and_tailscale_unchanged": true,
+      "oauth_unauthenticated": "302 on 6 public routes including API and KK1",
+      "isolated_preview": "3107 source/build and four routes HTTP200",
+      "protected_loopback": "3105 source/build and four routes HTTP200",
+      "private_runtime_evidence": "/home/nexolab/commander-workspaces/nexolab-1603-release-artifacts/https-1607/activation-report-1607.json",
+      "verified_unmodified_backend_containers": 5,
+      "lan_current_source": "edd04b4aabdd28c7c46ada056cc746434796bdde",
+      "modbus_writes": 0,
+      "hardware_writes": 0,
+      "database_migrations": 0,
+      "authenticated_browser": "NOT VERIFIED",
+      "reboot_offline": "NOT VERIFIED",
+      "temperature_units": "RAW signed 16-bit registers; unverified Celsius mapping",
+      "release_authority_followup_issue": 1606
+    },
+    "issue_1609_operator_celsius": {
+      "input": "Product Owner sets coefficient 0.1 without HMI photo (2026-11-19)",
+      "original_source_quality": "unchanged unknown and value null; no rewrite",
+      "derived_celsius_in_csv": "separate operator_celsius_degC, multiplier and basis",
+      "provenance": "operator_confirmed_hardware_unverified",
+      "scope": "EMBRACO-2, cabinet and evaporator probes only",
+      "source_main_baseline": "5434f0f14b0960630b4e436b6c5f45599b5ee5a8",
+      "source_validation": "25 target tests PASS; tsc noemit PASS; touched-file ESLint PASS",
+      "site_runtime_status": "LAN and HTTPS frontend-only ACTIVATED and verified; prior sources retained",
+      "no_modbus_or_db_write": true,
+      "real_hardware_scale_verified": false,
+      "site_source_merge": "59dc14cacac70c63407afc57d3ee797e98e77f47",
+      "site_lan_build": "4QJaWhiSXkGsAyTaVtVjf",
+      "site_https_build": "qfF_dxzeeg5BUGOKOpEoc",
+      "lan_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/site-dashboard-only/activation-report-1609.json",
+      "https_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/https-1609/activation-report-1609.json",
+      "oauth_gateway_backend_unchanged": true,
+      "hardware_scale_verified": false,
+      "authenticated_browser": "NOT TESTED",
+      "offline_reboot": "NOT TESTED"
+    },
+    "issue_1613_saved_three_series": {
+      "source_sha": "52ec42fb1a9ac7bae5021f94c6d1cdc87e0c9c6e",
+      "merged_main_sha": "0516cd6181167486613ad96333938c497e640d3e",
+      "lan_runtime_build": "KySdT-zIFobbK5-JfejLS",
+      "https_runtime_build": "Pi2us7V-O6Kx151spAm_A",
+      "landed_source": "both frontend deployments GREEN",
+      "dashboard_id": "70f0e2d5-7509-4778-91bd-4807c92bc5a8",
+      "saved_version": 3,
+      "series_count": 3,
+      "operator_authenticated_api_audit": true,
+      "rollback_snapshot": "/home/nexolab/commander-workspaces/nexolab-1613-dashboard-config/before-1613.json",
+      "browser": "local authenticated Chromium 3/3 signals, no JS/API errors and mobile 390px pass",
+      "public_https_oauth_gate": "302 preserved, signed-in Google browser NOT tested",
+      "backend_ids": "preserved by activation scripts",
+      "hardware_celsius": "NOT verified",
+      "modbus_writes": false
+    },
+    "issue_1617_versitygw_go_cve": {
+      "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1617",
+      "source_baseline": "0516cd6181167486613ad96333938c497e640d3e",
+      "fixed_go": "1.27.4",
+      "previous_go": "1.27.3",
+      "sha256_amd64": "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840",
+      "sha256_arm64": "3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92",
+      "checksum_authority": "https://go.dev/dl/?mode=json verified",
+      "ci_blocker": "unapproved HIGH CVE-2026-97054 in Go stdlib usr/local/bin/versitygw",
+      "required_outcome": "Fresh fixed image trivy + full required merge gate GREEN",
+      "runtime": "SOURCE ONLY; no object storage cutover, never relax vulnerability policy",
+      "local_tests": "8/8 object-storage and telemetry packaging regression tests PASS",
+      "old_pin_test_fixed": "tests/test_object_storage_supply_contract.py now checks Go 1.27.4 and its verified official amd64/arm64 archives",
+      "merge_source_sha": "dc7573126ffaf3e6b456ee2d1e8d9cfed421d28e",
+      "merged_main_sha": "91266af356016f7e44df9121d8ef5d3f2d12f31b",
+      "required_ci": "38 PASS; no failures, Merge Gate GREEN",
+      "site": "NOT deployed; existing storage unchanged"
+    },
+    "issue_1615_csv_candidate": {
+      "branch": "feature/1615-saved-embraco-csv",
+      "scope": "append-only saved dashboard CSV source raw, signed16, operator estimated Celsius scale/basis for two exact Embraco probes only",
+      "source_tests": "7/7 focused PASS; 31/31 dashboard PASS, 1 skipped PostgreSQL-only",
+      "production_telemetry_api": "unchanged source-only CSV; no deployment",
+      "rollback": "backend release not approved yet",
+      "hardware": "scale unverified",
+      "modbus_writes": false
+    },
+    "embraco_three_series_10s_production_sampling": {
+      "observed_utc": "2026-11-20T05:29:16Z",
+      "site": "nexolab-edge-01; central PostgreSQL",
+      "scope": "edge-01 EMBRACO-2 cabinet, evaporator, compressor.speed",
+      "window": "30 min; 12 min interarrival calculation",
+      "per_metric_30_min_rows": 180,
+      "median_spacing_sec": 10,
+      "observed_range_compressor_sec": [
+        9.99,
+        10.01
+      ],
+      "observed_temperature_spacing_sec": 10,
+      "hardware_celsius_scale": "NOT verified",
+      "sampling_runtime_mutation": "none; cadence was already verified 10 seconds, regardless of global SAMPLE_INTERVAL_SECONDS=5"
+    },
+    "issue_1621_embraco_hmi_mismatch": {
+      "user_physical_hmi_celsius": 0.1,
+      "raw_2026_11_20_0722_utc": {
+        "cabinet": 65514,
+        "evaporator": 24,
+        "condenser": 3202
+      },
+      "source_old_scale": 0.1,
+      "source_provisional_candidate_scale": 0.01,
+      "hardware_scale_accepted": false,
+      "probe_hmi_mapping_accepted": false,
+      "local_tests": "36/36 targeted initial PASS",
+      "lint": "ESLint touched-file max-warnings 0 PASS",
+      "typecheck": "TypeScript tsc --noEmit PASS",
+      "site_runtime": "UNCHANGED prior frontend ×0.1; no backend deployment",
+      "backend_csv_depends_on_issue": 1622,
+      "blocked_backend_image": "nexolab/telemetry-service:issue-1615-1e5537cb-arm64",
+      "hardware_writes": false,
+      "site_space_gib": "~19 GiB free; under 20 GiB DR reserve",
+      "full_related_tests": "69/69 PASS in 16 related Vitest files",
+      "source_targeted_tests": "36/36 PASS then all 69/69 PASS",
+      "formatting": "changed file Prettier PASS",
+      "site_cutover": "not performed",
+      "hardware_calibration": "UNVERIFIED",
+      "browser_first_ci": "Initial browser PostgreSQL+S3 E2E failed exclusively on stale literal old ×0.1 and old warning text, fixed in new test contract",
+      "ci_status": "new exact-head CI pending"
+    },
+    "issue_1622_backend_csv_hmi_fix": {
+      "main_baseline": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+      "frontend_source": "292e4091f4de0022a06161c1141328e6bba09e3e",
+      "frontend_merge": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+      "backend_source_status": "SOURCE CANDIDATE ONLY, not deployed",
+      "candidate_scale": 0.01,
+      "candidate_basis": "candidate_0p01_hmi_not_calibrated",
+      "unit": "edge-01 EMBRACO-2 cabinet+evaporator only",
+      "new_source_tests": "31 passed, 1 skipped PostgreSQL-specific",
+      "original_data": "value null / quality unknown unchanged",
+      "hardware_calibration": "unverified",
+      "site_free_gib": "~19 GiB, protected 20 GiB minimum",
+      "runtime": "old current API and frontend, no cutover",
+      "required_ci": "pending"
+    },
+    "issue_1625_embraco_frontend_site_release": {
+      "source": "8854fae2fd40f4706e30a4ab2cd4183452fc753e",
+      "lan_image": "sha256:3fd6453f3d99e7972f9108c89479c4c87716bdf3fb37773a93732ca464acf42f",
+      "lan_build": "BWbEQWMGUfn-_kqZjIRoj",
+      "https_build": "N94Tr6VkW3hXQ9TkFRZNm",
+      "arm64_off_device_ci_run": 44712932452,
+      "artifact_and_runtime_hash": "PASS for LAN & HTTPS",
+      "site_activation_report": "/home/nexolab/commander-workspaces/nexolab-1625-release-8854fae2/site-activation-report-1625.json",
+      "status": "BOTH_FRONTENDS_ACTIVATED_GREEN",
+      "independent_site_paths": "5 LAN + 5 HTTPS 200; all public OAuth routes anonymous 302",
+      "backend_containers_unchanged": true,
+      "live_acquisition": "90 persisted samples for each probe/RPM in last 15m, mean 10.0s",
+      "free_disk_bytes_after": 22828228608,
+      "hardware_celsius_scale": "CANDIDATE x0.01 UNVERIFIED",
+      "physical_hmi_probe": "cabinet confirmed by Product Owner",
+      "site_backend_csv": "NOT DEPLOYED; #1428 DR hard blocker",
+      "owner_browser": "not independently verified",
+      "hardware_writes": false
+    },
+    "issue_1629_sprint_drift_reconciliation": {
+      "completed_from_review": [
+        1581,
+        1575,
+        1335,
+        1315,
+        1390,
+        1516,
+        1560,
+        1562
+      ],
+      "evidence": "each: Issue closed/completed, PR merged, NEXOLAB Merge Gate success on exact head (check-runs API), merge commit in main; re-verified 2026-11-21",
+      "meaning": "source scope completed; preserved evidence such as site_frontend_handoff=NOT_PERFORMED (#1560) and protected_site_installed=false (#1562) keeps site gates on #1564/#1587",
+      "excluded": {
+        "1611": "needs_validation may only move to ready under the state model; owner decision"
+      },
+      "baselines_changed": false,
+      "selection_changed": false,
+      "site_cutover": false
+    },
+    "issue_1522_frontend_site_release": {
+      "source": "469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
+      "artifact_run": "https://github.com/eNgine9r/nexolab-platform/actions/runs/44944285348",
+      "artifact_zip_sha256": {
+        "lan": "19e8f12426ebff56132505b8063639389290ef0d42490e01fcde1a063cb4579b",
+        "https": "479599e5fec6a7180bc27ef33b3759ae63a22c233985f0067639e3688c02ad06"
+      },
+      "verified": "zip digests == GitHub; package/artifact/runtime file SHA256 (LAN 865, HTTPS 17613); public contract identical to #1625",
+      "lan": {
+        "image": "sha256:ec4d14d34a41e4573c67cc18759a0ae29890928c89f0358eca7d351976d97715",
+        "build": "kyL7Lcf5PwHm2I6LA24-V",
+        "built_offline_on_pi": true
+      },
+      "https": {
+        "build": "smzu8X7Xp7vPyf3va7lJ7",
+        "dropin": "99-release-1522-live-freshness.conf"
+      },
+      "isolated_previews": "3125/3126 identity + routes 200, removed after release",
+      "result": "NEXOLAB_1522_BOTH_FRONTENDS_ACTIVATED_GREEN; backend container IDs identical; OAuth gate 302 unchanged; telemetry ready",
+      "not_verified": "authenticated owner browser check of Live/Stale on a 60 s channel; offline reboot",
+      "backend_changed": false,
+      "modbus_write": false
+    },
+    "issue_1638_frontend_site_release": {
+      "source": "f02954091bfa3113c2f435b71d8a7189967b4865",
+      "artifact_run": "https://github.com/eNgine9r/nexolab-platform/actions/runs/44954810847",
+      "artifact_zip_sha256": {
+        "lan": "8144a043442360b69003ad4b8b61b6b5bb8fa76d6efae270b17c2c25abac3a84",
+        "https": "278de5e0542255ef43b1e019154adb9be30e982debf95b274280f7eb4349b695"
+      },
+      "verified": "zip digests == GitHub; package/artifact/runtime file SHA256 (LAN 871 extracted, HTTPS 17619); public/runtime contracts and lockfile identical to #1522",
+      "lan": {
+        "image": "sha256:c6c5ae801e658d544f65e8e64330f789a8347baaa8e049addb83f687e05fc76a",
+        "build": "PyM62Vg07TywCAwHY6JjL",
+        "built_offline_on_pi": true,
+        "build_note": "first two builds reused stale #1522 .next via BuildKit context sync (identical size + normalised mtime); rebuilt from a tar-streamed context and verified file-by-file (849 files) against the artifact; bad images removed before activation"
+      },
+      "https": {
+        "build": "U_-FTp6Unq2wciBPuPq1f",
+        "dropin": "99-release-1638-chart-audit.conf"
+      },
+      "result": "NEXOLAB_1638_BOTH_FRONTENDS_ACTIVATED_GREEN; backend container IDs identical; OAuth gate 302 unchanged; telemetry ready; LAN+HTTPS routes 200; served HTML carries new build ids",
+      "not_verified": "signed-in owner browser check of the chart pages; offline reboot",
+      "backend_changed": false,
+      "modbus_write": false
+    },
+    "superseded_active_issue_evidence_2026-11-23T07:40:00Z": {
+      "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
+      "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
+      "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
+      "manual_workflow_dispatches": 0,
+      "packaged_authority": "not_established",
+      "new_owner_command": "not_ready"
+    },
+    "superseded_active_issue_evidence_2026-11-23T07:58:40Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_applicable_tooling",
+      "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
+      "pull_request": 1708,
+      "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-23T08:44:18Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "2026-11-23: dev cleanup npm cache 3544->16 KiB and 3 merged local branches; start script pass/fail paths exercised with a throwaway HOME; systemd-analyze verify clean; inventory script exercised without root (docker denied as expected)",
+      "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
+      "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-23T10:04:52Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_applicable_dev_infrastructure",
+      "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
+      "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
+      "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending",
+      "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)"
+    },
+    "superseded_active_issue_evidence_2026-11-23T10:29:55Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "2026-11-23 reconcile merge of stack head 4be678f6 into main (81 files; governance/state keep main); device-agent suite 373 tests OK locally; CI: unit/component, device-agent builds, fleet/acquisition/offline acceptance passed; Prettier and a pytest-only test module fixed",
+      "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+      "source_merge": "n/a",
+      "pull_request": 1714,
+      "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
+      "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
+    },
+    "superseded_active_issue_evidence_2026-11-23T14:23:15Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+      "local_checks": "telemetry-service retention/latest/metrics/health/cors/openapi tests OK on the Pi (SQLite); PostgreSQL retention test added for CI",
+      "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
+      "supersedes_draft_pr": 1552,
+      "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
+      "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-25T08:04:24Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "pending_owner_run",
+      "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
+      "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
+      "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
+      "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
+    },
+    "superseded_active_issue_evidence_2026-11-25T08:39:44Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_started",
+      "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+      "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source"
+    },
+    "superseded_active_issue_evidence_2026-11-25T09:16:35Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_started",
+      "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+      "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source",
+      "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
+      "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
+      "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell"
     }
   },
   "observations": [
@@ -4050,50 +5126,6 @@
     },
     {
       "source": "github",
-      "observed_at": "2026-10-30T19:43:23Z",
-      "kind": "1451_edge_sqlite_339_tests_green",
-      "data": {
-        "issue": 1451,
-        "pr": 1452,
-        "head_sha": "65f6e6815ad707d0f640f0470569a2f86b82dbdc",
-        "run_id": 41117448969,
-        "python_tests": 339,
-        "unit": "success",
-        "source_only": true,
-        "hardware": "unverified",
-        "live_site": "not_touched"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-10-31T11:03:28Z",
-      "kind": "1451_receipt_only_prune_guard_340_tests_green",
-      "data": {
-        "issue": 1451,
-        "pr": 1452,
-        "head_sha": "b4fa35c75418b7307ab66e94528df206194423bc",
-        "run_id": 41195189557,
-        "python_tests": 340,
-        "legacy_puback_delete": "forbidden",
-        "installed_site": "not_touched"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-11-02T03:09:58Z",
-      "kind": "1453_idna_fix_merged_to_main_with_1451_feature_sync",
-      "data": {
-        "issue": 1453,
-        "pr": 1454,
-        "merge_sha": "7bff23d1713aa389c63f8f5a7a2a993a4a268a91",
-        "merged": true,
-        "exact_head_workflows_green": 3,
-        "feature_branch_issue": 1451,
-        "production_mutation": false
-      }
-    },
-    {
-      "source": "github",
       "observed_at": "2026-11-02T03:15:04Z",
       "kind": "1453_offline_idna_main_merged_green",
       "data": {
@@ -4107,46 +5139,408 @@
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T06:22:20Z",
-      "kind": "1458_state_main_sync_with_1451_fifo",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_central_network_source_only",
       "data": {
-        "issue": 1458,
-        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
-        "merged": true,
-        "feature_issue": 1451,
-        "runtime_mutation": false
+        "issue": 1462,
+        "tests": 14,
+        "site_cidr_guard": "blocked",
+        "site_mutation": false,
+        "hardware": "unverified"
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T09:17:25Z",
-      "kind": "1451_arm64_sqlite_full_transaction_regression",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression",
       "data": {
-        "issue": 1451,
-        "pr": 1452,
-        "module_tests": 360,
-        "receipt_contract_tests": 23,
-        "ci_contract_tests": 383,
-        "sqlite_full_rollback": "pass",
-        "fixture_only": true,
+        "issue": 1462,
+        "source_tests": 16,
+        "external_ci": "pending",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_explicit_edge_ipam_source_only",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "site_cutover": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
         "site_mutation": false
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T09:30:02Z",
-      "kind": "1451_edge_real_process_boundary_receipt_fixture",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_merged_green",
       "data": {
-        "issue": 1451,
-        "pr": 1452,
-        "independent_python_process": "pass",
-        "two_synthetic_pubacks_no_prune": "pass",
-        "production_mutation": false,
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "ci": "3/3_GREEN",
+        "site_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_local_unauthenticated_access_path",
+      "data": {
+        "issue": 1466,
+        "script": "read_only",
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "tests": 18,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_lan_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "offline_contract": "PASS",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_merged_3_of_3_ci_green",
+      "data": {
+        "issue": 1466,
+        "pr": 1467,
+        "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
+        "site_auto_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_source_only_site_network_gates",
+      "data": {
+        "issue": 1469,
+        "unit_tests": 17,
+        "site_cutover": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_metrics_and_alerts",
+      "data": {
+        "issue": 1468,
+        "tests": 18,
+        "promtool_rules": "PASS",
+        "promtool_firing_resolved": "PASS",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "live_network_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_observability_merged",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_ci": "7_of_7_GREEN",
+        "site_activated": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_lan_monitor_source_gate",
+      "data": {
+        "issue": 1472,
+        "source_tests": 18,
+        "pi_readonly_site": "BLOCKED",
+        "site_mutation": false,
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_merged_green",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_immutable_optional_lan_monitor_bundle",
+      "data": {
+        "issue": 1474,
+        "new_tests": 14,
+        "allowlisted_assets": 5,
+        "site_activation": false,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_ci_exact_route_source",
+      "data": {
+        "issue": 1474,
+        "route_tests": 81,
+        "unknown_files": 0,
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-05T12:14:14.443448+00:00",
+      "kind": "obsolete_cp2104_decision_and_active_device_inventory",
+      "data": {
+        "issue": 1513,
+        "registry_revision": 34,
+        "old_active_devices": 12,
+        "old_active_targets": 53,
+        "protected_adapter": "A10Q34QC",
+        "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:20:15.309Z",
+      "kind": "1532_overview_isolated_source_check",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "focused_tests_passed": 7,
+        "source_blobs_match": 6,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:33:06.620Z",
+      "kind": "1532_source_ci_green_before_checkpoint_commit",
+      "data": {
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "browser_run": 42233327115,
+        "browser_passed": 42,
+        "release_gate": "pending_protected_installer",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_ui_checkpoint",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "verified_sha_files": 7,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:57:35.922Z",
+      "kind": "1532_merge_commit_recorded_as_observation",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "merge_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "source_only": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_ci_acceptance_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "checks_green": true,
+        "browser_passed": 42,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1534_merged_and_1537_test_candidate",
+      "data": {
+        "merged_issue": 1534,
+        "merge_commit": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "new_issue": 1537,
+        "new_pr": 1538,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merge_and_1536_ui_checkpoint",
+      "data": {
+        "source_merged_pr": 1538,
+        "source_merge_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "issue": 1536,
+        "checks_isolated": 12,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1544_ui_checkpoint",
+      "data": {
+        "issue": 1544,
+        "source_merge_previous": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "verified_test_count": 8,
+        "verified_blobs": 3,
+        "read_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1546_energy_source_checkpoint",
+      "data": {
+        "issue": 1546,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "tests_passed": 10,
+        "blob_count": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "read_only_pi_preflight_observed_via_remote_connector",
+      "data": {
+        "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "ssd_used_percent": 97,
+        "available_gb": 7.2,
+        "docker_subnet": "172.18.0.0/16",
+        "physical_lan_subnet": "172.18.48.0/21",
+        "risk": "hard_blocker",
+        "site_mutation": false,
+        "measurement_origin": "read_only_remote_pi_preflight_2026-11-10"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:10:40Z",
+      "kind": "1601_embarco_kk1_runtime_blocker",
+      "data": {
+        "issue": 1601,
+        "feature_branch": "feature/1601-embraco-bus-scoped-kk1",
+        "observed_on": "nexolab-edge-01",
+        "target": "CoolesSlim VCC L1250 / KK1 / 11111",
+        "target_equipment_key": "ece48888-d73e-44d6-a11d-2804a10d4cb9",
+        "controller_bus": "commissioning-c4b6e68057fa4c7f",
+        "controller_adapter_suffix": "A10Q2SIF",
+        "unit_id": 2,
+        "fc03_hardware_preflight": "passed_hardware_verified_7_checks_4_observations_133ms",
+        "legacy_binding": "EMBRACO-2 bound to CoolJet KK2; retain unchanged",
+        "legacy_last_sample_utc": "2026-11-05T14:17:06Z",
+        "activation": "not_started_three_attempts_recovery_required_http_422",
+        "codex_execution": "blocked_usage_limit_returned_2026-11-19",
+        "provider_recheck": "NEXUS and NEXUS Raspberry tool failed internally",
+        "site_changes": false,
+        "db_writes": false,
+        "modbus_writes": false,
+        "priority": "high",
+        "release": "not_ready",
+        "note": "Authoritative live observations; no software or site deployment occurred for issue 1601."
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:33:09Z",
+      "kind": "1601_owner_confirmed_same_embraco_kk1_runtime_accepted",
+      "data": {
+        "issue": 1601,
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "owner_correction": "same_physical_unit_2_relocated_KK2_to_KK1",
+        "edge_physical_bus": "commissioning-c4b6e68057fa4c7f",
+        "adapter": "A10Q2SIF",
+        "previous_equipment_code": "CS-001",
+        "target_equipment_code": "11111",
+        "controller_telemetry_identity": "EMBRACO-2",
+        "edge_registry_revision": 54,
+        "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "active_targets": 13,
+        "read_only_poll_successes": 26,
+        "read_only_poll_failures": 0,
+        "new_postgresql_latest_rows": 13,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "new_last_sample_at_utc": "2026-11-19T13:29:46Z",
+        "historic_bindings_preserved": true,
+        "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+        "modbus_writes": false,
+        "hardware_writes": false,
+        "owner_approved_site_transfer": true,
+        "future_site_mutations_authorized": false,
+        "hardware_temperature_inputs_verified": false,
+        "browser_acceptance": "not_run",
+        "reboot_after_activation": "not_run"
       }
     }
   ],
-  "next_action": "Run targeted tests and exact-head GitHub CI for the independent-process replay fixture; retain PR #1452 Draft. Do not activate before #1447 owner security decision, central #1445, broker #1449, protected backups #1428 and site network #1399.",
+  "next_action": "Unattended endpoint repair after reboot (#1399), WP2c (#1734), receipt chain #1397 after CVE decision #1744, acceptance test plan",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4155,7 +5549,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none; read-only native CIDR probe and isolated source-only changes",
+  "runtime_mutation": "none (source-only; no site, hardware, Modbus, backup, restore or migration performed)",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

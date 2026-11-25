@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, CopyPlus, LoaderCircle, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
+import { AlertTriangle, CopyPlus, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import type { EquipmentLifecycleStatus, RefrigerationEquipment } from "@/data/refrigeration";
@@ -16,15 +16,7 @@ export type EquipmentNodeOption = {
   state: string;
 };
 
-export type ClimateChamberEquipmentSummary = {
-  temperatureControllers: number;
-  temperatureChannels: number;
-  energyMeters: number;
-  energyMeterEmptyMessage: string | null;
-};
-
 type PassportDialogMode = "create" | "duplicate" | "edit";
-type ChamberLoadState = "idle" | "loading" | "ready" | "error";
 
 const initialForm: RefrigerationEquipmentCreateInput = {
   code: "",
@@ -41,7 +33,7 @@ const initialForm: RefrigerationEquipmentCreateInput = {
   installedAt: "",
   servicedAt: "",
   lifecycleStatus: "active",
-  totalSensors: 0,
+  totalSensors: 48,
 };
 
 export function CreateEquipmentDialog({
@@ -53,7 +45,6 @@ export function CreateEquipmentDialog({
   intent = "create",
   onClose,
   onSubmit,
-  onClimateChamberChange,
 }: {
   open: boolean;
   busy: boolean;
@@ -63,19 +54,18 @@ export function CreateEquipmentDialog({
   intent?: "create" | "duplicate";
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
-  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
+  if (!open) return null;
   return (
     <EquipmentPassportDialog
+      key={intent}
       mode={intent}
-      open={open}
       busy={busy}
       error={error}
       initialValue={initialValue ?? initialForm}
       nodeOptions={nodeOptions}
       onClose={onClose}
       onSubmit={onSubmit}
-      onClimateChamberChange={onClimateChamberChange}
     />
   );
 }
@@ -87,7 +77,6 @@ export function EditEquipmentDialog({
   nodeOptions,
   onClose,
   onSubmit,
-  onClimateChamberChange,
 }: {
   equipment: RefrigerationEquipment | null;
   busy: boolean;
@@ -95,72 +84,56 @@ export function EditEquipmentDialog({
   nodeOptions: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentUpdateInput) => Promise<void>;
-  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
   if (!equipment) return null;
   return (
     <EquipmentPassportDialog
+      key={equipment.id}
       mode="edit"
-      open
       busy={busy}
       error={error}
       initialValue={equipmentToInput(equipment)}
       nodeOptions={nodeOptions}
       onClose={onClose}
       onSubmit={onSubmit}
-      onClimateChamberChange={onClimateChamberChange}
     />
   );
 }
 
 function EquipmentPassportDialog({
   mode,
-  open,
   busy,
   error,
   initialValue,
   nodeOptions,
   onClose,
   onSubmit,
-  onClimateChamberChange,
 }: {
   mode: PassportDialogMode;
-  open: boolean;
   busy: boolean;
   error: string | null;
   initialValue: RefrigerationEquipmentCreateInput;
   nodeOptions: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
-  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
   const [form, setForm] = useState(initialValue);
   const [retirementConfirmed, setRetirementConfirmed] = useState(false);
-  const [chamberLoadState, setChamberLoadState] = useState<ChamberLoadState>("idle");
-  const [chamberSummary, setChamberSummary] = useState<ClimateChamberEquipmentSummary | null>(null);
-  const [chamberError, setChamberError] = useState<string | null>(null);
   const titleId = useId();
-  const chamberField = useRef<HTMLSelectElement>(null);
+  const nameField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    setForm(initialValue);
-    setRetirementConfirmed(false);
-    setChamberLoadState("idle");
-    setChamberSummary(null);
-    setChamberError(null);
-    const frame = window.requestAnimationFrame(() => chamberField.current?.focus());
+    const frame = window.requestAnimationFrame(() => nameField.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [busy, initialValue, onClose, open]);
-
-  if (!open) return null;
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [busy, onClose]);
 
   const update = <K extends keyof RefrigerationEquipmentCreateInput>(
     key: K,
@@ -172,50 +145,13 @@ function EquipmentPassportDialog({
     }
   };
 
-  const selectClimateChamber = async (nodeId: string) => {
-    if (
-      mode === "edit" &&
-      form.nodeId &&
-      nodeId &&
-      nodeId !== form.nodeId &&
-      !window.confirm(
-        "Після зміни кліматичної камери вибрані датчики та вимірювальні прилади буде скинуто. Продовжити?",
-      )
-    ) {
-      return;
-    }
-    update("nodeId", nodeId);
-    setChamberSummary(null);
-    setChamberError(null);
-    if (!nodeId || !onClimateChamberChange) {
-      setChamberLoadState("idle");
-      return;
-    }
-    setChamberLoadState("loading");
-    try {
-      const summary = await onClimateChamberChange(nodeId);
-      setChamberSummary(summary);
-      setChamberLoadState("ready");
-    } catch (cause) {
-      setChamberLoadState("error");
-      setChamberError(
-        cause instanceof Error
-          ? cause.message
-          : "Не вдалося завантажити датчики та вимірювальні прилади камери.",
-      );
-    }
-  };
-
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (form.lifecycleStatus !== "retired" && !form.nodeId) return;
     if (form.lifecycleStatus === "retired" && !retirementConfirmed) return;
     await onSubmit(form);
   };
 
   const retirementBlocked = form.lifecycleStatus === "retired" && !retirementConfirmed;
-  const chamberRequired = form.lifecycleStatus !== "retired";
-  const passportLocked = mode !== "edit" && !form.nodeId;
   const title =
     mode === "create"
       ? "Нове холодильне обладнання"
@@ -250,91 +186,17 @@ function EquipmentPassportDialog({
             <div className="mb-5 flex items-start gap-3 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-xs leading-5 text-blue-100">
               <CopyPlus className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Перенесено лише технічні параметри паспорта. Оберіть кліматичну камеру, перевірте назву, код і
-                розташування та введіть новий серійний номер. Датчики, фото, схеми, історія й аудит не
-                копіюються.
+                Перенесено лише технічні параметри паспорта. Перевірте назву, код і розташування та введіть
+                новий серійний номер. Датчики, фото, схеми, історія й аудит не копіюються.
               </span>
             </div>
           ) : null}
 
-          <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] p-4">
-            <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
-                <RadioTower className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <Field
-                  label="Кліматична камера"
-                  required={chamberRequired}
-                  hint={mode === "edit" ? "Зміна потребує відсутності активних bindings" : "Перший крок"}
-                >
-                  <select
-                    ref={chamberField}
-                    required={chamberRequired}
-                    value={form.nodeId}
-                    onChange={(event) => void selectClimateChamber(event.target.value)}
-                    className={inputClass}
-                    aria-describedby="climate-chamber-help"
-                  >
-                    <option value="">Оберіть кліматичну камеру</option>
-                    {nodeOptions.map((node) => (
-                      <option
-                        key={node.nodeId}
-                        value={node.nodeId}
-                        disabled={mode !== "edit" && node.state !== "active"}
-                      >
-                        {node.displayName}
-                        {node.state !== "active" ? ` · ${node.state}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <div id="climate-chamber-help" className="mt-2 min-h-5 text-[10px] leading-5">
-                  {chamberLoadState === "loading" ? (
-                    <span className="inline-flex items-center gap-2 text-cyan-200">
-                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      Завантаження доступних датчиків і приладів…
-                    </span>
-                  ) : chamberLoadState === "ready" && chamberSummary ? (
-                    <div className="space-y-2">
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        <CatalogMetric label="Dixell" value={chamberSummary.temperatureControllers} />
-                        <CatalogMetric
-                          label="Температурні канали"
-                          value={chamberSummary.temperatureChannels}
-                        />
-                        <CatalogMetric label="Лічильники" value={chamberSummary.energyMeters} />
-                      </div>
-                      {chamberSummary.energyMeterEmptyMessage ? (
-                        <p className="text-slate-400">{chamberSummary.energyMeterEmptyMessage}</p>
-                      ) : (
-                        <p className="text-emerald-300">
-                          На схемі будуть показані лише канали та прилади цієї камери.
-                        </p>
-                      )}
-                    </div>
-                  ) : chamberLoadState === "error" ? (
-                    <span className="text-rose-300">{chamberError}</span>
-                  ) : (
-                    <span className="text-slate-500">
-                      Камера визначає набір доступних датчиків і вимірювальних приладів.
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {passportLocked ? (
-            <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Спочатку оберіть кліматичну камеру. Після цього стане доступним паспорт обладнання.
-            </p>
-          ) : null}
-
-          <fieldset disabled={passportLocked || busy} className="disabled:opacity-45">
+          <fieldset disabled={busy} className="disabled:opacity-45">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Назва" required>
                 <input
+                  ref={nameField}
                   required
                   value={form.name}
                   onChange={(event) => update("name", event.target.value)}
@@ -454,15 +316,19 @@ function EquipmentPassportDialog({
                   className={inputClass}
                 />
               </Field>
-              <Field label="Кількість слотів датчиків" hint="0–48">
-                <input
-                  type="number"
-                  min={0}
-                  max={48}
-                  value={form.totalSensors}
-                  onChange={(event) => update("totalSensors", Number(event.target.value))}
+              <Field label="Кліматична камера" hint="Місце випробування">
+                <select
+                  value={form.nodeId}
+                  onChange={(event) => update("nodeId", event.target.value)}
                   className={inputClass}
-                />
+                >
+                  <option value="">Без кліматичної камери</option>
+                  {nodeOptions.map((node) => (
+                    <option key={node.nodeId} value={node.nodeId} disabled={node.state !== "active"}>
+                      {node.displayName}
+                    </option>
+                  ))}
+                </select>
               </Field>
             </div>
           </fieldset>
@@ -502,12 +368,7 @@ function EquipmentPassportDialog({
             </button>
             <button
               type="submit"
-              disabled={
-                busy ||
-                retirementBlocked ||
-                (chamberRequired && !form.nodeId) ||
-                chamberLoadState === "loading"
-              }
+              disabled={busy || retirementBlocked}
               className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {mode === "create" ? (
@@ -639,14 +500,6 @@ function equipmentToInput(equipment: RefrigerationEquipment): RefrigerationEquip
     lifecycleStatus: equipment.lifecycleStatus,
     totalSensors: equipment.totalSensors,
   };
-}
-
-function CatalogMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <span className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-2 text-slate-400">
-      {label}: <strong className="font-semibold text-slate-100">{value}</strong>
-    </span>
-  );
 }
 
 function Field({

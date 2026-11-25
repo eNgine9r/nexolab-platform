@@ -44,6 +44,16 @@ export function formatChartExactTimestamp(
   }).format(value);
 }
 
+function calendarDay(timestampMs: number, options: ChartTimestampFormatOptions): string {
+  if (!Number.isFinite(timestampMs)) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  }).format(new Date(timestampMs));
+}
+
 export function formatChartAxisTimestamp(
   timestampMs: number,
   domain: ChartXDomain,
@@ -52,7 +62,11 @@ export function formatChartAxisTimestamp(
   const value = timestampDate(timestampMs);
   if (!value) return "—";
   const spanMs = Math.max(0, domain.toMs - domain.fromMs);
-  const shortWindow = spanMs <= 6 * 60 * 60 * 1_000;
+  // Short windows stay time-only unless they cross midnight in the display zone;
+  // otherwise "23:50" and "00:10" on the same axis would hide which day is which.
+  const shortWindow =
+    spanMs <= 6 * 60 * 60 * 1_000 &&
+    calendarDay(domain.fromMs, options) === calendarDay(domain.toMs, options);
   return new Intl.DateTimeFormat(options.locale ?? "uk-UA", {
     ...(shortWindow ? {} : { day: "2-digit", month: "2-digit" }),
     hour: "2-digit",

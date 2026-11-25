@@ -53,7 +53,12 @@ from app.live_dashboard.schemas import (
     MAX_INVENTORY_OFFSET,
     MAX_INVENTORY_PAGE_SIZE,
 )
-from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.authorization import (
+    AuthenticatedPrincipal,
+    Permission,
+    Role,
+    effective_permissions_for_principal,
+)
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository
 
@@ -118,13 +123,17 @@ def create_live_dashboard_router(
     def list_channel_inventory(
         limit: int = Query(default=MAX_INVENTORY_PAGE_SIZE, ge=1, le=MAX_INVENTORY_PAGE_SIZE),
         offset: int = Query(default=0, ge=0, le=MAX_INVENTORY_OFFSET),
+        include_observed: bool = False,
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> LiveDashboardInventoryCollectionResponse:
+        if include_observed:
+            _require_telemetry_permission(authorized)
         page = list_live_dashboard_inventory(
             repository,
             organization_id=authorized.principal.organization_id,
             limit=limit,
             offset=offset,
+            include_observed=include_observed,
         )
         items: list[LiveDashboardInventoryItemResponse] = []
         for item in page.items:
@@ -194,6 +203,8 @@ def create_live_dashboard_router(
         ),
         authorized: AuthorizedRequest = Depends(write_access),
     ) -> LiveDashboardResponse:
+        if any(item.node_id is not None for item in payload.items):
+            _require_telemetry_permission(authorized)
         try:
             dashboard = repository.create(
                 payload,
@@ -286,6 +297,8 @@ def create_live_dashboard_router(
                 dashboard_id,
                 organization_id=authorized.principal.organization_id,
             )
+            if any(item.node_id is not None for item in dashboard.items):
+                _require_telemetry_permission(authorized)
             exported = build_live_dashboard_csv_export(
                 database,
                 dashboard,
@@ -356,6 +369,8 @@ def create_live_dashboard_router(
         ),
         authorized: AuthorizedRequest = Depends(write_access),
     ) -> LiveDashboardResponse:
+        if any(item.node_id is not None for item in payload.items):
+            _require_telemetry_permission(authorized)
         expected_version = _parse_if_match(if_match)
         try:
             dashboard = repository.update(
@@ -421,6 +436,11 @@ def create_live_dashboard_router(
         )
 
     return router
+
+
+def _require_telemetry_permission(authorized: AuthorizedRequest) -> None:
+    if Permission.READ_TELEMETRY not in effective_permissions_for_principal(authorized.principal):
+        raise _api_http_error(403, "permission_denied", "Telemetry read permission is required")
 
 
 def _access_dependency(
@@ -555,6 +575,8 @@ def _response(record: DashboardRecord) -> LiveDashboardResponse:
                 id=item.id,
                 position=item.position,
                 channel_ref_id=item.channel_ref_id,
+                node_id=item.node_id,
+                equipment_id=item.equipment_id,
                 channel_id=item.channel_id,
                 metric=item.metric,
                 native_unit=item.native_unit,
@@ -564,4 +586,5 @@ def _response(record: DashboardRecord) -> LiveDashboardResponse:
             )
             for item in record.items
         ],
+        view_settings=record.view_settings,
     )

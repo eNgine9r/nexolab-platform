@@ -1,5 +1,6 @@
 "use client";
 
+import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
@@ -7,12 +8,26 @@ import { CalendarRange, Download, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { useMemo, useState } from "react";
 
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { applyAlertAnnotations } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import {
+  readStoredChartDensity,
+  resolveChartPointBudget,
+  storeChartDensity,
+  type ChartDensityMode,
+} from "@/features/charts/density";
 import { RefrigerationControllerChart } from "@/components/refrigeration/refrigeration-controller-chart";
 import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import type { ChartXDomain } from "@/features/charts/domain";
+import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
 import {
   buildEmbracoCompressorScene,
-  buildEmbracoTemperatureScene,
+  buildEmbracoTemperatureStatisticsRows,
+  buildEmbracoOperatorCelsiusScene,
+  buildEmbracoProbeRawScene,
 } from "@/features/refrigeration/controller-chart";
 import {
   buildControllerAnalysisCsv,
@@ -23,9 +38,13 @@ import {
   type RefrigerationHistoryPreset,
 } from "@/features/refrigeration/controller-monitoring";
 import {
+  buildCompressorTimeline,
   buildControlStateTimeline,
+  buildUnknownTimeline,
+  buildDefrostTimeline,
   buildRelayTimeline,
   buildRelayTransitions,
+  summarizeActiveTimeline,
   type RelayTransition,
   type TimelineInterval,
 } from "@/features/refrigeration/controller-timeline";
@@ -36,11 +55,15 @@ import {
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 
 const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
-  { id: "1h", label: "1 год" },
-  { id: "12h", label: "12 год" },
-  { id: "24h", label: "24 год" },
-  { id: "custom", label: "Кастом" },
+  { id: "1h", label: "1 година" },
+  { id: "6h", label: "6 годин" },
+  { id: "24h", label: "24 години" },
+  { id: "7d", label: "7 днів" },
+  { id: "custom", label: "Власний період" },
 ];
+
+/** Upper bound of simultaneously plotted series: 2 operator-°C pairs, 2 raw probes, compressor. */
+const REFRIGERATION_PLOTTED_SERIES = 7;
 
 export function RefrigerationControllerHistory({ controller }: { controller: RefrigerationControllerModel }) {
   const displayTimeZone = useDisplayTimeZone();
@@ -52,6 +75,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     rangeKey: string;
     domain: ChartXDomain | null;
   }>({ rangeKey: "", domain: null });
+  const [viewportSelection, setViewportSelection] = useState<{
+    rangeKey: string;
+    domain: ChartXDomain | null;
+  }>({ rangeKey: "", domain: null });
   const rangeLabel =
     controller.preset === "custom"
       ? formatCustomRange(controller.range, displayTimeZone)
@@ -60,9 +87,30 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     () => ({ fromMs: controller.range.from.getTime(), toMs: controller.range.to.getTime() }),
     [controller.range],
   );
-  const loadedAnalysisRangeKey = `${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const loadedAnalysisRangeKey = `${controller.binding?.id}:${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const viewportDomain = useMemo(
+    () =>
+      clampAnalysisDomain(
+        viewportSelection.rangeKey === loadedAnalysisRangeKey ? viewportSelection.domain : null,
+        loadedAnalysisDomain,
+      ),
+    [loadedAnalysisDomain, loadedAnalysisRangeKey, viewportSelection],
+  );
+  const setViewportDomain = (domain: ChartXDomain | null) => {
+    setViewportSelection({ rangeKey: loadedAnalysisRangeKey, domain });
+    setSharedCursorMs(null);
+  };
+  const viewportRange = useMemo(
+    () => ({ from: new Date(viewportDomain.fromMs), to: new Date(viewportDomain.toMs) }),
+    [viewportDomain],
+  );
   const sharedCursorMs =
-    cursorSelection.rangeKey === loadedAnalysisRangeKey ? cursorSelection.timestampMs : null;
+    cursorSelection.rangeKey === loadedAnalysisRangeKey &&
+    cursorSelection.timestampMs !== null &&
+    cursorSelection.timestampMs >= viewportDomain.fromMs &&
+    cursorSelection.timestampMs <= viewportDomain.toMs
+      ? cursorSelection.timestampMs
+      : null;
   const setSharedCursorMs = (timestampMs: number | null) => {
     setCursorSelection((current) =>
       current.rangeKey === loadedAnalysisRangeKey && current.timestampMs === timestampMs
@@ -84,6 +132,10 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [analysisDomain],
   );
   const analysisRangeLabel = formatAnalysisRange(analysisDomain, displayTimeZone);
+  const chartRangeLabel =
+    viewportDomain.fromMs === loadedAnalysisDomain.fromMs && viewportDomain.toMs === loadedAnalysisDomain.toMs
+      ? rangeLabel
+      : formatAnalysisRange(viewportDomain, displayTimeZone);
   const analysisUnavailableLabel = controller.historyLoading
     ? "Завантаження історії…"
     : controller.historyError
@@ -91,15 +143,85 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       : null;
   const analysisReady = analysisUnavailableLabel === null;
 
+  const [density, setDensity] = useState<ChartDensityMode>(() => readStoredChartDensity("refrigeration"));
+  const densityResolution = useMemo(
+    () => resolveChartPointBudget(density, REFRIGERATION_PLOTTED_SERIES),
+    [density],
+  );
+  const pointsPerSeries = densityResolution.perSeries;
   const temperatureScene = useMemo(
     () =>
-      buildEmbracoTemperatureScene(controller.history, controller.range, controller.latest?.online ?? false),
-    [controller.history, controller.latest?.online, controller.range],
+      buildEmbracoOperatorCelsiusScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        controller.binding?.controllerEquipmentId ?? "",
+        pointsPerSeries,
+      ),
+    [
+      controller.history,
+      controller.latest?.online,
+      controller.range,
+      controller.binding?.controllerEquipmentId,
+      pointsPerSeries,
+    ],
+  );
+  const probeRawScene = useMemo(
+    () =>
+      buildEmbracoProbeRawScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        pointsPerSeries,
+      ),
+    [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
   );
   const compressorScene = useMemo(
     () =>
-      buildEmbracoCompressorScene(controller.history, controller.range, controller.latest?.online ?? false),
-    [controller.history, controller.latest?.online, controller.range],
+      buildEmbracoCompressorScene(
+        controller.history,
+        controller.range,
+        controller.latest?.online ?? false,
+        pointsPerSeries,
+      ),
+    [controller.history, controller.latest?.online, controller.range, pointsPerSeries],
+  );
+  const alertEvents = useDashboardAlertEvents({
+    enabled: controller.binding !== null,
+    rangeKey: `refrigeration:${controller.binding?.controllerEquipmentId ?? ""}:${controller.range.from.toISOString()}:${controller.range.to.toISOString()}`,
+  });
+  // Open alerts extend to the end of the shown range (deterministic, no wall clock in render).
+  const evaluationNowMs = controller.range.to.getTime();
+  const annotatedTemperatureScene = useMemo(
+    () => applyAlertAnnotations(temperatureScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, temperatureScene],
+  );
+  const annotatedProbeRawScene = useMemo(
+    () => applyAlertAnnotations(probeRawScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, probeRawScene],
+  );
+  const annotatedCompressorScene = useMemo(
+    () => applyAlertAnnotations(compressorScene, alertEvents.alerts, evaluationNowMs),
+    [alertEvents.alerts, evaluationNowMs, compressorScene],
+  );
+  // Exact statistics come from the RAW history, not from the reduced chart series (#1675).
+  const temperatureStatisticsRows = useMemo(
+    () => buildEmbracoTemperatureStatisticsRows(controller.history, temperatureScene, viewportDomain),
+    [controller.history, temperatureScene, viewportDomain],
+  );
+  const displayedPoints = useMemo(
+    () =>
+      [temperatureScene, probeRawScene, compressorScene].reduce(
+        (total, scene) =>
+          total +
+          scene.series.reduce(
+            (sum, entry) =>
+              sum + entry.segments.reduce((points, segment) => points + segment.points.length, 0),
+            0,
+          ),
+        0,
+      ),
+    [compressorScene, probeRawScene, temperatureScene],
   );
   const compressorSamples = useMemo(
     () =>
@@ -128,15 +250,49 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   );
   const stateTimeline = useMemo(
     () =>
-      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], analysisRange),
-    [analysisRange, controller.history],
+      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
+    [viewportRange, controller.history],
+  );
+  const stateTimelineWithUnknown = useMemo(
+    () =>
+      [
+        ...stateTimeline,
+        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
+      ].sort((left, right) => left.fromMs - right.fromMs),
+    [stateTimeline, viewportRange, controller.history],
+  );
+  const defrostTimeline = useMemo(
+    () => buildDefrostTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
+    [controller.history, controller.range],
+  );
+  const compressorLane = useMemo(() => {
+    const speed = controller.history.get(EMBRACO_METRICS.compressorSpeed) ?? [];
+    return [
+      ...buildCompressorTimeline(speed, viewportRange),
+      ...buildUnknownTimeline(speed, viewportRange),
+    ].sort((left, right) => left.fromMs - right.fromMs);
+  }, [controller.history, viewportRange]);
+  const defrostLane = useMemo(
+    () =>
+      [
+        ...defrostTimeline,
+        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
+      ].sort((left, right) => left.fromMs - right.fromMs),
+    [defrostTimeline, controller.history, controller.range],
+  );
+  const defrost = useMemo(
+    () => summarizeActiveTimeline(defrostTimeline, analysisRange),
+    [defrostTimeline, analysisRange],
   );
   const relayTimelines = useMemo(
     () =>
       [0, 1, 2, 3].map((relay) =>
-        buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, analysisRange),
+        [
+          ...buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, viewportRange),
+          ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], viewportRange),
+        ].sort((left, right) => left.fromMs - right.fromMs),
       ),
-    [analysisRange, controller.history],
+    [viewportRange, controller.history],
   );
   const relayTransitions = useMemo(
     () =>
@@ -148,6 +304,15 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [analysisRange, controller.history],
   );
 
+  const chartInteractions = {
+    sharedCursorMs,
+    onSharedCursorChange: setSharedCursorMs,
+    rangeSelection: selectedAnalysisDomain,
+    onRangeSelectionChange: setSelectedAnalysisDomain,
+    viewportDomain,
+    onViewportChange: setViewportDomain,
+  };
+
   const exportSelectedInterval = () => {
     if (!controller.binding || !analysisReady) return;
     const csv = buildControllerAnalysisCsv({
@@ -157,7 +322,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       compressorStarts,
       relayTransitions,
       equipmentId: controller.binding.controllerEquipmentId,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      timeZone: displayTimeZone,
     });
     triggerBrowserBlobDownload({
       blob: new Blob([csv], { type: "text/csv;charset=utf-8" }),
@@ -168,6 +333,65 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   if (!controller.binding) {
     return <EmptyHistory text="Для графіків спочатку потрібна прив’язка перевіреного контролера." />;
   }
+
+  const timelineLanes = (
+    <section className="mt-2 border-t border-white/[0.07] pt-3">
+      <h2 className="text-sm font-semibold text-white">Режими та реле</h2>
+      <p className="mt-1 text-xs text-slate-400">Позначка на доріжках відповідає часу курсора графіка.</p>
+      <ul
+        className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-400"
+        data-testid="timeline-state-legend"
+        aria-label="Позначення станів доріжок"
+      >
+        <li>OFF — вимкнено</li>
+        <li>ON — увімкнено (компресор: швидкість &gt; 0 об/хв)</li>
+        <li>Невідомо (штрихування) — опитування було, але валідного стану немає</li>
+        <li>Немає даних (порожньо) — опитування відсутнє</li>
+      </ul>
+      <div
+        className="mt-4 grid gap-2"
+        style={{ paddingRight: CHART_GRID_INSETS.right }}
+        data-testid="relay-analysis-lanes"
+        data-chart-x-domain-from-ms={viewportDomain.fromMs}
+        data-chart-x-domain-to-ms={viewportDomain.toMs}
+      >
+        <TimelineRow
+          label="Режим"
+          intervals={stateTimelineWithUnknown}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+        />
+        <TimelineRow
+          label="Компресор"
+          intervals={compressorLane}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+          binary
+        />
+        <TimelineRow
+          label="Відтайка"
+          intervals={defrostLane}
+          range={viewportRange}
+          cursorMs={sharedCursorMs}
+          selection={selectedAnalysisDomain}
+          binary
+        />
+        {relayTimelines.map((intervals, index) => (
+          <TimelineRow
+            key={index}
+            label={`Relay ${index + 1}`}
+            intervals={intervals}
+            range={viewportRange}
+            cursorMs={sharedCursorMs}
+            selection={selectedAnalysisDomain}
+            binary
+          />
+        ))}
+      </div>
+    </section>
+  );
 
   return (
     <div className="grid gap-3 xl:gap-4" data-testid="refrigeration-controller-history">
@@ -216,6 +440,19 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         ) : null}
       </section>
 
+      <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-3">
+        <ChartDensityControl
+          mode={density}
+          resolution={densityResolution}
+          onChange={(next) => {
+            setDensity(next);
+            storeChartDensity("refrigeration", next);
+          }}
+          displayedPoints={displayedPoints}
+          availableMeasurements={null}
+        />
+      </section>
+
       {controller.historyLoading ? (
         <section className="grid min-h-48 place-items-center rounded-2xl border border-white/[0.08] bg-[#081a32]">
           <div className="text-center text-xs text-slate-500">
@@ -241,7 +478,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           <p className="text-[9px] tracking-[0.14em] text-slate-500 uppercase">Інтервал розрахунку</p>
           <p className="mt-1 text-xs text-slate-200 tabular-nums">{analysisRangeLabel}</p>
           <p className="mt-1 text-[10px] text-slate-500">
-            На графіку компресора затисніть ліву кнопку миші та протягніть по потрібному відрізку.
+            На графіку температури або компресора затисніть ліву кнопку миші та протягніть по відрізку.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -256,12 +493,27 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
             className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 text-xs text-cyan-100 outline-none hover:bg-cyan-400/10 focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-3.5 w-3.5" />
-            Export CSV
+            Експорт CSV
           </button>
           {selectedAnalysisDomain ? (
             <button
               type="button"
-              onClick={() => setSelectedAnalysisDomain(null)}
+              onClick={() => setViewportDomain(analysisDomain)}
+              disabled={
+                viewportDomain.fromMs === analysisDomain.fromMs && viewportDomain.toMs === analysisDomain.toMs
+              }
+              className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-40"
+            >
+              Наблизити відрізок
+            </button>
+          ) : null}
+          {selectedAnalysisDomain ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAnalysisDomain(null);
+                setViewportDomain(null);
+              }}
               className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Скинути вибір
@@ -270,7 +522,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         </div>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <DutyCard
           label="Коефіцієнт роботи"
           value={!analysisReady || duty.dutyPercent === null ? "—" : `${duty.dutyPercent.toFixed(1)} %`}
@@ -294,48 +546,74 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           value={analysisReady ? String(compressorStarts.length) : "—"}
           meta={analysisUnavailableLabel ?? "Підтверджені переходи RPM 0 → >0"}
         />
+        <DutyCard
+          label="Тривалість відтайки"
+          value={analysisReady && defrost.coveredMs > 0 ? formatDuration(defrost.activeMs, true) : "—"}
+          meta={
+            analysisUnavailableLabel ??
+            (defrost.coveredMs > 0
+              ? `Покриття стану ${((100 * defrost.coveredMs) / (analysisDomain.toMs - analysisDomain.fromMs)).toFixed(1)} %`
+              : "Немає спостережень стану")
+          }
+        />
       </div>
 
       <RefrigerationControllerChart
-        title="Температури контролера"
-        context="Cabinet · Evaporator · Condenser · Setpoint"
-        rangeLabel={rangeLabel}
-        scene={temperatureScene}
-        sharedCursorMs={sharedCursorMs}
-        onSharedCursorChange={setSharedCursorMs}
-        emptyMessage="Температурний scale ще не підтверджений або в обраному періоді немає valid °C даних. Raw регістри не візуалізуються як температура."
+        title="Температури контролера · °C"
+        context="Температура в об’ємі · Датчик відтайки · попередній коефіцієнт 0,01"
+        rangeLabel={chartRangeLabel}
+        scene={annotatedTemperatureScene}
+        afterPlot={temperatureScene.series.length ? timelineLanes : undefined}
+        {...chartInteractions}
+        emptyMessage="У вибраному періоді немає показників двох датчиків для перерахунку °C."
+      />
+      <section
+        className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 text-xs text-amber-200"
+        data-testid="embraco-unverified-scale-note"
+      >
+        <strong>Температура в °C (попередній коефіцієнт ×0,01)</strong> — масштаб переглянуто після показу
+        контролера +0,1 °C; відповідність датчика на дисплеї та калібрування ще не підтверджені. У CSV
+        розраховані °C наведені окремим стовпчиком з позначкою походження, а вихідні raw і якість вимірювання
+        збережено без змін.
+      </section>
+      <DashboardIntervalStatistics
+        rows={temperatureStatisticsRows}
+        fromMs={viewportDomain.fromMs}
+        toMs={viewportDomain.toMs}
+        isViewport={
+          viewportDomain.fromMs !== loadedAnalysisDomain.fromMs ||
+          viewportDomain.toMs !== loadedAnalysisDomain.toMs
+        }
+        displayTimeZone={displayTimeZone}
+      />
+      <RefrigerationControllerChart
+        title="Діагностика · вихідні raw"
+        context="Температура в об’ємі · Датчик відтайки · вихідні регістри (не °C)"
+        rangeLabel={chartRangeLabel}
+        scene={annotatedProbeRawScene}
+        {...chartInteractions}
+        emptyMessage="За вибраний період немає вихідних регістрів двох датчиків."
       />
       <RefrigerationControllerChart
         title="Швидкість компресора"
-        context="Embraco Sync · rpm · drag to select"
-        rangeLabel={analysisRangeLabel}
-        scene={compressorScene}
-        sharedCursorMs={sharedCursorMs}
-        onSharedCursorChange={setSharedCursorMs}
+        context="Embraco Sync · rpm"
+        rangeLabel={chartRangeLabel}
+        scene={annotatedCompressorScene}
+        afterPlot={temperatureScene.series.length ? undefined : timelineLanes}
+        {...chartInteractions}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
-        rangeSelectionEnabled
-        rangeSelection={selectedAnalysisDomain}
-        onRangeSelectionChange={setSelectedAnalysisDomain}
       />
 
-      <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4 sm:p-5">
-        <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">Operating timeline</p>
-        <h2 className="mt-1 text-lg font-semibold text-white">Режими та реле</h2>
-        <p className="mt-1 text-[10px] text-slate-500">
-          Усі digital lanes синхронізовані з поточним інтервалом розрахунку.
-        </p>
-        <div className="mt-4 grid gap-3" data-testid="relay-analysis-lanes">
-          <TimelineRow label="State" intervals={stateTimeline} range={analysisRange} />
-          {relayTimelines.map((intervals, index) => (
-            <TimelineRow
-              key={index}
-              label={`Relay ${index + 1}`}
-              intervals={intervals}
-              range={analysisRange}
-              binary
-            />
-          ))}
-        </div>
+      <DashboardAlertEvents
+        events={[annotatedTemperatureScene, annotatedProbeRawScene, annotatedCompressorScene].flatMap(
+          (scene) => scene.events ?? [],
+        )}
+        status={alertEvents.status}
+        message={alertEvents.message}
+        displayTimeZone={displayTimeZone}
+      />
+
+      <section className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#081a32] px-4 pb-4">
         <RelayTransitionJournal transitions={relayTransitions} />
       </section>
 
@@ -348,52 +626,109 @@ function TimelineRow({
   label,
   intervals,
   range,
+  cursorMs,
+  selection,
   binary = false,
 }: {
   label: string;
   intervals: readonly TimelineInterval[];
   range: { from: Date; to: Date };
+  cursorMs: number | null;
+  selection: ChartXDomain | null;
   binary?: boolean;
 }) {
   const displayTimeZone = useDisplayTimeZone();
-  const span = Math.max(1, range.to.getTime() - range.from.getTime());
+  const fromMs = range.from.getTime();
+  const toMs = range.to.getTime();
+  const span = toMs - fromMs;
+  const percentage = (timestampMs: number) => `${((timestampMs - fromMs) / span) * 100}%`;
+  const visibleIntervals = useMemo(() => {
+    const result: TimelineInterval[] = [];
+    for (const item of intervals) {
+      const from = Math.max(item.fromMs, fromMs);
+      const to = Math.min(item.toMs, toMs);
+      if (to <= from) continue;
+      const previous = result.at(-1);
+      if (
+        previous?.toMs === from &&
+        previous.label === item.label &&
+        previous.active === item.active &&
+        previous.kind === item.kind
+      ) {
+        previous.toMs = to;
+      } else {
+        result.push({ ...item, fromMs: from, toMs: to });
+      }
+    }
+    return result;
+  }, [intervals, fromMs, toMs]);
+  const selectedFrom = Math.max(selection?.fromMs ?? toMs, fromMs);
+  const selectedTo = Math.min(selection?.toMs ?? fromMs, toMs);
+  const observed =
+    cursorMs === null
+      ? null
+      : visibleIntervals.find((item) => cursorMs >= item.fromMs && cursorMs < item.toMs);
   return (
-    <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">
-      <span className="text-[10px] text-slate-500">{label}</span>
-      <div className="relative h-8 overflow-hidden rounded-lg border border-white/[0.07] bg-[#06142a]">
-        {intervals.map((item, index) => {
-          const left = ((item.fromMs - range.from.getTime()) / span) * 100;
-          const width = ((item.toMs - item.fromMs) / span) * 100;
-          return (
-            <span
-              key={`${item.fromMs}-${index}`}
-              title={`${item.label} · ${formatObservedTime(item.fromMs, displayTimeZone)} → ${formatObservedTime(item.toMs, displayTimeZone)}`}
-              aria-label={binary ? `${label} ${item.active ? "ON" : "OFF"}` : undefined}
-              tabIndex={binary ? 0 : undefined}
-              className={clsx(
-                "absolute top-1 bottom-1 min-w-px rounded",
-                item.active ? "bg-cyan-400/55" : "bg-slate-500/25",
-                binary &&
-                  "flex items-center justify-center overflow-hidden text-[8px] font-semibold tracking-[0.08em] text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
-              )}
-              style={{
-                left: `${Math.max(0, left)}%`,
-                width: `${Math.max(0.15, width)}%`,
-                backgroundImage: binary
-                  ? item.active
-                    ? "repeating-linear-gradient(135deg, rgba(255,255,255,0.24) 0 3px, transparent 3px 7px)"
-                    : "repeating-linear-gradient(90deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 5px)"
-                  : undefined,
-              }}
-            >
-              {binary ? <span className="truncate px-1">{item.active ? "ON" : "OFF"}</span> : null}
-            </span>
-          );
-        })}
-        {intervals.length === 0 ? (
-          <span className="absolute inset-0 grid place-items-center text-[9px] text-slate-700">
-            No observed intervals
+    <div
+      className="grid items-center"
+      style={{ gridTemplateColumns: `${CHART_GRID_INSETS.left}px minmax(0,1fr)` }}
+      data-timeline-label={label}
+    >
+      <div className="min-w-0 pr-1 text-[10px] text-slate-400">
+        <span>{label}</span>
+        {cursorMs !== null ? (
+          <span
+            className="block truncate text-slate-200"
+            data-testid="timeline-cursor-state"
+            title={observed?.label ?? "Немає даних"}
+          >
+            {observed?.label ?? "Немає даних"}
           </span>
+        ) : null}
+      </div>
+      <div className="relative h-7 overflow-hidden rounded-md bg-[#06142a] ring-1 ring-white/[0.07] ring-inset">
+        {selectedTo > selectedFrom ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 border-x border-cyan-300/30 bg-cyan-400/10"
+            style={{ left: percentage(selectedFrom), right: percentage(fromMs + toMs - selectedTo) }}
+          />
+        ) : null}
+        {visibleIntervals.map((item) => (
+          <span
+            key={item.fromMs}
+            title={`${item.label} · ${formatObservedTime(item.fromMs, displayTimeZone)} → ${formatObservedTime(item.toMs, displayTimeZone)}`}
+            aria-label={binary ? `${label} ${item.label}` : undefined}
+            tabIndex={binary ? 0 : undefined}
+            className={clsx(
+              "absolute inset-y-1 min-w-px rounded",
+              item.kind === "unknown"
+                ? "border border-dashed border-amber-300/60 bg-[repeating-linear-gradient(135deg,rgba(245,179,1,.22)_0_4px,transparent_4px_8px)]"
+                : item.active
+                  ? "bg-cyan-400/55"
+                  : "bg-slate-500/25",
+              binary &&
+                "flex items-center justify-center overflow-hidden text-[8px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
+            )}
+            style={{
+              left: percentage(item.fromMs),
+              right: percentage(fromMs + toMs - item.toMs),
+            }}
+          >
+            <span className="truncate px-1 text-[9px] text-slate-100">{item.label}</span>
+          </span>
+        ))}
+        {visibleIntervals.length === 0 ? (
+          <span className="absolute inset-0 grid place-items-center text-[9px] text-slate-400">
+            Немає даних
+          </span>
+        ) : null}
+        {cursorMs !== null ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-slate-100/75"
+            style={{ left: percentage(cursorMs) }}
+            aria-hidden="true"
+          />
         ) : null}
       </div>
     </div>
@@ -545,25 +880,21 @@ function DateTimeInput({
   value: Date;
   onChange: (value: Date) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <label className="flex items-center gap-2 text-[10px] text-slate-500">
       {label}
       <input
         type="datetime-local"
-        value={toLocalInput(value)}
+        value={toZonedInputValue(value.getTime(), displayTimeZone)}
         onChange={(event) => {
-          const next = new Date(event.target.value);
-          if (Number.isFinite(next.getTime())) onChange(next);
+          const nextMs = fromZonedInputValue(event.target.value, displayTimeZone);
+          if (nextMs !== null) onChange(new Date(nextMs));
         }}
         className="min-h-9 rounded-xl border border-white/[0.08] bg-[#06142a] px-2 text-xs text-slate-200 outline-none focus:border-cyan-300/30"
       />
     </label>
   );
-}
-
-function toLocalInput(value: Date): string {
-  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
 }
 
 function clampAnalysisDomain(domain: ChartXDomain | null, loaded: ChartXDomain): ChartXDomain {
@@ -577,12 +908,15 @@ function formatAnalysisRange(domain: ChartXDomain, displayTimeZone: string): str
   return `${formatOperationalTimestamp(new Date(domain.fromMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })} → ${formatOperationalTimestamp(new Date(domain.toMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
 }
 
-function formatDuration(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return "0 хв";
+function formatDuration(milliseconds: number, includeSeconds = false): string {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "—";
+  if (includeSeconds && milliseconds < 60_000) return `${Math.floor(milliseconds / 1_000)} с`;
   const totalMinutes = Math.floor(milliseconds / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return hours > 0 ? `${hours} год ${minutes} хв` : `${minutes} хв`;
+  const label = hours > 0 ? `${hours} год ${minutes} хв` : `${minutes} хв`;
+  const seconds = Math.floor(milliseconds / 1000) % 60;
+  return includeSeconds && seconds > 0 ? `${label} ${seconds} с` : label;
 }
 
 function formatCustomRange(range: { from: Date; to: Date }, displayTimeZone: string): string {

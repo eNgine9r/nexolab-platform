@@ -111,6 +111,7 @@ export function EquipmentRegistryScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Обладнання"
         onClose={() => setSidebarOpen(false)}
@@ -173,6 +174,8 @@ export function EquipmentRegistryScreen() {
                 <EquipmentRegistryCatalog
                   state={registry.state}
                   assets={registry.assets}
+                  commissionedState={registry.commissionedState}
+                  channelNameRepository={registry.channelNameRepository}
                   failures={registry.failures}
                   error={registry.error}
                   progress={registry.progress}

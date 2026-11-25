@@ -2,7 +2,7 @@
 
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -34,6 +34,8 @@ import {
   type WorkspaceConnectionState,
 } from "@/lib/sessions/view-model";
 
+import { SessionTemperatureHistory } from "./session-temperature-history";
+import type { TelemetrySample } from "@/lib/telemetry/types";
 import type { SessionWorkspaceData } from "./use-session-workspace";
 
 const STAGE_TYPE_LABELS: Record<SessionStageType, string> = {
@@ -116,10 +118,37 @@ export function SessionHero({
   );
 }
 
+function chartQuality(quality: AttributedTelemetrySample["quality"]): TelemetrySample["quality"] {
+  if (quality === "valid" || quality === "communication_error") return quality;
+  if (quality === "sensor_fault" || quality === "sensor_missing" || quality === "invalid_range")
+    return "sensor_error";
+  return "unknown"; // estimated, unmapped, stale, unknown: never drawn as a measured value
+}
+
+function toChartSample(sample: AttributedTelemetrySample): TelemetrySample {
+  return {
+    event_id: sample.event_id,
+    node_id: sample.node_id,
+    captured_at: sample.captured_at,
+    metric: sample.metric,
+    value: sample.value,
+    unit: sample.unit,
+    quality: chartQuality(sample.quality),
+    source: sample.source,
+    equipment_id: sample.equipment_id,
+    channel_id: sample.channel_id,
+    alarm: sample.alarm === "low" || sample.alarm === "high" ? sample.alarm : null,
+    raw_value: sample.raw_value,
+    raw_status: sample.raw_status,
+  };
+}
+
 export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
   const displayTimeZone = useDisplayTimeZone();
   const temperatures = selectTemperatureSamples(data.latest);
   const history = data.history.filter((sample) => sample.metric === "temperature.probe");
+  // Session attribution uses a richer quality taxonomy; only "valid" is a plottable measurement.
+  const chartHistory = history.map(toChartSample);
 
   return (
     <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -157,7 +186,16 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             Alarm markers: {history.filter((item) => item.alarm).length}
           </span>
         </div>
-        <TemperatureChart samples={history} />
+        {data.historyTruncated ? (
+          <p
+            className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100"
+            role="status"
+            data-testid="session-history-truncated"
+          >
+            Історія сесії перевищує безпечний ліміт сторінок: на графіку показано неповний набір вимірювань.
+          </p>
+        ) : null}
+        <SessionTemperatureHistory samples={chartHistory} historyWindow={data.historyWindow} />
       </div>
     </section>
   );
@@ -431,85 +469,6 @@ export function WorkspaceError({ message, onRetry }: { message: string; onRetry:
         <button className="primary-button mt-4" onClick={onRetry}>
           Повторити
         </button>
-      </div>
-    </div>
-  );
-}
-
-function TemperatureChart({ samples }: { samples: AttributedTelemetrySample[] }) {
-  const series = useMemo(() => {
-    const recent = [...samples]
-      .filter((sample) => sample.value !== null)
-      .sort((a, b) => a.captured_at.localeCompare(b.captured_at))
-      .slice(-120);
-    const values = recent.map((sample) => sample.value as number);
-    const min = values.length ? Math.min(...values) : 0;
-    const max = values.length ? Math.max(...values) : 1;
-    const range = Math.max(1, max - min);
-    const byChannel = new Map<string, AttributedTelemetrySample[]>();
-    for (const sample of recent) {
-      byChannel.set(sample.channel_id, [...(byChannel.get(sample.channel_id) ?? []), sample]);
-    }
-    return [...byChannel.entries()].map(([channel, channelSamples]) => ({
-      channel,
-      points: channelSamples
-        .map((sample, index) => {
-          const x = channelSamples.length === 1 ? 50 : (index / (channelSamples.length - 1)) * 100;
-          const y = 92 - (((sample.value as number) - min) / range) * 78;
-          return `${x.toFixed(2)},${y.toFixed(2)}`;
-        })
-        .join(" "),
-      alarms: channelSamples.filter((sample) => sample.alarm),
-    }));
-  }, [samples]);
-
-  if (series.length === 0) {
-    return (
-      <div className="mt-5 grid h-72 place-items-center text-[10px] text-slate-600">History ще порожня</div>
-    );
-  }
-
-  return (
-    <div className="mt-5">
-      <svg
-        viewBox="0 0 100 100"
-        className="h-72 w-full overflow-visible"
-        role="img"
-        aria-label="Температурний графік"
-      >
-        {[20, 40, 60, 80].map((y) => (
-          <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(148,163,184,.12)" strokeWidth=".25" />
-        ))}
-        {series.map((item, index) => (
-          <polyline
-            key={item.channel}
-            points={item.points}
-            fill="none"
-            stroke={index === 0 ? "#00c6e0" : "#7ed321"}
-            strokeWidth="1.25"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-        {samples
-          .filter((sample) => sample.alarm)
-          .slice(-12)
-          .map((sample, index) => (
-            <circle key={`${sample.event_id}-${index}`} cx={90 - index * 5} cy={12} r="1.2" fill="#ff4d4f" />
-          ))}
-      </svg>
-      <div className="flex flex-wrap gap-3 text-[9px] text-slate-500">
-        <span>
-          <i className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan-400" />
-          106-03
-        </span>
-        <span>
-          <i className="mr-1 inline-block h-2 w-2 rounded-full bg-lime-400" />
-          106-04
-        </span>
-        <span>
-          <AlertTriangle className="mr-1 inline h-3 w-3 text-red-400" />
-          alarm marker
-        </span>
       </div>
     </div>
   );

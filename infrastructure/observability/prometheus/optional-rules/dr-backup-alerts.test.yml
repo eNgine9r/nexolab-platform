@@ -1,0 +1,61 @@
+# Source-only Prometheus 3.13 acceptance for #1630; never mounted into production rules/.
+rule_files:
+  - dr-backup-alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: no-backup-metrics-means-missing
+    interval: 1m
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NexolabDrBackupMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: NEXOLAB has no successful encrypted DR backup in the last 26 hours
+              description: The scheduled local backup did not succeed or did not run (missed timer, Pi off, or repeated failures). Recovery evidence is aging.
+  - name: recent-success-is-quiet
+    interval: 1m
+    input_series:
+      - series: nexolab_dr_backup_last_success_timestamp_seconds
+        values: 0+60x30
+      - series: nexolab_dr_backup_last_run_ok
+        values: 1x30
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NexolabDrBackupMissing
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: NexolabDrBackupFailed
+        exp_alerts: []
+  - name: failed-run-fires-and-recovers
+    interval: 1m
+    input_series:
+      - series: nexolab_dr_backup_last_run_ok
+        values: 1 0 0 0 1 1
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NexolabDrBackupFailed
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: NEXOLAB encrypted DR backup run failed
+              description: The last backup run was blocked (capacity or configuration) or failed (capture, consistency or verification). No partial bundle was kept.
+      - eval_time: 5m
+        alertname: NexolabDrBackupFailed
+        exp_alerts: []
+  - name: stale-success-older-than-26h-fires
+    interval: 1h
+    input_series:
+      - series: nexolab_dr_backup_last_success_timestamp_seconds
+        values: 0x30
+    alert_rule_test:
+      - eval_time: 27h
+        alertname: NexolabDrBackupMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: NEXOLAB has no successful encrypted DR backup in the last 26 hours
+              description: The scheduled local backup did not succeed or did not run (missed timer, Pi off, or repeated failures). Recovery evidence is aging.

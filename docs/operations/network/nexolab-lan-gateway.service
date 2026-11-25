@@ -1,0 +1,46 @@
+# NEXOLAB LOCAL_LAN gateway (#1734 WP2b). Owner-installed to
+# /etc/systemd/system/ together with /usr/local/lib/nexolab-lan-gateway/
+# nexolab-lan-gateway.mjs. `auto` listens on :80 on the current IPv4 addresses
+# of the LAN interfaces (eth*, en*, wlan*, wl*) and on 127.0.0.1, re-scanned every
+# 5 s (DHCP change, Ethernet <-> Wi-Fi). Never on tailscale0 (tailscaled owns
+# 100.x:80 and the tailnet keeps its OAuth gate), Docker bridges or nxcompat0.
+# Final upstreams are loopback-only; the Stage-1 drop-in temporarily points them
+# at the compatibility address. No host IP is configured anywhere.
+[Unit]
+Description=NEXOLAB LOCAL_LAN gateway (dashboard + same-origin API on all interfaces)
+After=network.target docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nexolab
+# Owner sets the Node path of the host (the existing lab.nexolab bridge uses the same runtime).
+Environment=NEXOLAB_NODE=/home/nexolab/.nvm/versions/node/v22.23.1/bin/node
+Environment=NEXOLAB_LAN_GATEWAY_HOST=auto
+Environment=NEXOLAB_LAN_GATEWAY_PORT=80
+Environment=NEXOLAB_LAN_GATEWAY_API=http://127.0.0.1:8082/
+Environment=NEXOLAB_LAN_GATEWAY_DASHBOARD=http://127.0.0.1:3010/
+ExecStart=/bin/sh -c 'exec "$NEXOLAB_NODE" /usr/local/lib/nexolab-lan-gateway/nexolab-lan-gateway.mjs'
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+# Port 80 only: no other capability.
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+MemoryHigh=96M
+MemoryMax=128M
+TasksMax=64
+CPUWeight=50
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,7 @@ import {
   resolveEnergyConsumptionWindow,
 } from "@/features/energy/energy-consumption";
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const meter = ENERGY_METERS[0];
@@ -63,6 +64,45 @@ describe("energy consumption windows", () => {
 });
 
 describe("deriveEnergyConsumption", () => {
+  it("rejects boundaries from different nodes or channels", () => {
+    const start = sample("start", "2026-08-17T08:00:00.000Z", 10);
+    const end = sample("end", "2026-08-17T20:00:00.000Z", 20);
+    expect(deriveEnergyConsumption(start, { ...end, node_id: "edge-02" }, meter).status).toBe("unavailable");
+    expect(deriveEnergyConsumption(start, { ...end, channel_id: "other-energy" }, meter).status).toBe(
+      "unavailable",
+    );
+  });
+
+  it("calculates scoped meter consumption without using another bus or node", () => {
+    const scoped: CommissionedEnergyMeter = {
+      nodeId: "edge-01",
+      busId: "commissioning-0123456789abcdef",
+      unitId: 1,
+      equipmentId: "SDM120M:commissioning-0123456789abcdef:1",
+      label: "First",
+      modelLabel: "SDM",
+      family: "sdm120",
+    };
+    const start = {
+      ...sample("start", "2026-08-17T08:00:00.000Z", 10),
+      equipment_id: scoped.equipmentId,
+      channel_id: "1-energy-active",
+    };
+    const end = {
+      ...sample("end", "2026-08-17T20:00:00.000Z", 25),
+      equipment_id: scoped.equipmentId,
+      channel_id: "1-energy-active",
+    };
+    expect(deriveEnergyConsumption(start, end, scoped)).toMatchObject({ status: "ready", valueKwh: 15 });
+    expect(deriveEnergyConsumption(start, { ...end, node_id: "edge-02" }, scoped).status).toBe("unavailable");
+    expect(
+      deriveEnergyConsumption(
+        start,
+        { ...end, equipment_id: "SDM120M:commissioning-fedcba9876543210:1" },
+        scoped,
+      ).status,
+    ).toBe("unavailable");
+  });
   it("derives kWh only from cumulative boundary readings", () => {
     const result = deriveEnergyConsumption(
       sample("start", "2026-08-17T08:00:00.000Z", 25_390.73),

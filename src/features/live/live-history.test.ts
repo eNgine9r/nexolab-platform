@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  CADENCE_OBSERVATION_LIMIT,
+  EMPTY_CADENCE_OBSERVATIONS,
+  isLiveSampleFresh,
+  liveFreshnessFor,
+  observedCadenceMs,
+  seedCadenceFromSamples,
+} from "./freshness";
 import { liveChannelKey } from "./live-telemetry";
 
 import type {
@@ -11,10 +19,12 @@ import type {
 
 import {
   advanceLiveHistoryWindow,
+  advanceWindowToClock,
   downsampleLiveHistory,
   isLiveHistorySegmentStart,
   liveHistorySegments,
   loadCompleteLiveHistory,
+  seedCadenceFromHistoryLoad,
   mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
   seedLiveHistoryOrderingState,
@@ -94,6 +104,91 @@ describe("live history loading", () => {
     expect(result.samples).toHaveLength(2);
   });
 
+  it("#1522: exposes raw newest samples so downsampled history cannot inflate the observed cadence", async () => {
+    const dayWindow = {
+      from: new Date("2026-08-02T21:10:00.000Z"),
+      to: new Date("2026-08-03T21:10:00.000Z"),
+    };
+    const start = dayWindow.from.getTime();
+    // 24 h of a 60 s channel = 1440 raw samples, far above the 240-point chart budget.
+    const raw = Array.from({ length: 1_440 }, (_, index) =>
+      sample({
+        event_id: `raw-${index}`,
+        captured_at: new Date(start + index * 60_000).toISOString(),
+        // Realistic varying signal: the chart reducer keeps only shape-relevant points.
+        value: 4 + Math.sin(index / 7) * 3 + (index % 5) * 0.4,
+      }),
+    );
+    const history = vi.fn(async () => response(raw));
+
+    const result = await loadCompleteLiveHistory(adapter(history), [raw[0]], dayWindow);
+    const key = liveChannelKey(raw[0]);
+
+    // The chart series is reduced, so its spacing is NOT the acquisition cadence.
+    expect(result.samples.length).toBeLessThan(raw.length);
+    const reducedCadence = observedCadenceMs(
+      seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, result.samples, liveChannelKey)[key],
+    );
+    expect(reducedCadence).toBeGreaterThan(60_000);
+
+    // The dedicated raw tail is exact and bounded.
+    expect(result.cadenceSamples).toHaveLength(CADENCE_OBSERVATION_LIMIT);
+    expect(result.cadenceSamples.at(-1)?.event_id).toBe("raw-1439");
+    const seeded = seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, result.cadenceSamples, liveChannelKey);
+    expect(observedCadenceMs(seeded[key])).toBe(60_000);
+    expect(liveFreshnessFor(raw[1_439], key, seeded).staleAfterMs).toBe(105_000);
+  });
+
+  it("#1522: seeds Live cadence only from the raw tail of a history load", () => {
+    const at = (seconds: number, id: string) =>
+      sample({ event_id: id, captured_at: new Date(window.from.getTime() + seconds * 1_000).toISOString() });
+    const reducedChart = [0, 300, 600, 900].map((s) => at(s, `chart-${s}`));
+    const rawTail = [720, 780, 840, 900].map((s) => at(s, `raw-${s}`));
+    const key = liveChannelKey(rawTail[0]);
+
+    const seeded = seedCadenceFromHistoryLoad(EMPTY_CADENCE_OBSERVATIONS, {
+      cadenceSamples: rawTail,
+      // A full result also carries the reduced chart series; it must be ignored.
+      ...({ samples: reducedChart } as object),
+    });
+
+    expect(observedCadenceMs(seeded[key])).toBe(60_000);
+    // A dead 60 s channel turns stale after 105 s, not after ~7.75 min.
+    const latest = rawTail.at(-1)!;
+    const freshness = liveFreshnessFor(latest, key, seeded);
+    expect(isLiveSampleFresh(latest, Date.parse(latest.captured_at) + 106_000, freshness)).toBe(false);
+  });
+
+  it("#1522: keeps the raw cadence tail per channel and ignores rejected samples", async () => {
+    const temperature = Array.from({ length: 10 }, (_, index) =>
+      sample({
+        event_id: `t-${index}`,
+        captured_at: new Date(window.from.getTime() + index * 10_000).toISOString(),
+      }),
+    );
+    const power = Array.from({ length: 3 }, (_, index) =>
+      sample({
+        event_id: `p-${index}`,
+        equipment_id: "LE01MP-200",
+        channel_id: "200-active-power",
+        metric: "electrical.power.active",
+        unit: "W",
+        captured_at: new Date(window.from.getTime() + index * 120_000).toISOString(),
+      }),
+    );
+    const future = sample({ event_id: "future", captured_at: "2099-01-01T00:00:00.000Z" });
+    const history = vi.fn(async (query: TelemetryHistoryQuery) =>
+      query.metric === "temperature" ? response([...temperature, future]) : response(power),
+    );
+
+    const result = await loadCompleteLiveHistory(adapter(history), [temperature[0], power[0]], window);
+    const byKey = seedCadenceFromSamples(EMPTY_CADENCE_OBSERVATIONS, result.cadenceSamples, liveChannelKey);
+
+    expect(result.cadenceSamples.some((item) => item.event_id === "future")).toBe(false);
+    expect(observedCadenceMs(byKey[liveChannelKey(temperature[0])])).toBe(10_000);
+    expect(observedCadenceMs(byKey[liveChannelKey(power[0])])).toBe(120_000);
+  });
+
   it("fails closed when a later channel changes the snapshot watermark", async () => {
     const temperature = sample();
     const power = sample({
@@ -123,6 +218,34 @@ describe("live history loading", () => {
 });
 
 describe("live history downsampling", () => {
+  it("does not fail a long range whose continuity segments outnumber the point budget (7 d site defect)", () => {
+    // 60 s cadence with an outage every 20 minutes: many short segments, as seen on the 7 d Live range.
+    const samples: TelemetrySample[] = [];
+    let at = window.from.getTime();
+    for (let segment = 0; segment < 30; segment += 1) {
+      for (let point = 0; point < 3; point += 1) {
+        samples.push(
+          sample({
+            event_id: `s${segment}-p${point}`,
+            captured_at: new Date(at).toISOString(),
+            value: segment + point,
+          }),
+        );
+        at += 60_000;
+      }
+      at += 20 * 60_000; // explicit gap, longer than the derived source gap
+    }
+
+    // Budget (10) < segments (30): previously threw "The point budget cannot preserve one point per continuity segment".
+    const result = downsampleLiveHistory(samples, { from: window.from, to: new Date(at) }, 10);
+
+    const starts = result.filter((item) => isLiveHistorySegmentStart(item)).length;
+    expect(starts).toBe(29); // every gap after the first segment is still drawn as a break
+    expect(result[0].event_id).toBe("s0-p0");
+    expect(result.at(-1)?.event_id).toBe("s29-p2");
+    expect(result.length).toBeLessThan(samples.length); // still reduced: boundaries kept, interior thinned
+  });
+
   it("keeps first and last samples after bounded downsampling", () => {
     const samples = Array.from({ length: 20 }, (_, index) =>
       sample({
@@ -239,5 +362,20 @@ describe("live history downsampling", () => {
   it("does not move the live window backwards for delayed replay", () => {
     const delayed = sample({ event_id: "delayed", captured_at: "2026-08-03T21:09:00.000Z" });
     expect(advanceLiveHistoryWindow(window, [delayed])).toBe(window);
+  });
+});
+
+describe("advanceWindowToClock (chart audit 2026-11-21)", () => {
+  const rolling = { from: new Date("2026-11-21T10:00:00Z"), to: new Date("2026-11-21T11:00:00Z") };
+
+  it("moves a rolling window with wall-clock time while keeping its duration", () => {
+    const next = advanceWindowToClock(rolling, Date.parse("2026-11-21T11:10:00Z"));
+    expect(next.to.toISOString()).toBe("2026-11-21T11:10:00.000Z");
+    expect(next.to.getTime() - next.from.getTime()).toBe(60 * 60 * 1_000);
+  });
+
+  it("returns the same window when time has not passed its end or input is invalid", () => {
+    expect(advanceWindowToClock(rolling, Date.parse("2026-11-21T10:59:00Z"))).toBe(rolling);
+    expect(advanceWindowToClock(rolling, Number.NaN)).toBe(rolling);
   });
 });

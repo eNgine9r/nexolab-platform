@@ -98,6 +98,38 @@ function reduceSegment(segment: ChartSegment, budget: number, bucketOriginMs?: n
   return { ...segment, points: deduplicate([...required, ...optional.slice(0, optionalBudget)]) };
 }
 
+/**
+ * Smallest point count that still keeps every segment's first/last point and all pinned
+ * evidence. Below this, a truthful chart cannot be drawn (breaks would disappear).
+ */
+export function minimumEvidencePoints(segments: readonly ChartSegment[]): number {
+  return segments
+    .filter((segment) => segment.points.length > 0)
+    .reduce(
+      (sum, segment) =>
+        sum +
+        deduplicate([
+          segment.points[0],
+          ...(segment.points.length > 1 ? [segment.points.at(-1)!] : []),
+          ...segment.points.filter(isPinned),
+        ]).length,
+      0,
+    );
+}
+
+/**
+ * Reduces to the target budget when possible; otherwise widens the budget only as far as
+ * needed to keep every continuity boundary and pinned point. The point budget is a
+ * performance target and must never make a long range fail or hide data gaps.
+ */
+export function reduceChartSegmentsPreservingEvidence(
+  segments: readonly ChartSegment[],
+  options: ChartReductionOptions,
+): ChartSegment[] {
+  const budget = Math.max(options.maximumPoints, minimumEvidencePoints(segments), 1);
+  return reduceChartSegments(segments, { ...options, maximumPoints: budget });
+}
+
 export function reduceChartSegments(
   segments: readonly ChartSegment[],
   options: ChartReductionOptions,

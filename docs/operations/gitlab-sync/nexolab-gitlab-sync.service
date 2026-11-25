@@ -1,0 +1,61 @@
+# NEXOLAB GitHub -> corporate GitLab fast-forward synchronization (#1713).
+# Owner-installed to /etc/systemd/system/. Started by nexolab-gitlab-sync.timer.
+# Isolated DynamicUser identity, no access to production paths, Docker or
+# devices. The GitLab token is passed only as a systemd credential.
+
+[Unit]
+Description=NEXOLAB GitHub to GitLab fast-forward synchronization
+Documentation=https://github.com/eNgine9r/nexolab-platform/blob/main/docs/operations/gitlab-sync.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/nexolab-gitlab-sync/sync.env
+ConditionPathExists=/etc/nexolab-gitlab-sync/gitlab-token
+ConditionPathExists=/etc/nexolab-gitlab-sync/approved-tags
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=nexolab-gitlab-sync
+StateDirectoryMode=0700
+EnvironmentFile=/etc/nexolab-gitlab-sync/sync.env
+Environment=GITLAB_SYNC_ASKPASS=/usr/local/lib/nexolab-gitlab-sync/nexolab-gitlab-sync-askpass.sh
+Environment=GITLAB_SYNC_APPROVED_TAGS_FILE=%d/approved-tags
+LoadCredential=gitlab-token:/etc/nexolab-gitlab-sync/gitlab-token
+LoadCredential=approved-tags:/etc/nexolab-gitlab-sync/approved-tags
+ExecStart=/usr/bin/python3 -I /usr/local/lib/nexolab-gitlab-sync/nexolab-gitlab-sync.py
+TimeoutStartSec=15min
+
+# Isolation.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+InaccessiblePaths=-/etc/nexolab -/var/lib/nexolab -/var/lib/docker -/var/backups/nexolab -/run/docker.sock -/run/containerd/containerd.sock
+
+# Lightweight limits; production keeps priority.
+MemoryHigh=192M
+MemoryMax=256M
+MemorySwapMax=64M
+CPUQuota=25%
+CPUWeight=10
+IOWeight=10
+TasksMax=32
+Nice=10

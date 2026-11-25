@@ -15,13 +15,27 @@ export type LiveDashboardStatus = "active" | "archived";
 export interface LiveDashboardItem {
   id: string;
   position: number;
-  channel_ref_id: string;
+  channel_ref_id: string | null;
+  node_id?: string | null;
+  equipment_id?: string | null;
   channel_id: string;
   metric: string;
   native_unit: string;
   visualization: LiveDashboardVisualization;
   color: string | null;
   display_unit: string | null;
+}
+
+/** Saved analysis view (#1666); mirrors the backend `view_settings` JSON. */
+export interface LiveDashboardViewSettings {
+  schema_version: number;
+  hidden_items: string[];
+  range_kind: "1h" | "6h" | "24h" | "7d" | "30d" | "custom" | null;
+  range_from: string | null;
+  range_to: string | null;
+  viewport_from: string | null;
+  viewport_to: string | null;
+  density: "auto" | 250 | 500 | 1000 | 2500 | 5000 | null;
 }
 
 export interface LiveDashboard {
@@ -41,6 +55,7 @@ export interface LiveDashboard {
   archived_by: string | null;
   archived_at: string | null;
   items: LiveDashboardItem[];
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardCollection {
@@ -52,6 +67,8 @@ export interface LiveDashboardCollection {
 }
 
 export interface LiveDashboardItemWrite {
+  node_id?: string | null;
+  equipment_id?: string | null;
   channel_id: string;
   metric: string;
   visualization: LiveDashboardVisualization;
@@ -65,6 +82,8 @@ export interface LiveDashboardWrite {
   refresh_seconds: LiveDashboardRefreshSeconds;
   time_window: LiveDashboardTimeWindow;
   items: LiveDashboardItemWrite[];
+  /** Omitted keeps the stored view (older clients); null clears it. */
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardVersioned<T = LiveDashboard> {
@@ -73,6 +92,7 @@ export interface LiveDashboardVersioned<T = LiveDashboard> {
 }
 
 export interface LiveDashboardDraftItem extends LiveDashboardItemWrite {
+  observed?: boolean;
   native_unit: string;
   node_id: string | null;
   equipment_id: string | null;
@@ -88,6 +108,8 @@ export interface LiveDashboardDraft {
   items: LiveDashboardDraftItem[];
   version: number | null;
   etag: string | null;
+  /** Set only when the view is being saved or cleared; absent keeps the stored view. */
+  view_settings?: LiveDashboardViewSettings | null;
 }
 
 export interface LiveDashboardValidation {
@@ -97,13 +119,13 @@ export interface LiveDashboardValidation {
 
 export interface LiveDashboardInventoryItem {
   key: string;
-  channel_ref_id: string;
+  channel_ref_id: string | null;
   node_id: string;
   equipment_id: string;
   equipment_name: string;
-  climate_chamber_id: string;
-  climate_chamber_code: string;
-  climate_chamber_name: string;
+  climate_chamber_id: string | null;
+  climate_chamber_code: string | null;
+  climate_chamber_name: string | null;
   equipment_type: string;
   laboratory: string | null;
   zone: string | null;

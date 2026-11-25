@@ -72,6 +72,9 @@ def decode_channel(
         mode = MODES[mode_code]
     except KeyError as exc:
         raise ValueError(f"Unsupported Waveshare input mode: {mode_code}") from exc
+    nominal_ranges = {0: (0, 10000), 1: (2000, 10000), 2: (0, 20000), 3: (4000, 20000)}
+    limits = nominal_ranges.get(mode_code)
+    quality = "valid" if limits is None or limits[0] <= raw_value <= limits[1] else "unknown"
     return Waveshare8AIReading(
         unit_id=unit_id,
         channel=channel,
@@ -81,6 +84,7 @@ def decode_channel(
         raw_value=raw_value,
         value=float(raw_value),
         unit=mode.unit,
+        quality=quality,
     )
 
 

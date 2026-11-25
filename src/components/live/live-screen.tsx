@@ -182,6 +182,7 @@ export function LiveScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Live дані"
         onClose={() => setSidebarOpen(false)}
@@ -189,7 +190,7 @@ export function LiveScreen() {
       />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
-          title={effectiveWorkspace === "explorer" ? "Live Data" : "Live Dashboards"}
+          title="Live дані"
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={false}
           securitySession={security.session}
@@ -229,29 +230,27 @@ export function LiveScreen() {
               ) : null}
             </nav>
 
-            <aside
-              className="mb-4 space-y-2 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-3 text-sm text-slate-400"
-              aria-label="Формати моніторингу"
-              data-testid="live-workspace-guidance"
-            >
-              {effectiveWorkspace === "explorer" ? (
+            {effectiveWorkspace === "explorer" ? (
+              <aside
+                className="mb-4 space-y-2 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-3 text-sm text-slate-400"
+                aria-label="Формати моніторингу"
+                data-testid="live-workspace-guidance"
+              >
                 <p>{comparisonLimitLabel} Для разової перевірки поточних вимірювань.</p>
-              ) : (
-                <p>{savedLimitLabel} Збережений набір зручно відкривати для повторних перевірок.</p>
-              )}
-              {effectiveWorkspace === "explorer" && canReadDashboards ? (
-                <div className="space-y-2">
-                  <p>{savedLimitLabel} Для регулярного моніторингу того самого набору.</p>
-                  <button
-                    type="button"
-                    onClick={() => switchWorkspace("dashboards")}
-                    className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-sm text-cyan-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                  >
-                    Відкрити збережені панелі
-                  </button>
-                </div>
-              ) : null}
-            </aside>
+                {canReadDashboards ? (
+                  <div className="space-y-2">
+                    <p>{savedLimitLabel} Для регулярного моніторингу того самого набору.</p>
+                    <button
+                      type="button"
+                      onClick={() => switchWorkspace("dashboards")}
+                      className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-sm text-cyan-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                    >
+                      Відкрити збережені панелі
+                    </button>
+                  </div>
+                ) : null}
+              </aside>
+            ) : null}
 
             {effectiveWorkspace === "explorer" ? (
               <LiveDataWorkspace

@@ -91,6 +91,30 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("sensor_error")).toBeInTheDocument();
   });
 
+  it("renders current and persisted temperatures from replacement units 1 and 7", async () => {
+    const samples = [
+      { ...sample("rs485-sdm120:1-S01", 4.5), equipment_id: "XJP60D-S:rs485-sdm120:1" },
+      { ...sample("rs485-sdm120:7-S02", 5.5), equipment_id: "XJP60D-S:rs485-sdm120:7" },
+    ];
+    await act(async () => {
+      render(
+        <TemperatureChart
+          mode="live"
+          status="live"
+          samples={samples}
+          historySamples={samples}
+          historyStatus="ready"
+          onHistoryRangeChange={vi.fn()}
+          onHistoryRetry={vi.fn()}
+        />,
+      );
+    });
+    expect(screen.getByText("rs485-sdm120:1-S01")).toBeInTheDocument();
+    expect(screen.getByText("rs485-sdm120:7-S02")).toBeInTheDocument();
+    expect(screen.getByText("4,5 °C")).toBeInTheDocument();
+    expect(screen.getByTestId("overview-chart-panel")).toBeVisible();
+  });
+
   it("renders newly valid KK2 and KK1 channels without a source allowlist", () => {
     const samples = [
       sample("106-03", 4.5),
@@ -167,5 +191,64 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("102-03")).toBeInTheDocument();
     expect(screen.getByText("102-04")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Згорнути" })).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
+describe("TemperatureChart custom history period (#1683)", () => {
+  it("offers the unified presets plus a custom period and applies the entered window", async () => {
+    const onHistoryCustomRange = vi.fn();
+    const samples = [sample("104-03", 4.1)];
+    await act(async () => {
+      render(
+        <TemperatureChart
+          mode="live"
+          status="live"
+          samples={samples}
+          historySamples={samples}
+          historyStatus="ready"
+          onHistoryRangeChange={vi.fn()}
+          onHistoryCustomRange={onHistoryCustomRange}
+          onHistoryRetry={vi.fn()}
+        />,
+      );
+    });
+
+    for (const label of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Власний період" }));
+    fireEvent.change(screen.getByLabelText("Від"), { target: { value: "2026-11-10T08:00" } });
+    fireEvent.change(screen.getByLabelText("До"), { target: { value: "2026-11-10T09:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    expect(onHistoryCustomRange).toHaveBeenCalledOnce();
+    const [fromMs, toMs] = onHistoryCustomRange.mock.calls[0] as [number, number];
+    expect(toMs - fromMs).toBe(90 * 60 * 1000);
+    expect(screen.queryByTestId("overview-custom-range-form")).not.toBeInTheDocument();
+  });
+
+  it("marks a selected custom period as fixed", async () => {
+    const samples = [sample("104-03", 4.1)];
+    await act(async () => {
+      render(
+        <TemperatureChart
+          mode="live"
+          status="live"
+          samples={samples}
+          historySamples={samples}
+          historyRange="custom"
+          historyWindow={{ from: "2026-07-31T06:00:00.000Z", to: "2026-07-31T09:00:00.000Z" }}
+          historyStatus="ready"
+          onHistoryRangeChange={vi.fn()}
+          onHistoryCustomRange={vi.fn()}
+          onHistoryRetry={vi.fn()}
+        />,
+      );
+    });
+
+    expect(screen.getByRole("button", { name: "Власний період" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("overview-custom-range-notice")).toHaveTextContent(
+      "Фіксований період: нові вимірювання не додаються",
+    );
   });
 });

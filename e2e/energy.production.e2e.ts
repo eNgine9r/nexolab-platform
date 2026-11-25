@@ -612,7 +612,7 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
     await expect(chart.getByTestId("chart-inspector")).toContainText("615 W");
     await plot.press("End");
 
-    const range7d = page.getByRole("button", { name: "7 діб" });
+    const range7d = page.getByRole("button", { name: "7 днів" });
     await range7d.click();
     await expect(range7d).toHaveAttribute("aria-pressed", "true");
     await expect(chart.getByText(/7d ·/)).toBeVisible();
@@ -705,7 +705,7 @@ test("energy comparison explains the final meter and supports keyboard-only sele
       page,
       ["W1", "W2", "W3", "W4", "SDM120M"].map((meter) => `${meter} · Напруга`),
     );
-    await page.getByRole("button", { name: "7 діб" }).click();
+    await page.getByRole("button", { name: "7 днів" }).click();
     const legend = page.getByTestId("energy-history-chart").getByLabel("Легенда графіка");
     await expect(legend.getByRole("button", { name: "Лише цей" }).first()).toBeVisible();
     await legend.getByRole("button", { name: "Лише цей" }).first().click();
@@ -736,7 +736,7 @@ test("energy comparison explains the final meter and supports keyboard-only sele
         ),
       ).toBe(true);
       await expect(page.getByLabel("Вибрані параметри графіка")).toContainText("U, V");
-      await expect(page.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("button", { name: "7 днів" })).toHaveAttribute("aria-pressed", "true");
     }
     expect(acquisitionServiceCounters(await readAcquisitionMetrics())).toEqual(
       acquisitionServiceCounters(before),
@@ -764,7 +764,7 @@ test("energy nine-axis selection synchronizes panels, preserves zoom and traps m
   try {
     await page.goto("/energy", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("energy-history-chart")).toBeVisible();
-    await page.getByRole("button", { name: "1 год", exact: true }).click();
+    await page.getByRole("button", { name: "1 година", exact: true }).click();
     const labels = [
       "Активна потужність",
       "Накопичена активна енергія",
@@ -819,11 +819,22 @@ test("energy nine-axis selection synchronizes panels, preserves zoom and traps m
     const reset = await domains();
     expect(reset[0]).toEqual(reset[1]);
 
-    for (const width of [390, 768, 1440, 1920]) {
+    for (const width of [375, 390, 768, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await page.getByRole("button", { name: "+ Додати параметр" }).click();
       const dialog = page.getByRole("dialog", { name: "Параметри на графіку" });
+      const search = dialog.getByRole("searchbox", { name: "Пошук лічильника або показника" });
+      await expect(search).toBeVisible();
+      await search.fill("W1");
+      await expect(dialog.getByRole("checkbox", { name: "W1 · Напруга" })).toBeVisible();
+      await expect(dialog.getByRole("checkbox", { name: "SDM120M · Температура лічильника" })).toHaveCount(0);
+      await search.fill("");
       await expect(dialog.getByRole("checkbox", { name: "SDM120M · Температура лічильника" })).toBeDisabled();
+      const selectedOnly = dialog.getByRole("button", { name: "Лише вибрані" });
+      await selectedOnly.click();
+      await expect(selectedOnly).toHaveAttribute("aria-pressed", "true");
+      await selectedOnly.click();
+      await expect(selectedOnly).toHaveAttribute("aria-pressed", "false");
       const first = dialog.getByRole("button", { name: "Закрити вибір параметрів" });
       const last = dialog.getByRole("button", { name: "Застосувати", exact: true });
       await first.focus();

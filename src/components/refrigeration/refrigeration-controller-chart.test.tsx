@@ -11,9 +11,13 @@ vi.mock("@/components/charts/chart-shell", () => ({
     inspection,
   }: {
     children: React.ReactNode;
-    inspection: { timestampMs: number } | null;
+    inspection: { timestampMs: number; series: { point: unknown }[] } | null;
   }) => (
-    <div data-testid="mock-inspection" data-timestamp={inspection?.timestampMs ?? ""}>
+    <div
+      data-testid="mock-inspection"
+      data-timestamp={inspection?.timestampMs ?? ""}
+      data-observations={inspection?.series.filter((entry) => entry.point).length}
+    >
       {children}
     </div>
   ),
@@ -64,6 +68,8 @@ function chart(
   scene: ChartRendererScene,
   sharedCursorMs: number | null = null,
   onSharedCursorChange: (timestampMs: number | null) => void = vi.fn(),
+  viewportDomain = scene.xDomain,
+  onViewportChange = vi.fn(),
 ) {
   return (
     <RefrigerationControllerChart
@@ -74,20 +80,25 @@ function chart(
       emptyMessage="empty"
       sharedCursorMs={sharedCursorMs}
       onSharedCursorChange={onSharedCursorChange}
+      viewportDomain={viewportDomain}
+      onViewportChange={onViewportChange}
+      rangeSelection={null}
+      onRangeSelectionChange={vi.fn()}
     />
   );
 }
 
 describe("RefrigerationControllerChart viewport lifecycle", () => {
-  it("clears a stale local viewport when the loaded base domain changes", async () => {
+  it("reports plot zoom and renders the parent-supplied shared time domain", async () => {
     const first = createBenchmarkScene(1);
-    const { rerender } = render(chart(first));
+    const onViewportChange = vi.fn();
+    const { rerender } = render(chart(first, null, vi.fn(), first.xDomain, onViewportChange));
 
     fireEvent.click(screen.getByTestId("mock-renderer"));
-    expect(screen.getByTestId("mock-renderer")).toHaveAttribute(
-      "data-from",
-      String(first.xDomain.fromMs + 10_000),
-    );
+    expect(onViewportChange).toHaveBeenCalledWith({
+      fromMs: first.xDomain.fromMs + 10_000,
+      toMs: first.xDomain.toMs - 10_000,
+    });
 
     const second = {
       ...first,
@@ -96,7 +107,7 @@ describe("RefrigerationControllerChart viewport lifecycle", () => {
         toMs: first.xDomain.toMs + 180_000,
       },
     };
-    rerender(chart(second));
+    rerender(chart(first, null, vi.fn(), second.xDomain, onViewportChange));
 
     await waitFor(() =>
       expect(screen.getByTestId("mock-renderer")).toHaveAttribute("data-from", String(second.xDomain.fromMs)),
@@ -116,6 +127,16 @@ describe("RefrigerationControllerChart shared Exact Inspector", () => {
 
     rerender(chart(scene, null));
     expect(screen.getByTestId("mock-inspection")).toHaveAttribute("data-timestamp", "");
+  });
+
+  it("does not reuse the last measurement beyond the observed history", () => {
+    const scene = createBenchmarkScene(1);
+    const lastPoint = scene.series[0]!.segments.at(-1)!.points.at(-1)!;
+    const { rerender } = render(chart(scene, lastPoint.timestampMs));
+    expect(screen.getByTestId("mock-inspection")).toHaveAttribute("data-observations", "1");
+
+    rerender(chart(scene, lastPoint.timestampMs + 1000));
+    expect(screen.getByTestId("mock-inspection")).toHaveAttribute("data-observations", "0");
   });
 
   it("forwards local hover and clear events as shared timestamps", () => {

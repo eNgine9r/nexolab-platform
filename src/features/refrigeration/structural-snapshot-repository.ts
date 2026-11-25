@@ -23,6 +23,7 @@ export type RefrigerationStructuralSnapshot = {
 
 export interface RefrigerationStructuralSnapshotRepository {
   get(equipmentId: string): Promise<RefrigerationStructuralSnapshot>;
+  refresh?(equipmentId: string): Promise<RefrigerationStructuralSnapshot>;
   invalidate(equipmentId: string): void;
   clear(): void;
 }
@@ -68,6 +69,10 @@ export class HttpRefrigerationStructuralSnapshotRepository implements Refrigerat
       void this.revalidate(equipmentId);
       return Promise.resolve(stored.value);
     }
+    return this.revalidate(equipmentId);
+  }
+
+  refresh(equipmentId: string): Promise<RefrigerationStructuralSnapshot> {
     return this.revalidate(equipmentId);
   }
 
@@ -324,6 +329,11 @@ function parseChannel(value: unknown, fallbackCapturedAt: string): StructuralCha
     quality,
     capturedAt: readString(record?.captured_at) ?? fallbackCapturedAt,
     sampleState,
+    sampleValidUntil: readOptionalString(record?.sample_valid_until),
+    controllerLabel: readOptionalString(record?.controller_label),
+    displayName: readOptionalString(record?.display_name),
+    inputNumber: readInteger(record?.input_number),
+    selectable: record?.selectable !== false,
     isBound: record?.is_bound === true,
     boundEquipmentId: readOptionalString(record?.bound_equipment_id),
     boundSlotKey: readOptionalString(record?.bound_slot_key),

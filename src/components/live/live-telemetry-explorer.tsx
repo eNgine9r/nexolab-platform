@@ -1,5 +1,6 @@
 "use client";
 
+import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
@@ -9,6 +10,7 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FilterX,
   Pause,
@@ -17,18 +19,34 @@ import {
   RefreshCw,
   Search,
   Signal,
+  SlidersHorizontal,
   WifiOff,
 } from "lucide-react";
 
+import { ChartDensityControl } from "@/components/charts/chart-density-control";
+import type { ChartDensityMode } from "@/features/charts/density";
+import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
+import { annotateChartGroups } from "@/features/charts/alert-events";
+import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
+import { LiveChannelPicker } from "@/components/live/live-channel-picker";
 import { LiveChartPanel } from "@/components/live/live-chart-panel";
+import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
+import { buildLiveStatisticsRows } from "@/features/live/live-interval-statistics";
+import { HttpChannelNameRepository } from "@/features/equipment/channel-name-repository";
+import { createAuthenticatedFetch } from "@/features/security/security-session";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+import { displayUnit } from "@/features/charts/units";
+import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import {
   CANONICAL_CHART_TIME_RANGES,
   chartSeriesKey,
   type CanonicalChartTimeRangeId,
   type ChartXDomain,
 } from "@/features/charts";
+import { formatFreshnessBasis, liveFreshnessFor } from "@/features/live/freshness";
 import { buildLiveChartGroups, liveSampleChartIdentity } from "@/features/live/live-chart";
 import {
+  LIVE_SELECTION_LIMIT,
   defaultLiveTelemetryFilters,
   filterLiveTelemetry,
   liveChannelKey,
@@ -46,6 +64,7 @@ import type { TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 const QUALITY_VALUES: TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARM_VALUES: LiveAlarmFilter[] = ["all", "active", "none", "low", "high"];
 const CUSTOM_MAX_MS = 7 * 24 * 60 * 60_000;
+const EMPTY_CHANNEL_NAMES: Readonly<Record<string, string>> = Object.freeze({});
 
 function queryValue(value: string | null, allowed?: readonly string[]): string {
   if (!value) return "all";
@@ -100,9 +119,20 @@ function stateClasses(state: LiveTelemetryState): string {
 
 function formatValue(sample: TelemetrySample): string {
   if (sample.value === null || !Number.isFinite(sample.value)) return "—";
+  if (sample.source === "waveshare-analog-input-8ch-b-v3" && ["uA", "mV"].includes(sample.unit)) {
+    const unit = sample.unit === "uA" ? "мА" : "В";
+    return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 3 }).format(sample.value / 1000)} ${unit}`;
+  }
   const absolute = Math.abs(sample.value);
   const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
-  return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
+  return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${displayUnit(sample.unit)}`;
+}
+
+function analogInputMode(sample: TelemetrySample): string | null {
+  if (sample.source !== "waveshare-analog-input-8ch-b-v3" || sample.quality === "communication_error")
+    return null;
+  const modes: Record<number, string> = { 0: "0–10 В", 1: "2–10 В", 2: "0–20 мА", 3: "4–20 мА", 4: "ADC" };
+  return typeof sample.raw_status === "number" ? (modes[sample.raw_status] ?? null) : null;
 }
 
 function formatTimestamp(value: string, displayTimeZone: string): string {
@@ -117,15 +147,12 @@ function formatTimestamp(value: string, displayTimeZone: string): string {
   });
 }
 
-function toLocalInput(timestampMs: number): string {
-  const date = new Date(timestampMs);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(timestampMs - offsetMs).toISOString().slice(0, 16);
+function toLocalInput(timestampMs: number, displayTimeZone: string): string {
+  return toZonedInputValue(timestampMs, displayTimeZone);
 }
 
-function fromLocalInput(value: string): number | null {
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function fromLocalInput(value: string, displayTimeZone: string): number | null {
+  return fromZonedInputValue(value, displayTimeZone);
 }
 
 function statusMessage(status: LiveTelemetryStatus): {
@@ -225,7 +252,18 @@ function deriveResetDomain(
   return { fromMs: historyToMs - durationMs, toMs: historyToMs };
 }
 
-export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryModel }) {
+export function LiveTelemetryExplorer({
+  telemetry,
+  organizationId,
+  density,
+  onDensityChange,
+}: {
+  telemetry: LiveTelemetryModel;
+  organizationId?: string;
+  /** Chart detail control (#1620); rendered only when both props are supplied. */
+  density?: ChartDensityMode;
+  onDensityChange?: (mode: ChartDensityMode) => void;
+}) {
   const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
   const pathname = usePathname();
@@ -233,14 +271,26 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [filters, setFilters] = useState<LiveTelemetryFilters>(() =>
     filtersFromParams(new URLSearchParams(searchParams.toString())),
   );
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(() =>
+    [
+      filters.nodeId,
+      filters.equipmentId,
+      filters.channelId,
+      filters.metric,
+      filters.quality,
+      filters.alarm,
+    ].some((value) => value !== "all"),
+  );
   const [range, setRange] = useState<CanonicalChartTimeRangeId>(() =>
     canonicalRangeFromParams(new URLSearchParams(searchParams.toString())),
   );
   const [initialTo] = useState(() => Date.now());
   const [customFrom, setCustomFrom] = useState(
-    () => searchParams.get("from") ?? toLocalInput(initialTo - 60 * 60_000),
+    () => searchParams.get("from") ?? toLocalInput(initialTo - 60 * 60_000, displayTimeZone),
   );
-  const [customTo, setCustomTo] = useState(() => searchParams.get("to") ?? toLocalInput(initialTo));
+  const [customTo, setCustomTo] = useState(
+    () => searchParams.get("to") ?? toLocalInput(initialTo, displayTimeZone),
+  );
   const [customError, setCustomError] = useState<string | null>(null);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
@@ -250,12 +300,55 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [liveFollow, setLiveFollow] = useState(range === "live");
   const lastUrlRef = useRef("");
   const channelSearchRef = useRef<HTMLInputElement>(null);
+  const [namedInventory, setNamedInventory] = useState<{
+    organizationId: string;
+    displayNames: Record<string, string>;
+  } | null>(null);
+  // Do not show a previous organization's labels after the account scope changes.
+  const commissionedNames =
+    namedInventory && namedInventory.organizationId === organizationId
+      ? namedInventory.displayNames
+      : EMPTY_CHANNEL_NAMES;
+  useEffect(() => {
+    if (!organizationId) return;
+    const runtime = getTelemetryRuntimeConfig();
+    if (runtime.mode !== "live" || !runtime.apiBaseUrl) return;
+    const controller = new AbortController();
+    const repository = new HttpChannelNameRepository(
+      runtime.apiBaseUrl,
+      createAuthenticatedFetch(fetch.bind(globalThis), createRuntimeCredentialProvider(organizationId)),
+    );
+    void repository
+      .list(controller.signal)
+      .then((inventory) => {
+        if (controller.signal.aborted || inventory.state !== "available") return;
+        setNamedInventory({
+          organizationId,
+          displayNames: Object.fromEntries(
+            inventory.items.map((item) => [item.nodeId + "/" + item.channelId, item.displayName]),
+          ),
+        });
+      })
+      .catch(() => {
+        // Keep technical IDs on an unavailable inventory; never invent labels.
+      });
+    return () => controller.abort();
+  }, [organizationId]);
 
   const filtered = useMemo(
-    () => filterLiveTelemetry(telemetry.samples, filters),
-    [filters, telemetry.samples],
+    () => filterLiveTelemetry(telemetry.samples, filters, commissionedNames),
+    [commissionedNames, filters, telemetry.samples],
   );
   const options = useMemo(() => liveTelemetryFilterOptions(telemetry.samples), [telemetry.samples]);
+  const activeAdvancedFilterCount = [
+    filters.nodeId,
+    filters.equipmentId,
+    filters.channelId,
+    filters.metric,
+    filters.quality,
+    filters.alarm,
+  ].filter((value) => value !== "all").length;
+  const activeConditionCount = activeAdvancedFilterCount + (filters.search.trim() ? 1 : 0);
   const selected = useMemo(
     () => selectedLiveSamples(telemetry.selectedKeys, telemetry.samples),
     [telemetry.samples, telemetry.selectedKeys],
@@ -264,13 +357,17 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const status = statusMessage(telemetry.status);
   const StatusIcon = status.icon;
   const historyToMs = telemetry.historyWindow?.to.getTime() ?? initialTo;
-  const customFromMs = fromLocalInput(customFrom);
-  const customToMs = fromLocalInput(customTo);
+  const customFromMs = fromLocalInput(customFrom, displayTimeZone);
+  const customToMs = fromLocalInput(customTo, displayTimeZone);
   const resetDomain = useMemo(
     () => deriveResetDomain(range, historyToMs, customFromMs, customToMs),
     [customFromMs, customToMs, historyToMs, range],
   );
   const effectiveDomain = liveFollow && range === "live" ? resetDomain : (viewportDomain ?? resetDomain);
+  const latestByKey = useMemo(
+    () => Object.fromEntries(telemetry.samples.map((sample) => [liveChannelKey(sample), sample])),
+    [telemetry.samples],
+  );
   const groups = useMemo(
     () =>
       buildLiveChartGroups({
@@ -280,9 +377,62 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         xDomain: effectiveDomain,
         hiddenSeriesKeys,
         soloSeriesKey,
+        displayNames: commissionedNames,
+        latestSamples: latestByKey,
+        cadenceObservations: telemetry.cadenceObservations,
+        now: telemetry.clock,
       }),
-    [effectiveDomain, hiddenSeriesKeys, selected, soloSeriesKey, telemetry.historySamples, telemetry.status],
+    [
+      commissionedNames,
+      effectiveDomain,
+      hiddenSeriesKeys,
+      latestByKey,
+      selected,
+      soloSeriesKey,
+      telemetry.cadenceObservations,
+      telemetry.clock,
+      telemetry.historySamples,
+      telemetry.status,
+    ],
   );
+  const alertEvents = useDashboardAlertEvents({
+    enabled: selected.length > 0,
+    rangeKey: `live:${range}:${customFrom}:${customTo}`,
+  });
+  const annotatedGroups = useMemo(
+    () => annotateChartGroups(groups, alertEvents.alerts, telemetry.clock ?? 0),
+    [alertEvents.alerts, groups, telemetry.clock],
+  );
+  const statisticsRows = useMemo(
+    () => buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
+    // historySamples changes whenever raw history or live tail is recorded, so stats stay current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveDomain, groups, selected, telemetry.intervalStatistics, telemetry.historySamples],
+  );
+  const densityCounts = useMemo(() => {
+    const fullRows = buildLiveStatisticsRows(groups, selected, resetDomain, telemetry.intervalStatistics);
+    if (fullRows.length === 0 || fullRows.some((row) => row.statistics === null)) {
+      return { displayed: null, available: null };
+    }
+    const displayed = groups.reduce(
+      (total, group) =>
+        total +
+        group.scene.series
+          .filter((entry) => entry.visible)
+          .reduce(
+            (sum, entry) =>
+              sum + entry.segments.reduce((points, segment) => points + segment.points.length, 0),
+            0,
+          ),
+      0,
+    );
+    return {
+      displayed,
+      available: fullRows.reduce((total, row) => total + (row.statistics?.validCount ?? 0), 0),
+    };
+    // historySamples changes whenever raw history or live tail is recorded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, resetDomain, selected, telemetry.intervalStatistics, telemetry.historySamples]);
   const rangeLabel = CANONICAL_CHART_TIME_RANGES.find((item) => item.id === range)?.label ?? range;
 
   const syncUrl = (
@@ -336,8 +486,8 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   };
 
   const applyCustomRange = () => {
-    const fromMs = fromLocalInput(customFrom);
-    const toMs = fromLocalInput(customTo);
+    const fromMs = fromLocalInput(customFrom, displayTimeZone);
+    const toMs = fromLocalInput(customTo, displayTimeZone);
     if (fromMs === null || toMs === null || fromMs >= toMs) {
       setCustomError("Вкажіть коректний початок і кінець інтервалу.");
       return;
@@ -455,8 +605,8 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               Синхронізована історія
             </h2>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-              До 8 каналів. Несумісні одиниці мають окремі синхронізовані шкали. Zoom/pan — display-only і не
-              змінює acquisition.
+              Оберіть до 8 датчиків для порівняння. Масштабування графіка не впливає на вимірювання. Різні
+              одиниці показуються на окремих шкалах.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -479,7 +629,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           className="mt-4 flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3"
         >
           <span className="mr-1 text-xs font-semibold tracking-wide text-cyan-200 uppercase">
-            Selected context
+            Обрані датчики
           </span>
           {selected.length === 0 ? (
             <span className="text-xs text-slate-400">Жодного каналу не обрано</span>
@@ -489,12 +639,15 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 <span
                   key={liveChannelKey(sample)}
                   className="max-w-full rounded-lg border border-white/[0.08] bg-[#06142a]/70 px-2.5 py-1 text-xs text-slate-300"
+                  title={`Технічний канал: ${sample.channel_id}`}
                 >
-                  {sample.equipment_id} · {sample.channel_id} · {sample.metric} · {sample.unit}
+                  {sample.equipment_id} ·{" "}
+                  {commissionedNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id} ·{" "}
+                  {sample.metric} · {displayUnit(sample.unit)}
                 </span>
               ))}
               {selected.length > 6 ? (
-                <span className="text-xs text-slate-500">+{selected.length - 6} channels</span>
+                <span className="text-xs text-slate-500">+{selected.length - 6} каналів</span>
               ) : null}
             </>
           )}
@@ -554,10 +707,10 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
             )}
             <span>
               {liveFollow && range === "live"
-                ? "Live Follow"
+                ? "Live-стеження"
                 : range !== "live" && viewportDomain === null
-                  ? "Rolling range"
-                  : "Paused view"}
+                  ? "Ковзний період"
+                  : "Призупинений перегляд"}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -584,7 +737,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 }}
                 className="min-h-10 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Return to Live
+                Повернутися до Live
               </button>
             )}
           </div>
@@ -617,12 +770,21 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               onClick={telemetry.retryHistory}
               className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10 focus-visible:ring-2 focus-visible:ring-red-300"
             >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити history
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити завантаження історії
             </button>
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (
           <div className="mt-5 min-w-0 space-y-4">
-            {groups.map((group) => (
+            {density !== undefined && onDensityChange && telemetry.densityResolution ? (
+              <ChartDensityControl
+                mode={density}
+                resolution={telemetry.densityResolution}
+                onChange={onDensityChange}
+                displayedPoints={densityCounts.displayed}
+                availableMeasurements={densityCounts.available}
+              />
+            ) : null}
+            {annotatedGroups.map((group) => (
               <LiveChartPanel
                 key={group.id}
                 group={group}
@@ -652,6 +814,19 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 }}
               />
             ))}
+            <DashboardAlertEvents
+              events={annotatedGroups.flatMap((group) => group.scene.events ?? [])}
+              status={alertEvents.status}
+              message={alertEvents.message}
+              displayTimeZone={displayTimeZone}
+            />
+            <DashboardIntervalStatistics
+              rows={statisticsRows}
+              fromMs={effectiveDomain.fromMs}
+              toMs={effectiveDomain.toMs}
+              isViewport={viewportDomain !== null && !(liveFollow && range === "live")}
+              displayTimeZone={displayTimeZone}
+            />
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
               <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>
@@ -667,15 +842,18 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
       <section
         data-testid="live-filter-panel"
         aria-labelledby="live-filter-panel-title"
-        className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"
+        className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-3 sm:p-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="live-filter-panel-title" className="text-base font-semibold text-white">
               Пошук і фільтри
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Усі умови застосовуються одночасно та зберігаються в URL.
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Знайдіть канал за назвою або ID. Усі умови зберігаються в URL.
+            </p>
+            <p role="status" aria-live="polite" className="mt-1 text-xs text-cyan-200">
+              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} / 8
             </p>
           </div>
           <button
@@ -685,16 +863,16 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               setFilters(next);
               syncUrl(next, telemetry.selectedKeys, range);
             }}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs text-slate-300 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-medium text-slate-200 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
             <FilterX className="h-4 w-4" aria-hidden="true" />
             Очистити
           </button>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
-          <label className="grid gap-1.5 text-xs font-medium text-slate-400 sm:col-span-2 xl:col-span-2">
+        <div className="mt-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1 text-xs font-medium text-slate-300">
             Пошук
-            <span className="relative">
+            <span className="relative mt-1.5 block">
               <Search
                 className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
                 aria-hidden="true"
@@ -703,49 +881,89 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 ref={channelSearchRef}
                 value={filters.search}
                 onChange={(event) => updateFilters({ search: event.target.value })}
-                placeholder="node, equipment, channel, metric, source..."
-                className="h-10 w-full rounded-xl border border-white/10 bg-[#081a32] pr-3 pl-10 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
+                placeholder="Назва датчика, прилад або технічний ID"
+                className="h-10 w-full rounded-xl border border-white/10 bg-[#081a32] pr-3 pl-10 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
               />
             </span>
           </label>
+          <button
+            type="button"
+            aria-expanded={advancedFiltersOpen}
+            aria-controls="live-advanced-filter-fields"
+            onClick={() => setAdvancedFiltersOpen((open) => !open)}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 text-xs font-medium text-slate-200 hover:border-cyan-300/30 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <SlidersHorizontal className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            Додаткові фільтри
+            {activeAdvancedFilterCount > 0 ? (
+              <span className="rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[11px] text-cyan-100">
+                {activeAdvancedFilterCount}
+              </span>
+            ) : null}
+            <ChevronDown
+              className={advancedFiltersOpen ? "h-4 w-4 rotate-180" : "h-4 w-4"}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        <div
+          id="live-advanced-filter-fields"
+          hidden={!advancedFiltersOpen}
+          className={
+            advancedFiltersOpen
+              ? "mt-3 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
+              : "hidden"
+          }
+        >
           <FilterSelect
-            label="Node"
+            label="Вузол"
             value={filters.nodeId}
             values={options.nodeIds}
             onChange={(nodeId) => updateFilters({ nodeId })}
           />
           <FilterSelect
-            label="Equipment"
+            label="Прилад"
             value={filters.equipmentId}
             values={options.equipmentIds}
             onChange={(equipmentId) => updateFilters({ equipmentId })}
           />
           <FilterSelect
-            label="Channel"
+            label="Канал"
             value={filters.channelId}
             values={options.channelIds}
             onChange={(channelId) => updateFilters({ channelId })}
           />
           <FilterSelect
-            label="Metric"
+            label="Показник"
             value={filters.metric}
             values={options.metrics}
             onChange={(metric) => updateFilters({ metric })}
           />
           <FilterSelect
-            label="Quality"
+            label="Якість"
             value={filters.quality}
             values={QUALITY_VALUES}
             onChange={(quality) => updateFilters({ quality: quality as "all" | TelemetryQuality })}
           />
           <FilterSelect
-            label="Alarm"
+            label="Тривога"
             value={filters.alarm}
             values={["active", "none", "low", "high"]}
             onChange={(alarm) => updateFilters({ alarm: alarm as LiveAlarmFilter })}
           />
         </div>
       </section>
+
+      <LiveChannelPicker
+        samples={filtered}
+        selectedKeys={telemetry.selectedKeys}
+        names={commissionedNames}
+        onChange={(keys) => {
+          setSelectionMessage(null);
+          telemetry.setSelectedKeys(keys);
+          syncUrl(filters, keys, range);
+        }}
+      />
 
       <section
         data-testid="live-inventory-panel"
@@ -831,8 +1049,10 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               <tbody role="rowgroup" className="block divide-y divide-white/[0.055] lg:table-row-group">
                 {filtered.map((sample) => {
                   const key = liveChannelKey(sample);
+                  const friendlyName = commissionedNames[sample.node_id + "/" + sample.channel_id];
                   const selectedNow = telemetry.selectedKeys.includes(key);
-                  const state = liveTelemetryState(sample);
+                  const freshness = liveFreshnessFor(sample, key, telemetry.cadenceObservations);
+                  const state = liveTelemetryState(sample, undefined, freshness.staleAfterMs);
                   return (
                     <tr
                       role="row"
@@ -854,7 +1074,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                               if (!result.changed) {
                                 setSelectionMessage(
                                   result.reason === "limit"
-                                    ? "Можна порівнювати не більше 8 каналів."
+                                    ? `Можна порівнювати не більше ${LIVE_SELECTION_LIMIT} каналів.`
                                     : "Канал більше недоступний.",
                                 );
                                 return;
@@ -874,7 +1094,12 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                         {sample.equipment_id}
                       </td>
                       <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
-                        {sample.channel_id}
+                        {friendlyName ?? sample.channel_id}
+                        {friendlyName ? (
+                          <span className="mt-1 block font-mono text-[10px] text-slate-500">
+                            {sample.channel_id}
+                          </span>
+                        ) : null}
                       </td>
                       <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
                         {sample.metric}
@@ -884,15 +1109,24 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                         className="col-start-2 row-start-1 min-w-0 font-medium text-white lg:px-3 lg:py-3"
                       >
                         <span className="mb-1 block text-xs [overflow-wrap:anywhere] text-slate-300 lg:hidden">
-                          {sample.equipment_id} · {sample.channel_id} · {sample.metric}
+                          {sample.equipment_id} · {friendlyName ?? sample.channel_id} · {sample.metric}
                         </span>
                         <span className="[overflow-wrap:anywhere]">{formatValue(sample)}</span>
+                        {analogInputMode(sample) ? (
+                          <span className="mt-1 block text-xs text-slate-400">
+                            Останній режим: {analogInputMode(sample)}
+                          </span>
+                        ) : null}
                       </td>
                       <td role="cell" className="col-start-2 row-start-2 min-w-0 lg:px-3 lg:py-3">
                         <span
+                          data-testid="live-channel-state"
+                          data-freshness-basis={freshness.basis}
+                          title={formatFreshnessBasis(freshness)}
                           className={`inline-flex rounded-lg border px-2 py-1 text-xs ${stateClasses(state)}`}
                         >
                           {stateCopy(state)}
+                          <span className="sr-only"> · {formatFreshnessBasis(freshness)}</span>
                         </span>
                       </td>
                       <td role="cell" className="col-start-2 row-start-3 min-w-0 lg:px-3 lg:py-3">

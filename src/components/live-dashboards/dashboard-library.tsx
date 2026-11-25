@@ -64,19 +64,12 @@ export function DashboardLibrary({
     <section className="space-y-5" aria-labelledby="live-dashboard-library-title">
       <div className="flex flex-col gap-4 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5 shadow-2xl shadow-black/20 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-            Operator workspace
-          </p>
           <h1
             id="live-dashboard-library-title"
             className="mt-1 text-2xl font-semibold text-white sm:text-3xl"
           >
-            Live Dashboards
+            Збережені панелі
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Збережені робочі екрани відкривають тільки вибрані канали. Налаштування відображення не змінюють
-            фізичне опитування обладнання.
-          </p>
           <p className="mt-2 text-sm text-slate-400">
             {`До ${LIVE_DASHBOARD_MAX_ITEMS} точок вимірювання на одній панелі для повторного моніторингу.`}
           </p>
@@ -95,7 +88,7 @@ export function DashboardLibrary({
 
       <div className="grid gap-3 rounded-2xl border border-white/[0.08] bg-[#081a32]/85 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <label className="grid gap-1.5 text-xs font-medium text-slate-400">
-          Пошук Dashboard
+          Пошук панелі
           <span className="relative block">
             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input

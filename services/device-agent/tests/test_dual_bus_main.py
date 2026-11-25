@@ -23,6 +23,9 @@ from commissioning_preflight import PROFILES, PreflightBus, PreflightExecutionEr
 from dual_bus_main import DualBusAdaptiveRegistryDeviceAgent
 from main import Settings, TelemetryRecord
 from rs485_buses import BUS_CONFIG_ENV
+from commissioning_buses import CommissionedBus, CommissionedBusStore
+from commissioning_connections import commissioning_bus_id
+from modbus_rtu import ModbusTimeoutError
 
 
 def settings(database_path: Path) -> Settings:
@@ -139,9 +142,241 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temporary.cleanup()
 
+    def test_only_activated_commissioning_bus_is_recovered_at_startup(self) -> None:
+        def descriptor(name: str) -> CommissionedBus:
+            path = "/dev/serial/by-id/" + name
+            return CommissionedBus(commissioning_bus_id(path), path, 9600, "N", 1, 0.3, 1)
+
+        active, pending = descriptor("usb-active"), descriptor("usb-pending")
+        store = CommissionedBusStore(self.database_path)
+        store.prepare(active, activation_id="act-a", protected_paths=set())
+        store.activate(active, activation_id="act-a")
+        store.prepare(pending, activation_id="act-b", protected_paths=set())
+        store.close()
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertIn(active.bus_id, restarted.rs485_topology.commissioned_bus_ids)
+        self.assertNotIn(pending.bus_id, restarted.rs485_topology.commissioned_bus_ids)
+        self.assertIn(active.bus_id, restarted._bus_clients)
+        self.assertNotIn(pending.bus_id, restarted._bus_clients)
+        self.assertEqual(restarted.rs485_topology.binding(active.bus_id).serial_device, "/host" + active.stable_path)
+
+    def test_commissioning_bus_enrollment_is_empty_audited_and_restartable(self) -> None:
+        path = "/dev/serial/by-id/usb-new"
+        bus_id = commissioning_bus_id(path)
+        request = CommissioningActivationRequest(
+            "act-new", "activate", "edge-01", bus_id, path, 7,
+            "dixell-xjp60d", "dixell-xjp60d-fc03-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ):
+            self.agent._enroll_commissioning_bus(request, PROFILES[request.profile_id])
+            self.agent._enroll_commissioning_bus(request, PROFILES[request.profile_id])
+        topology = self.agent.rs485_topology
+        self.assertIn(bus_id, topology.commissioned_bus_ids)
+        self.assertEqual(self.agent._commissioned_bus_store.active_buses()[0].bus_id, bus_id)
+        self.assertIs(self.agent._bus_operation_locks[bus_id], self.agent.scheduler._bus_locks[bus_id])
+        self.assertTrue(any(b.bus_id == bus_id for b in self.agent._registry.document.buses))
+        self.assertFalse(any(d.bus_id == bus_id for d in self.agent._registry.document.devices))
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertIn(bus_id, restarted.rs485_topology.commissioned_bus_ids)
+        self.assertFalse(any(d.bus_id == bus_id for d in restarted._registry.document.devices))
+
+    def test_failed_bus_commit_does_not_create_polling_transport(self) -> None:
+        path = "/dev/serial/by-id/usb-new"
+        bus_id = commissioning_bus_id(path)
+        request = CommissioningActivationRequest(
+            "act-fail", "activate", "edge-01", bus_id, path, 7,
+            "dixell-xjp60d", "dixell-xjp60d-fc03-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ), patch.object(self.agent._commissioned_bus_store, "activate", side_effect=RuntimeError("simulated crash")):
+            with self.assertRaises(RuntimeError):
+                self.agent._enroll_commissioning_bus(request, PROFILES[request.profile_id])
+        self.assertEqual(self.agent._commissioned_bus_store.active_buses(), ())
+        self.assertNotIn(bus_id, self.agent._bus_clients)
+        self.assertNotIn(bus_id, self.agent.rs485_topology.commissioned_bus_ids)
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertNotIn(bus_id, restarted._bus_clients)
+
+    def test_dynamic_bus_device_activation_and_restart_preserve_identity(self) -> None:
+        path = "/dev/serial/by-id/usb-new"
+        bus_id = commissioning_bus_id(path)
+        request = CommissioningActivationRequest(
+            "act-full", "activate", "edge-01", bus_id, path, 7,
+            "dixell-xjp60d", "dixell-xjp60d-fc03-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ), patch.object(self.agent, "preflight_bus", return_value=PreflightBus(bus_id, "/host" + path, True)):
+            result = self.agent.commissioning_activation(request)
+            self.assertEqual(result["state"], "active")
+            self.assertEqual(self.agent.commissioning_activation(request), result)
+        self.assertTrue(any(d.bus_id == bus_id and d.unit_id == 7 and d.lifecycle == "active" for d in self.agent._registry.document.devices))
+        self.assertTrue(any(job.target.bus_id == bus_id for job in self.agent.scheduler._jobs.values()))
+        target = next(job.target for job in self.agent.scheduler._jobs.values() if job.target.bus_id == bus_id)
+        client = self.agent._bus_clients[bus_id]
+        with patch.object(self.agent, "_assert_unique_physical_bus"), patch.object(
+            client, "read_holding_register", side_effect=lambda _unit, address: 215 if address % 2 == 0 else 0
+        ):
+            sample = self.agent._read_scheduled_target(target)
+        self.assertEqual(sample.record.quality, "valid")
+        self.assertEqual(sample.record.value, 21.5)
+        with patch.object(self.agent, "_assert_unique_physical_bus", side_effect=FileNotFoundError("disconnected")):
+            disconnected = self.agent._read_scheduled_target(target)
+        self.assertEqual(disconnected.record.quality, "communication_error")
+        self.assertIsNone(disconnected.record.value)
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertTrue(any(d.bus_id == bus_id and d.unit_id == 7 and d.lifecycle == "active" for d in restarted._registry.document.devices))
+        self.assertTrue(any(job.target.bus_id == bus_id for job in restarted.scheduler._jobs.values()))
+
+    def test_sdm120_activation_keeps_old_same_address_provenance_separate(self) -> None:
+        path = "/dev/serial/by-id/usb-meter"
+        bus_id = commissioning_bus_id(path)
+        old = self.agent._registry_store.enroll_sdm120(
+            self.agent._registry, expected_revision=self.agent._registry.revision, unit_ids=(1,),
+            actor="test", reason="existing historical identity", bus_for_unit=lambda _: "rs485-kk1",
+        )
+        self.agent._registry = old
+        request = CommissioningActivationRequest(
+            "act-meter", "activate", "edge-01", bus_id, path, 1,
+            "eastron-sdm120m", "eastron-sdm120m-fc04-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ), patch.object(self.agent, "preflight_bus", return_value=PreflightBus(bus_id, "/host" + path, True)):
+            result = self.agent.commissioning_activation(request)
+        self.assertEqual(result["state"], "active")
+        self.assertEqual(result["polling_mode"], "read_only_fc04")
+        self.assertEqual(result["telemetry_equipment_id"], f"SDM120M:{bus_id}:1")
+        ids = {d.device_id for d in self.agent._registry.document.devices if d.device_family == "sdm120"}
+        self.assertEqual(ids, {"sdm120-1", f"sdm120-{bus_id}-1"})
+        target = next(j.target for j in self.agent.scheduler._jobs.values() if j.target.bus_id == bus_id)
+        self.assertEqual(self.agent._equipment_for(target), f"SDM120M:{bus_id}:1")
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertTrue(any(d.bus_id == bus_id and d.lifecycle == "active" for d in restarted._registry.document.devices))
+
+    def test_waveshare_activation_reserves_separate_identity_and_eight_channels(self) -> None:
+        path = "/dev/serial/by-id/usb-waveshare"
+        bus_id = commissioning_bus_id(path)
+        previous = self.agent._registry_store.enroll_waveshare_8ai(
+            self.agent._registry, expected_revision=self.agent._registry.revision, unit_ids=(1,),
+            actor="test", reason="existing historical identity", bus_for_unit=lambda _: "rs485-kk1",
+        )
+        self.agent._registry = previous
+        request = CommissioningActivationRequest(
+            "act-analog", "activate", "edge-01", bus_id, path, 1,
+            "waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        )
+        adapter = Mock(stable_path=path, runtime_path="/host" + path)
+        with patch("dual_bus_main.execute_preflight", return_value={"result": "passed"}), patch(
+            "dual_bus_main.resolve_commissioning_adapter", return_value=adapter
+        ), patch.object(self.agent, "preflight_bus", return_value=PreflightBus(bus_id, "/host" + path, True)):
+            result = self.agent.commissioning_activation(request)
+        self.assertEqual(result["state"], "active")
+        self.assertEqual(result["polling_mode"], "read_only_fc03_fc04")
+        self.assertEqual(result["telemetry_equipment_id"], f"WAVESHARE-8AI:{bus_id}:1")
+        self.assertEqual(len(result["target_ids"]), 8)
+        ids = {d.device_id for d in self.agent._registry.document.devices if d.device_family == "waveshare_8ai"}
+        self.assertEqual(ids, {"waveshare-8ai-1", f"waveshare-8ai-{bus_id}-1"})
+        target = next(j.target for j in self.agent.scheduler._jobs.values() if j.target.bus_id == bus_id)
+        self.assertEqual(self.agent._equipment_for(target), f"WAVESHARE-8AI:{bus_id}:1")
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        self.addCleanup(restarted._commissioned_bus_store.close)
+        self.assertTrue(any(d.bus_id == bus_id and d.lifecycle == "active" for d in restarted._registry.document.devices))
+
+    def test_waveshare_preflight_reads_mode_and_input_without_write(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock(explicit=True, commissioned_bus_ids=frozenset())
+        topology.binding.return_value = Mock(baudrate=9600, parity="N", stopbits=1)
+        agent.rs485_topology = topology
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        client.read_holding_registers.return_value = (3,)
+        client.read_input_registers.return_value = (12000,)
+        lock = Mock()
+        lock.acquire.return_value = True
+        agent._bus_clients = {"rs485-main": client}
+        agent._bus_operation_locks = {"rs485-main": lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+        observations = agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual([(x.key, x.semantic) for x in observations], [("channel-01", "4-20mA")])
+        client.read_holding_registers.assert_called_once_with(1, 0x1000, 1)
+        client.read_input_registers.assert_called_once_with(1, 0, 1)
+        client.write_single_register.assert_not_called()
+        # A real SDM120 meter replied to both generic functions on the wrong
+        # adapter. Its IEEE-754 voltage high word is not a valid 0-10 V input.
+        client.read_holding_registers.return_value = (0,)
+        client.read_input_registers.return_value = (17253,)
+        with self.assertRaises(PreflightExecutionError) as wrong_model:
+            agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(wrong_model.exception.code, "profile_mismatch")
+        client.read_holding_registers.return_value = (3,)
+        client.read_input_registers.return_value = (0,)
+        observations = agent.preflight_read_profile(PROFILES["waveshare-8ai-b-v3"], bus_id="rs485-main", unit_id=1, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(observations[0].quality, "unknown")
+
+    def test_present_alias_of_two_buses_is_rejected(self) -> None:
+        root = Path(self.temporary.name)
+        device = root / "physical"
+        device.touch()
+        first, second = root / "first", root / "second"
+        first.symlink_to(device)
+        second.symlink_to(device)
+        topology = Mock(commissioned_bus_ids=frozenset({"new"}))
+        topology.binding.return_value = Mock(serial_device=str(first))
+        topology.bindings = [Mock(bus_id="new", serial_device=str(first)), Mock(bus_id="old", serial_device=str(second))]
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        agent.rs485_topology = topology
+        with self.assertRaises(OSError):
+            agent._assert_unique_physical_bus("new")
+    def test_sdm120_preflight_uses_only_fc04_and_preserves_timeout(self) -> None:
+        from struct import pack, unpack
+
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock(explicit=True, commissioned_bus_ids=frozenset())
+        topology.binding.return_value = Mock(baudrate=9600, parity="N", stopbits=1)
+        agent.rs485_topology = topology
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        client.read_input_registers.side_effect = lambda unit, address, count: unpack(">HH", pack(">f", 230.0 if address == 0 else 50.0))
+        lock = Mock()
+        lock.acquire.return_value = True
+        agent._bus_clients = {"rs485-main": client}
+        agent._bus_operation_locks = {"rs485-main": lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+        profile = PROFILES["eastron-sdm120m"]
+        observations = agent.preflight_read_profile(profile, bus_id="rs485-main", unit_id=3, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual([o.key for o in observations], ["voltage", "frequency"])
+        self.assertEqual([x.args for x in client.read_input_registers.call_args_list], [(3, 0, 2), (3, 0x46, 2)])
+        client.read_holding_register.assert_not_called()
+        client.write_single_register.assert_not_called()
+        client.read_input_registers.side_effect = ModbusTimeoutError("no response")
+        with self.assertRaises(PreflightExecutionError) as failure:
+            agent.preflight_read_profile(profile, bus_id="rs485-main", unit_id=3, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(failure.exception.code, "timeout")
+        topology.binding.return_value.parity = "E"
+        with self.assertRaises(PreflightExecutionError) as mismatch:
+            agent.preflight_read_profile(profile, bus_id="rs485-main", unit_id=3, deadline_monotonic=time.monotonic() + 1)
+        self.assertEqual(mismatch.exception.code, "serial_profile_mismatch")
+
     def test_commissioning_preflight_bus_lock_wait_is_bounded(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        topology = Mock()
+        topology = Mock(commissioned_bus_ids=frozenset())
         topology.explicit = True
         agent.rs485_topology = topology
         client = Mock()
@@ -167,7 +402,7 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
 
     def test_akcc25_preflight_uses_fixed_documented_fc03_integer_subset(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        topology = Mock()
+        topology = Mock(commissioned_bus_ids=frozenset())
         topology.explicit = True
         agent.rs485_topology = topology
         client = Mock()
@@ -206,7 +441,7 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
 
     def test_unowned_akcc25_preflight_uses_temporary_exclusive_8e1_transport(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        topology = Mock()
+        topology = Mock(commissioned_bus_ids=frozenset())
         topology.explicit = True
         topology.binding.side_effect = ValueError("not configured")
         agent.rs485_topology = topology
@@ -698,7 +933,7 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
 
     def test_preflight_owner_uses_requested_bus_for_duplicate_unit_ids(self) -> None:
         agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
-        topology = Mock()
+        topology = Mock(commissioned_bus_ids=frozenset())
         topology.buses_for_unit.return_value = ("rs485-kk1", "rs485-sdm120")
         agent.rs485_topology = topology
         agent._registry_snapshot = Mock(  # type: ignore[method-assign]
@@ -706,6 +941,10 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
         )
 
         self.assertEqual(agent.preflight_unit_owner(1, "rs485-kk1"), "rs485-kk1")
+        topology.buses_for_unit.return_value = ("rs485-embraco",)
+        self.assertIsNone(agent.preflight_unit_owner(2, "rs485-kk1"))
+        topology.buses_for_unit.return_value = ("rs485-embraco", "rs485-sdm120")
+        self.assertIsNone(agent.preflight_unit_owner(2, "rs485-kk1"))
 
     def test_commissioning_inventory_allows_same_unit_on_other_bus_family(self) -> None:
         request = CommissioningActivationRequest(

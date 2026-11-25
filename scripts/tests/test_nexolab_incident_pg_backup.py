@@ -33,7 +33,7 @@ def test_source_syntax_and_guardrails() -> None:
         assert unsafe not in code
 
 
-def _fixture(tmp_path: Path, *, mode: str, avail: int = 30 * 1024**3, identity: str = "nexolab-central/postgres"):
+def _fixture(tmp_path: Path, *, mode: str, avail: int = 30 * 1024**3, identity: str = "nexolab-central/postgres", same_filesystem: bool = True):
     """Replace only host/privilege probes in an *isolated copy*, never the product script."""
     backup = tmp_path / "backups"
     backup.mkdir(mode=0o700)
@@ -60,6 +60,14 @@ def _fixture(tmp_path: Path, *, mode: str, avail: int = 30 * 1024**3, identity: 
         "else printf 'fixture filesystem\\n'; fi\n"
     )
     df.chmod(0o755)
+    stat = bin_dir / "stat"
+    stat.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = -c ] && [ "$2" = %d ]; then\n'
+        '  if [ "$4" = / ]; then printf "1\\n"; else printf "%s\\n" "$MOCK_BACKUP_DEVICE"; fi\n'
+        'else exec /usr/bin/stat "$@"; fi\n'
+    )
+    stat.chmod(0o755)
     script = SOURCE.read_text()
     script = script.replace("(( EUID == 0 )) || fail \"root required\"", ": # injected isolated privilege fixture")
     script = script.replace(
@@ -70,7 +78,7 @@ def _fixture(tmp_path: Path, *, mode: str, avail: int = 30 * 1024**3, identity: 
     script = script.replace("export PATH=/usr/sbin:/usr/bin:/sbin:/bin", f"export PATH={bin_dir}:/usr/sbin:/usr/bin:/sbin:/bin")
     test_script = tmp_path / "isolated-script.sh"
     test_script.write_text(script)
-    env = {**os.environ, "MOCK_AVAIL": str(avail), "MOCK_IDENTITY": identity}
+    env = {**os.environ, "MOCK_AVAIL": str(avail), "MOCK_IDENTITY": identity, "MOCK_BACKUP_DEVICE": "1" if same_filesystem else "2"}
     result = subprocess.run(
         ["bash", str(test_script), *(["--check"] if mode == "check" else [])],
         env=env, capture_output=True, text=True, timeout=15,
@@ -100,6 +108,13 @@ def test_insufficient_capacity_fails_before_archive(tmp_path: Path) -> None:
     result, backup = _fixture(tmp_path, mode="create", avail=23 * 1024**3)
     assert result.returncode == 78
     assert "reserve" in result.stderr
+    assert list(backup.iterdir()) == []
+
+
+def test_different_filesystem_fails_before_archive(tmp_path: Path) -> None:
+    result, backup = _fixture(tmp_path, mode="create", same_filesystem=False)
+    assert result.returncode == 78
+    assert "different filesystem" in result.stderr
     assert list(backup.iterdir()) == []
 
 

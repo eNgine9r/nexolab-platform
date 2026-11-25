@@ -184,6 +184,8 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/nexolab-offline-backup-preflight.py",
+    "scripts/tests/test_nexolab_offline_backup_preflight.py",
     "scripts/prepare-version-update-lock.py",
     "scripts/tests/test_prepare_version_update_lock.py",
     "scripts/deploy-complete-partial-frontends.py",
@@ -212,6 +214,8 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/verify-host-container-runtime-package-policy.py",
     "scripts/tests/test_host_container_runtime_package_policy.py",
     "scripts/nexolab-dr-readonly-health.py",
+    "scripts/serve-prometheus-textfile.py",
+    "scripts/tests/test_lan_monitor_offline_payload.py",
     "tests/test_ci_dr_readonly_health.py",
     "tests/test_ci_site_dr_capture_handoff.py",
     "tests/test_ci_site_dr_fixture_harness.py",
@@ -285,6 +289,8 @@ DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
 }
 
 DISASTER_RECOVERY_TOOLING_PATHS = {
+    "scripts/nexolab-offline-backup-preflight.py",
+    "scripts/tests/test_nexolab_offline_backup_preflight.py",
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
     "scripts/validate-site-dr-inventory-v2.py",
@@ -297,6 +303,32 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_ci_site_dr_fixture_harness.py",
     "tests/test_ci_site_dr_preflight.py",
     "tests/test_ci_site_dr_inventory_v2.py",
+    # #1630 scheduled encrypted backup: source-only tooling, synthetic tests,
+    # executed by the Disaster Recovery Acceptance workflow. No site mutation.
+    "scripts/nexolab-dr-stream.py",
+    "scripts/nexolab-dr-scheduled-backup.py",
+    "tests/test_nexolab_dr_stream.py",
+    "tests/test_nexolab_dr_scheduled_backup.py",
+    "tests/test_nexolab_dr_backup_review_fixes.py",
+    # #1631 verified off-device copy with custody receipt: source-only tooling,
+    # synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
+    "scripts/nexolab-dr-offdevice-copy.py",
+    "tests/test_ci_dr_offdevice_copy.py",
+    # #1632 isolated restore + verification receipt: source-only tooling (never run against
+    # production); synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
+    # The rehearsal driver is an opt-in, Docker-only local script with synthetic data.
+    "scripts/nexolab-dr-isolated-restore.py",
+    "scripts/nexolab-dr-isolated-restore-rehearsal.py",
+    "tests/test_ci_dr_isolated_restore.py",
+    # #1632 health integration: the read-only health gate consumes a verified restore receipt.
+    "tests/test_ci_dr_health_restore_receipt.py",
+    # #1630 object-metadata fix: user.* xattrs (VersityGW ETag/Content-Type) through backup and
+    # restore; synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
+    "tests/test_ci_dr_object_metadata_xattrs.py",
+    # Volume tar contract shared by leaf A (directory snapshots) and the isolated restore extract;
+    # executed by the Disaster Recovery Acceptance workflow (pytest tests/test_nexolab_volume_archive.py).
+    "scripts/nexolab-volume-archive.py",
+    "tests/test_nexolab_volume_archive.py",
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
@@ -322,9 +354,11 @@ RS485_ACQUISITION_PATTERNS = (
 )
 
 ISOLATED_ACCEPTANCE_TOOL_PATHS = {
-    # Dedicated synthetic-only Pi acceptance harness, never a deployment or
-    # production runtime entrypoint. Keep every other new script fail-closed.
+    # Explicit standalone read-only verification tools: no product runtime, API,
+    # hardware or packaging changes. All other unregistered scripts fail closed.
     "scripts/energy-history-export-benchmark.py",
+    "scripts/check-frontend-entrypoint-parity.py",
+    "scripts/tests/test_frontend_entrypoint_parity.py",
 }
 
 CI_GOVERNANCE_PATHS = {
@@ -333,11 +367,13 @@ CI_GOVERNANCE_PATHS = {
     "docs/AI_DEVELOPMENT_OPERATING_STANDARD.md",
     "scripts/classify-ci-impact.py",
     "scripts/validate-project-state.py",
+    "scripts/project-state.py",
     "scripts/verify-pr-workflow-matrix.py",
     "scripts/prepare-clean-verification-worktree.sh",
     "scripts/verify-local-candidate.py",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
+    "tests/test_ci_project_state_v2.py",
     "tests/test_ci_workflow_matrix.py",
 }
 
@@ -597,6 +633,19 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
         if path in OBJECT_STORAGE_RUNTIME_PATHS:
             classes.add("deployment_runtime")
             matched = True
+
+        if path == "scripts/tests/test_lan_monitor_offline_payload.py":
+            # Exact opt-in sealed offline bundle asset contract test.
+            # Keep all other unclassified scripts fail-closed.
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path == "scripts/serve-prometheus-textfile.py":
+            # Exact pre-existing local metrics exporter: offline runtime,
+            # not a generic exception for new scripts.
+            classes.add("deployment_runtime")
+            matched = True
+
 
         if (
             path.startswith("infrastructure/")

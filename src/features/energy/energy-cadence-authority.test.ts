@@ -66,6 +66,45 @@ const basePayload = {
 };
 
 describe("energy cadence authority", () => {
+  it("uses bus-scoped cadence for equal Unit IDs and refuses ambiguous numeric lookup", () => {
+    const authority = buildEnergyCadenceAuthority({
+      schema_version: 2,
+      revision: 1,
+      updated_at: "2026-09-22T10:00:00.000Z",
+      devices: [
+        {
+          device_id: "sdm120-commissioning-0123456789abcdef-1",
+          bus_id: "commissioning-0123456789abcdef",
+          device_family: "sdm120",
+          unit_id: 1,
+        },
+        {
+          device_id: "sdm120-commissioning-fedcba9876543210-1",
+          bus_id: "commissioning-fedcba9876543210",
+          device_family: "sdm120",
+          unit_id: 1,
+        },
+      ],
+      cadence: {
+        family_defaults: [
+          { bus_id: "commissioning-0123456789abcdef", device_family: "sdm120", interval_seconds: 10 },
+          { bus_id: "commissioning-fedcba9876543210", device_family: "sdm120", interval_seconds: 60 },
+        ],
+        device_overrides: [],
+      },
+      recent_audit: [],
+    });
+    const at = Date.parse("2026-09-22T10:00:10.000Z");
+    expect(authority).not.toBeNull();
+    expect(authority!.intervalMsAt(1, at)).toBeNull();
+    expect(authority!.maximumSourceGapMs(1, at, at + 60_000)).toBeNull();
+    expect(authority!.intervalMsFor("commissioning-0123456789abcdef", 1, at)).toBe(10_000);
+    expect(authority!.intervalMsFor("commissioning-fedcba9876543210", 1, at)).toBe(60_000);
+    expect(authority!.maximumSourceGapFor("commissioning-fedcba9876543210", 1, at, at + 90_000)).toBe(
+      180_000,
+    );
+    expect(authority!.intervalMsFor("unknown", 1, at)).toBeNull();
+  });
   it("reconstructs persisted cadence regimes from current policy and reverse audit", () => {
     const authority = buildEnergyCadenceAuthority(basePayload);
 

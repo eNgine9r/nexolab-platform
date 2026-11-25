@@ -5,7 +5,9 @@ import {
   buildSavedDashboardChartGroups,
   savedDashboardChartIdentity,
   savedDashboardResetDomain,
+  savedDashboardSeriesFreshness,
 } from "@/features/live-dashboards/chart";
+import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type { LiveDashboardItem, LiveDashboardSeries } from "@/features/live-dashboards/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -83,6 +85,9 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual(["T-1", "T-2"]);
     expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual(["#654321", "#123456"]);
+    const instrument = groups[0].instruments.get(chartSeriesKey(groups[0].scene.series[0].identity));
+    expect(instrument).toMatchObject({ label: "equipment-1", node: "edge-1" });
+    expect(groups[0].instruments.get(chartSeriesKey(groups[0].scene.series[1].identity))).toEqual(instrument);
     expect(groups[0].scene.series[0].areaFillOpacity).toBeUndefined();
     expect(groups[0].scene.series[1].areaFillOpacity).toBeGreaterThan(0);
   });
@@ -232,5 +237,139 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
       "valid-b",
       "valid-c",
     ]);
+  });
+});
+
+describe("saved operator Embraco temperature with compressor RPM", () => {
+  const observed = (name: string, metric: string, position: number, unit: string): LiveDashboardItem => ({
+    id: name,
+    position,
+    channel_ref_id: null,
+    node_id: "edge-01",
+    equipment_id: "EMBRACO-2",
+    channel_id: name,
+    metric,
+    native_unit: unit,
+    display_unit: unit,
+    visualization: "line",
+    color: null,
+  });
+  const historySample = (
+    sourceItem: LiveDashboardItem,
+    raw: number,
+    value: number | null,
+    quality: TelemetrySample["quality"],
+  ): TelemetrySample => ({
+    event_id: sourceItem.channel_id + "-event",
+    node_id: "edge-01",
+    equipment_id: "EMBRACO-2",
+    channel_id: sourceItem.channel_id,
+    metric: sourceItem.metric,
+    captured_at: new Date(START + 10_000).toISOString(),
+    raw_value: raw,
+    raw_status: null,
+    value,
+    unit: sourceItem.native_unit,
+    quality,
+    source: "embraco-sync",
+    alarm: null,
+  });
+
+  it("renders exactly two meaningful operator-Celsius traces and compressor RPM on two independent axes", () => {
+    const cabinet = observed("2-cabinet-temperature", "temperature.cabinet", 1, "degC");
+    const defrost = observed("2-evaporator-temperature", "temperature.evaporator", 2, "degC");
+    const rpm = observed("2-compressor-speed", "compressor.speed", 3, "rpm");
+    const a = historySample(cabinet, 65507, null, "unknown");
+    const b = historySample(defrost, 65468, null, "unknown");
+    const c = historySample(rpm, 2198, 2198, "valid");
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "specific-saved-dashboard",
+      series: [series(rpm, [c]), series(defrost, [b]), series(cabinet, [a])],
+      status: "stale",
+      xDomain: { fromMs: START, toMs: START + 30_000 },
+    });
+    expect(groups).toHaveLength(1);
+    expect(groups[0].scene.series.map((s) => s.name)).toEqual([
+      "Температура в об’ємі",
+      "Датчик відтайки",
+      "Обороти компресора",
+    ]);
+    expect(groups[0].nativeUnits).toEqual(["°C", "rpm"]);
+    expect(groups[0].scene.series.map((s) => s.segments.flatMap((x) => x.points)[0]?.value)).toEqual([
+      -0.29, -0.68, 2198,
+    ]);
+    expect(groups[0].scene.series.every((s) => s.freshness === "stale")).toBe(true);
+    expect(a.value).toBeNull();
+    expect(a.quality).toBe("unknown");
+    expect(a.raw_value).toBe(65507);
+  });
+});
+
+function dashboardIdentityFor(entry: LiveDashboardItem): string {
+  return dashboardItemIdentity(entry);
+}
+
+describe("Saved Live Dashboard per-series freshness (#1643)", () => {
+  const NOW = START + 3_600_000;
+  const domain = { fromMs: START, toMs: NOW };
+  const fresh = item("fresh", 1, "T-1", "degC", "line", "#111111");
+  const silent = item("silent", 2, "T-2", "degC", "line", "#222222");
+  const broken = item("broken", 3, "T-3", "degC", "line", "#333333");
+  const empty = item("empty", 4, "T-4", "degC", "line", "#444444");
+
+  function freshnessByChannel(
+    status: "live" | "stale" | "offline" | "reconnecting",
+    now = NOW,
+    cadence: Record<string, number[]> | undefined = undefined,
+  ) {
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "d",
+      series: [
+        series(fresh, [sample("f1", "T-1", "degC", 3_590_000, 4)]),
+        series(silent, [sample("s1", "T-2", "degC", 1_000_000, 4)]),
+        series(broken, [sample("b1", "T-3", "degC", 3_595_000, null, "communication_error")]),
+        series(empty, []),
+      ],
+      status,
+      xDomain: domain,
+      now,
+      cadenceObservations: cadence,
+    });
+    return Object.fromEntries(
+      groups.flatMap((group) =>
+        group.scene.series.map((entry) => [entry.identity.channelId, entry.freshness]),
+      ),
+    );
+  }
+
+  it("marks only the channel with a recent valid sample as live", () => {
+    expect(freshnessByChannel("live")).toEqual({
+      "T-1": "live",
+      "T-2": "stale",
+      "T-3": "invalid",
+      "T-4": "stale",
+    });
+  });
+
+  it("lets page connectivity override per-series freshness", () => {
+    for (const status of ["offline", "reconnecting"] as const) {
+      const states = new Set(Object.values(freshnessByChannel(status)));
+      expect(states).not.toContain("live");
+      expect(states.size).toBe(1);
+    }
+  });
+
+  it("goes stale on a clock tick without any new sample", () => {
+    expect(freshnessByChannel("live", NOW)["T-1"]).toBe("live");
+    expect(freshnessByChannel("live", NOW + 60_000)["T-1"]).toBe("stale");
+  });
+
+  it("applies the observed cadence so a 60 s channel is live at 50 s and stale after 105 s", () => {
+    const source = series(fresh, [sample("f1", "T-1", "degC", 0, 4)]);
+    const cadence = { [dashboardIdentityFor(fresh)]: [START - 120_000, START - 60_000, START] };
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 50_000)).toBe("live");
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 104_000)).toBe("live");
+    expect(savedDashboardSeriesFreshness("live", source, cadence, START + 106_000)).toBe("stale");
+    expect(savedDashboardSeriesFreshness("live", source, undefined, START + 50_000)).toBe("stale");
   });
 });

@@ -301,4 +301,95 @@ describe("ChartShell accessibility contract", () => {
     expect(screen.getByTestId("chart-inspector")).toHaveTextContent("Точні значення");
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Період 1г");
   });
+
+  it("labels a fixed custom period as such instead of claiming it is live (#1683)", () => {
+    const scene = createBenchmarkScene(1);
+    render(
+      <ChartShell
+        title="Історія температур"
+        context="Температура · Огляд"
+        selectedRange="Власний період"
+        series={scene.series.map((series) => ({ ...series, freshness: "historical" as const }))}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+
+    expect(screen.getByLabelText("Легенда графіка")).toHaveTextContent("Фіксований період");
+    expect(screen.getByLabelText("Легенда графіка")).not.toHaveTextContent("Актуально");
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Стан Фіксований період");
+  });
+});
+
+describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)", () => {
+  it("explains a visible series without valid points instead of drawing silent empty axes", () => {
+    const scene = createBenchmarkScene(1);
+    const series = [
+      {
+        ...scene.series[0],
+        name: "K106 · 106-01",
+        identity: { ...scene.series[0].identity, nativeUnit: "degC" },
+        segments: [],
+        freshness: "invalid" as const,
+        latest: { timestampMs: Date.parse("2026-11-21T20:00:00Z"), value: null, quality: "unknown" as const },
+      },
+    ];
+    render(
+      <ChartShell
+        locale="uk"
+        title="Live дані · K106"
+        context="°C"
+        selectedRange="24 h"
+        series={series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+    const notice = screen.getByTestId("chart-no-valid-points");
+    expect(notice).toHaveTextContent("Немає валідних точок");
+    expect(notice).toHaveTextContent("K106 · 106-01: невідома якість");
+    expect(screen.getAllByText("Немає валідних даних").length).toBeGreaterThan(0); // never "Актуально"
+    expect(screen.queryByText("Актуально")).toBeNull();
+    expect(screen.getByText("— °C")).toBeInTheDocument(); // display unit, no stale value
+    expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeInTheDocument();
+  });
+
+  it("states when stored history starts later than the requested range (#1677)", () => {
+    const scene = createBenchmarkScene(1);
+    const first = Math.min(
+      ...scene.series[0].segments.flatMap((segment) => segment.points.map((point) => point.timestampMs)),
+    );
+    const day = 24 * 3_600_000;
+    const shell = (fromMs: number) => (
+      <ChartShell
+        title="Історія"
+        context="°C"
+        selectedRange="7 днів"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+        requestedWindow={{ fromMs, toMs: first + 7 * day }}
+      >
+        <div>plot</div>
+      </ChartShell>
+    );
+    const { rerender } = render(shell(first - 6 * day));
+    const notice = screen.getByTestId("chart-partial-history");
+    expect(notice).toHaveTextContent("Історія доступна не за весь період");
+    expect(notice).toHaveTextContent("немає даних, а не нулі");
+    rerender(shell(first));
+    expect(screen.queryByTestId("chart-partial-history")).toBeNull();
+  });
 });

@@ -1,0 +1,25 @@
+# NEXOLAB storage housekeeping (#1710): REPORT ONLY - plans reproducible-artifact
+# cleanup and writes a checksummed manifest. Applying a reviewed manifest is a
+# separate manual command (--apply-manifest PATH --manifest-sha256 HEX).
+# Owner-installed to /etc/systemd/system/.
+
+[Unit]
+Description=NEXOLAB storage housekeeping (reproducible artifacts only)
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/nexolab-storage/housekeeping.env
+StateDirectory=nexolab-storage
+ExecStart=/usr/bin/python3 -I /usr/local/lib/nexolab-storage/nexolab-storage-housekeeping.py
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryMax=256M
+CPUQuota=50%
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=2h

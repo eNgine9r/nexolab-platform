@@ -55,6 +55,30 @@ describe("telemetry contract parsers", () => {
     });
   });
 
+  it("#1522: keeps a positive server stale_after_seconds and omits absent/non-positive values", () => {
+    const collection = (staleAfter: unknown) =>
+      parseTelemetryCollection({
+        items: [{ ...sample, stale_after_seconds: staleAfter }],
+        count: 1,
+        limit: 200,
+        offset: 0,
+        next_offset: null,
+      }).items[0];
+
+    expect(collection(90).stale_after_seconds).toBe(90);
+    for (const value of [null, undefined, 0, -5]) {
+      expect(collection(value)).not.toHaveProperty("stale_after_seconds");
+    }
+  });
+
+  it("#1522: ignores a malformed advisory stale_after_seconds instead of rejecting telemetry", () => {
+    for (const value of ["60", { seconds: 60 }, Number.NaN, Number.POSITIVE_INFINITY, true]) {
+      const message = parseTelemetryLiveMessage({ ...sample, stale_after_seconds: value });
+      expect(message).toMatchObject({ kind: "sample", sample: { event_id: "event-1", value: 4.2 } });
+      if (message.kind === "sample") expect(message.sample).not.toHaveProperty("stale_after_seconds");
+    }
+  });
+
   it("parses authenticated acknowledgement, heartbeat and service errors", () => {
     expect(
       parseTelemetryLiveMessage({

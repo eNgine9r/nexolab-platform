@@ -134,6 +134,16 @@ Therefore:
 
 Overview, Live Data and Saved Live Dashboards must not synthesize `Alarm context …` vertical lines or alarm pins solely from transitions in `TelemetrySample.alarm`.
 
+### Canonical source: alert instances (#1647)
+
+`AlertInstance` from `/api/v1/alerts` is the canonical event entity for chart annotations. `src/features/charts/alert-events.ts` maps it, for plotted series only (node + equipment + channel + metric), to:
+
+- markers with stable ids `alertId:alert_triggered|alert_acknowledged|alert_resolved|alert_closed`, event time and `source {entityType: "alert_instance", entityId}`;
+- one alarm region per alert (triggered → resolved/closed, open alerts extend to the window end, clipped to the viewed window);
+- a threshold line from `trigger_threshold` (direction from `trigger_value`).
+
+The mapping is read-only. Saved Dashboards render the same events in an accessible table (time, type, channel, severity as text, current state, source). An unavailable or forbidden alert log degrades to an explicit text state and never affects the chart.
+
 ### Dense events
 
 Always-visible full labels are not permitted when they can collide. The plot layer must use bounded/collision-safe presentation such as hidden default labels, grouping/count badges or detail-on-demand. Dense event rendering must remain readable and must not duplicate one event across multiple series.

@@ -27,7 +27,7 @@ export async function loadLiveDashboardInventory(
           left.equipment_id.localeCompare(right.equipment_id, "uk-UA") ||
           left.channel_id.localeCompare(right.channel_id, "uk-UA") ||
           left.metric.localeCompare(right.metric, "uk-UA") ||
-          left.channel_ref_id.localeCompare(right.channel_ref_id, "uk-UA"),
+          (left.channel_ref_id ?? "").localeCompare(right.channel_ref_id ?? "", "uk-UA"),
       );
     }
     const nextOffset = response.offset + response.items.length;

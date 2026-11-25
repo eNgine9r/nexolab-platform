@@ -443,7 +443,9 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
     assert "live-dashboard-" in exported.headers["content-disposition"]
     lines = exported.content.decode("utf-8").splitlines()
     assert lines[0] == (
-        "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id"
+        "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id,"
+        "raw_value,raw_signed_int16,operator_celsius_degC,operator_scale_degC_per_count,"
+        "operator_scale_basis"
     )
     assert [line.split(",")[0] for line in lines[1:]] == [
         "2026-08-18T09:00:00Z",

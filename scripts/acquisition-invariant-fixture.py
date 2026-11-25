@@ -185,6 +185,22 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/v1/acquisition-cadence":
             self._send_json(HTTPStatus.OK, cadence_payload())
             return
+        if path == "/api/v1/acquisition-registry":
+            # Read-only canonical counterpart of the legacy 106-03/04 fixture.
+            # Opening Overview must not register or activate any targets.
+            self._send_json(HTTPStatus.OK, {
+                "schema_version": 2,
+                "revision": CADENCE_REVISION,
+                "buses": [{"bus_id": "rs485-main", "protocol": "modbus_rtu", "read_only": True}],
+                "devices": [{"device_id": "xjp60d-106", "bus_id": "rs485-main", "unit_id": 106,
+                             "device_family": "xjp60d", "lifecycle": "active"}],
+                "targets": [{"device_id": "xjp60d-106", "target_id": f"xjp60d:106-{channel:02d}",
+                             "telemetry_channel_id": f"106-{channel:02d}", "metric": "temperature.probe",
+                             "unit": "degC", "function": 3,
+                             "lifecycle": "active" if channel in (3, 4) else "reserve",
+                             "poll_eligible": channel in (3, 4)} for channel in range(1, 7)],
+            })
+            return
         if path == "/api/v1/xjp60d/configuration":
             self._send_json(
                 HTTPStatus.OK,

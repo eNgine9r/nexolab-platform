@@ -9,6 +9,14 @@ import {
   type ChartXDomain,
 } from "@/features/charts/domain";
 import {
+  historicalSeriesFreshness,
+  newestSampleValidity,
+  resolveSeriesFreshness,
+  withInvalidNewestSample,
+  type SeriesFreshness,
+} from "@/features/charts/series-freshness";
+import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
+import {
   energyHistorySourceEventId,
   isEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
@@ -19,7 +27,12 @@ import {
   isEnergySample,
   resolveEnergyMeter,
   type EnergyMetricId,
+  type EnergyMeter,
 } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import { energySeriesSelectionKey, type EnergySeriesSelection } from "./energy-series-selection";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -32,6 +45,12 @@ const METER_COLORS: Record<number, string> = {
   203: "#f59e0b",
 };
 
+function scopedColor(identity: string, metricIndex: number): string {
+  let hash = 0;
+  for (const char of identity) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return `hsl(${(hash + metricIndex * 137.508) % 360} 75% 65%)`;
+}
+
 export interface EnergyChartScene {
   series: ChartSeries[];
   xDomain: ChartXDomain;
@@ -43,6 +62,37 @@ function freshness(status: EnergyTelemetryModel["status"]): ChartFreshnessState 
   if (status === "connecting") return "connecting";
   if (status === "reconnecting") return "reconnecting";
   return "offline";
+}
+
+const ENERGY_DEFAULT_STALE_AFTER_MS = 30_000;
+
+/**
+ * Per-series freshness (#1677): the series' OWN newest sample decides, with the stale threshold the page
+ * status already uses (cadence authority per meter, else 30 s). A newest sample without a valid
+ * measurement is `invalid`; page connectivity states always win.
+ */
+function energySeriesFreshness(
+  page: ChartFreshnessState,
+  group: { meter: { unitId: number }; samples: readonly TelemetrySample[] },
+  authority: EnergyCadenceAuthority | null,
+  now: number,
+): SeriesFreshness {
+  let newest: TelemetrySample | null = null;
+  for (const sample of group.samples) {
+    if (newest === null || Date.parse(sample.captured_at) >= Date.parse(newest.captured_at)) newest = sample;
+  }
+  if (newest === null) return { freshness: withInvalidNewestSample(page, null) };
+  const timestampMs = Date.parse(newest.captured_at);
+  return resolveSeriesFreshness({
+    page,
+    latest: {
+      timestampMs,
+      valid: newest.quality === "valid" && newest.value !== null && Number.isFinite(newest.value),
+    },
+    staleAfterMs:
+      authority?.maximumSourceGapMs(group.meter.unitId, timestampMs, now) ?? ENERGY_DEFAULT_STALE_AFTER_MS,
+    now,
+  });
 }
 
 function fallbackDomain(samples: readonly TelemetrySample[]): ChartXDomain {
@@ -130,24 +180,38 @@ export function buildEnergyChartScene({
   selectedMetrics,
   selectedPairs,
   selectedUnitIds,
+  selectedMeterKeys,
+  meters = [],
   status,
   historyWindow,
+  cadenceAuthority = null,
+  now,
+  historical = false,
 }: {
   samples: readonly TelemetrySample[];
   selectedMetric?: EnergyMetricId;
   selectedMetrics?: readonly EnergyMetricId[];
   selectedPairs?: readonly EnergySeriesSelection[];
   selectedUnitIds: readonly number[];
+  selectedMeterKeys?: readonly string[];
+  meters?: readonly CommissionedEnergyMeter[];
   status: EnergyTelemetryModel["status"];
   historyWindow: EnergyTelemetryModel["historyWindow"];
+  /** Per-meter stale threshold owner (same rule as the page status); 30 s default without one. */
+  cadenceAuthority?: EnergyCadenceAuthority | null;
+  /** Evaluation clock (epoch ms); defaults to `Date.now()` at build. A clock overlay handles later ticks. */
+  now?: number;
+  /** A fixed custom period (#1683): series have no liveness and are labelled historical. */
+  historical?: boolean;
 }): EnergyChartScene {
   const metrics = new Set(selectedMetrics ?? [selectedMetric ?? ENERGY_METRICS[0].id]);
   const pairs = selectedPairs ? new Set(selectedPairs.map(energySeriesSelectionKey)) : null;
   const selected = new Set(selectedUnitIds);
+  const selectedScoped = new Set(selectedMeterKeys ?? []);
   const groups = new Map<
     string,
     {
-      meter: (typeof ENERGY_METERS)[number];
+      meter: EnergyMeter;
       metric: (typeof ENERGY_METRICS)[number];
       nodeId: string;
       channelId: string;
@@ -155,11 +219,17 @@ export function buildEnergyChartScene({
     }
   >();
   for (const sample of samples) {
-    if (!metrics.has(sample.metric as EnergyMetricId) || !isEnergySample(sample)) continue;
-    const meter = resolveEnergyMeter(sample);
+    if (!metrics.has(sample.metric as EnergyMetricId) || !isEnergySample(sample, meters)) continue;
+    const meter = resolveEnergyMeter(sample, meters);
     const metric = ENERGY_METRICS.find((item) => item.id === sample.metric);
-    if (!meter || !metric || !selected.has(meter.unitId)) continue;
-    if (pairs && !pairs.has(energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id }))) continue;
+    if (!meter || !metric) continue;
+    const scopedKey = "nodeId" in meter ? energyMeterIdentity(meter.nodeId, meter.equipmentId) : undefined;
+    if (scopedKey ? !selectedScoped.has(scopedKey) : !selected.has(meter.unitId)) continue;
+    if (
+      pairs &&
+      !pairs.has(energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id, meterKey: scopedKey }))
+    )
+      continue;
     const key = JSON.stringify([
       sample.node_id,
       meter.equipmentId,
@@ -185,6 +255,7 @@ export function buildEnergyChartScene({
         energyMeterOrder(left.meter.unitId) - energyMeterOrder(right.meter.unitId) ||
         ENERGY_METRICS.indexOf(left.metric) - ENERGY_METRICS.indexOf(right.metric) ||
         left.nodeId.localeCompare(right.nodeId) ||
+        left.meter.equipmentId.localeCompare(right.meter.equipmentId) ||
         left.channelId.localeCompare(right.channelId),
     )
     .map((group) => {
@@ -199,12 +270,19 @@ export function buildEnergyChartScene({
         identity,
         name: `${group.meter.label} · ${group.metric.label} · ${group.meter.equipmentId} · ${group.channelId}`,
         colorToken:
-          group.metric.id === "electrical.power.active"
-            ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
-            : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
+          "nodeId" in group.meter
+            ? scopedColor(
+                energyMeterIdentity(group.nodeId, group.meter.equipmentId),
+                ENERGY_METRICS.indexOf(group.metric),
+              )
+            : group.metric.id === "electrical.power.active"
+              ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
+              : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
         dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
-        freshness: chartFreshness,
+        ...(historical
+          ? historicalSeriesFreshness(newestSampleValidity(group.samples))
+          : energySeriesFreshness(chartFreshness, group, cadenceAuthority, now ?? Date.now())),
         segments: buildSegments(identity, group.samples),
         visible: true,
         semanticMode:

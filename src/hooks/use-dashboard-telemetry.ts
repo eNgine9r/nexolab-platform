@@ -1,5 +1,6 @@
 "use client";
 
+import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
@@ -25,6 +26,20 @@ import {
   type TelemetryHistoryWindow,
 } from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import { advanceWindowToClock } from "@/features/live/live-history";
+import {
+  customHistoryRangeKey,
+  resolveCustomHistoryWindow,
+  type CustomHistoryWindow,
+} from "@/features/charts/custom-history-range";
+import {
+  EMPTY_CADENCE_OBSERVATIONS,
+  liveFreshnessFor,
+  recordCadenceObservation,
+  seedCadenceFromSamples,
+  type CadenceObservations,
+} from "@/features/live/freshness";
+import { liveChannelKey } from "@/features/live/live-telemetry";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type {
   TelemetryAdapter,
@@ -37,7 +52,7 @@ import type {
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
-const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
+const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24, "7d": 7 * 24 } as const;
 const HISTORY_PENDING_LIVE_LIMIT = 5_000;
 
 interface RuntimeConfigResult {
@@ -50,9 +65,12 @@ interface DashboardHistoryTailContext {
   historyKey: string;
   durationMs: number;
   window: TelemetryHistoryWindow;
+  /** A custom period (#1683): never advanced, never pruned, never extended by live samples. */
+  fixed: boolean;
 }
 
-export type DashboardHistoryRange = keyof typeof HISTORY_HOURS;
+export type DashboardHistoryPreset = keyof typeof HISTORY_HOURS;
+export type DashboardHistoryRange = DashboardHistoryPreset | "custom";
 export type DashboardHistoryStatus = "idle" | "loading" | "ready" | "error";
 
 export interface DashboardTelemetryOptions {
@@ -72,7 +90,12 @@ export interface DashboardTelemetryModel {
   historyStatus: DashboardHistoryStatus;
   historyWindow: { from: string; to: string } | null;
   historyError: Error | null;
-  setHistoryRange: (range: DashboardHistoryRange) => void;
+  setHistoryRange: (range: DashboardHistoryPreset) => void;
+  /**
+   * Selects a fixed custom period (#1683). Throws an operator-facing Ukrainian message when the
+   * period is invalid (start not before end, longer than 31 days, starting in the future).
+   */
+  applyCustomHistoryRange: (fromMs: number | null, toMs: number | null) => void;
   retryHistory: () => void;
   error: Error | null;
   retry: () => void;
@@ -152,6 +175,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   );
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
+  // #1634: per-channel acquisition cadence from raw (never chart-reduced) timestamps.
+  const [cadence, setCadence] = useState<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
+  const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
     runtime.config?.mode === "live" ? "connecting" : "idle",
@@ -160,7 +186,16 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(() => Date.now());
   const [generation, setGeneration] = useState(0);
-  const [historyRange, setHistoryRange] = useState<DashboardHistoryRange>("24h");
+  const [historyRange, setHistoryRangeState] = useState<DashboardHistoryRange>("24h");
+  const [customWindow, setCustomWindow] = useState<CustomHistoryWindow | null>(null);
+  const setHistoryRange = useCallback((range: DashboardHistoryPreset) => setHistoryRangeState(range), []);
+  const applyCustomHistoryRange = useCallback((fromMs: number | null, toMs: number | null) => {
+    const next = resolveCustomHistoryWindow(fromMs, toMs);
+    setCustomWindow(next);
+    setHistoryRangeState("custom");
+  }, []);
+  const customFrom = historyRange === "custom" ? (customWindow?.from ?? null) : null;
+  const customTo = historyRange === "custom" ? (customWindow?.to ?? null) : null;
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
   const [historyStatus, setHistoryStatus] = useState<DashboardHistoryStatus>(
     runtime.config?.mode === "live" ? "loading" : "idle",
@@ -172,7 +207,12 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
   const historyTailContextRef = useRef<DashboardHistoryTailContext | null>(null);
-  const historyKey = scopeKey === null ? null : `${scopeKey}:${historyRange}`;
+  const historyKey =
+    scopeKey === null
+      ? null
+      : customFrom !== null && customTo !== null
+        ? `${scopeKey}:${customHistoryRangeKey({ from: customFrom, to: customTo })}`
+        : `${scopeKey}:${historyRange}`;
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
@@ -196,6 +236,8 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     const context = historyTailContextRef.current;
     if (!context || context.scopeKey !== expectedScopeKey) return;
+    // A fixed custom period never receives live samples, before or after its history loads.
+    if (context.fixed) return;
 
     const ordering = historyOrderingRef.current;
     if (ordering === null) {
@@ -218,7 +260,19 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setClock(now);
+      // The Overview history window follows wall-clock time even when telemetry is silent,
+      // so a stopped series ends visibly before "now" (chart audit 2026-11-21).
+      const context = historyTailContextRef.current;
+      if (!context || context.fixed) return;
+      const nextWindow = advanceWindowToClock(context.window, now);
+      if (nextWindow === context.window) return;
+      historyTailContextRef.current = { ...context, window: nextWindow };
+      setHistorySamples((current) => samplesInsideHistoryWindow(current, nextWindow));
+      setHistoryWindow(serializedHistoryWindow(nextWindow));
+    }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -240,17 +294,34 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setHasLoadedSnapshot(false);
       setError(null);
       setStore(createDashboardTelemetryStore());
+      cadenceRef.current = EMPTY_CADENCE_OBSERVATIONS;
+      setCadence(EMPTY_CADENCE_OBSERVATIONS);
       setClock(Date.now());
     });
 
     const commit = (samples: readonly TelemetrySample[]) => {
       if (disposed) return;
       setStore((current) => mergeDashboardTelemetry(current, samples, { now: Date.now() }));
+      let nextCadence = cadenceRef.current;
+      for (const sample of samples) {
+        nextCadence = recordCadenceObservation(
+          nextCadence,
+          liveChannelKey(sample),
+          Date.parse(sample.captured_at),
+        );
+      }
+      if (nextCadence !== cadenceRef.current) {
+        cadenceRef.current = nextCadence;
+        setCadence(nextCadence);
+      }
       commitHistoryTail(samples, scopeKey);
       setError(null);
       setClock(Date.now());
     };
 
+    const observeReconnect = createReconnectBackfillObserver(() => {
+      if (!disposed) setHistoryGeneration((value) => value + 1);
+    });
     const connectLive = () => {
       subscription = adapter.subscribe(
         {},
@@ -259,6 +330,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
           onStateChange: (state) => {
             if (disposed) return;
             setConnectionState(state);
+            observeReconnect(state);
             if (state === "connected") setError(null);
           },
           onError: (nextError) => {
@@ -298,11 +370,18 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     const controller = new AbortController();
     const organizationId =
       selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
+    const fixed = historyRange === "custom";
+    if (fixed && (customFrom === null || customTo === null)) return;
     const adapter = securedAdapter(config, organizationId);
-    const to = new Date();
-    const from = new Date(to.getTime() - HISTORY_HOURS[historyRange] * 60 * 60 * 1000);
-    const requestedWindow = { from, to };
-    const durationMs = to.getTime() - from.getTime();
+    let requestedWindow: TelemetryHistoryWindow;
+    if (fixed) {
+      requestedWindow = { from: new Date(customFrom!), to: new Date(customTo!) };
+    } else {
+      const to = new Date();
+      const from = new Date(to.getTime() - HISTORY_HOURS[historyRange] * 60 * 60 * 1000);
+      requestedWindow = { from, to };
+    }
+    const durationMs = requestedWindow.to.getTime() - requestedWindow.from.getTime();
     let disposed = false;
 
     historyOrderingRef.current = null;
@@ -312,6 +391,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       historyKey,
       durationMs,
       window: requestedWindow,
+      fixed,
     };
 
     void Promise.resolve().then(() => {
@@ -331,6 +411,22 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
         if (disposed || !context || context.historyKey !== historyKey) return;
 
         const persisted = result.samples.filter(isTemperatureProbeSample);
+        if (fixed) {
+          // Exactly the requested window: no live tail, no advance, no cadence seeding from the past.
+          historyPendingLiveRef.current = [];
+          historyOrderingRef.current = null;
+          setHistorySamples(samplesInsideHistoryWindow(persisted, requestedWindow));
+          setHistoryWindow(serializedHistoryWindow(requestedWindow));
+          setHistoryStatus("ready");
+          setHistoryError(null);
+          return;
+        }
+        // Raw persisted spacing bootstraps freshness before the live stream has seen two polls.
+        const seeded = seedCadenceFromSamples(cadenceRef.current, persisted, liveChannelKey);
+        if (seeded !== cadenceRef.current) {
+          cadenceRef.current = seeded;
+          setCadence(seeded);
+        }
         const ordering = seedTelemetryHistoryOrderingState(persisted);
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
@@ -367,6 +463,8 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       }
     };
   }, [
+    customFrom,
+    customTo,
     enabled,
     historyGeneration,
     historyKey,
@@ -383,12 +481,14 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     return deriveDashboardTelemetry(store, {
       now: clock,
       staleAfterMs: STALE_AFTER_MS,
+      staleAfterMsFor: (sample) => liveFreshnessFor(sample, liveChannelKey(sample), cadence).staleAfterMs,
       hasLoadedSnapshot,
       connectionState,
       error,
     });
   }, [
     activeScopeKey,
+    cadence,
     clock,
     connectionState,
     enabled,
@@ -430,6 +530,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       historyWindow: null,
       historyError: runtime.error,
       setHistoryRange,
+      applyCustomHistoryRange,
       retryHistory,
       error: runtime.error,
       retry,
@@ -449,6 +550,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       historyWindow: null,
       historyError: null,
       setHistoryRange,
+      applyCustomHistoryRange,
       retryHistory,
       error: null,
       retry,
@@ -478,6 +580,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     historyWindow: visibleHistoryWindow,
     historyError: visibleHistoryError,
     setHistoryRange,
+    applyCustomHistoryRange,
     retryHistory,
     error,
     retry,

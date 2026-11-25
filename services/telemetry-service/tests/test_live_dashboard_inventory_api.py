@@ -62,3 +62,75 @@ def test_viewer_can_read_bounded_channel_inventory_without_latest_samples(
         "/api/v1/live-dashboards/channel-inventory?offset=10001",
         headers=headers,
     ).status_code == 422
+
+
+def test_connected_channels_round_trip_with_exact_device_scope(tmp_path: Path) -> None:
+    from datetime import UTC, datetime, timedelta
+    from tests.test_live_dashboard_api import export_event, payload
+
+    api, _ = secured_client(tmp_path, subject="dashboard-operator", roles={Role.OPERATOR})
+    headers = auth_headers("dashboard-operator")
+    database = api.app.state.database
+    now = datetime.now(UTC)
+    channel = "standalone-temperature"
+    sources = [
+        ("edge-a", "XJP60D-S:test:1", channel, 4.0),
+        ("edge-a", "XJP60D-S:test:7", channel, 7.0),
+        ("edge-b", "XJP60D-S:foreign:1", channel, 99.0),
+        ("edge-a", "K108", "a-temperature-01", 3.0),
+    ]
+    for node, equipment, channel_id, value in sources:
+        event = export_event(
+            captured_at=now, channel_id=channel_id, value=value,
+            node_id=node, equipment_id=equipment,
+        )
+        assert database.persist(event, event.normalized_payload())
+
+    route = "/api/v1/live-dashboards"
+    catalog = api.get(route + "/channel-inventory", headers=headers)
+    assert catalog.json()["total"] == 2
+    page = api.get(
+        route + "/channel-inventory?include_observed=true&offset=1&limit=2", headers=headers
+    )
+    assert page.status_code == 200, page.text
+    assert page.json()["total"] == 4
+    assert page.json()["has_more"]
+    legacy, observed = page.json()["items"]
+    assert legacy["channel_id"] == "a-temperature-02"
+    assert legacy["latest"] is None
+    assert observed["channel_ref_id"] is None
+    assert observed["climate_chamber_id"] is None
+    assert observed["equipment_id"] == "XJP60D-S:test:1"
+    last = api.get(
+        route + "/channel-inventory?include_observed=true&offset=3&limit=2", headers=headers
+    )
+    assert [row["equipment_id"] for row in last.json()["items"]] == ["XJP60D-S:test:7"]
+
+    request = payload(channels=[channel])
+    request["items"][0].update(node_id="edge-b", equipment_id="XJP60D-S:foreign:1")
+    assert api.post(route, headers=headers, json=request).status_code == 422
+    request["items"][0].update(node_id="edge-a", equipment_id="XJP60D-S:test:1")
+    request["items"].append({**request["items"][0], "equipment_id": "XJP60D-S:test:7"})
+    created = api.post(route, headers=headers, json=request)
+    assert created.status_code == 201, created.text
+    dashboard_route = route + "/" + created.json()["id"]
+    saved = api.get(dashboard_route, headers=headers)
+    assert [
+        (item["channel_ref_id"], item["node_id"], item["equipment_id"])
+        for item in saved.json()["items"]
+    ] == [(None, "edge-a", "XJP60D-S:test:1"), (None, "edge-a", "XJP60D-S:test:7")]
+
+    edited = api.put(
+        dashboard_route, headers={**headers, "If-Match": saved.headers["ETag"]}, json=request
+    )
+    assert edited.status_code == 200, edited.text
+    exported = api.get(
+        dashboard_route + "/telemetry.csv", headers=headers,
+        params={
+            "from": (now - timedelta(seconds=1)).isoformat(),
+            "to": (now + timedelta(seconds=1)).isoformat(),
+        },
+    )
+    assert exported.status_code == 200, exported.text
+    assert "XJP60D-S:test:1" in exported.text and "XJP60D-S:test:7" in exported.text
+    assert "foreign" not in exported.text
