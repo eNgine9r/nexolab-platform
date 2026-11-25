@@ -18,6 +18,7 @@ from app.nodes.domain import (
     ProvisionNodeCommand,
     RotateNodeCredentialCommand,
     authorize_node_topic,
+    bounded_clock_offset_ms,
     canonical_sha256,
     classify_clock_offset,
     generate_provisioning_secret,
@@ -465,7 +466,7 @@ class NodeRepository:
                 offset_ms = (
                     None
                     if node_clock is None
-                    else round((node_clock - observed).total_seconds() * 1000)
+                    else bounded_clock_offset_ms(node_clock, observed)
                 )
                 clock_status = classify_clock_offset(
                     offset_ms,
