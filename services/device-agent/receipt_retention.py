@@ -73,6 +73,54 @@ class CommittedReceiptQueue(OfflineQueue):
         with self._lock:
             return self._retry_busy("pending_after", operation)
 
+    def receipt_catch_up_window(
+        self, after_id: int, upto_id: int, limit: int
+    ) -> list[tuple[int, str, str, str]]:
+        """Read rows with ``after_id < id <= upto_id`` in FIFO order, read-only.
+
+        Returns ``(id, event_id, topic, payload)`` for the windowed catch-up
+        resend (#1762 slice 4). Nothing is deleted or modified.
+        """
+        for value in (after_id, upto_id):
+            if type(value) is not int or value < 0:
+                raise ValueError("invalid_record_cursor")
+        if type(limit) is not int or not 0 < limit <= 1000:
+            raise ValueError("invalid_limit")
+
+        def operation() -> list[tuple[int, str, str, str]]:
+            rows = self._connection.execute(
+                """
+                SELECT id, event_id, topic, payload FROM outbound_queue
+                WHERE id > ? AND id <= ? ORDER BY id LIMIT ?
+                """,
+                (after_id, upto_id, limit),
+            ).fetchall()
+            return [
+                (int(row[0]), str(row[1]), str(row[2]), str(row[3])) for row in rows
+            ]
+
+        with self._lock:
+            return self._retry_busy("receipt_catch_up_window", operation)
+
+    def count_pending_between(self, after_id: int, upto_id: int, topic: str) -> int:
+        """Count pending rows on ``topic`` with ``after_id < id <= upto_id``."""
+        for value in (after_id, upto_id):
+            if type(value) is not int or value < 0:
+                raise ValueError("invalid_record_cursor")
+
+        def operation() -> int:
+            row = self._connection.execute(
+                """
+                SELECT COUNT(*) FROM outbound_queue
+                WHERE id > ? AND id <= ? AND topic = ?
+                """,
+                (after_id, upto_id, topic),
+            ).fetchone()
+            return int(row[0])
+
+        with self._lock:
+            return int(self._retry_busy("count_pending_between", operation))
+
     def oldest_receipt_replay_candidate(self) -> tuple[int, str, str, str] | None:
         """Read the oldest immutable SQLite event without modifying it.
 
@@ -165,7 +213,7 @@ class CommittedReceiptQueue(OfflineQueue):
             raise ReceiptProtocolError("invalid_receipt_size")
         # This JSON lookup is ONLY a bounded index hint, not authentication or
         # validation. The strict shared contract re-parses and rejects duplicate
-        # keys, identity drift, stale timestamps, and out-of-order final ACKs.
+        # keys, identity drift against the named row, and stale timestamps.
         try:
             hinted = json.loads(payload)
         except (ValueError, UnicodeDecodeError) as exc:
@@ -173,12 +221,15 @@ class CommittedReceiptQueue(OfflineQueue):
         receipt_id_hint = hinted.get("receipt_id") if isinstance(hinted, dict) else None
         if not isinstance(receipt_id_hint, str):
             receipt_id_hint = ""
+        event_id_hint = hinted.get("event_id") if isinstance(hinted, dict) else None
+        if not isinstance(event_id_hint, str):
+            event_id_hint = ""
         telemetry_topic = f"nexolab/v1/{organization_id}/{node_id}/telemetry"
 
         def operation() -> str:
             with self._connection:
-                # Important: lock before re-reading oldest row and replay ledger.
-                # The receipt ID insert and exactly one FIFO deletion commit
+                # Important: lock before reading the named row and replay ledger.
+                # The receipt ID insert and exactly one row deletion commit
                 # atomically, or are rolled back on *any* exception.
                 self._connection.execute("BEGIN IMMEDIATE")
                 self._connection.execute(
@@ -198,23 +249,24 @@ class CommittedReceiptQueue(OfflineQueue):
                 ).fetchone()
                 if seen is not None:
                     raise ReceiptProtocolError("receipt_id_already_processed")
-                # Replay always selects the globally oldest row. Never
-                # acknowledge a later scoped event while an older legacy,
-                # foreign-tenant or other-stream row blocks actual publishing.
-                # A topic-filtered query here would bypass that FIFO guard
-                # and silently prune an event the Edge could not yet replay.
+                # Exact-row binding (#1762 slice 4): the receipt may name ANY
+                # pending row, but only that one row. The event_id is only a
+                # lookup key here; the strict contract below re-verifies every
+                # identity field against this row. An unknown or already
+                # pruned event never matches and is rejected. A legacy,
+                # foreign-tenant or other-stream row is never pruned.
                 row = self._connection.execute(
                     """
                     SELECT id, event_id, topic, payload
                     FROM outbound_queue
-                    ORDER BY id
-                    LIMIT 1
-                    """
+                    WHERE event_id = ?
+                    """,
+                    (event_id_hint,),
                 ).fetchone()
                 if row is None:
                     raise ReceiptProtocolError("no_matching_pending_telemetry")
                 if row[2] != telemetry_topic:
-                    raise ReceiptProtocolError("oldest_pending_topic_not_scoped")
+                    raise ReceiptProtocolError("pending_row_topic_not_scoped")
                 try:
                     trusted_payload = json.loads(
                         str(row[3]), object_pairs_hook=_strict_local_pairs
@@ -251,7 +303,7 @@ class CommittedReceiptQueue(OfflineQueue):
                     expected_organization_id=organization_id,
                     expected_node_id=node_id,
                     expected_node_sequence=sequence,
-                    oldest_pending_sequence=sequence,
+                    pending_row_topic=str(row[2]),
                     seen_receipt_ids=set(),
                     now=now,
                 )

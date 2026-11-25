@@ -186,7 +186,7 @@ def test_real_postgres_receipt_passes_canonical_edge_contract(database):
             expected_organization_id=ORG,
             expected_node_id=NODE,
             expected_node_sequence=1,
-            oldest_pending_sequence=1,
+            pending_row_topic=f"nexolab/v1/{ORG}/{NODE}/telemetry",
             seen_receipt_ids=set(),
         ) == "prune_allowed"
         published.append((topic, body))
@@ -510,8 +510,9 @@ def test_duplicate_sequence_cannot_claim_two_events(database):
         ) == 0
 
 
-def test_retry_blocks_newer_receipt_on_same_node_until_oldest_puback(database):
-    """A backed-off oldest receipt cannot be overtaken by later sequences."""
+def test_retry_of_one_receipt_does_not_block_newer_receipt_on_same_node(database):
+    """#1762 slice 4: the Edge binds each receipt to its exact pending row, so
+    a backed-off receipt no longer holds back later receipts of its node."""
     from datetime import timedelta
     from app.committed_receipt_publisher import CommittedReceiptPublisher
 
@@ -530,15 +531,80 @@ def test_retry_blocks_newer_receipt_on_same_node_until_oldest_puback(database):
     started = datetime.now(UTC)
     assert sender.run_once(now=started).status == "retry"
     assert sent == [1]
-    # Sequence 1 has an active backoff lease, so sequence 2 must not
-    # be marked delivered (or even sent) during that retry interval.
+    # Sequence 1 keeps its durable backoff lease; sequence 2 is published.
+    assert sender.run_once(now=started + timedelta(seconds=1)).status == "published"
+    assert sent == [1, 2]
     assert sender.run_once(now=started + timedelta(seconds=1)).status == "idle"
-    assert sent == [1]
     assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
-    assert sent == [1, 1]
-    assert sender.run_once(now=started + timedelta(seconds=3)).status == "published"
-    assert sent == [1, 1, 2]
+    assert sent == [1, 2, 1]
     assert all(row["published_at"] is not None for row in rows(database))
+
+
+def test_batch_publishes_in_commit_order_with_per_message_puback(database):
+    from datetime import timedelta
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    for sequence in range(1, 6):
+        event, raw = make_event(sequence)
+        assert database.persist(event, raw, receipt_identity=identity(sequence))
+
+    class BatchSender:
+        def __init__(self):
+            self.batches = []
+
+        def __call__(self, topic, body):  # pragma: no cover - batch path used
+            raise AssertionError("send_batch must be used")
+
+        def send_batch(self, items):
+            import json
+            sequences = [json.loads(body)["node_sequence"] for _, body in items]
+            self.batches.append(sequences)
+            # Synthetic PUBACK for every message except sequence 2.
+            return [sequence != 2 for sequence in sequences]
+
+    sender = BatchSender()
+    publisher = CommittedReceiptPublisher(database, sender)
+    started = datetime.now(UTC)
+    first = publisher.run_batch(limit=4, now=started)
+    assert sender.batches == [[1, 2, 3, 4]]
+    assert [attempt.status for attempt in first] == [
+        "published", "retry", "published", "published"
+    ]
+    second = publisher.run_batch(limit=4, now=started)
+    assert sender.batches[-1] == [5]
+    assert [attempt.status for attempt in second] == ["published"]
+    # The unacknowledged receipt keeps its durable lease, then retries.
+    assert publisher.run_batch(limit=4, now=started + timedelta(seconds=1)) == []
+    retried = publisher.run_batch(limit=4, now=started + timedelta(seconds=3))
+    assert sender.batches[-1] == [2]
+    assert [attempt.status for attempt in retried] == ["retry"]
+    pending = [
+        row for row in rows(database)
+        if row["node_id"] == NODE and row["published_at"] is None
+    ]
+    assert [row["node_sequence"] for row in pending] == [2]
+    assert pending[0]["attempts"] == 2
+    with pytest.raises(ValueError):
+        publisher.run_batch(limit=0)
+
+
+def test_batch_sender_failure_or_short_result_never_marks_published(database):
+    from app.committed_receipt_publisher import CommittedReceiptPublisher
+
+    for sequence in (1, 2):
+        event, raw = make_event(sequence)
+        assert database.persist(event, raw, receipt_identity=identity(sequence))
+
+    class ShortSender:
+        def __call__(self, topic, body):  # pragma: no cover - batch path used
+            return True
+
+        def send_batch(self, items):
+            return [True]  # fewer results than messages: untrusted
+
+    attempts = CommittedReceiptPublisher(database, ShortSender()).run_batch(limit=10)
+    assert [attempt.status for attempt in attempts] == ["retry", "retry"]
+    assert all(row["published_at"] is None for row in rows(database))
 
 
 def test_retry_backoff_does_not_block_independent_node(database):

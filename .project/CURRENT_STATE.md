@@ -1,3 +1,13 @@
+## 2026-11-25 (night) — committed-receipt bulk catch-up (#1762 slice 4) in review
+
+- **Slice 3 merged (#1768).** The isolated end-to-end acceptance passed, but recovery measured about 1.1 rows/s (head replay) and 2.3 rows/s overall.
+- **Slice 4 (`feat/1762-receipt-bulk-catchup`)**, both flags still default OFF:
+  - The Edge accepts a receipt for any pending row, but only for the exact row it names. The receipt ledger and the single-row delete stay in one SQLite transaction.
+  - The Edge resends old pending rows in bounded FIFO windows (50 in flight, at most 200 rows/s, backoff when central does not answer, paused while telemetry is disconnected).
+  - Central publishes receipts in batches of 50 with a PUBACK per message, and the ingestion commit wakes the publisher.
+  - The acceptance now gates net catch-up at 50 rows/s or more with live flow running.
+- Site activation still needs #1428, an approved release and owner-provisioned identities. Hardware and site throughput are **UNVERIFIED**.
+
 ## 2026-11-25 (evening) — broker, Stage 2 tooling and receipt wiring merged; owner actions prepared
 
 - **#1759 Operator Broker merged** (source only). Owner install payload is in `~/recovery-p0/broker-v1`, with the installer pinned at `42bf8b5b…`.

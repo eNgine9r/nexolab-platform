@@ -103,3 +103,7 @@ This demonstrates application-process restart persistence, not a physical
 Raspberry reboot, actual MQTT broker, site ACL identity, central PostgreSQL
 transaction, disk power-loss durability, network partition or hardware
 acceptance. Live `DeviceAgent` remains unwired.
+
+## 2026-11-25 — FIFO acceptance replaced by exact-row binding (#1762 slice 4)
+
+The global FIFO rule above is superseded. A valid `postgres_committed` receipt may now prune **any** pending row, but only the one row whose `event_id`, `node_sequence`, organization, node and exact org-scoped telemetry topic match. The receipt `receipt_id` ledger insert and the single-row delete still commit in one `BEGIN IMMEDIATE` transaction. `validate_for_pending` takes `pending_row_topic` instead of `oldest_pending_sequence`. An older legacy or foreign row is never pruned and no longer blocks the scoped rows behind it; `/health` reports it as `degraded`. Unknown or already pruned rows are rejected (`no_matching_pending_telemetry`). The bounded head replay is replaced in the runtime by a windowed catch-up. See `docs/architecture/telemetry-committed-receipt-outbox-1445.md`, section "Bounded bulk catch-up (#1762 slice 4)".

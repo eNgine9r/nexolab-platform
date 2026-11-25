@@ -129,6 +129,31 @@ def test_no_puback_is_retryable(tmp_path):
     sender.stop()
 
 
+def test_batch_reports_each_message_puback_and_skips_invalid(tmp_path):
+    # #1762 slice 4: one batch, one QoS1 PUBACK result per message.
+    sender, client = make_sender(tmp_path)
+    assert sender.send_batch([receipt()]) == [False]  # not started
+    sender.start()
+    first, second = receipt(1), receipt(2)
+    forged_topic = (f"nexolab/v1/{ORG}/other-node/receipts", receipt(3)[1])
+    assert sender.send_batch([first, forged_topic, second]) == [True, False, True]
+    assert client.sent == [(*first, 1, False), (*second, 1, False)]
+    client.ack = False
+    assert sender.send_batch([receipt(4), receipt(5)]) == [False, False]
+    assert sender.send_batch([]) == []
+    sender.stop()
+    assert sender.send_batch([receipt(6)]) == [False]
+
+
+def test_batch_never_claims_ack_without_connection(tmp_path):
+    sender, client = make_sender(tmp_path)
+    client.start_connect = False
+    sender.start()
+    assert sender.send_batch([receipt(1), receipt(2)]) == [False, False]
+    assert client.sent == []
+    sender.stop()
+
+
 def test_unconnected_broker_never_claims_ack(tmp_path):
     sender, client = make_sender(tmp_path)
     client.start_connect = False

@@ -1,4 +1,4 @@
-"""Hermetic v1 durability receipt security and FIFO contract regression."""
+"""Hermetic v1 durability receipt security and exact-row binding regression."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def verify(message=None, **kwargs):
         "expected_organization_id": ORG,
         "expected_node_id": NODE,
         "expected_node_sequence": 41,
-        "oldest_pending_sequence": 41,
+        "pending_row_topic": f"nexolab/v1/{ORG}/{NODE}/telemetry",
         "seen_receipt_ids": frozenset(),
         "now": datetime(2026, 10, 16, 12, 2, tzinfo=timezone.utc),
     }
@@ -64,7 +64,7 @@ class DurableReceiptV1ContractTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["receipt_level"]["enum"],
                          ["durably_spooled", "postgres_committed"])
 
-    def test_final_commit_receipt_can_be_consumed_fifo(self):
+    def test_final_commit_receipt_prunes_its_exact_pending_row(self):
         self.assertEqual(verify(), "prune_allowed")
 
     def test_durable_spool_receipt_is_informational_only(self):
@@ -99,13 +99,36 @@ class DurableReceiptV1ContractTests(unittest.TestCase):
                 with self.assertRaises(mod.ReceiptProtocolError):
                     verify(payload(node_sequence=value))
 
-    def test_out_of_order_final_receipt_cannot_skip_pending_event(self):
-        with self.assertRaisesRegex(mod.ReceiptProtocolError, "out_of_order"):
-            verify(oldest_pending_sequence=40)
+    def test_out_of_order_receipt_is_accepted_only_for_its_exact_pending_row(self):
+        # #1762 slice 4: a receipt for a non-head row prunes only when every
+        # identity field matches that exact row; it can never name another.
+        self.assertEqual(verify(payload(node_sequence=57), expected_node_sequence=57),
+                         "prune_allowed")
+        for row in (
+            {"expected_node_sequence": 40},
+            {"expected_node_sequence": 42},
+            {"expected_event_id": "e5f898f9-2820-4e49-a754-d32e677baeed"},
+        ):
+            with self.subTest(row=row):
+                with self.assertRaisesRegex(mod.ReceiptProtocolError, "mismatch"):
+                    verify(**row)
 
-    def test_spooled_receipt_does_not_delete_out_of_order(self):
-        self.assertEqual(verify(payload(receipt_level="durably_spooled"),
-                                oldest_pending_sequence=40), "informational")
+    def test_pending_row_must_be_this_nodes_scoped_telemetry(self):
+        for row_topic in (
+            "nexolab/telemetry",
+            f"nexolab/v1/{ORG}/{NODE}/health",
+            f"nexolab/v1/{ORG}/edge-02/telemetry",
+            "nexolab/v1/a61b0830-4e78-479b-8e10-8d1e1123ba88/edge-01/telemetry",
+            None,
+        ):
+            with self.subTest(row_topic=row_topic):
+                with self.assertRaisesRegex(mod.ReceiptProtocolError,
+                                            "pending_row_topic_not_scoped"):
+                    verify(pending_row_topic=row_topic)
+
+    def test_spooled_receipt_never_deletes_even_for_exact_row(self):
+        self.assertEqual(verify(payload(receipt_level="durably_spooled")),
+                         "informational")
 
     def test_malformed_durability_level_never_raises_unchecked_type_error(self):
         for value in (["postgres_committed"], {"value": "postgres_committed"}, 1, None):
