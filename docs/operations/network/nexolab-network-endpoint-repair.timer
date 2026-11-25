@@ -1,0 +1,12 @@
+# NEXOLAB: check (and if needed repair) Docker network endpoints after boot and every 5 minutes.
+[Unit]
+Description=NEXOLAB Docker network endpoint check after boot and every 5 minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitInactiveSec=5min
+AccuracySec=30s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
