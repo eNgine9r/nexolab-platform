@@ -10,7 +10,7 @@ import sqlite3
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,6 +19,10 @@ from typing import Any
 import paho.mqtt.client as mqtt
 
 from clock_status import clock_status
+from committed_receipt_mode import (
+    CommittedReceiptConfig,
+    parse_committed_receipt_config,
+)
 from embraco import EmbracoSyncReader, REGISTERS as EMBRACO_REGISTERS
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
@@ -169,6 +173,8 @@ class Settings:
     mqtt_username: str | None = None
     mqtt_client_id: str = ""
     mqtt_password_file: Path | None = None
+    # #1762 slice 2: None unless DEVICE_AGENT_COMMITTED_RECEIPTS=enabled.
+    committed_receipts: CommittedReceiptConfig | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -340,6 +346,16 @@ class Settings:
             raise ValueError(
                 "MQTT username/password require MQTT_AUTH_REQUIRED=true"
             )
+        committed_receipts = parse_committed_receipt_config(
+            organization_id=settings.organization_id,
+            node_id=settings.node_id,
+            mqtt_auth_required=settings.mqtt_auth_required,
+            telemetry_username=settings.mqtt_username,
+            telemetry_client_id=settings.mqtt_client_id,
+            read_secret=read_mounted_secret,
+        )
+        if committed_receipts is not None:
+            settings = replace(settings, committed_receipts=committed_receipts)
         return settings
 
     @property
@@ -760,7 +776,15 @@ class AgentState:
 class DeviceAgent:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.queue = OfflineQueue(settings.database_path)
+        receipt_config = getattr(settings, "committed_receipts", None)
+        if receipt_config is None:
+            self.queue = OfflineQueue(settings.database_path)
+        else:
+            # Receipt mode: PUBACK never deletes; only a validated
+            # postgres_committed receipt prunes (#1762 slice 2).
+            from receipt_retention import CommittedReceiptQueue
+
+            self.queue = CommittedReceiptQueue(settings.database_path)
         self.state = AgentState()
         self.stop_event = threading.Event()
         self.client = mqtt.Client(
@@ -787,6 +811,18 @@ class DeviceAgent:
         self.client.enable_logger(LOG)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
+        self.committed_receipts: Any = None
+        if receipt_config is not None:
+            from committed_receipt_mode import build_runtime
+
+            self.committed_receipts = build_runtime(
+                receipt_config,
+                self.queue,
+                publish_client=self.client,
+                telemetry_connected=lambda: bool(self.state.mqtt_connected),
+                read_secret=read_mounted_secret,
+                tls_config=self.mqtt_tls,
+            )
         self.operational: NodeOperationalPublisher | None = None
         if settings.organization_id is not None:
             self.operational = NodeOperationalPublisher(
@@ -883,6 +919,20 @@ class DeviceAgent:
                     if value
                 )
             )
+        receipts = getattr(self, "committed_receipts", None)
+        if receipts is not None:
+            receipt_snapshot = receipts.snapshot()
+            payload["committed_receipts"] = receipt_snapshot
+            if receipt_snapshot.get("head_blocked_reason"):
+                payload["status"] = "degraded"
+                payload["last_error"] = "; ".join(
+                    value
+                    for value in (
+                        "Committed-receipt outbox head is blocked",
+                        payload.get("last_error"),
+                    )
+                    if value
+                )
         return payload
 
     def _on_connect(
@@ -922,6 +972,14 @@ class DeviceAgent:
             keepalive=30,
         )
         self.client.loop_start()
+        receipts = getattr(self, "committed_receipts", None)
+        if receipts is not None:
+            receipts.start(self.settings.mqtt_host, self.settings.mqtt_port)
+
+    def stop_committed_receipts(self) -> None:
+        receipts = getattr(self, "committed_receipts", None)
+        if receipts is not None:
+            receipts.stop()
 
     def _sample_xjp60d(
         self,
@@ -1242,6 +1300,15 @@ class DeviceAgent:
         if not self.state.mqtt_connected:
             return False
 
+        receipts = getattr(self, "committed_receipts", None)
+        if receipts is not None:
+            # Receipt mode: send without deleting on PUBACK.
+            return receipts.flush_pending(
+                on_puback=lambda: self.state.update(
+                    last_publish_at=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+
         for record_id, topic, payload in self.queue.oldest():
             try:
                 result = self.client.publish(topic, payload, qos=1)
@@ -1304,6 +1371,7 @@ class DeviceAgent:
                 self.modbus_client.close()
             if self.operational is not None and self.state.mqtt_connected:
                 self.operational.publish_graceful_offline()
+            self.stop_committed_receipts()
             self.client.disconnect()
             self.client.loop_stop()
 
