@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NEXOLAB P0 network-change recovery (v3.1): compatibility address and Docker endpoint repair.
+"""NEXOLAB P0 network-change recovery (v3.2): compatibility address and Docker endpoint repair.
 
 Owner-run as the operator account (uid 1000, docker group, sudo for `ip`,
 `sysctl`, `journalctl` and copying evidence). Restores the existing LOCAL_LAN
@@ -934,14 +934,16 @@ def repair_networks(share_to: str | None = None, allow_minimal: bool = False) ->
         now = [summary(c) for c in containers()]
         dns = dns_check(now)
         say(f"DNS from telemetry-service: {dns}")
+        # Only containers meant to run: stopped historical/candidate containers keep their
+        # configured ports unpublished by design and must not fail verification (v3.2).
         missing_ports = {c["name"]: sorted(set(c["configured_ports"]) - set(c["published_ports"]))
-                         for c in now if c["project"] in PROJECTS and ports_missing(c)}
+                         for c in now if c["project"] in PROJECTS and meant_to_run(c) and ports_missing(c)}
         status, body = http(f"http://{COMPAT_IP}:8082/health/ready")
         dash, _ = http(f"http://{COMPAT_IP}:3000/api/runtime-identity")
         dump(ev, "verify.json", {"dns": dns, "missing_ports": missing_ports, "ready": [status, body[:300]], "dashboard": dash})
         say(f"ports missing: {missing_ports or 'none'} | telemetry ready HTTP {status} | dashboard HTTP {dash}")
-        if any(str(v).startswith("FAIL") for v in dns.values()) or missing_ports or status != 200:
-            raise Blocked("VERIFY_FAILED dns/ports/readiness")
+        if any(str(v).startswith("FAIL") for v in dns.values()) or missing_ports or status != 200 or dash != 200:
+            raise Blocked(f"VERIFY_FAILED dns={dns} missing_ports={missing_ports} ready={status} dashboard={dash}")
     except Exception as exc:  # noqa: BLE001 - every failure path rolls back
         say(f"FAILURE: {exc}")
         if current:

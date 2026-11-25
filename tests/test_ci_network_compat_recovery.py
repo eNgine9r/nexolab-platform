@@ -421,6 +421,75 @@ class V31EndToEndTests(unittest.TestCase):
         self.assertIn(("mq", "nexolab-standalone-runtime"), connects)
 
 
+class V32VerifyTests(unittest.TestCase):
+    """Regression for run 20261125T105125Z: stopped historical Device Agents with configured ports."""
+
+    def scenario(self, after: list[dict], dashboard_status: int = 200) -> tuple[int, str]:
+        items = [_c("tel", "telemetry-service", "nexolab-central", "restarting", [], ["172.18.48.66:8082->8082/tcp"])]
+        ok = mock.Mock(returncode=0, stdout="", stderr="")
+        out = io.StringIO()
+
+        def http(url, timeout=6):
+            return (dashboard_status, "{}") if ":3000/" in url else (200, "{}")
+
+        with mock.patch.object(REC.os, "getuid", return_value=1000), \
+                mock.patch.object(REC, "lock", return_value=open(os.devnull)), \
+                mock.patch.object(REC, "evidence_dir", return_value=Path(tempfile.mkdtemp())), \
+                mock.patch.object(REC, "provenance", return_value={}), \
+                mock.patch.object(REC, "diagnose", return_value={"containers": items, "arp_ignore": {}}), \
+                mock.patch.object(REC, "compose_config", return_value=CENTRAL_MODEL), \
+                mock.patch.object(REC.subprocess, "run", return_value=ok), \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
+                mock.patch.object(REC, "compat_holders", return_value=["nxcompat0"]), \
+                mock.patch.object(REC, "physical_routes_covering", return_value=[]), \
+                mock.patch.object(REC, "run", return_value=""), \
+                mock.patch.object(REC, "_ready", return_value=(True, "ok")), \
+                mock.patch.object(REC, "containers", return_value=after), \
+                mock.patch.object(REC, "summary", side_effect=lambda c: c), \
+                mock.patch.object(REC, "dns_check", return_value={"postgres": "172.19.0.3", "mqtt": "172.19.0.10"}), \
+                mock.patch.object(REC, "http", side_effect=http), \
+                mock.patch.object(REC, "stability", return_value=(True, {})), \
+                mock.patch.object(REC, "share"), \
+                mock.patch("sys.stdout", out):
+            code = REC.repair_networks(allow_minimal=True)
+        return code, out.getvalue()
+
+    def production_after(self) -> list[dict]:
+        tel = _c("tel", "telemetry-service", "nexolab-central", "running", ["nexolab-central", "nexolab-standalone-runtime"],
+                 ["172.18.48.66:8082->8082/tcp"], ["172.18.48.66:8082->8082/tcp"])
+        historical = []
+        for name in ("nexolab-edge-device-agent-pre1496", "nexolab-edge-device-agent-1-pre-1490"):
+            item = _c(name, "device-agent", "nexolab-edge", "exited", ["nexolab-edge_default", "nexolab-standalone-runtime"],
+                      ["127.0.0.1:8081->8081/tcp"], [])
+            item["error"] = ""  # stopped on purpose, no failed start
+            historical.append(item)
+        return [tel, *historical]
+
+    def test_stopped_historical_containers_with_configured_ports_do_not_fail_verification(self) -> None:
+        code, out = self.scenario(self.production_after())
+        self.assertEqual(code, 0, out[-600:])
+        self.assertIn("NEXOLAB_NETWORK_REPAIR_GREEN_STABLE", out)
+        self.assertNotIn("ROLLBACK", out)
+
+    def test_production_container_without_published_ports_still_rolls_back(self) -> None:
+        after = self.production_after()
+        after[0]["published_ports"] = []
+        code, out = self.scenario(after)
+        self.assertEqual(code, 1)
+        self.assertIn("NEXOLAB_NETWORK_REPAIR_ROLLED_BACK", out)
+        self.assertIn("missing_ports={'tel'", out)
+
+    def test_dashboard_not_http_200_rolls_back(self) -> None:
+        code, out = self.scenario(self.production_after(), dashboard_status=502)
+        self.assertEqual(code, 1)
+        self.assertIn("dashboard=502", out)
+
+    def test_failed_start_with_restart_policy_still_counts_as_production(self) -> None:
+        item = _c("tel", "telemetry-service", "nexolab-central", "exited", [], ["172.18.48.66:8082->8082/tcp"])
+        item["error"] = "failed to set up container networking"
+        self.assertTrue(REC.meant_to_run(item))
+
+
 class V31MinimalModelTests(unittest.TestCase):
     def test_minimal_model_restores_primary_network_and_standalone_overlay(self) -> None:
         members = [_c("mq", "mqtt", "nexolab-central", "running", []), _c("dash", "dashboard", "nexolab-central", "running", [])]
