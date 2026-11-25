@@ -301,7 +301,8 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
 
     def test_same_origin_contract_passes_without_compiled_host_origin(self) -> None:
         bundle = ('"live";"same-origin";"local";"00000000-0000-0000-0000-000000000001";'
-                  'fetch(u,{credentials:"same-origin"});ns="http://www.w3.org/2000/svg"')
+                  'fetch(u,{credentials:"same-origin"});ns="http://www.w3.org/2000/svg";'
+                  'GOTRUE_URL="http://localhost:9999"')
         with tempfile.TemporaryDirectory() as temp:
             release, report, args = self._same_origin_release(temp, bundle)
             result = run_bash(f"source {HELPER}; nexolab_frontend_verify_public_contract {release} {args} {report}")
@@ -311,7 +312,8 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
     def test_same_origin_contract_rejects_compiled_host_origin(self) -> None:
         base = '"live";"same-origin";"local";"00000000-0000-0000-0000-000000000001";'
         for leaked in ("http://172.18.48.66:8082", "ws://192.168.1.220/api/v1/telemetry/live",
-                       "http://localhost:8082", "https://nexolab-edge-01:8082"):
+                       "http://localhost:8082", "https://nexolab-edge-01:8082", "http://127.0.0.1:3000",
+                       "mqtt-over-ws ws://lab.local:1884"):
             with tempfile.TemporaryDirectory() as temp:
                 release, report, args = self._same_origin_release(temp, base + f'u="{leaked}"')
                 result = run_bash(
