@@ -302,7 +302,9 @@ done
 rm -rf "$EVIDENCE_DIR"
 mkdir -p "$SECRETS_DIR"
 chmod 0700 "$SECRETS_DIR"
-for name in admin-password ingestion-password node-a-old node-a-new node-b-password unknown-password receipt-publisher-password; do
+for name in admin-password ingestion-password node-a-old node-a-new node-b-password unknown-password receipt-publisher-password \
+  org-receipt-publisher-password receipt-subscriber-a-password \
+  receipt-subscriber-probe-password receipt-subscriber-foreign-password; do
   generate_secret "$SECRETS_DIR/$name"
 done
 
@@ -573,6 +575,188 @@ wait "$receipt_reconnect_pid"
   echo "Receipt ACL did not survive an isolated broker restart." >&2
   exit 1
 }
+# #1762 slice 3: dedicated organization receipt publisher and per-node Edge
+# receipt subscriber. Synthetic identities in a disposable broker only.
+ORG_PUBLISHER_USERNAME="nexolab-central-receipts-org-a-fixture"
+ORG_PUBLISHER_CLIENT_ID="nexolab-central-receipts-org-a-fixture"
+ORG_PUBLISHER_PASSWORD="$(secret org-receipt-publisher-password)"
+SUB_A_USERNAME="receipts:${ORGANIZATION_A}:${NODE_A}"
+SUB_A_CLIENT_ID="nexolab-${ORGANIZATION_A}-${NODE_A}-receipts"
+SUB_A_PASSWORD="$(secret receipt-subscriber-a-password)"
+PROBE_NODE="edge-09"
+SUB_PROBE_USERNAME="receipts:${ORGANIZATION_A}:${PROBE_NODE}"
+SUB_PROBE_CLIENT_ID="nexolab-${ORGANIZATION_A}-${PROBE_NODE}-receipts"
+SUB_PROBE_PASSWORD="$(secret receipt-subscriber-probe-password)"
+FOREIGN_NODE="edge-07"
+SUB_FOREIGN_USERNAME="receipts:${ORGANIZATION_B}:${FOREIGN_NODE}"
+SUB_FOREIGN_CLIENT_ID="nexolab-${ORGANIZATION_B}-${FOREIGN_NODE}-receipts"
+SUB_FOREIGN_PASSWORD="$(secret receipt-subscriber-foreign-password)"
+PROBE_RECEIPT_TOPIC="nexolab/v1/$ORGANIZATION_A/$PROBE_NODE/receipts"
+FOREIGN_ORG_RECEIPT_TOPIC="nexolab/v1/$ORGANIZATION_B/$FOREIGN_NODE/receipts"
+
+admin create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+  "$ORG_PUBLISHER_CLIENT_ID" "$ORGANIZATION_A" \
+  /run/secrets/nexolab/org-receipt-publisher-password
+admin create-node-receipt-subscriber "$SUB_A_USERNAME" "$SUB_A_CLIENT_ID" \
+  "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+admin create-node-receipt-subscriber "$SUB_PROBE_USERNAME" "$SUB_PROBE_CLIENT_ID" \
+  "$ORGANIZATION_A" "$PROBE_NODE" /run/secrets/nexolab/receipt-subscriber-probe-password
+admin create-node-receipt-subscriber "$SUB_FOREIGN_USERNAME" "$SUB_FOREIGN_CLIENT_ID" \
+  "$ORGANIZATION_B" "$FOREIGN_NODE" /run/secrets/nexolab/receipt-subscriber-foreign-password
+# Repeated provisioning is idempotent and never broadens or rotates.
+admin create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+  "$ORG_PUBLISHER_CLIENT_ID" "$ORGANIZATION_A" \
+  /run/secrets/nexolab/org-receipt-publisher-password
+admin create-node-receipt-subscriber "$SUB_A_USERNAME" "$SUB_A_CLIENT_ID" \
+  "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+
+# Provisioning deny cases (fail closed before or at reconciliation).
+expect_denied org-publisher-noncanonical-org \
+  admin create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+    "$ORG_PUBLISHER_CLIENT_ID" "not-a-uuid" \
+    /run/secrets/nexolab/org-receipt-publisher-password
+expect_denied org-publisher-reserved-principal \
+  admin create-org-receipt-publisher "$INGESTION_USERNAME" "$INGESTION_CLIENT_ID" \
+    "$ORGANIZATION_A" /run/secrets/nexolab/org-receipt-publisher-password
+expect_denied org-publisher-unsafe-identifier \
+  admin create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+    'nexolab-central-receipts-+/unsafe' "$ORGANIZATION_A" \
+    /run/secrets/nexolab/org-receipt-publisher-password
+expect_denied org-publisher-client-collision \
+  admin create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+    "nexolab-central-receipts-other-fixture" "$ORGANIZATION_A" \
+    /run/secrets/nexolab/org-receipt-publisher-password
+expect_denied org-publisher-all-org-principal-reuse \
+  admin create-org-receipt-publisher "$RECEIPT_USERNAME" "$RECEIPT_CLIENT_ID" \
+    "$ORGANIZATION_A" /run/secrets/nexolab/receipt-publisher-password
+expect_denied org-publisher-plaintext-remote \
+  compose exec -T -e NEXOLAB_MQTT_BROKER_HOST=remote.example.invalid \
+    mqtt-security /usr/local/bin/nexolab-dynsec-admin \
+    create-org-receipt-publisher "$ORG_PUBLISHER_USERNAME" \
+    "$ORG_PUBLISHER_CLIENT_ID" "$ORGANIZATION_A" \
+    /run/secrets/nexolab/org-receipt-publisher-password
+expect_denied subscriber-telemetry-principal-reuse \
+  admin create-node-receipt-subscriber "$NODE_A_USERNAME" "$SUB_A_CLIENT_ID" \
+    "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+expect_denied subscriber-telemetry-client-id-reuse \
+  admin create-node-receipt-subscriber "$SUB_A_USERNAME" "$NODE_A_CLIENT_ID" \
+    "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+expect_denied subscriber-topic-injection \
+  admin create-node-receipt-subscriber "receipts:${ORGANIZATION_A}:edge-01/#" \
+    "nexolab-${ORGANIZATION_A}-edge-01/#-receipts" "$ORGANIZATION_A" 'edge-01/#' \
+    /run/secrets/nexolab/receipt-subscriber-a-password
+expect_denied subscriber-noncanonical-org \
+  admin create-node-receipt-subscriber "receipts:ORG:${NODE_A}" \
+    "nexolab-ORG-${NODE_A}-receipts" "ORG" "$NODE_A" \
+    /run/secrets/nexolab/receipt-subscriber-a-password
+expect_denied subscriber-plaintext-remote \
+  compose exec -T -e NEXOLAB_MQTT_BROKER_HOST=remote.example.invalid \
+    mqtt-security /usr/local/bin/nexolab-dynsec-admin \
+    create-node-receipt-subscriber "$SUB_A_USERNAME" "$SUB_A_CLIENT_ID" \
+    "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+chmod 0644 "$SECRETS_DIR/receipt-subscriber-a-password"
+expect_denied subscriber-world-readable-secret \
+  admin create-node-receipt-subscriber "$SUB_A_USERNAME" "$SUB_A_CLIENT_ID" \
+    "$ORGANIZATION_A" "$NODE_A" /run/secrets/nexolab/receipt-subscriber-a-password
+chmod 0600 "$SECRETS_DIR/receipt-subscriber-a-password"
+
+# Positive: the organization publisher reaches the exact node subscriber.
+compose exec -T mqtt-security mosquitto_sub \
+  -h 127.0.0.1 -p 1883 -V mqttv5 -q 1 --quiet \
+  -u "$SUB_A_USERNAME" -P "$SUB_A_PASSWORD" -i "$SUB_A_CLIENT_ID" \
+  -C 1 -W 8 -t "$RECEIPT_TOPIC" \
+  >"$EVIDENCE_DIR/dedicated-receipt-delivered.txt" \
+  2>"$EVIDENCE_DIR/dedicated-receipt-errors.txt" &
+dedicated_sub_pid=$!
+sleep 1
+mqtt_publish "$ORG_PUBLISHER_USERNAME" "$ORG_PUBLISHER_PASSWORD" \
+  "$ORG_PUBLISHER_CLIENT_ID" "$RECEIPT_TOPIC" org-publisher-committed
+wait "$dedicated_sub_pid"
+[ "$(cat "$EVIDENCE_DIR/dedicated-receipt-delivered.txt")" = "org-publisher-committed" ] || {
+  echo "Dedicated receipt was not delivered to the node receipt subscriber." >&2
+  exit 1
+}
+
+# Deny: the Edge receipt subscriber never publishes (not even its own topic).
+attempt_forbidden_publish dedicated-subscriber-publish-denied \
+  "$SUB_A_USERNAME" "$SUB_A_PASSWORD" "$SUB_A_CLIENT_ID" \
+  "$RECEIPT_TOPIC" forged-by-subscriber
+expect_no_subscription_delivery dedicated-subscriber-publish-not-delivered \
+  "$SUB_A_USERNAME" "$SUB_A_PASSWORD" "$SUB_A_CLIENT_ID" "$RECEIPT_TOPIC"
+
+# Positive control: a retained probe on another node of the same organization
+# exists and is readable by THAT node's subscriber only.
+mqtt_publish "$ORG_PUBLISHER_USERNAME" "$ORG_PUBLISHER_PASSWORD" \
+  "$ORG_PUBLISHER_CLIENT_ID" "$PROBE_RECEIPT_TOPIC" other-node-probe true
+probe_received="$(mqtt_subscribe_once "$SUB_PROBE_USERNAME" "$SUB_PROBE_PASSWORD" \
+  "$SUB_PROBE_CLIENT_ID" "$PROBE_RECEIPT_TOPIC")"
+[ "$probe_received" = "other-node-probe" ] || {
+  echo "Positive control failed: probe subscriber did not read its own topic." >&2
+  exit 1
+}
+expect_no_subscription_delivery dedicated-subscriber-other-node-denied \
+  "$SUB_A_USERNAME" "$SUB_A_PASSWORD" "$SUB_A_CLIENT_ID" "$PROBE_RECEIPT_TOPIC"
+expect_no_subscription_delivery dedicated-subscriber-wildcard-denied \
+  "$SUB_A_USERNAME" "$SUB_A_PASSWORD" "$SUB_A_CLIENT_ID" \
+  "nexolab/v1/$ORGANIZATION_A/+/receipts"
+expect_no_subscription_delivery dedicated-subscriber-foreign-org-denied \
+  "$SUB_A_USERNAME" "$SUB_A_PASSWORD" "$SUB_A_CLIENT_ID" "$FOREIGN_RECEIPT_TOPIC"
+
+# Deny: the publisher cannot subscribe or read receipts.
+expect_no_subscription_delivery org-publisher-subscribe-denied \
+  "$ORG_PUBLISHER_USERNAME" "$ORG_PUBLISHER_PASSWORD" "$ORG_PUBLISHER_CLIENT_ID" \
+  "$PROBE_RECEIPT_TOPIC"
+
+# Deny: the organization publisher cannot publish to another organization.
+compose exec -T mqtt-security mosquitto_sub \
+  -h 127.0.0.1 -p 1883 -V mqttv5 -q 1 --quiet \
+  -u "$SUB_FOREIGN_USERNAME" -P "$SUB_FOREIGN_PASSWORD" -i "$SUB_FOREIGN_CLIENT_ID" \
+  -C 1 -W 8 -t "$FOREIGN_ORG_RECEIPT_TOPIC" \
+  >"$EVIDENCE_DIR/foreign-subscriber-control.txt" \
+  2>"$EVIDENCE_DIR/foreign-subscriber-control-errors.txt" &
+foreign_sub_pid=$!
+sleep 1
+mqtt_publish "$RECEIPT_USERNAME" "$RECEIPT_PASSWORD" "$RECEIPT_CLIENT_ID" \
+  "$FOREIGN_ORG_RECEIPT_TOPIC" all-org-publisher-control
+wait "$foreign_sub_pid"
+[ "$(cat "$EVIDENCE_DIR/foreign-subscriber-control.txt")" = "all-org-publisher-control" ] || {
+  echo "Positive control failed: foreign-organization subscriber did not receive." >&2
+  exit 1
+}
+attempt_forbidden_publish org-publisher-foreign-org-denied \
+  "$ORG_PUBLISHER_USERNAME" "$ORG_PUBLISHER_PASSWORD" "$ORG_PUBLISHER_CLIENT_ID" \
+  "$FOREIGN_ORG_RECEIPT_TOPIC" forged-cross-org
+expect_no_subscription_delivery org-publisher-foreign-org-not-delivered \
+  "$SUB_FOREIGN_USERNAME" "$SUB_FOREIGN_PASSWORD" "$SUB_FOREIGN_CLIENT_ID" \
+  "$FOREIGN_ORG_RECEIPT_TOPIC"
+
+# Deny: the organization publisher cannot publish telemetry.
+attempt_forbidden_publish org-publisher-telemetry-denied \
+  "$ORG_PUBLISHER_USERNAME" "$ORG_PUBLISHER_PASSWORD" "$ORG_PUBLISHER_CLIENT_ID" \
+  "$NODE_A_TOPIC/telemetry" forged-telemetry
+assert_retained_equals org-publisher-telemetry-not-delivered \
+  "$NODE_A_TOPIC/telemetry" '{"source":"node-a-telemetry"}'
+
+compose exec -T mqtt-security jq -e \
+  --arg role "nexolab-central-receipts-org-$ORGANIZATION_A" \
+  '.roles[] | select(.rolename == $role and (.acls | length) == 1)' \
+  /mosquitto/data/dynamic-security.json >"$EVIDENCE_DIR/org-receipt-role.json"
+compose exec -T mqtt-security jq -e \
+  --arg role "nexolab-node-receipt-subscriber-$ORGANIZATION_A-$NODE_A" \
+  '.roles[] | select(.rolename == $role and (.acls | length) == 3)' \
+  /mosquitto/data/dynamic-security.json >"$EVIDENCE_DIR/subscriber-receipt-role.json"
+compose exec -T mqtt-security jq -e --arg user "$SUB_A_USERNAME" \
+  '.clients[] | select(.username == $user and (.roles | length) == 1 and ((.groups // []) | length) == 0)' \
+  /mosquitto/data/dynamic-security.json >"$EVIDENCE_DIR/subscriber-receipt-client.json"
+printf '%s\n' \
+  "dedicated_org_publisher=publish_only_own_org" \
+  "dedicated_node_subscriber=read_only_exact_topic" \
+  "subscriber_publish=not_delivered" \
+  "subscriber_other_node_wildcard_foreign_org=denied" \
+  "publisher_subscribe=denied" \
+  "publisher_foreign_org_and_telemetry=not_delivered" \
+  >"$EVIDENCE_DIR/dedicated-receipt-identities-summary.txt"
+
 printf '%s\n' \
   "receipt_acl_source_only=verified_in_isolated_broker" \
   "receipt_central_publish=qos1_accepted" \

@@ -1216,6 +1216,67 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             result["verification"]["required_external_workflows"],
         )
 
+    def test_committed_receipt_acceptance_harness_is_known_and_requires_its_workflow(self) -> None:
+        result = classify([
+            "scripts/run-committed-receipt-acceptance.sh",
+            ".github/workflows/committed-receipt-acceptance.yml",
+        ])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("verification_tooling", result["classes"])
+        self.assertIn(
+            "Committed Receipt Acceptance",
+            result["verification"]["required_external_workflows"],
+        )
+
+    def test_receipt_runtime_and_identity_paths_require_committed_receipt_acceptance(self) -> None:
+        for path in (
+            "services/telemetry-service/app/committed_receipt_runtime.py",
+            "services/telemetry-service/app/committed_receipt_publisher.py",
+            "services/telemetry-service/bin/nexolab-dynsec-admin",
+            "services/device-agent/committed_receipt_mode.py",
+            "services/device-agent/receipt_retention.py",
+            "services/device-agent/receipt_replay.py",
+            "infrastructure/mqtt/dynamic-security/dynsec-admin.sh",
+            "infrastructure/compose/compose.committed-receipt-acceptance.yaml",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertFalse(result["fail_closed"])
+                self.assertIn(
+                    "Committed Receipt Acceptance",
+                    result["verification"]["required_external_workflows"],
+                )
+
+    def test_unrelated_device_agent_change_does_not_require_receipt_acceptance(self) -> None:
+        result = classify(["services/device-agent/xjp60d.py"])
+        self.assertNotIn(
+            "Committed Receipt Acceptance",
+            result["verification"]["required_external_workflows"],
+        )
+
+    def test_committed_receipt_patterns_are_all_workflow_pull_request_triggers(self) -> None:
+        workflow = (ROOT / ".github/workflows/committed-receipt-acceptance.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("name: Committed Receipt Acceptance\n", workflow)
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        filters = [
+            line.strip()[3:-1]
+            for line in trigger.splitlines()
+            if line.strip().startswith('- "')
+        ]
+        for pattern in MODULE.COMMITTED_RECEIPT_ACCEPTANCE_PATTERNS:
+            with self.subTest(pattern=pattern):
+                self.assertTrue(
+                    any(fnmatchcase(pattern, trigger_filter) for trigger_filter in filters),
+                    f"{pattern} is required but would not trigger the workflow",
+                )
+
+    def test_unregistered_receipt_neighbour_script_still_fails_closed(self) -> None:
+        result = classify(["scripts/run-committed-receipt-something-else.sh"])
+        self.assertTrue(result["fail_closed"])
+
 
 if __name__ == "__main__":
     unittest.main()

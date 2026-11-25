@@ -361,6 +361,31 @@ ISOLATED_ACCEPTANCE_TOOL_PATHS = {
     "scripts/tests/test_frontend_entrypoint_parity.py",
 }
 
+COMMITTED_RECEIPT_WORKFLOW = "Committed Receipt Acceptance"
+
+# #1762 slice 3: the disposable committed-receipt end-to-end acceptance
+# harness (Docker-only, synthetic identities, simulator acquisition).
+COMMITTED_RECEIPT_ACCEPTANCE_TOOL_PATHS = {
+    "scripts/run-committed-receipt-acceptance.sh",
+}
+
+# Receipt runtime, receipt identity provisioning and the harness itself.
+# Every pattern is also a pull_request path filter of
+# .github/workflows/committed-receipt-acceptance.yml, so requiring the
+# workflow can never wait for a run that was not triggered.
+COMMITTED_RECEIPT_ACCEPTANCE_PATTERNS = (
+    "services/telemetry-service/app/committed_receipt_*.py",
+    "services/telemetry-service/bin/nexolab-dynsec-admin",
+    "services/device-agent/committed_receipt_mode.py",
+    "services/device-agent/receipt_retention.py",
+    "services/device-agent/receipt_replay.py",
+    "services/device-agent/durable_receipt_v1.py",
+    "infrastructure/mqtt/dynamic-security/dynsec-admin.sh",
+    "infrastructure/compose/compose.committed-receipt-acceptance.yaml",
+    "scripts/run-committed-receipt-acceptance.sh",
+    ".github/workflows/committed-receipt-acceptance.yml",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -479,6 +504,9 @@ def _verification_for_paths(
     )
     acquisition_scale = "scripts/run-acquisition-scale-acceptance.py" in normalized
     rs485_tools = any(_matches(path, RS485_ACQUISITION_PATTERNS) for path in normalized)
+    committed_receipt = any(
+        _matches(path, COMMITTED_RECEIPT_ACCEPTANCE_PATTERNS) for path in normalized
+    )
 
     required = []
     if dashboard_mode != "none":
@@ -497,6 +525,8 @@ def _verification_for_paths(
         required.append(ACQUISITION_SCALE_WORKFLOW)
     if rs485_tools:
         required.append(RS485_TOOLS_WORKFLOW)
+    if committed_receipt:
+        required.append(COMMITTED_RECEIPT_WORKFLOW)
 
     return {
         "dashboard_mode": dashboard_mode,
@@ -559,6 +589,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
         matched = False
 
         if path in ISOLATED_ACCEPTANCE_TOOL_PATHS:
+            classes.add("verification_tooling")
+            matched = True
+
+        if path in COMMITTED_RECEIPT_ACCEPTANCE_TOOL_PATHS:
             classes.add("verification_tooling")
             matched = True
 
