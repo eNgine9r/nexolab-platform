@@ -9,6 +9,7 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import threading
 import time
 import unittest
@@ -285,6 +286,70 @@ class AutoBindTests(unittest.TestCase):
         self.assertEqual(start({}), 64)
         self.assertEqual(start({"NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT": "192.168.1.220"}), 64)
         self.assertEqual(start({"NEXOLAB_LAN_GATEWAY_ALLOW_COMPAT": "172.18.48.66"}), "running")
+
+
+SANDBOX = ROOT / "docs" / "operations" / "network" / "sandbox-restrict-address-families.py"
+
+
+def _unit_families() -> list[str]:
+    for line in UNIT.read_text(encoding="utf-8").splitlines():
+        if line.startswith("RestrictAddressFamilies="):
+            return line.split("=", 1)[1].split()
+    raise AssertionError("RestrictAddressFamilies missing")
+
+
+def _sandbox_supported() -> bool:
+    import platform
+    return sys.platform == "linux" and platform.machine() in ("x86_64", "aarch64")
+
+
+@unittest.skipUnless(Path(NODE).exists() and _sandbox_supported(), "node and Linux seccomp required")
+class SystemdSandboxTests(unittest.TestCase):
+    """#1756: run the real gateway under the unit's own RestrictAddressFamilies (seccomp emulation)."""
+
+    def start(self, families: list[str]) -> tuple[subprocess.Popen, int]:
+        port = _free_port()
+        env = {**os.environ, "NEXOLAB_LAN_GATEWAY_HOST": "auto", "NEXOLAB_LAN_GATEWAY_PORT": str(port),
+               "NEXOLAB_LAN_GATEWAY_INTERFACES": "lo", "NEXOLAB_LAN_GATEWAY_RESCAN_MS": "200"}
+        cmd = [sys.executable, "-I", str(SANDBOX), ",".join(families), "--", NODE, str(GATEWAY)]
+        return subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True), port
+
+    def test_gateway_serves_under_the_units_address_families(self) -> None:
+        families = _unit_families()
+        self.assertIn("AF_NETLINK", families)
+        proc, port = self.start(families)
+        try:
+            body = None
+            for _ in range(60):
+                try:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/__nexolab_lan_gateway/health", timeout=1) as res:
+                        body = json.loads(res.read())
+                        break
+                except OSError:
+                    if proc.poll() is not None:
+                        break
+                    time.sleep(0.1)
+            self.assertEqual(body and body.get("status"), "ok", proc.stderr.read() if proc.poll() is not None else "")
+            time.sleep(0.5)  # several re-scans under the sandbox
+            self.assertIsNone(proc.poll())
+        finally:
+            proc.terminate()
+            proc.communicate(timeout=5)
+
+    def test_negative_control_without_netlink_reproduces_errno_97(self) -> None:
+        proc, _ = self.start([f for f in _unit_families() if f != "AF_NETLINK"])
+        _, err = proc.communicate(timeout=20)
+        self.assertEqual(proc.returncode, 64)
+        self.assertIn("NEXOLAB_LAN_GATEWAY_CONFIG_REFUSED", err)
+        self.assertIn("97", err)
+
+    def test_netlink_stays_read_only_no_admin_capability(self) -> None:
+        directives = "\n".join(l for l in UNIT.read_text(encoding="utf-8").splitlines() if not l.startswith("#"))
+        self.assertIn("CapabilityBoundingSet=CAP_NET_BIND_SERVICE\n", directives)
+        self.assertIn("AmbientCapabilities=CAP_NET_BIND_SERVICE\n", directives)
+        self.assertNotIn("CAP_NET_ADMIN", directives)
+        self.assertNotIn("CAP_NET_RAW", directives)
+        self.assertEqual(sorted(_unit_families()), ["AF_INET", "AF_INET6", "AF_NETLINK", "AF_UNIX"])
 
 
 if __name__ == "__main__":

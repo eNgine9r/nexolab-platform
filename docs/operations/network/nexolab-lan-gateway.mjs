@@ -237,8 +237,20 @@ export function createGateway({ api, dashboard }) {
 function startAuto(upstreams) {
   const listeners = new Map();
   const log = (event, extra) => console.log(JSON.stringify({ event, ...extra }));
+  let firstScan = true;
   const scan = () => {
-    const wanted = new Set(selectAddresses(os.networkInterfaces()));
+    let interfaces;
+    try {
+      interfaces = os.networkInterfaces();
+    } catch (error) {
+      // Startup fails closed (caller exits 64); a transient error on a later re-scan keeps
+      // the current listeners instead of crashing the gateway (#1756).
+      if (firstScan) throw error;
+      log("interface_scan_failed", { message: String(error?.message ?? error).slice(0, 200) });
+      return;
+    }
+    firstScan = false;
+    const wanted = new Set(selectAddresses(interfaces));
     for (const [address, server] of listeners) {
       if (!wanted.has(address)) {
         server.close();
