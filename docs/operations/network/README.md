@@ -12,10 +12,10 @@ The browser bundle uses `same-origin` (WP2a, #1738), so no address is compiled i
 
 ## Files
 
-| File                                 | Purpose                                                                                                                           |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `nexolab-network-compat-recovery.py` | WP1 interim recovery: `172.18.48.66/32` on `lo`, start/rebind of existing containers, rollback, optional boot unit                |
-| `nexolab-lan-gateway.mjs`            | WP2b dependency-free Node gateway; upstreams must be loopback or exact private service names; bounded; explicit 503 on API outage |
-| `nexolab-lan-gateway.service`        | Hardened system unit (`User=nexolab`, `ProtectSystem=strict`, `MemoryMax=128M`)                                                   |
+| File                                 | Purpose                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nexolab-network-compat-recovery.py` | WP1 interim recovery (v2): `172.18.48.66/32` on dummy `nxcompat0`, start/rebind of existing containers, stability window (Edge delivery + PostgreSQL ingestion), automatic rollback, evidence sharing, optional boot unit |
+| `nexolab-lan-gateway.mjs`            | WP2b dependency-free Node gateway; upstreams must be loopback or exact private service names; bounded; explicit 503 on API outage                                                                                         |
+| `nexolab-lan-gateway.service`        | Hardened system unit (`User=nexolab`, `ProtectSystem=strict`, `MemoryMax=128M`)                                                                                                                                           |
 
 The cutover (WP2c) is a separate owner-run migration with rollback: loopback publishes, Edge bridge to `central-mqtt:1883` with the same `cleansession false` client ID, dashboard on `127.0.0.1:3010`, the gateway enabled, a `same-origin` LAN build, and finally removal of the compatibility alias. Gateway health: `GET /__nexolab_lan_gateway/health`.
