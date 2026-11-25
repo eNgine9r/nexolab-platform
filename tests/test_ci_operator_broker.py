@@ -39,6 +39,7 @@ def load(path: Path, name: str):
     return module
 
 
+sys.dont_write_bytecode = True
 broker_module = load(BROKER, "nexolab_operator_broker")
 client_module = load(CLIENT, "nexolab_operator_client")
 
