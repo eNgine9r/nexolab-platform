@@ -39,6 +39,10 @@ v2 changes after the unconfirmed v1 GREEN report:
               `--minimal-network-model`: explicit fallback when the Compose
               model cannot be read (primary network + service alias +
               repository standalone overlay).
+    boot-repair
+              unattended (timer, no sudo): repair-networks with the minimal
+              model only when production endpoints are lost; backoff after
+              a failure; never touches the compatibility address.
     rollback  remove the alias (dummy and legacy lo) and restore arp_ignore
     install-boot-compat / remove-boot-compat
               optional interim unit creating the alias before Docker at boot
@@ -837,13 +841,13 @@ def minimal_model(project: str, members: list[dict]) -> dict:
     return {"name": project, "services": services, "networks": networks, "source": "minimal-fallback"}
 
 
-def preflight(items: list[dict], allow_minimal: bool = False) -> tuple[list[dict], dict]:
+def preflight(items: list[dict], allow_minimal: bool = False, unattended: bool = False) -> tuple[list[dict], dict]:
     """Everything is checked before any change. Raises Blocked with a precise reason."""
     say("preflight: tools and privileges")
     for tool in (IP, SYSCTL, SUDO_PYTHON):
         if not Path(tool).exists():
             raise Blocked(f"PREFLIGHT_TOOL_MISSING {tool}")
-    if subprocess.run(["sudo", "-n", "true"], capture_output=True, timeout=20, check=False).returncode:
+    if not unattended and subprocess.run(["sudo", "-n", "true"], capture_output=True, timeout=20, check=False).returncode:
         raise Blocked("PREFLIGHT_SUDO_NOT_CACHED: run `sudo -v` first (the tool never asks for a password mid-run)")
     if subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=30, check=False).returncode:
         raise Blocked("PREFLIGHT_DOCKER_COMPOSE_UNAVAILABLE")
@@ -857,6 +861,10 @@ def preflight(items: list[dict], allow_minimal: bool = False) -> tuple[list[dict
     for key, members in groups.items():
         say(f"preflight: privileged read-only Compose model {key[0]} ({len(key[1].split(','))} file(s)) "
             f"for {[c['service'] for c in members]}")
+        if unattended:
+            # No privileges in unattended mode: the minimal model proven on site (#1733 run 20261125T105848Z).
+            models[key] = minimal_model(key[0], members)
+            continue
         try:
             models[key] = compose_config(key[0], members[0]["compose"], [c["service"] for c in members])
         except Blocked as exc:
@@ -878,7 +886,7 @@ def preflight(items: list[dict], allow_minimal: bool = False) -> tuple[list[dict
     return plan, models
 
 
-def repair_networks(share_to: str | None = None, allow_minimal: bool = False) -> int:
+def repair_networks(share_to: str | None = None, allow_minimal: bool = False, unattended: bool = False) -> int:
     if os.getuid() != 1000:
         print("NEXOLAB_NETWORK_REPAIR_BLOCKED RUN_AS_OPERATOR_UID_1000 (never run this tool as root)", flush=True)
         return 3
@@ -895,7 +903,7 @@ def repair_networks(share_to: str | None = None, allow_minimal: bool = False) ->
         dump(ev, "provenance.json", provenance())
         before = diagnose(ev)
         items = before["containers"]
-        plan, models = preflight(items, allow_minimal)
+        plan, models = preflight(items, allow_minimal, unattended)
         dump(ev, "network_models.json", {" | ".join(k): v for k, v in models.items()})  # projections only
     except Exception as exc:  # noqa: BLE001 - any preflight failure is BLOCKED with evidence, nothing changed
         reason = f"{exc.__class__.__name__}: {exc}" if not isinstance(exc, Blocked) else str(exc)
@@ -978,6 +986,45 @@ def repair_networks(share_to: str | None = None, allow_minimal: bool = False) ->
     return 0
 
 
+STATE_DIR = Path.home() / ".local" / "state" / "nexolab-network-repair"
+BACKOFF_SECONDS = int(os.environ.get("NEXOLAB_REPAIR_BACKOFF_SECONDS", "1800"))
+
+
+def unattended_repair() -> int:
+    """`boot-repair`: run by nexolab-network-endpoint-repair.timer (at boot and every 5 minutes).
+
+    No sudo, no Compose helper: only Docker access as the operator. Exits at once,
+    without evidence or changes, when every production container still has its
+    endpoints. After a failed repair it backs off for BACKOFF_SECONDS so it
+    never flaps. Requires the compatibility address from the boot unit when a
+    container publishes on it; it never adds or removes the address itself.
+    """
+    if os.getuid() != 1000:
+        print("NEXOLAB_NETWORK_REPAIR_BLOCKED RUN_AS_OPERATOR_UID_1000", flush=True)
+        return 3
+    items = [summary(c) for c in containers()]
+    lost = [c["name"] for c in items if endpoint_lost(c)]
+    if not lost:
+        print("NEXOLAB_NETWORK_ENDPOINTS_OK", flush=True)
+        return 0
+    STATE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+    marker = STATE_DIR / "last-failure"
+    if marker.exists() and time.time() - marker.stat().st_mtime < BACKOFF_SECONDS:
+        print(f"NEXOLAB_NETWORK_REPAIR_BACKOFF lost={lost} (last failure < {BACKOFF_SECONDS}s ago)", flush=True)
+        return 3
+    if any(COMPAT_IP in c["bound_ips"] for c in items if c["name"] in lost) and not ({"lo", DUMMY} & set(compat_holders())):
+        marker.touch()
+        print(f"NEXOLAB_NETWORK_REPAIR_BLOCKED COMPAT_ADDRESS_MISSING lost={lost} (boot unit not active?)", flush=True)
+        return 3
+    say(f"unattended repair: lost endpoints on {lost}")
+    code = repair_networks(None, allow_minimal=True, unattended=True)
+    if code == 0:
+        marker.unlink(missing_ok=True)
+    else:
+        marker.touch()
+    return code
+
+
 def main(argv: list[str]) -> int:
     args = list(argv[1:])
     share_to = None
@@ -997,6 +1044,8 @@ def main(argv: list[str]) -> int:
             return apply(share_to)
         if mode == "verify":
             return verify(share_to)
+        if mode == "boot-repair":
+            return unattended_repair()
         if mode == "repair-networks":
             return repair_networks(share_to, allow_minimal="--minimal-network-model" in args)
         provenance()
