@@ -530,5 +530,82 @@ class V3SelectionTests(unittest.TestCase):
         self.assertNotIn("json_build_object(", REC.PG_READONLY_SQL.replace("jsonb_build_object(", ""))
 
 
+NETWORK_DIR = ROOT / "docs" / "operations" / "network"
+
+
+class UnattendedRepairTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.state = Path(tempfile.mkdtemp())
+
+    def run_unattended(self, items, holders=("nxcompat0",), repair_code=0):
+        out = io.StringIO()
+        with mock.patch.object(REC.os, "getuid", return_value=1000), \
+                mock.patch.object(REC, "STATE_DIR", self.state), \
+                mock.patch.object(REC, "containers", return_value=items), \
+                mock.patch.object(REC, "summary", side_effect=lambda c: c), \
+                mock.patch.object(REC, "compat_holders", return_value=list(holders)), \
+                mock.patch.object(REC, "repair_networks", return_value=repair_code) as repair, \
+                mock.patch("sys.stdout", out):
+            code = REC.unattended_repair()
+        return code, out.getvalue(), repair
+
+    def test_healthy_endpoints_are_a_no_op(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", ["nexolab-central"], ["172.18.48.66:1884->1883/tcp"])]
+        code, out, repair = self.run_unattended(items)
+        self.assertEqual((code, out.strip()), (0, "NEXOLAB_NETWORK_ENDPOINTS_OK"))
+        repair.assert_not_called()
+
+    def test_lost_endpoint_is_repaired_without_privileges_using_the_minimal_model(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [], ["172.18.48.66:1884->1883/tcp"])]
+        code, _, repair = self.run_unattended(items)
+        self.assertEqual(code, 0)
+        repair.assert_called_once_with(None, allow_minimal=True, unattended=True)
+
+    def test_failure_backs_off_instead_of_flapping(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [], ["172.18.48.66:1884->1883/tcp"])]
+        code, _, _ = self.run_unattended(items, repair_code=1)
+        self.assertEqual(code, 1)
+        code, out, repair = self.run_unattended(items)
+        self.assertEqual(code, 3)
+        self.assertIn("NEXOLAB_NETWORK_REPAIR_BACKOFF", out)
+        repair.assert_not_called()
+
+    def test_missing_compatibility_address_blocks_without_touching_containers(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [], ["172.18.48.66:1884->1883/tcp"])]
+        code, out, repair = self.run_unattended(items, holders=())
+        self.assertEqual(code, 3)
+        self.assertIn("COMPAT_ADDRESS_MISSING", out)
+        repair.assert_not_called()
+
+    def test_unattended_preflight_never_uses_sudo_or_the_compose_helper(self) -> None:
+        items = [_c("mq", "mqtt", "nexolab-central", "running", [])]
+        calls = []
+
+        def fake(cmd, **kwargs):
+            calls.append(cmd)
+            return mock.Mock(returncode=0, stdout="", stderr="")
+
+        with mock.patch.object(REC.subprocess, "run", side_effect=fake), \
+                mock.patch.multiple(REC, IP=sys.executable, SYSCTL=sys.executable, SUDO_PYTHON=sys.executable), \
+                mock.patch.object(REC, "compose_config", side_effect=AssertionError("helper must not run")), \
+                mock.patch.object(REC, "compat_holders", return_value=["nxcompat0"]), \
+                mock.patch.object(REC, "physical_routes_covering", return_value=[]):
+            plan, models = REC.preflight(items, unattended=True)
+        self.assertEqual([p["name"] for p in plan], ["mq"])
+        self.assertFalse([c for c in calls if c[0] == "sudo"])
+        self.assertEqual(next(iter(models.values()))["source"], "minimal-fallback")
+
+    def test_units_are_bounded_and_unprivileged(self) -> None:
+        service = (NETWORK_DIR / "nexolab-network-endpoint-repair.service").read_text(encoding="utf-8")
+        timer = (NETWORK_DIR / "nexolab-network-endpoint-repair.timer").read_text(encoding="utf-8")
+        for line in ("User=nexolab", "NoNewPrivileges=yes", "Type=oneshot", "boot-repair", "MemoryMax=",
+                     "After=docker.service nexolab-compat-address.service"):
+            self.assertIn(line, service)
+        self.assertNotIn("PrivateTmp", service)  # the deployment lock lives in the shared /tmp
+        self.assertNotIn("SuccessExitStatus", service)  # failures stay visible
+        self.assertIn("OnBootSec=90s", timer)
+        self.assertIn("OnUnitInactiveSec=5min", timer)
+
+
 if __name__ == "__main__":
     unittest.main()
