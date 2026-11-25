@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from queue import Empty, Full, Queue
 from threading import Event, Thread
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
@@ -20,6 +20,9 @@ from app.durable_spool import (
     SpoolRecord,
 )
 from app.state import RuntimeState
+
+if TYPE_CHECKING:
+    from app.committed_receipt_runtime import CommittedReceiptIngress
 
 LOGGER = logging.getLogger("nexolab.telemetry.ingestion")
 
@@ -85,6 +88,7 @@ class TelemetryIngestor:
         database_retry_max_seconds: float = 5.0,
         durable_spool: DurableIngestionSpool | None = None,
         spool_poll_interval_seconds: float = 0.1,
+        committed_receipts: CommittedReceiptIngress | None = None,
     ) -> None:
         if spool_poll_interval_seconds <= 0:
             raise ValueError("spool poll interval must be positive")
@@ -94,6 +98,8 @@ class TelemetryIngestor:
         self._on_persisted = on_persisted
         self._after_persist = after_persist
         self._authorize_ingress = authorize_ingress
+        # #1762: None (the default) keeps the legacy authorize+persist path.
+        self._committed_receipts = committed_receipts
         self._payload_max_bytes = payload_max_bytes
         self._dead_letter_payload_max_bytes = dead_letter_payload_max_bytes
         self._database_retry_initial_seconds = database_retry_initial_seconds
@@ -377,47 +383,11 @@ class TelemetryIngestor:
 
     def _persist(self, work: PersistenceWork) -> None:
         if isinstance(work, TelemetryWork):
-            if self._authorize_ingress is not None:
-                allowed, reason_code, reason_detail = self._authorize_ingress(
-                    work.event,
-                    work.topic,
-                    work.received_at,
-                )
-                if not allowed:
-                    self._state.increment("rejected_total")
-                    self._state.increment("dead_letter_queued_total")
-                    self._persist_authorization_dead_letter(
-                        work,
-                        reason_code=reason_code,
-                        reason_detail=reason_detail,
-                    )
-                    return
-
-            inserted = self._database.persist(work.event, work.raw)
-            normalized = work.event.normalized_payload()
-            if inserted:
-                self._state.mark_persisted(work.event.captured_at)
-                if self._on_persisted is not None:
-                    try:
-                        self._on_persisted(normalized)
-                    except Exception:  # noqa: BLE001 - best-effort live boundary
-                        self._state.increment("websocket_publish_error_total")
-                        LOGGER.exception(
-                            "Failed to publish persisted event %s to live clients",
-                            work.event.event_id,
-                        )
-            else:
-                self._state.mark_database_success()
-                self._state.increment("duplicate_total")
-                self._state.set_error(None)
-
-            if self._after_persist is not None:
-                try:
-                    self._after_persist(normalized)
-                except Exception as exc:  # noqa: BLE001 - retryable pipeline boundary
-                    raise PostPersistProcessingError(
-                        f"post-persist processing failed for {work.event.event_id}: {exc}"
-                    ) from exc
+            committed = self._committed_receipts
+            if committed is not None and committed.applies_to(work.topic):
+                self._persist_committed(work, committed)
+                return
+            self._persist_telemetry(work)
             return
 
         self._database.persist_dead_letter(
@@ -430,6 +400,110 @@ class TelemetryIngestor:
         )
         self._state.mark_dead_letter_persisted(work.reason_code)
         self._state.set_error(None)
+
+    def _persist_telemetry(self, work: TelemetryWork) -> None:
+        """Legacy path: separate authorization, then telemetry persist."""
+        if self._authorize_ingress is not None:
+            allowed, reason_code, reason_detail = self._authorize_ingress(
+                work.event,
+                work.topic,
+                work.received_at,
+            )
+            if not allowed:
+                self._state.increment("rejected_total")
+                self._state.increment("dead_letter_queued_total")
+                self._persist_authorization_dead_letter(
+                    work,
+                    reason_code=reason_code,
+                    reason_detail=reason_detail,
+                )
+                return
+
+        inserted = self._database.persist(work.event, work.raw)
+        self._complete_telemetry(work, inserted)
+
+    def _persist_committed(
+        self,
+        work: TelemetryWork,
+        committed: CommittedReceiptIngress,
+    ) -> None:
+        """#1762: registry/cursor, telemetry and receipt intent in ONE commit."""
+        from app.committed_receipt_runtime import (
+            RECEIPT_CONFLICT_ERRORS,
+            RECEIPT_CONFLICT_REASON,
+            RECEIPT_OUTBOX_FULL_ERROR,
+        )
+
+        try:
+            allowed, reason_code, reason_detail, inserted = committed.persist(
+                work.event,
+                work.raw,
+                work.topic,
+                work.received_at,
+            )
+        except ValueError as exc:
+            if str(exc) not in RECEIPT_CONFLICT_ERRORS:
+                raise
+            # Deterministic identity conflict: a retry can never succeed, so
+            # it must not block the queue head. Nothing was committed.
+            committed.stats.increment("conflict_dead_letter_total")
+            self._state.increment("rejected_total")
+            self._state.increment("dead_letter_queued_total")
+            self._persist_authorization_dead_letter(
+                work,
+                reason_code=RECEIPT_CONFLICT_REASON,
+                reason_detail=str(exc),
+            )
+            return
+        except RuntimeError as exc:
+            if str(exc) != RECEIPT_OUTBOX_FULL_ERROR:
+                raise
+            # The bounded receipt outbox is full (publisher stalled). Never
+            # block telemetry: commit it on the legacy path without a receipt
+            # intent; the Edge keeps the row and a later replay re-queues it.
+            committed.stats.increment("outbox_full_fallback_total")
+            LOGGER.warning(
+                "Committed receipt outbox full; event %s persisted without a receipt intent",
+                work.event.event_id,
+            )
+            self._persist_telemetry(work)
+            return
+        if not allowed:
+            self._state.increment("rejected_total")
+            self._state.increment("dead_letter_queued_total")
+            self._persist_authorization_dead_letter(
+                work,
+                reason_code=reason_code,
+                reason_detail=reason_detail,
+            )
+            return
+        self._complete_telemetry(work, bool(inserted))
+
+    def _complete_telemetry(self, work: TelemetryWork, inserted: bool) -> None:
+        normalized = work.event.normalized_payload()
+        if inserted:
+            self._state.mark_persisted(work.event.captured_at)
+            if self._on_persisted is not None:
+                try:
+                    self._on_persisted(normalized)
+                except Exception:  # noqa: BLE001 - best-effort live boundary
+                    self._state.increment("websocket_publish_error_total")
+                    LOGGER.exception(
+                        "Failed to publish persisted event %s to live clients",
+                        work.event.event_id,
+                    )
+        else:
+            self._state.mark_database_success()
+            self._state.increment("duplicate_total")
+            self._state.set_error(None)
+
+        if self._after_persist is not None:
+            try:
+                self._after_persist(normalized)
+            except Exception as exc:  # noqa: BLE001 - retryable pipeline boundary
+                raise PostPersistProcessingError(
+                    f"post-persist processing failed for {work.event.event_id}: {exc}"
+                ) from exc
 
     def _persist_authorization_dead_letter(
         self,

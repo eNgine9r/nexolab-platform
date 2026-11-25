@@ -12236,6 +12236,26 @@
         "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read"
       },
       "branch": null
+    },
+    {
+      "issue": 1762,
+      "title": "Committed-receipt runtime wiring behind default-OFF flags (#1397) - slice 1 central",
+      "branch": "feat/1762-central-receipt-wiring",
+      "lifecycle": "in_progress",
+      "priority": "high",
+      "scope": "Slice 1 (central only): NEXOLAB_COMMITTED_RECEIPTS=disabled|enabled (default disabled). Enabled: fail-closed config (node registry, PostgreSQL, dedicated receipt publisher identity from a mounted password file), org-scoped node telemetry via authorize_and_persist_committed in one transaction, bounded background CommittedReceiptPublisher loop with backoff, separate receipt metrics and readiness section that never gates telemetry readiness. Slices 2 (Edge) and 3 (isolated end-to-end acceptance) follow.",
+      "depends_on": [],
+      "permitted_paths": [
+        "services/telemetry-service/",
+        "docs/architecture/",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
+        "default_off": true
+      }
     }
   ],
   "maintenance_actions": [

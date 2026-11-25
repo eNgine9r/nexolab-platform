@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -19,6 +20,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.committed_receipts import CommittedReceiptIdentity
 from app.contracts import TelemetryEvent
 from app.db import (
     TELEMETRY_HISTORY_ADVISORY_LOCK_ID,
@@ -139,7 +141,23 @@ class SessionTelemetryQuery:
 class SessionAwareDatabase(Database):
     """Telemetry persistence with immutable laboratory-session attribution."""
 
-    def persist(self, event: TelemetryEvent, raw_payload: dict[str, Any]) -> bool:
+    def persist(
+        self,
+        event: TelemetryEvent,
+        raw_payload: dict[str, Any],
+        *,
+        receipt_identity: CommittedReceiptIdentity | None = None,
+        receipt_outbox_max_pending: int = 10_000,
+        connection: Connection | None = None,
+    ) -> bool:
+        if receipt_identity is not None or connection is not None:
+            return self._persist_with_receipt(
+                event,
+                raw_payload,
+                receipt_identity=receipt_identity,
+                receipt_outbox_max_pending=receipt_outbox_max_pending,
+                connection=connection,
+            )
         values = {
             "event_id": str(event.event_id),
             "node_id": event.node_id,
@@ -165,6 +183,44 @@ class SessionAwareDatabase(Database):
             context = resolve_telemetry_context(connection, event)
             if context is not None:
                 connection.execute(
+                    TelemetrySessionContext.__table__.insert().values(
+                        telemetry_event_id=str(event.event_id),
+                        session_id=context.session_id,
+                        stage_id=context.stage_id,
+                        binding_id=context.binding_id,
+                        config_snapshot_id=context.config_snapshot_id,
+                        captured_at=event.captured_at,
+                        resolver_version=ATTRIBUTION_RESOLVER_VERSION,
+                    )
+                )
+        return True
+
+    def _persist_with_receipt(
+        self,
+        event: TelemetryEvent,
+        raw_payload: dict[str, Any],
+        *,
+        receipt_identity: CommittedReceiptIdentity | None,
+        receipt_outbox_max_pending: int,
+        connection: Connection | None,
+    ) -> bool:
+        """#1762 committed path: sample, receipt intent and session attribution
+        share the caller's (registry/cursor) transaction."""
+        with (
+            self.engine.begin() if connection is None else nullcontext(connection)
+        ) as active:
+            inserted = super().persist(
+                event,
+                raw_payload,
+                receipt_identity=receipt_identity,
+                receipt_outbox_max_pending=receipt_outbox_max_pending,
+                connection=active,
+            )
+            if not inserted:
+                return False
+            context = resolve_telemetry_context(active, event)
+            if context is not None:
+                active.execute(
                     TelemetrySessionContext.__table__.insert().values(
                         telemetry_event_id=str(event.event_id),
                         session_id=context.session_id,

@@ -53,6 +53,24 @@ class Settings(BaseSettings):
     mqtt_tls_cert_file: str | None = None
     mqtt_tls_key_file: str | None = None
 
+    # #1762 slice 1: central PostgreSQL-committed receipt runtime wiring.
+    # Default OFF; when disabled the ingestion path is unchanged. When enabled
+    # the receipt publisher uses its OWN broker identity (never the ingestion
+    # subscriber's) read from a mounted password file.
+    nexolab_committed_receipts: Literal["disabled", "enabled"] = "disabled"
+    nexolab_receipt_publisher_username: str | None = None
+    nexolab_receipt_publisher_password_file: str | None = None
+    nexolab_receipt_publisher_client_id: str = "nexolab-receipt-publisher"
+    nexolab_receipt_publisher_retry_initial_seconds: float = Field(
+        default=2.0, ge=0.1, le=60.0
+    )
+    nexolab_receipt_publisher_retry_max_seconds: float = Field(
+        default=300.0, ge=1.0, le=3600.0
+    )
+    nexolab_receipt_publisher_idle_seconds: float = Field(
+        default=1.0, ge=0.05, le=60.0
+    )
+
     broker_control_enabled: bool = False
     broker_control_encryption_key_file: str | None = None
     broker_control_encryption_key_id: str | None = None
@@ -319,7 +337,54 @@ class Settings(BaseSettings):
                     "broker control is enabled but required settings are missing: "
                     + ", ".join(sorted(missing))
                 )
+        if self.committed_receipts_enabled:
+            problems = self._committed_receipt_problems()
+            if problems:
+                # Names only: never echo credential paths or values.
+                raise ValueError(
+                    "NEXOLAB_COMMITTED_RECEIPTS=enabled is misconfigured: "
+                    + "; ".join(problems)
+                )
         return self
+
+    @property
+    def committed_receipts_enabled(self) -> bool:
+        return self.nexolab_committed_receipts == "enabled"
+
+    def _committed_receipt_problems(self) -> list[str]:
+        problems: list[str] = []
+        if not self.mqtt_enabled:
+            problems.append("MQTT_ENABLED=true is required")
+        if not self.mqtt_node_registry_enforced:
+            problems.append("MQTT_NODE_REGISTRY_ENFORCED=true is required")
+        if not self.database_url.strip().lower().startswith("postgresql"):
+            problems.append("a PostgreSQL DATABASE_URL is required")
+        username = (self.nexolab_receipt_publisher_username or "").strip()
+        password_file = (self.nexolab_receipt_publisher_password_file or "").strip()
+        client_id = self.nexolab_receipt_publisher_client_id.strip()
+        if not username:
+            problems.append("NEXOLAB_RECEIPT_PUBLISHER_USERNAME is required")
+        if not password_file:
+            problems.append("NEXOLAB_RECEIPT_PUBLISHER_PASSWORD_FILE is required")
+        if not client_id:
+            problems.append("NEXOLAB_RECEIPT_PUBLISHER_CLIENT_ID must not be empty")
+        if username and username == (self.mqtt_username or "").strip():
+            problems.append(
+                "NEXOLAB_RECEIPT_PUBLISHER_USERNAME must differ from MQTT_USERNAME"
+            )
+        if client_id and client_id == self.mqtt_client_id.strip():
+            problems.append(
+                "NEXOLAB_RECEIPT_PUBLISHER_CLIENT_ID must differ from MQTT_CLIENT_ID"
+            )
+        if (
+            self.nexolab_receipt_publisher_retry_max_seconds
+            < self.nexolab_receipt_publisher_retry_initial_seconds
+        ):
+            problems.append(
+                "NEXOLAB_RECEIPT_PUBLISHER_RETRY_MAX_SECONDS must be greater than "
+                "or equal to NEXOLAB_RECEIPT_PUBLISHER_RETRY_INITIAL_SECONDS"
+            )
+        return problems
 
     @property
     def parsed_cors_allowed_origins(self) -> list[str]:
