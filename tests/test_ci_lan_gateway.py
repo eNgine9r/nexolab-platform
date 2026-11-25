@@ -250,22 +250,24 @@ class AutoBindTests(unittest.TestCase):
                "NEXOLAB_LAN_GATEWAY_API": f"http://127.0.0.1:{api.server_address[1]}",
                "NEXOLAB_LAN_GATEWAY_DASHBOARD": f"http://127.0.0.1:{dash.server_address[1]}"}
         proc = subprocess.Popen([NODE, str(GATEWAY)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        output = ("", "")
         try:
             body = None
-            for _ in range(50):
+            deadline = time.monotonic() + 20  # node start-up on a loaded CI runner (flake seen at 5 s)
+            while time.monotonic() < deadline and proc.poll() is None:
                 try:
-                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v1/x", timeout=1) as res:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v1/x", timeout=2) as res:
                         body = json.loads(res.read())
                         break
                 except OSError:
                     time.sleep(0.1)
-            self.assertEqual(body and body["upstream"], "api")
         finally:
             proc.terminate()
-            proc.communicate(timeout=5)
+            output = proc.communicate(timeout=5)
             for server in (api, dash):
                 server.shutdown()
                 server.server_close()
+        self.assertEqual(body and body["upstream"], "api", f"gateway exit={proc.returncode} output={output}")
 
     def test_compat_upstream_needs_the_exact_explicit_flag(self) -> None:
         def start(extra):

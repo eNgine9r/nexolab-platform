@@ -153,11 +153,23 @@ as_operator() { runuser -u "$OPERATOR" -- "$@"; }
 sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b
 sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1"
     used_ids="$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' | sort -u)"
+    # With the containerd image store `dangling=true` also lists TAGGED images (for example
+    # the *-protected-arm64 recovery images). An image is a candidate only when it has no
+    # repository tag at all, checked per image; any tag makes it PROTECTED.
     for id in $(docker images -q --filter dangling=true --no-trunc | sort -u); do
+      tags="$(docker image inspect --format '{{join .RepoTags " "}}' "$id" 2>/dev/null)"
+      if [ -z "$tags" ]; then
+        tags="$(docker image ls --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}' 2>/dev/null \
+          | awk -v id="$id" '$1 == id && $2 !~ /^<none>/ {print $2}' | tr '\n' ' ')"
+      fi
       if printf '%s\n' "$protected_ids" | grep -qx "$id"; then
         echo "M4 PROTECTED $id  (baseline / rollback image)"
       elif printf '%s\n' "$used_ids" | grep -qx "$id"; then
         echo "M4 PROTECTED $id  (used by a container)"
+      elif [ -n "$tags" ]; then
+        echo "M4 PROTECTED $id  (tagged: ${tags% }; not dangling)"
+      elif ! docker image inspect "$id" >/dev/null 2>&1; then
+        echo "M4 REVIEW  $id  (cannot inspect; never remove blind)"
       else
         size="$(docker image inspect --format '{{.Size}}' "$id" 2>/dev/null || echo 0)"
         echo "M4 CLEAN   $(human "$size")  dangling image $id  ->  sudo docker image rm $id"
@@ -188,6 +200,15 @@ sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1"
     fi
     caches="$(find "$workspace" -xdev -maxdepth 3 -type d \( -name node_modules -o -name .next \) -prune -print 2>/dev/null)"
     [ -n "$caches" ] || continue
+    # node_modules/.next inside release, runtime, candidate or artifact folders ARE the
+    # deployable release (rollback assets), not caches. Only a plain git checkout has caches.
+    if [ -z "$reason" ] && printf '%s\n' "$caches" | sed "s|^$workspace/||" \
+        | grep -qiE '(^|/)(release|runtime|candidate[^/]*|artifacts?|build-context|lan|external|bundle)(/|$)'; then
+      reason="release/runtime artifact folder, not a cache"
+    fi
+    if [ -z "$reason" ] && ! { [ -d "$workspace/.git" ] || [ -f "$workspace/.git" ]; }; then
+      reason="not a git checkout; contents are not provably regenerable"
+    fi
     cache_bytes="$(printf '%s\n' "$caches" | tr '\n' '\0' | xargs -0 du -sbx 2>/dev/null | awk '{s+=$1} END {print s+0}')"
     if [ -n "$reason" ]; then
       echo "M5 REVIEW  $(human "$cache_bytes")  $workspace  ($reason)"
