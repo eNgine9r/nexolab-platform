@@ -18,6 +18,8 @@ UMask=0027
 NoNewPrivileges=yes
 ProtectSystem=strict
 ReadWritePaths=/var/log/nexolab-operator /var/lib/nexolab-operator /etc/nexolab-operator/approvals /run/nexolab-operator
+# Approved storage.cleanup-regenerable vacuums the journal to a bound (#1758 v1.1).
+ReadWritePaths=-/var/log/journal
 ProtectHome=read-only
 InaccessiblePaths=-/etc/nexolab-gitlab-sync
 PrivateTmp=yes
