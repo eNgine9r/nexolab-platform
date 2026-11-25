@@ -1,3 +1,16 @@
+## 2026-11-25 — Device Agent image blocked by two new base-image vulnerabilities (Product Owner decision)
+
+Every new Device Agent image (first seen on PR #1741) fails the container vulnerability policy:
+
+- `CVE-2026-107494` in `libssl3t64 3.5.9-1~deb13u1`, no fixed version;
+- `CVE-2026-124851` in `libzstd1 1.5.7+dfsg-1`, fixed in `+deb13u1`; the distroless base image has not been rebuilt with it yet.
+
+Options: an exact, dated exception approved by the Product Owner, or wait for the upstream fix and an updated base image. The agent never self-approves exceptions.
+
+## 2026-11-25 — #1733 owner-reported GREEN not confirmed at runtime
+
+At 08:45Z the compatibility address was absent from `lo`, the API and Dashboard ports were unreachable, and no container had been started. Production recovery is unverified until the full `apply` output and a repeat run are provided.
+
 ## 2026-11-25 — P0 #1733 production degraded after network change (owner action required)
 
 Telemetry API, central MQTT, object storage and the LAN Dashboard ports are down because they bind the former address 172.18.48.66. Ingestion into PostgreSQL is stopped and Edge bridge overflow may drop telemetry. Recovery requires the owner-run #1733 `apply` (privileged `ip`/`sysctl`, `docker start`/`restart` of existing containers). The agent has no docker/sudo access. Permanent fix #1734 needs a guarded owner migration. Wi-Fi #1735 needs owner credential entry.
