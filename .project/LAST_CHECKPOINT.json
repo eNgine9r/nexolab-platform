@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-25T11:07:10Z",
+  "timestamp": "2026-11-25T14:46:28Z",
   "actor": "claude",
-  "event": "P0 #1733 production recovered (v3.2 GREEN_STABLE, agent-verified 11:04Z); data impact measured",
+  "event": "Receipt chain #1450/#1446/#1452 merged (source-only), #1744 CVE resolution, #1754 clock offset fix; unplanned reboot recovered automatically",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -1509,7 +1509,9 @@
       "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
       "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
       "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
-      "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
+      "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)",
+      "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
+      "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3910,6 +3912,17 @@
       "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
       "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
       "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell"
+    },
+    "superseded_active_issue_evidence_2026-11-25T11:07:10Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "not_started",
+      "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+      "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source",
+      "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
+      "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
+      "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
+      "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
     }
   },
   "observations": [
@@ -5540,7 +5553,7 @@
       }
     }
   ],
-  "next_action": "Unattended endpoint repair after reboot (#1399), WP2c (#1734), receipt chain #1397 after CVE decision #1744, acceptance test plan",
+  "next_action": "Owner runs WP2c Stage 1 v2 (8bb6eda3); then Stage 2 same-origin LAN build, Stage 3 loopback backend and nxcompat0 retirement; receipt chain activation design",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
