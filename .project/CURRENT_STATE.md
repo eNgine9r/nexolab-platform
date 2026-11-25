@@ -1,3 +1,15 @@
+## 2026-11-25 — P0 network change: production degraded; WP1 recovery tool ready (owner-run), WP2/WP3 opened
+
+The Pi moved to another network (`eth0 192.168.1.220/24`, was `172.18.48.66/21`; Wi-Fi disconnected). The installed LOCAL_LAN contract publishes the Telemetry API, central MQTT and object storage on the former DHCP address. That address is also used as the Edge bridge target, the HTTPS gateway private API origin and the dev readiness URL, and it is compiled into the LAN browser bundle. Docker cannot bind it, so `:8082`, `:1884`, `:9000` and `:3000` are down. The Device Agent keeps sampling into the Edge broker, whose bridge queue (10,000 messages) drops overflow while central is unreachable. Any loss must be measured, not assumed zero.
+
+WP1 #1733: owner-run, checksum-pinned `docs/operations/network/nexolab-network-compat-recovery.py`.
+
+- `diagnose` is read-only and includes the Edge broker dropped counter.
+- `apply` restores the former address as a host-local `lo` alias and starts or rebinds only the existing affected containers. It never recreates and verifies IDs, images and mounts.
+- `rollback` and an optional interim boot unit are included.
+
+It restores ingestion, HTTPS/Tailscale, lab.nexolab, the Pi kiosk and the dev guard. Other LAN clients need WP2 #1734 (loopback/internal plane, Docker-DNS Edge targets, same-origin LAN UI). Wi-Fi: WP3 #1735 (profiles appear user-scoped; consistent with `no-secrets` headless). No production change by the agent.
+
 ## 2026-11-23 — XWEB frontend-only activation command ready (owner-run; not activated)
 
 Regenerated from the owner-shared #1638 guarded scripts by exact-count constant replacement (verified off-site against the real scripts: only release constants, labels and the protected `99-release-1638-chart-audit.conf` drop-in change). Release tool `xweb_1643_release.py` (SHA-256 `d4704eec…`) stages both verified artifacts by streaming (tested on the real ZIPs: 17,629/17,629 files, 40 MiB peak RSS), builds the LAN image `nexolab/dashboard:issue-1643-7db6e1a8-arm64` offline from the base image proven by the #1638 image's layers with the #1638 configuration mirrored and a file-by-file comparison, and generates the scripts. The activation command fast-forwards the deployment checkout `f0295409 → 7db6e1a8` (as #1638 did), recreates the canonical lock lost at reboot, runs the paired orchestrator with automatic verified LAN (Compose) and HTTPS (user drop-in) rollback, and checks that `lab.nexolab` (old `:3104` UI) is unchanged. Rollback targets: LAN `issue-1638-f0295409-arm64` (`c6c5ae80…`), HTTPS release `external-ui/f0295409…`. Separate reversible procedure stops the `nexolab-external-frontend` crash loop by disabling `nexolab-external-nginx` (no files deleted). Backend, database, MQTT, Device Agent, RS-485 and authentication untouched.
