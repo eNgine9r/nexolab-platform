@@ -267,5 +267,20 @@ class V3RepairTests(unittest.TestCase):
             REC.repair_networks()
 
 
+class V3SelectionTests(unittest.TestCase):
+    def test_one_shot_and_candidate_containers_are_never_started(self) -> None:
+        def c(state, error="", policy="unless-stopped"):
+            return {"state": state, "error": error, "restart_policy": policy}
+        self.assertTrue(REC.meant_to_run(c("running")))
+        self.assertTrue(REC.meant_to_run(c("restarting")))
+        self.assertTrue(REC.meant_to_run(c("exited", "failed to set up container networking")))
+        self.assertFalse(REC.meant_to_run(c("exited")))  # init/migrate finished normally
+        self.assertFalse(REC.meant_to_run(c("exited", "boom", "no")))  # candidate without restart policy
+
+    def test_postgres_check_parses_multiline_output(self) -> None:
+        self.assertIn("jsonb_build_object", REC.PG_READONLY_SQL)
+        self.assertNotIn("json_build_object(", REC.PG_READONLY_SQL.replace("jsonb_build_object(", ""))
+
+
 if __name__ == "__main__":
     unittest.main()

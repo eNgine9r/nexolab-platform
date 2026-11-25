@@ -85,15 +85,15 @@ WantedBy=multi-user.target
 """
 PG_READONLY_SQL = """
 SET statement_timeout = '30s';
-SELECT json_build_object(
+SELECT jsonb_build_object(
   'now', now(),
-  'latest', (SELECT json_agg(r) FROM (SELECT id, node_id, captured_at, received_at FROM telemetry_samples ORDER BY id DESC LIMIT 3) r),
-  'recent_by_received_10min', (SELECT json_agg(b ORDER BY b.bucket) FROM (
+  'latest', (SELECT jsonb_agg(r) FROM (SELECT id, node_id, captured_at, received_at FROM telemetry_samples ORDER BY id DESC LIMIT 3) r),
+  'recent_by_received_10min', (SELECT jsonb_agg(b ORDER BY b.bucket) FROM (
       SELECT date_trunc('hour', received_at) + floor(date_part('minute', received_at) / 10) * interval '10 minutes' AS bucket,
              count(*) AS row_count, min(captured_at) AS min_captured, max(captured_at) AS max_captured
       FROM (SELECT received_at, captured_at FROM telemetry_samples ORDER BY id DESC LIMIT 200000) s
       GROUP BY 1) b),
-  'recent_by_captured_10min', (SELECT json_agg(b ORDER BY b.bucket) FROM (
+  'recent_by_captured_10min', (SELECT jsonb_agg(b ORDER BY b.bucket) FROM (
       SELECT date_trunc('hour', captured_at) + floor(date_part('minute', captured_at) / 10) * interval '10 minutes' AS bucket,
              count(*) AS row_count
       FROM (SELECT captured_at FROM telemetry_samples ORDER BY id DESC LIMIT 200000) s
@@ -268,10 +268,11 @@ def postgres_ingestion(items: list[dict]) -> dict:
                             capture_output=True, timeout=90, check=False)
     if result.returncode:
         return {"postgres": "query failed", "stderr": result.stderr.strip()[-300:]}
+    text = result.stdout.strip()
     try:
-        return json.loads(result.stdout.strip().splitlines()[-1])
-    except (ValueError, IndexError):
-        return {"postgres": "unparsed", "stdout": result.stdout[-300:]}
+        return json.loads(text[text.index("{"):])
+    except ValueError:
+        return {"postgres": "unparsed", "stdout": text[-300:]}
 
 
 def history() -> dict:
@@ -618,7 +619,7 @@ def endpoint_plan(items: list[dict], models: dict[tuple, dict]) -> list[dict]:
             continue
         key = (c["project"], c["compose"]["project.config_files"], c["compose"]["project.environment_file"])
         model = models.get(key)
-        if model is None:
+        if model is None or not meant_to_run(c):
             continue
         want = desired_networks(model, c["service"])
         missing = {net: spec for net, spec in want.items() if net not in c["networks"]}
@@ -627,6 +628,17 @@ def endpoint_plan(items: list[dict], models: dict[tuple, dict]) -> list[dict]:
                          "missing": missing, "had": c["networks"]})
     rank = {s: i for i, s in enumerate(NET_ORDER)}
     return sorted(plan, key=lambda t: next((rank[s] for s in NET_ORDER if s in t["service"]), len(NET_ORDER)))
+
+
+def meant_to_run(c: dict) -> bool:
+    """Running/restarting, or exited because its start failed while it should always run.
+
+    Intentionally stopped one-shot jobs (init, migrate) and candidates are never started.
+    """
+    if c["state"] in ("running", "restarting"):
+        return True
+    return (c["state"] == "exited" and bool(c.get("error"))
+            and c.get("restart_policy") in ("always", "unless-stopped"))
 
 
 def connect_cmd(net: str, spec: dict, cid: str) -> list[str]:
