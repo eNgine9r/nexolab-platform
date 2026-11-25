@@ -33,7 +33,33 @@ RUN mkdir -p /opt/runtime-libs \
     && cp -L "$sqlite_lib" /opt/runtime-libs/libsqlite3.so.0 \
     && chmod 0644 /opt/runtime-libs/libsqlite3.so.0
 
+# CVE-2026-124851 (#1743): gcr.io/distroless/base-debian13 still ships the
+# vulnerable libzstd1 1.5.7+dfsg-1. Install Debian's exact security build in
+# distroless's own package layout (library files, status.d control record and
+# md5sums), so the library itself is replaced, not only its metadata. Remove
+# this stage once the upstream distroless base ships the fixed version.
+FROM python:3.13.16-slim-trixie AS libzstd-fix
+ARG LIBZSTD1_VERSION=1.5.7+dfsg-1+deb13u1
+RUN set -eu; \
+    apt-get update; \
+    cd /tmp; \
+    apt-get download "libzstd1=${LIBZSTD1_VERSION}"; \
+    deb="$(ls libzstd1_*.deb)"; \
+    test "$(dpkg-deb -f "$deb" Package)" = "libzstd1"; \
+    test "$(dpkg-deb -f "$deb" Version)" = "$LIBZSTD1_VERSION"; \
+    test "$(dpkg-deb -f "$deb" Architecture)" = "$(dpkg --print-architecture)"; \
+    mkdir -p /opt/libzstd/root/var/lib/dpkg/status.d /opt/libzstd/control; \
+    dpkg-deb -x "$deb" /opt/libzstd/root; \
+    dpkg-deb -e "$deb" /opt/libzstd/control; \
+    dpkg-deb -f "$deb" > /opt/libzstd/root/var/lib/dpkg/status.d/libzstd1; \
+    cp /opt/libzstd/control/md5sums /opt/libzstd/root/var/lib/dpkg/status.d/libzstd1.md5sums; \
+    (cd /opt/libzstd/root && md5sum --quiet -c var/lib/dpkg/status.d/libzstd1.md5sums); \
+    rm -rf /var/lib/apt/lists/* "/tmp/$deb"
+
 FROM gcr.io/distroless/base-debian13:nonroot
+
+# Fixed libzstd1 (CVE-2026-124851, #1743) over the base image's vulnerable copy.
+COPY --from=libzstd-fix /opt/libzstd/root/ /
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exposure inventory for an OpenSSL QUIC-server CVE in one exported container image.
+"""Exposure inventory for an OpenSSL QUIC CVE (server or client side) in one exported container image.
 
 Used by .github/workflows/cve-exposure-evidence.yml (and reproducible by hand):
 
@@ -13,7 +13,8 @@ Read-only: it only reads the three input files and writes one JSON summary.
 It reports
 - the installed OpenSSL Debian packages (dpkg ``status`` or distroless ``status.d``),
 - every ELF that links libssl/libcrypto and whether it references the QUIC
-  server/listener API (only ``libssl.so`` itself is expected to),
+  server/listener API or the QUIC client API (only ``libssl.so`` itself is
+  expected to; any other consumer means the process can speak QUIC),
 - exposed ports (UDP would matter for QUIC) and the runtime user,
 - every Trivy finding, with the rows for the requested CVE and all HIGH/CRITICAL.
 """
@@ -35,6 +36,14 @@ QUIC_SERVER_API = (
     b"OSSL_QUIC_server_method",
     b"SSL_new_domain",
     b"SSL_accept_stream",
+)
+# A QUIC client is created only through these methods/APIs (OpenSSL 3.2+).
+QUIC_CLIENT_API = (
+    b"OSSL_QUIC_client_method",
+    b"OSSL_QUIC_client_thread_method",
+    b"SSL_set1_initial_peer_addr",
+    b"SSL_new_stream",
+    b"SSL_get_stream_type",
 )
 OPENSSL_PACKAGES = ("libssl3t64", "libssl3", "openssl", "openssl-provider-legacy")
 MAX_ELF_BYTES = 400_000_000
@@ -88,6 +97,7 @@ def inspect_export(path: Path) -> dict[str, Any]:
                     "path": name,
                     "kind": "openssl-library" if is_openssl_library else "libssl" if links_ssl else "libcrypto-only",
                     "quic_server_api": [symbol.decode() for symbol in QUIC_SERVER_API if symbol in data],
+                    "quic_client_api": [symbol.decode() for symbol in QUIC_CLIENT_API if symbol in data],
                 }
             )
     consumers.sort(key=lambda row: row["path"])
@@ -96,6 +106,9 @@ def inspect_export(path: Path) -> dict[str, Any]:
         "libssl_consumers": consumers,
         "quic_server_api_outside_openssl_libraries": [
             row["path"] for row in consumers if row["quic_server_api"] and row["kind"] != "openssl-library"
+        ],
+        "quic_client_api_outside_openssl_libraries": [
+            row["path"] for row in consumers if row["quic_client_api"] and row["kind"] != "openssl-library"
         ],
     }
 
@@ -164,6 +177,7 @@ def build_summary(*, cve: str, image_id: str, arch: str, export: Path, inspect: 
             "affected_package_present": bool(trivy_summary["cve_rows"]),
             "fix_available": any(row["fixed"] for row in trivy_summary["cve_rows"]),
             "quic_server_api_used_outside_openssl": bool(exported["quic_server_api_outside_openssl_libraries"]),
+            "quic_client_api_used_outside_openssl": bool(exported["quic_client_api_outside_openssl_libraries"]),
             "udp_exposed": bool(config["udp_ports"]),
             "other_high_critical": [
                 f"{row['severity']} {row['id']} {row['package']} {row['installed']}"
@@ -182,6 +196,7 @@ def markdown_row(summary: dict[str, Any]) -> str:
         f"| {summary['image_id']} | {summary['arch']} | {summary['trivy']['os']} | {installed} | "
         f"{'yes' if assessment['fix_available'] else 'no'} | "
         f"{'YES' if assessment['quic_server_api_used_outside_openssl'] else 'no'} | "
+        f"{'YES' if assessment['quic_client_api_used_outside_openssl'] else 'no'} | "
         f"{', '.join(summary['udp_ports']) or 'none'} | {summary['trivy']['severity_counts']} | "
         f"{'; '.join(assessment['other_high_critical']) or 'none'} |"
     )

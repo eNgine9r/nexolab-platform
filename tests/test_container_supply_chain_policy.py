@@ -11,6 +11,9 @@ import pytest
 CURRENT_REVIEW_DATE = date(2026, 11, 22)
 CURRENT_EXPIRY = "2026-11-30"
 OPENSSL_QUIC_CVE = "CVE-2026-124709"
+# Product Owner approved 2026-11-25 (#1743), exact entries pinned by a dedicated test below.
+OPENSSL_QUIC_RETIRE_CVE = "CVE-2026-107494"
+OPENSSL_QUIC_CVES = {OPENSSL_QUIC_CVE, OPENSSL_QUIC_RETIRE_CVE}
 OPENSSL_QUIC_EXPIRY = "2026-12-15"
 RETAINED_TELEMETRY_EXCEPTIONS = 15
 
@@ -294,7 +297,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    exceptions = [e for e in payload["exceptions"] if e["vulnerability"] != OPENSSL_QUIC_CVE]
+    exceptions = [e for e in payload["exceptions"] if e["vulnerability"] not in OPENSSL_QUIC_CVES]
     stale = {
         (image_id, package, vulnerability)
         for image_id in {"device-agent", "telegram-gateway"}
@@ -625,7 +628,7 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     assert all(
         entry["expires_on"] == CURRENT_EXPIRY
         for entry in payload["exceptions"]
-        if entry["vulnerability"] != "CVE-2026-124709"
+        if entry["vulnerability"] not in OPENSSL_QUIC_CVES
     )
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
     assert all("server_hostname" in entry["reason"] and "wrap_socket" in entry["reason"] for entry in new)
@@ -652,7 +655,7 @@ def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
     assert all(
         entry["image_id"] == "telemetry-service"
         for entry in registry["exceptions"]
-        if entry["vulnerability"] != OPENSSL_QUIC_CVE
+        if entry["vulnerability"] not in OPENSSL_QUIC_CVES
     )
 
 
@@ -662,7 +665,7 @@ def test_current_approval_is_bound_to_eighteen_reviewed_telemetry_versions() -> 
     entries = [
         item
         for item in json.loads(path.read_text())["exceptions"]
-        if item["vulnerability"] != OPENSSL_QUIC_CVE
+        if item["vulnerability"] not in OPENSSL_QUIC_CVES
     ]
     keys = sorted(
         (item["image_id"], item["package"], item["vulnerability"], item["installed_version"])
@@ -718,3 +721,33 @@ def test_openssl_quic_exceptions_are_the_three_exact_approved_entries(tmp_path: 
     MODULE.validate_exceptions(only, date(2026, 12, 14))
     with pytest.raises(ValidationFailure, match="expired"):
         MODULE.validate_exceptions(only, date(2026, 12, 16))
+
+
+def test_openssl_quic_retire_exceptions_are_the_three_exact_approved_entries(tmp_path: Path) -> None:
+    """CVE-2026-107494: Product Owner approval 2026-11-25, no automatic extension (#1743)."""
+    path = ROOT / "security/vulnerability-exceptions.json"
+    entries = [
+        item
+        for item in json.loads(path.read_text())["exceptions"]
+        if item["vulnerability"] == OPENSSL_QUIC_RETIRE_CVE
+    ]
+    assert sorted((item["image_id"], item["package"], item["installed_version"]) for item in entries) == [
+        ("device-agent", "libssl3t64", "3.5.9-1~deb13u1"),
+        ("telegram-gateway", "libssl3t64", "3.5.9-1~deb13u1"),
+        ("telemetry-service", "libssl3t64", "3.5.9-1~deb13u1"),
+    ]
+    assert {item["owner"] for item in entries} == {"platform-security"}
+    assert {item["expires_on"] for item in entries} == {"2026-12-15"}
+    assert all("*" not in value for item in entries for value in item.values())
+    for item in entries:
+        reason = item["reason"]
+        assert "Product Owner approved this exact finding on 2026-11-25" in reason and "#1743" in reason
+        assert "NO automatic extension" in reason
+        assert "45589190384" in reason and "linux/amd64 and linux/arm64" in reason
+        assert "no UDP" in reason and "severity becomes Critical" in reason
+    only = tmp_path / "only-openssl-quic-retire.json"
+    only.write_text(json.dumps({"schema_version": 1, "exceptions": entries}), encoding="utf-8")
+    MODULE.validate_exceptions(only, date(2026, 12, 15))
+    with pytest.raises(ValidationFailure, match="expired"):
+        MODULE.validate_exceptions(only, date(2026, 12, 16))
+
