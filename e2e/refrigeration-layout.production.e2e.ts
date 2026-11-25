@@ -7,7 +7,6 @@ const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0
 const webBaseUrl = process.env.NEXOLAB_ACCEPTANCE_WEB_URL ?? "http://127.0.0.1:13000";
 const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "acceptance-evidence";
 const climateChamberCode = "KK2";
-const climateChamberName = "Кліматична камера №2";
 const channelIds = {
   replacement: "101-03",
   temperatureOne: "101-01",
@@ -107,20 +106,6 @@ async function resolveClimateChamber(
   return chamber as ClimateChamberPayload;
 }
 
-async function chooseClimateChamber(page: Page, chamber: ClimateChamberPayload): Promise<void> {
-  const selector = page.getByLabel(/^Кліматична камера/);
-  await expect(selector).toContainText(chamber.name);
-  await selector.selectOption(chamber.id);
-  const channelSummary = page.getByText(/Температурні канали:/);
-  await expect(channelSummary).toBeVisible();
-  await expect(channelSummary).toContainText("114");
-  await expect(page.getByText(/Dixell:/)).toContainText("19");
-  await expect(page.getByText(/Лічильники:/)).toContainText("0");
-  await expect(
-    page.getByText("До цієї кліматичної камери лічильники електроенергії ще не підключені.", { exact: true }),
-  ).toBeVisible();
-}
-
 async function createEquipmentViaApi(
   request: APIRequestContext,
   chamber: ClimateChamberPayload,
@@ -206,14 +191,6 @@ async function addChannel(page: Page, channelId: string, xRatio = 0.5, yRatio = 
   await placePendingSensor(page, xRatio, yRatio);
 }
 
-async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, channelId: string) {
-  const search = selector.getByRole("searchbox", { name: "Пошук" });
-  await search.fill(channelId);
-  const point = selector.getByRole("treeitem").filter({ hasText: channelId });
-  await expect(point).toHaveCount(1);
-  await point.click();
-}
-
 async function ensureAdvancedSensorParametersOpen(page: Page) {
   const summary = editor(page).getByText("Додаткові параметри", { exact: true });
   const details = summary.locator("..");
@@ -224,11 +201,10 @@ async function ensureAdvancedSensorParametersOpen(page: Page) {
 }
 
 async function replaceChannel(page: Page, channelId: string) {
-  await editor(page).getByRole("button", { name: "Вибрати інший канал вимірювання" }).click();
+  await editor(page).getByRole("button", { name: "Замінити датчик" }).click();
   const selector = editor(page).getByTestId("equipment-map-replace-telemetry-selector");
   await expect(selector).toBeVisible();
-  await chooseTelemetryPoint(selector, channelId);
-  await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+  await chooseQuickSensor(selector, channelId);
   await expect(selector).toHaveCount(0);
 }
 
@@ -250,9 +226,8 @@ async function readBindings(request: APIRequestContext, equipmentId: string): Pr
   return (await response.json()) as BindingListPayload;
 }
 
-test("requires a climate chamber before creating or copying refrigeration equipment", async ({ page }) => {
+test("creates and copies refrigeration equipment without a climate chamber", async ({ page }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
-  const chamber = await resolveClimateChamber(page.request);
   const name = "Вітрина acceptance №108-01";
   const code = "ACCEPTANCE-CS-108-01";
   const copyName = `${name} — копія`;
@@ -264,9 +239,6 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await expect(addButton).toHaveAttribute("title", "Додати холодильне обладнання");
   await addButton.click();
 
-  await expect(page.getByText(/Спочатку оберіть кліматичну камеру/)).toBeVisible();
-  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
-  await chooseClimateChamber(page, chamber);
   await expect(page.getByLabel(/^Назва/)).toBeEnabled();
 
   await page.getByLabel(/^Назва/).fill(name);
@@ -278,14 +250,12 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await page.getByLabel(/^Модель/).fill("NX-1250-A");
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
   await page.getByLabel(/^Температурний клас/).fill("3M1 (0…+5 °C)");
-  await page.getByLabel(/^Кількість слотів датчиків/).fill("4");
   const createButton = page.getByRole("button", { name: "Створити", exact: true });
   await expect(createButton).toBeEnabled();
   await createButton.click();
 
   await expect(page.getByRole("status")).toContainText(`${name} додано до каталогу.`);
   await expect(page.getByRole("heading", { name })).toBeVisible();
-  await expect(page.getByText(climateChamberName, { exact: true })).toBeVisible();
 
   const openLink = page.getByRole("link", { name: `Відкрити ${name}` });
   await expect(openLink).toHaveAttribute("title", "Відкрити");
@@ -299,10 +269,9 @@ test("requires a climate chamber before creating or copying refrigeration equipm
   await copyButton.click();
   await expect(page.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeVisible();
   await expect(page.getByLabel(/^Кліматична камера/)).toHaveValue("");
-  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
+  await expect(page.getByLabel(/^Назва/)).toBeEnabled();
   await expect(page.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeVisible();
 
-  await chooseClimateChamber(page, chamber);
   await expect(page.getByLabel(/^Назва/)).toHaveValue(copyName);
   await expect(page.getByLabel(/^Код обладнання/)).toHaveValue(copyCode);
   await expect(page.getByLabel(/^Серійний номер/)).toHaveValue("");
@@ -386,6 +355,8 @@ test("renders the read-only Embraco digital twin without fabricating temperature
     },
   );
   expect(bindingResponse.status()).toBe(200);
+  const newBinding = (await bindingResponse.json()) as { bound_at: string };
+  expect(Number.isFinite(Date.parse(newBinding.bound_at))).toBe(true);
 
   await page.goto(absoluteRoute("/refrigeration"), { waitUntil: "networkidle" });
   const controllerSummary = page.getByTestId(`controller-summary-${equipment.id}`);
@@ -393,6 +364,22 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(controllerSummary).toContainText("Embraco");
   await expect(controllerSummary).toContainText("Pulldown");
   await expect(controllerSummary).toContainText("4500 rpm");
+  await expect(controllerSummary).toContainText("Збережений стан Embraco");
+  await expect(controllerSummary).toContainText("Останній збережений запис:");
+  await expect(controllerSummary.locator("time")).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}T/);
+
+  const originalCatalogViewport = page.viewportSize();
+  for (const width of [375, 768, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(controllerSummary).toBeVisible();
+    await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1),
+      )
+      .toBe(true);
+  }
+  if (originalCatalogViewport) await page.setViewportSize(originalCatalogViewport);
 
   await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
@@ -410,42 +397,33 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await page.getByRole("button", { name: "Графіки", exact: true }).click();
   const history = page.getByTestId("refrigeration-controller-history");
   await expect(history).toBeVisible();
-  for (const period of ["1 год", "12 год", "24 год", "Кастом"]) {
+  for (const period of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
     await expect(history.getByRole("button", { name: period, exact: true })).toBeVisible();
   }
+  // This equipment is bound *after* the preloaded controller samples were captured.
+  // Historical KK2 readings must never appear as fresh/owned by this new asset.
   const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
-  await expect(duty).toContainText(/\d+\.\d %/);
-  await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
-  await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
-  await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
-  const relayLanes = history.getByTestId("relay-analysis-lanes");
-  for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
-    await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
-  }
-  await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
-  await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
-
-  const compressorChart = history.locator(
-    '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
+  await expect(duty).toBeVisible();
+  await expect(history.getByText(/У вибраному періоді немає показників двох датчиків/)).toBeVisible();
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText(
+    "попередній коефіцієнт ×0,01",
   );
-  const compressorHost = compressorChart.getByTestId("chart-renderer-host");
-  const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
-  await expect(compressorHost).toHaveAttribute("data-range-selection-enabled", "true");
-  await compressorSurface.scrollIntoViewIfNeeded();
-  await expect(compressorSurface).toBeInViewport();
-  const compressorBounds = await compressorSurface.boundingBox();
-  expect(compressorBounds).not.toBeNull();
-  if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");
-  const selectionY = compressorBounds.y + compressorBounds.height * 0.5;
-  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.3, selectionY);
-  await page.mouse.down();
-  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
-  await page.mouse.up();
-  await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
-  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
+  await expect(history.getByTestId("embraco-unverified-scale-note")).toContainText(
+    "відповідність датчика на дисплеї та калібрування ще не підтверджені",
+  );
+  await expect(
+    history.locator(
+      '[data-testid="refrigeration-controller-chart"][data-chart-title="Діагностика · вихідні raw"]',
+    ),
+  ).toBeVisible();
+  await expect(history.getByTestId("refrigeration-controller-chart")).toHaveCount(3);
+  await expect(history.getByText("Тривалість відтайки", { exact: true })).toBeVisible();
+  await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
 
+  // Export is still available for the selected interval, but must not leak
+  // old controller rows into the newly bound refrigeration equipment history.
   const downloadPromise = page.waitForEvent("download");
-  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  await history.getByRole("button", { name: "Експорт CSV", exact: true }).click();
   const csvDownload = await downloadPromise;
   expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
   const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
@@ -453,21 +431,22 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   const controllerCsv = readFileSync(controllerExportPath, "utf8");
   expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
   expect(controllerCsv).toContain("compressor.start_count");
-  expect(controllerCsv).toContain("controller.relay_state_bits");
-  expect(controllerCsv).toContain("relay_transition");
-  const csvLines = controllerCsv
-    .replace(/^\uFEFF/, "")
-    .trim()
-    .split(/\r?\n/);
-  const selectedRangeColumns = csvLines[1]?.split(",") ?? [];
-  expect(Date.parse(selectedRangeColumns[1] ?? "") - Date.parse(selectedRangeColumns[0] ?? "")).toBeLessThan(
-    60 * 60 * 1000,
+  expect(controllerCsv).toContain(
+    "raw_value,raw_signed,operator_celsius_degC,operator_scale_degC_per_count,operator_scale_basis,raw_status",
   );
-
-  await history.getByRole("button", { name: "Скинути вибір", exact: true }).click();
+  // The seed may include fresh samples during browser acceptance, but no event
+  // captured while the controller belonged to a previous refrigeration asset.
+  const exportedTelemetry = controllerCsv
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((line) => line.split(","))
+    .filter((cells) => cells[4] === "telemetry");
+  for (const cells of exportedTelemetry) {
+    expect(Date.parse(cells[2] ?? "")).toBeGreaterThanOrEqual(Date.parse(newBinding.bound_at));
+  }
   await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
 
-  await history.getByRole("button", { name: "Кастом", exact: true }).click();
+  await history.getByRole("button", { name: "Власний період", exact: true }).click();
   await expect(history.getByLabel("Від", { exact: true })).toBeVisible();
   await expect(history.getByLabel("До", { exact: true })).toBeVisible();
 
@@ -640,10 +619,15 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(preSaveDraft.version).toBe(1);
     expect(preSaveDraft.placements).toEqual([]);
 
+    const markerBeforeReplacement = sensorMarker(pageA, "471");
+    const preservedX = await markerBeforeReplacement.getAttribute("data-x");
+    const preservedY = await markerBeforeReplacement.getAttribute("data-y");
     await pageA.getByRole("button", { name: "Редагувати датчик 471" }).click();
-    await ensureAdvancedSensorParametersOpen(pageA);
     await replaceChannel(pageA, channelIds.replacement);
-    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 473" }).click();
+    await expect(sensorMarker(pageA, "471")).toHaveAttribute("data-x", preservedX!);
+    await expect(sensorMarker(pageA, "471")).toHaveAttribute("data-y", preservedY!);
+    await ensureAdvancedSensorParametersOpen(pageA);
+    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 471" }).click();
     const renameInput = editor(pageA).getByRole("textbox", { name: "Нова назва маркера" });
     await renameInput.fill("T-03");
     await renameInput.press("Enter");

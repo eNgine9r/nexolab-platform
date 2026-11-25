@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import { EnergyWorkspace } from "./energy-workspace";
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 
 vi.mock("@/components/charts/chart-renderer-host", () => ({
   ChartRendererHost: ({ scene }: { scene: { series: import("@/features/charts/domain").ChartSeries[] } }) => (
@@ -43,7 +44,11 @@ afterEach(() => {
   }
 });
 
-function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
+function setup(
+  overrides: Partial<EnergyTelemetryModel> = {},
+  meters: readonly CommissionedEnergyMeter[] = [],
+  options: { includeLegacy?: boolean; nodeId?: string } = {},
+) {
   const telemetry: EnergyTelemetryModel = {
     mode: "live",
     status: "live",
@@ -58,6 +63,7 @@ function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
     setSelectedMetric: vi.fn(),
     historyRange: "7d",
     setHistoryRange: vi.fn(),
+    applyCustomHistoryRange: vi.fn(),
     historyWindow: null,
     historySamples: [],
     historyStatus: "ready",
@@ -68,7 +74,7 @@ function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
     ...overrides,
   };
   const consumption: EnergyConsumptionLoader = { enabled: false, load: vi.fn() };
-  render(<EnergyWorkspace telemetry={telemetry} consumption={consumption} />);
+  render(<EnergyWorkspace telemetry={telemetry} consumption={consumption} meters={meters} {...options} />);
   return { telemetry, consumption };
 }
 
@@ -79,6 +85,99 @@ function toggle(label: string, selected = true) {
 }
 
 describe("EnergyWorkspace comparison selection", () => {
+  it("on a different node shows only its commissioned meters, not primary-node legacy labels", async () => {
+    const meter: CommissionedEnergyMeter = {
+      nodeId: "edge-02",
+      busId: "commissioning-0123456789abcdef",
+      unitId: 1,
+      equipmentId: "SDM120M:commissioning-0123456789abcdef:1",
+      label: "Remote meter",
+      modelLabel: "SDM",
+      family: "sdm120",
+    };
+    const item = {
+      event_id: "remote",
+      node_id: meter.nodeId,
+      equipment_id: meter.equipmentId,
+      channel_id: "1-voltage",
+      captured_at: new Date().toISOString(),
+      metric: "electrical.voltage",
+      value: 227,
+      unit: "V",
+      quality: "valid" as const,
+      source: "eastron-sdm120m",
+      alarm: null,
+      raw_value: null,
+      raw_status: null,
+    };
+    setup({ samples: [item], freshSamples: [item], historySamples: [item] }, [meter], {
+      includeLegacy: false,
+      nodeId: "edge-02",
+    });
+    expect(screen.queryByRole("button", { name: /лічильник W1/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: `Виключити лічильник Remote meter · ${meter.busId} з порівняння` }),
+    ).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByTestId("visible-energy-series")).toHaveTextContent(meter.equipmentId),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+    expect(screen.queryByRole("checkbox", { name: /W1/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: `Remote meter · ${meter.busId} · Напруга` })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Закрити вибір параметрів" }));
+  });
+  it("shows and selects two commissioned Unit 1 meters separately", async () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id, index) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      label: `Meter ${index + 1}`,
+      modelLabel: "SDM",
+      family: "sdm120",
+    }));
+    const samples = meters.map((meter, index) => ({
+      event_id: `scoped-${index}`,
+      node_id: meter.nodeId,
+      equipment_id: meter.equipmentId,
+      channel_id: "1-voltage",
+      captured_at: new Date().toISOString(),
+      metric: "electrical.voltage",
+      value: 225 + index,
+      unit: "V",
+      quality: "valid" as const,
+      source: "eastron-sdm120m",
+      alarm: null,
+      raw_value: null,
+      raw_status: null,
+    }));
+    setup({ samples, freshSamples: samples, historySamples: samples }, meters);
+    expect(
+      screen.getByRole("button", { name: `Додати лічильник Meter 1 · ${meters[0].busId} з порівняння` }),
+    ).toBeVisible();
+    const table = screen.getByRole("columnheader", { name: "Meter 1" }).closest("table")!;
+    expect(within(table).getByText("225,0 V")).toBeVisible();
+    expect(within(table).getByText("226,0 V")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: `Додати лічильник Meter 1 · ${meters[0].busId} з порівняння` }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: `Додати лічильник Meter 2 · ${meters[1].busId} з порівняння` }),
+    );
+    await waitFor(() => {
+      const scene = screen.getByTestId("visible-energy-series");
+      expect(scene).toHaveTextContent(meters[0].equipmentId);
+      expect(scene).toHaveTextContent(meters[1].equipmentId);
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: `Показати лише лічильник Meter 1 · ${meters[0].busId}` }),
+    );
+    await waitFor(() => {
+      const scene = screen.getByTestId("visible-energy-series");
+      expect(scene).toHaveTextContent(meters[0].equipmentId);
+      expect(scene).not.toHaveTextContent(meters[1].equipmentId);
+    });
+  });
   it("explains why the final meter cannot be removed and permits adding another", () => {
     setup();
     for (const meter of ENERGY_METERS) expect(toggle(meter.label)).toHaveAttribute("aria-pressed", "true");
@@ -109,7 +208,7 @@ describe("EnergyWorkspace comparison selection", () => {
     expect(screen.getByText(/1 вибрано/)).toBeVisible();
     expect(screen.getByLabelText("Вибрані параметри графіка")).toHaveTextContent("U, V");
     expect(screen.queryByRole("combobox", { name: "Показник" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "7 днів" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByText("Споживання", { exact: true })).toHaveLength(ENERGY_METERS.length);
     expect(telemetry.setSelectedMetric).not.toHaveBeenCalled();
     expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
@@ -187,7 +286,7 @@ it("permits empty selection and cancels draft changes", () => {
   fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
   expect(telemetry.setSelectedMetrics).toHaveBeenCalledWith([]);
   expect(screen.getByText("Додайте параметри для порівняння.")).toBeVisible();
-  expect(screen.getByRole("button", { name: "12 год" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "24 години" })).toBeVisible();
 });
 
 it("retains a hidden meter's distinct parameters when applying the dialog", () => {
@@ -240,4 +339,50 @@ it("removing the Solo parameter reveals the remaining selected series", async ()
   fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Прибрати W1 · Напруга" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
+});
+
+describe("Energy custom history period (#1683)", () => {
+  it("offers the unified presets plus a custom period and applies the entered window", () => {
+    const applyCustomHistoryRange = vi.fn();
+    setup({ applyCustomHistoryRange });
+
+    for (const label of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Власний період" }));
+    fireEvent.change(screen.getByLabelText("Від"), { target: { value: "2026-11-10T08:00" } });
+    fireEvent.change(screen.getByLabelText("До"), { target: { value: "2026-11-10T10:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    expect(applyCustomHistoryRange).toHaveBeenCalledOnce();
+    const [fromMs, toMs] = applyCustomHistoryRange.mock.calls[0] as [number, number];
+    expect(toMs - fromMs).toBe(2 * 60 * 60 * 1000);
+    expect(screen.queryByTestId("energy-custom-range-form")).not.toBeInTheDocument();
+  });
+
+  it("shows the validation message and keeps the form open when the period is rejected", () => {
+    const applyCustomHistoryRange = vi.fn(() => {
+      throw new Error("Діапазон не може перевищувати 31 день.");
+    });
+    setup({ applyCustomHistoryRange });
+
+    fireEvent.click(screen.getByRole("button", { name: "Власний період" }));
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Діапазон не може перевищувати 31 день.");
+    expect(screen.getByTestId("energy-custom-range-form")).toBeInTheDocument();
+  });
+
+  it("marks a selected custom period as fixed so no one expects live samples in it", () => {
+    setup({
+      historyRange: "custom",
+      historyWindow: { from: "2026-11-10T08:00:00.000Z", to: "2026-11-10T10:00:00.000Z" },
+    });
+
+    expect(screen.getByRole("button", { name: "Власний період" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "7 днів" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("energy-custom-range-notice")).toHaveTextContent(
+      "Фіксований період: нові вимірювання не додаються",
+    );
+  });
 });

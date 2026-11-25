@@ -5,7 +5,8 @@ import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartExactTimestamp, formatChartValue } from "@/features/charts/format";
-import { buildChartYAxisModel } from "@/features/charts/units";
+import { assessHistoryCoverage } from "@/features/charts/history-coverage";
+import { buildChartYAxisModel, displayUnit } from "@/features/charts/units";
 
 function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "en"): string {
   const labels =
@@ -13,18 +14,43 @@ function freshnessLabel(state: ChartSeries["freshness"], locale: "en" | "uk" = "
       ? {
           live: "Актуально",
           stale: "Застаріло",
+          invalid: "Немає валідних даних",
           connecting: "Підключення",
           reconnecting: "Перепідключення",
           offline: "Офлайн",
+          historical: "Фіксований період",
         }
       : {
           live: "Live",
           stale: "Stale",
+          invalid: "No valid data",
           connecting: "Connecting",
           reconnecting: "Reconnecting",
           offline: "Offline",
+          historical: "Fixed period",
         };
   return labels[state];
+}
+
+function qualityLabel(quality: string, locale: "en" | "uk"): string {
+  if (locale !== "uk") return quality;
+  const labels: Record<string, string> = {
+    valid: "валідне",
+    unknown: "невідома якість",
+    sensor_error: "помилка датчика",
+    communication_error: "немає зв'язку",
+  };
+  return labels[quality] ?? quality;
+}
+
+function latestOf(item: ChartSeries): { value: number | null; quality: string } | null {
+  if (item.latest)
+    return {
+      value: item.latest.quality === "valid" ? item.latest.value : null,
+      quality: item.latest.quality,
+    };
+  const plotted = item.segments.at(-1)?.points.at(-1);
+  return plotted ? { value: plotted.value, quality: plotted.quality } : null;
 }
 
 export function ChartShell({
@@ -34,11 +60,14 @@ export function ChartShell({
   series,
   inspection,
   children,
+  legend,
   onToggleSeries,
   onSoloSeries,
   onResetZoom,
+  onExportImage,
   formatTimestamp,
   locale = "en",
+  requestedWindow,
 }: {
   title: string;
   context: string;
@@ -46,11 +75,16 @@ export function ChartShell({
   series: readonly ChartSeries[];
   inspection: ChartCursorInspection | null;
   children: ReactNode;
+  legend?: ReactNode;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
   onResetZoom: () => void;
+  /** When provided, shows a button that saves the visible plot as PNG (local renderer only). */
+  onExportImage?: () => void;
   formatTimestamp?: (timestampMs: number) => string;
   locale?: "en" | "uk";
+  /** The requested time window; enables the "history starts later than requested" notice. */
+  requestedWindow?: { fromMs: number; toMs: number };
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const timestampFormatter =
@@ -62,16 +96,20 @@ export function ChartShell({
     ? "offline"
     : freshnessSeries.some((item) => item.freshness === "stale")
       ? "stale"
-      : freshnessSeries.some((item) => item.freshness === "reconnecting")
-        ? "reconnecting"
-        : freshnessSeries.some((item) => item.freshness === "connecting")
-          ? "connecting"
-          : "live";
+      : freshnessSeries.some((item) => item.freshness === "invalid")
+        ? "invalid"
+        : freshnessSeries.some((item) => item.freshness === "reconnecting")
+          ? "reconnecting"
+          : freshnessSeries.some((item) => item.freshness === "connecting")
+            ? "connecting"
+            : freshnessSeries.some((item) => item.freshness === "historical")
+              ? "historical"
+              : "live";
   const inspectionBySeries = new Map(
     (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
   );
   const visibleAxes = buildChartYAxisModel(series).visibleAxes;
-  const units = [...new Set(visibleAxes.map((axis) => axis.nativeUnit))].join(", ");
+  const units = [...new Set(visibleAxes.map((axis) => displayUnit(axis.nativeUnit)))].join(", ");
   const continuityBreaks = visibleSeries.reduce(
     (total, item) => total + item.segments.filter((segment) => segment.precedingBreak).length,
     0,
@@ -84,6 +122,7 @@ export function ChartShell({
     locale === "uk"
       ? {
           resetZoom: "Скинути масштаб",
+          exportImage: "Зберегти PNG",
           legend: "Легенда графіка",
           hide: "Приховати",
           show: "Показати",
@@ -98,9 +137,13 @@ export function ChartShell({
           value: "Значення",
           quality: "Якість",
           freshness: "Актуальність",
+          noValidPoints: "Немає валідних точок для відображення у вибраному періоді",
+          noSamples: "немає збережених вимірювань",
+          partialHistory: "Історія доступна не за весь період",
         }
       : {
           resetZoom: "Reset zoom",
+          exportImage: "Save PNG",
           legend: "Chart legend",
           hide: "Hide",
           show: "Show",
@@ -114,7 +157,22 @@ export function ChartShell({
           value: "Value",
           quality: "Quality",
           freshness: "Freshness",
+          noValidPoints: "No valid points to plot in the selected range",
+          noSamples: "no persisted samples",
+          partialHistory: "History does not cover the whole range",
         };
+  // Series that are visible but have nothing plottable: say why instead of drawing empty axes.
+  const emptySeries = visibleSeries.filter((item) =>
+    item.segments.every((segment) => segment.points.length === 0),
+  );
+
+  const coverage = requestedWindow ? assessHistoryCoverage(series, requestedWindow) : null;
+  const coverageDetail =
+    coverage?.kind === "partial" && coverage.availableFromMs !== null
+      ? locale === "uk"
+        ? `Перше збережене вимірювання: ${timestampFormatter(coverage.availableFromMs)}. Покрито ${Math.round(coverage.coverageRatio * 100)}% вибраного періоду; решта — немає даних, а не нулі.`
+        : `First stored measurement: ${timestampFormatter(coverage.availableFromMs)}. ${Math.round(coverage.coverageRatio * 100)}% of the range is covered; the rest is no data, not zero.`
+      : null;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
@@ -129,66 +187,110 @@ export function ChartShell({
             {selectedRange} · <span className="font-medium">{freshnessLabel(freshness, locale)}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onResetZoom}
-          className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-        >
-          {copy.resetZoom}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {onExportImage ? (
+            <button
+              type="button"
+              onClick={onExportImage}
+              data-testid="chart-export-png"
+              className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              {copy.exportImage}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onResetZoom}
+            className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            {copy.resetZoom}
+          </button>
+        </div>
       </header>
 
       <p className="sr-only" data-testid="chart-accessible-summary">
         {summary}
       </p>
-      <div className="min-w-0 p-3 sm:p-4">{children}</div>
+      <div className="min-w-0 p-3 sm:p-4">
+        {emptySeries.length > 0 ? (
+          <div
+            role="status"
+            data-testid="chart-no-valid-points"
+            className="mb-3 rounded-xl border border-amber-300/30 bg-amber-300/[0.06] px-3 py-2 text-xs text-amber-100"
+          >
+            <p className="font-medium">{copy.noValidPoints}</p>
+            <ul className="mt-1 space-y-0.5 text-amber-100/80">
+              {emptySeries.map((item) => (
+                <li key={chartSeriesKey(item.identity)}>
+                  {item.name}: {item.latest ? qualityLabel(item.latest.quality, locale) : copy.noSamples}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {children}
+        {coverageDetail ? (
+          <div
+            role="status"
+            data-testid="chart-partial-history"
+            className="mt-3 rounded-xl border border-sky-300/30 bg-sky-300/[0.06] px-3 py-2 text-xs text-sky-100"
+          >
+            <p className="font-medium">{copy.partialHistory}</p>
+            <p className="mt-1 text-sky-100/80">{coverageDetail}</p>
+          </div>
+        ) : null}
+      </div>
 
       <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label={copy.legend}>
-          {series.map((item) => {
-            const key = chartSeriesKey(item.identity);
-            const latest = item.segments.at(-1)?.points.at(-1);
-            const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
-            const quality = latest?.quality ?? "unknown";
-            const itemFreshness = freshnessLabel(item.freshness, locale);
-            const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
-            return (
-              <div
-                key={key}
-                className="flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2"
-              >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full border border-white/40"
-                  style={{ backgroundColor: item.colorToken }}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
-                  <span>{item.name}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{latestValue}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{quality}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{itemFreshness}</span>
-                </span>
-                <button
-                  type="button"
-                  aria-pressed={item.visible}
-                  onClick={() => onToggleSeries(key)}
-                  className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        <div
+          className={legend ? "min-w-0" : "grid min-w-0 gap-2 sm:grid-cols-2"}
+          aria-label={legend ? undefined : copy.legend}
+        >
+          {legend ??
+            series.map((item) => {
+              const key = chartSeriesKey(item.identity);
+              const latest = latestOf(item);
+              const latestValue = `${latest && latest.value !== null ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${displayUnit(item.identity.nativeUnit)}`;
+              const quality = qualityLabel(latest?.quality ?? "unknown", locale);
+              const itemFreshness = freshnessLabel(item.freshness, locale);
+              const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
+              return (
+                <div
+                  key={key}
+                  className="flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2"
                 >
-                  {item.visible ? copy.hide : copy.show}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSoloSeries(key)}
-                  className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                >
-                  {copy.solo}
-                </button>
-              </div>
-            );
-          })}
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full border border-white/40"
+                    style={{ backgroundColor: item.colorToken }}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
+                    <span>{item.name}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{latestValue}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{quality}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{itemFreshness}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-pressed={item.visible}
+                    onClick={() => onToggleSeries(key)}
+                    className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    {item.visible ? copy.hide : copy.show}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSoloSeries(key)}
+                    className="shrink-0 rounded px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    {copy.solo}
+                  </button>
+                </div>
+              );
+            })}
         </div>
         <aside
           className="min-h-44 min-w-0 rounded-xl border border-white/[0.07] bg-[#06142A] p-3 text-xs [overflow-anchor:none]"
@@ -231,7 +333,7 @@ export function ChartShell({
                   const point = inspected?.point ?? null;
                   const sampleTimestamp = point ? timestampFormatter(point.timestampMs) : "—";
                   const value = point
-                    ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
+                    ? `${formatChartValue(point.value, item.displayPrecision)} ${displayUnit(item.identity.nativeUnit)}`
                     : "—";
                   return (
                     <tr key={key} className="border-t border-white/[0.05]">
@@ -242,7 +344,9 @@ export function ChartShell({
                         {sampleTimestamp}
                       </td>
                       <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
-                      <td className="min-w-0 truncate py-1.5 pr-2">{point?.quality ?? "—"}</td>
+                      <td className="min-w-0 truncate py-1.5 pr-2">
+                        {point ? qualityLabel(point.quality, locale) : "—"}
+                      </td>
                       <td className="min-w-0 truncate py-1.5">
                         {freshnessLabel(inspected?.freshness ?? item.freshness, locale)}
                       </td>

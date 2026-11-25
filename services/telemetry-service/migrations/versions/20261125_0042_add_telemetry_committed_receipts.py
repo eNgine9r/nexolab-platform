@@ -1,13 +1,13 @@
 """Add opt-in central committed receipt intents (no publisher or rollout).
 
-Revision ID: 20261030_0038
-Revises: 20260908_0037
+Revision ID: 20261125_0042
+Revises: 20261122_0041
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261030_0038"
-down_revision = "20260908_0037"
+revision = "20261125_0042"
+down_revision = "20261122_0041"
 branch_labels = None
 depends_on = None
 

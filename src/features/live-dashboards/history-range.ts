@@ -3,6 +3,15 @@ import type { LiveDashboard } from "./types";
 export const LIVE_DASHBOARD_HISTORY_PRESETS = ["1h", "6h", "24h", "7d", "30d"] as const;
 export const LIVE_DASHBOARD_HISTORY_MAX_RANGE_DAYS = 31;
 
+/** Operator-facing preset names, identical to every other chart surface (#1677). */
+export const LIVE_DASHBOARD_PRESET_LABELS: Record<(typeof LIVE_DASHBOARD_HISTORY_PRESETS)[number], string> = {
+  "1h": "1 година",
+  "6h": "6 годин",
+  "24h": "24 години",
+  "7d": "7 днів",
+  "30d": "30 днів",
+};
+
 export type LiveDashboardHistoryPreset = (typeof LIVE_DASHBOARD_HISTORY_PRESETS)[number];
 export type LiveDashboardHistoryRangeKind = LiveDashboardHistoryPreset | "custom";
 
@@ -64,7 +73,7 @@ export function liveDashboardCustomRange(from: Date | string, to: Date | string)
     kind: "custom",
     from: fromDate.toISOString(),
     to: toDate.toISOString(),
-    label: "Custom",
+    label: "Власний період",
   };
 }
 

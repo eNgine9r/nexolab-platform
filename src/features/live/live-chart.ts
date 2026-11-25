@@ -11,6 +11,7 @@ import {
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts";
+import { isLiveSampleFresh, liveFreshnessFor, type CadenceObservations } from "@/features/live/freshness";
 import { liveHistorySegments } from "@/features/live/live-history";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import type { LiveTelemetryStatus } from "@/hooks/use-live-telemetry";
@@ -31,6 +32,30 @@ export interface LiveChartBuildOptions {
   xDomain: ChartXDomain;
   hiddenSeriesKeys?: ReadonlySet<string>;
   soloSeriesKey?: string | null;
+  /** Presentation-only channel names; telemetry identities and history never change. */
+  displayNames?: Readonly<Record<string, string>>;
+  /**
+   * Newest sample per channel (keyed by liveChannelKey). When provided, freshness and the
+   * legend are evaluated per series instead of from the page-wide status, so one live channel
+   * can never make a silent or invalid channel look "live".
+   */
+  latestSamples?: Readonly<Record<string, TelemetrySample>>;
+  cadenceObservations?: CadenceObservations;
+  now?: number;
+}
+
+/** Per-series freshness: page connectivity first, then this channel's own newest sample. */
+export function liveSeriesFreshness(
+  status: LiveTelemetryStatus,
+  latest: TelemetrySample | undefined,
+  key: string,
+  cadence: CadenceObservations | undefined,
+  now: number,
+): ChartFreshnessState {
+  if (status !== "live" && status !== "stale") return liveStatusChartFreshness(status);
+  if (!latest) return "stale";
+  if (latest.quality !== "valid" || latest.value === null || !Number.isFinite(latest.value)) return "invalid";
+  return isLiveSampleFresh(latest, now, liveFreshnessFor(latest, key, cadence)) ? "live" : "stale";
 }
 
 export function liveSampleChartIdentity(sample: TelemetrySample): ChartSeriesIdentity {
@@ -69,8 +94,9 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
     : "instantaneous";
 }
 
-function seriesName(sample: TelemetrySample): string {
-  return `${sample.equipment_id} · ${sample.channel_id} · ${sample.metric}`;
+function seriesName(sample: TelemetrySample, displayNames: Readonly<Record<string, string>>): string {
+  const label = displayNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id;
+  return `${sample.equipment_id} · ${label} · ${sample.metric}`;
 }
 
 function buildSeries(
@@ -78,11 +104,24 @@ function buildSeries(
   historySamples: readonly TelemetrySample[],
   status: LiveTelemetryStatus,
   index: number,
+  displayNames: Readonly<Record<string, string>>,
   hiddenSeriesKeys: ReadonlySet<string>,
   soloSeriesKey: string | null,
+  perSeries: Pick<LiveChartBuildOptions, "latestSamples" | "cadenceObservations" | "now"> = {},
 ): ChartSeries {
   const identity = liveSampleChartIdentity(identitySample);
   const key = chartSeriesKey(identity);
+  const channelKey = liveChannelKey(identitySample);
+  const latest = perSeries.latestSamples?.[channelKey];
+  const freshness = perSeries.latestSamples
+    ? liveSeriesFreshness(
+        status,
+        latest,
+        channelKey,
+        perSeries.cadenceObservations,
+        perSeries.now ?? Date.now(),
+      )
+    : liveStatusChartFreshness(status);
   const token = CHART_SERIES_TOKENS[index % CHART_SERIES_TOKENS.length];
   const samples = historySamples.filter(
     (sample) => liveChannelKey(sample) === liveChannelKey(identitySample),
@@ -91,11 +130,20 @@ function buildSeries(
 
   return {
     identity,
-    name: seriesName(identitySample),
+    name: seriesName(identitySample, displayNames),
     colorToken: token.color,
     dashStyle: token.dashStyle,
     markerShape: token.markerShape,
-    freshness: liveStatusChartFreshness(status),
+    freshness,
+    ...(latest
+      ? {
+          latest: {
+            timestampMs: Date.parse(latest.captured_at),
+            value: latest.value,
+            quality: latest.quality,
+          },
+        }
+      : {}),
     segments: segments.map((segment, segmentIndex) => ({
       id: `${key}:segment:${segmentIndex}:${Date.parse(segment[0]?.captured_at ?? "")}`,
       seriesKey: key,
@@ -140,7 +188,20 @@ export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartG
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const allSeries = options.selectedIdentities.map((identity, index) =>
-    buildSeries(identity, options.historySamples, options.status, index, hiddenSeriesKeys, soloSeriesKey),
+    buildSeries(
+      identity,
+      options.historySamples,
+      options.status,
+      index,
+      options.displayNames ?? {},
+      hiddenSeriesKeys,
+      soloSeriesKey,
+      {
+        latestSamples: options.latestSamples,
+        cadenceObservations: options.cadenceObservations,
+        now: options.now,
+      },
+    ),
   );
 
   return equipmentSceneGroups(allSeries).map(({ equipmentId, series }, partitionIndex) => {

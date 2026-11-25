@@ -55,6 +55,31 @@ describe("TemperatureVisibilityDialog", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("supports explicit show-all and hide-all without changing monitoring enrollment", () => {
+    const onApply = vi.fn();
+    render(
+      <TemperatureVisibilityDialog
+        open
+        monitoredChannelIds={["106-01", "108-01"]}
+        visibleChannelIds={["106-01"]}
+        targetDiagnostics={[]}
+        monitoringError={null}
+        onApply={onApply}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Показати всі" }));
+    expect(screen.getByRole("checkbox", { name: "Показувати 108-01 на Огляді" })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Приховати всі" }));
+    expect(screen.getByRole("checkbox", { name: "Показувати 106-01 на Огляді" })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Приховати всі" })).toBeDisabled();
+    expect(screen.getByText(/0 показано · 2 у безперервному моніторингу/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Показати всі" }));
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати відображення" }));
+    expect(onApply).toHaveBeenCalledExactlyOnceWith(["106-01", "108-01"]);
+  });
+
   it("surfaces Device Agent configuration read failures instead of a truthful-empty state", () => {
     render(
       <TemperatureVisibilityDialog

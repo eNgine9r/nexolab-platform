@@ -17,7 +17,7 @@ import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene
 import { formatChartAxisTimestamp } from "./format";
 import { inspectChartAtTimestamp } from "./inspection";
 import { chartPointBudget } from "./point-budget";
-import { buildChartYAxisModel } from "./units";
+import { buildChartYAxisModel, displayUnit } from "./units";
 
 registerEChartsModules([
   LineChart,
@@ -44,6 +44,8 @@ interface EChartsInstancePort {
   containPixel(finder: object, value: [number, number]): boolean;
   convertFromPixel(finder: object, value: number | number[]): number | number[] | null | undefined;
   resize(): void;
+  /** Optional: only the real ECharts instance provides it; test doubles may omit it. */
+  getDataURL?(options: { type: "png"; pixelRatio: number; backgroundColor: string }): string;
   dispose(): void;
   isDisposed(): boolean;
 }
@@ -69,6 +71,8 @@ interface DataZoomEvent {
   endValue?: number;
   batch?: DataZoomEvent[];
 }
+
+export const CHART_GRID_INSETS = { left: 64, right: 40 } as const;
 
 function axisPointerTimestamp(event: unknown): number | null {
   if (!event || typeof event !== "object") return null;
@@ -253,13 +257,13 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     },
     grid: {
       left:
-        64 +
+        CHART_GRID_INSETS.left +
         Math.max(
           0,
           ...axisModel.visibleAxes.filter((axis) => axis.position === "left").map((axis) => axis.offset),
         ),
       right:
-        40 +
+        CHART_GRID_INSETS.right +
         Math.max(
           0,
           ...axisModel.visibleAxes.filter((axis) => axis.position === "right").map((axis) => axis.offset),
@@ -298,7 +302,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
             scale: true,
             position: axis.position,
             offset: axis.offset,
-            name: axis.nativeUnit,
+            name: displayUnit(axis.nativeUnit),
             nameLocation: "middle" as const,
             nameGap: 38,
             nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },
@@ -416,7 +420,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
   }
 
-  private finishRangeSelection(): void {
+  private finishRangeSelection(cancelled = false): void {
     const startMs = this.rangeSelectionStartMs;
     const endMs = this.rangeSelectionLastMs;
     const startClientX = this.rangeSelectionStartClientX;
@@ -427,6 +431,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.rangeSelectionStartClientX = null;
     this.rangeSelectionLastClientX = null;
     if (
+      cancelled ||
       startMs === null ||
       endMs === null ||
       startClientX === null ||
@@ -492,6 +497,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     event.preventDefault();
     event.stopImmediatePropagation();
     this.finishRangeSelection();
+  };
+
+  private readonly handleWindowPointerCancel = () => {
+    if (this.rangeSelectionDragActive) this.finishRangeSelection(true);
   };
 
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
@@ -617,6 +626,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       true,
     );
     this.container.ownerDocument.defaultView?.addEventListener("pointerup", this.handleWindowPointerUp, true);
+    this.container.ownerDocument.defaultView?.addEventListener(
+      "pointercancel",
+      this.handleWindowPointerCancel,
+      true,
+    );
     this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
   }
 
@@ -698,6 +712,16 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
   }
 
+  /**
+   * PNG of the currently visible plot (#1658): rendered locally from the mounted Canvas, so it
+   * works offline and never touches telemetry, acquisition or the network. Returns null when the
+   * renderer is disposed or cannot export.
+   */
+  exportImage(): string | null {
+    if (!this.instance || this.instance.isDisposed() || !this.instance.getDataURL) return null;
+    return this.instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#06142a" });
+  }
+
   dispose(): void {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
@@ -718,6 +742,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container?.ownerDocument.defaultView?.removeEventListener(
       "pointerup",
       this.handleWindowPointerUp,
+      true,
+    );
+    this.container?.ownerDocument.defaultView?.removeEventListener(
+      "pointercancel",
+      this.handleWindowPointerCancel,
       true,
     );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);

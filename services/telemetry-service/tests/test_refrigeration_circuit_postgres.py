@@ -7,6 +7,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 import pytest
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
@@ -466,7 +468,13 @@ def test_postgres_circuit_migration_round_trip() -> None:
     upgraded = create_engine(os.environ["DATABASE_URL"])
     try:
         assert TABLES <= set(inspect(upgraded).get_table_names())
+        # Compare with the authoritative migration graph: new additive migrations
+        # must not break this historic circuit round-trip test.
+        config = Config(str(service_root / "alembic.ini"))
+        config.set_main_option("script_location", str(service_root / "migrations"))
+        expected_head = ScriptDirectory.from_config(config).get_current_head()
         with upgraded.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == ScriptDirectory(str(service_root / "migrations")).get_current_head()
+            applied_head = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+        assert applied_head == expected_head
     finally:
         upgraded.dispose()

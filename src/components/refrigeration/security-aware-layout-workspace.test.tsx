@@ -141,6 +141,40 @@ describe("Scheme shares the verified selected membership", () => {
     expect(layout).toHaveAttribute("data-restore", "false");
     expect(membership.permissions).not.toContain("equipment.manage");
   });
+  it("keeps chamberless drafts editable for operators when the sensor API is available", () => {
+    mock.security = security(true);
+    const membership = mock.security.membership!;
+    membership.roles = ["operator"];
+    membership.permissions = ["layout.draft.edit"];
+    const props = {
+      equipment: { ...fixture(), climateChamberId: null, nodeId: null, transportNodeId: "edge-01" },
+      sensorConfigurationRepository: {},
+      channels: [{ channelId: "rs485:1-S01", selectable: true }],
+    };
+    const { rerender } = render(workspace(props));
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-publish", "false");
+    expect(screen.queryByTestId("camera-layout")).not.toBeInTheDocument();
+
+    membership.permissions = ["layout.draft.edit", "equipment.manage"];
+    rerender(workspace(props));
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+    rerender(workspace({ ...props, channels: [] }));
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+    rerender(workspace({ ...props, mode: "view" }));
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
+    rerender(workspace({ ...props, channels: [] }));
+    expect(screen.getByTestId("layout")).toHaveAttribute("data-edit", "true");
+    rerender(
+      workspace({
+        ...props,
+        channels: [{ channelId: "rs485:1-S01", selectable: false }],
+        bindings: [{ channelId: "rs485:1-S01" }],
+      }),
+    );
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+  });
+
   it("keeps a forged operator camera edit read-only until equipment management is granted", () => {
     mock.security = security(true);
     const membership = mock.security.membership!;

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { chartSeriesKey } from "@/features/charts/domain";
 import { buildChartYAxisModel, partitionChartSeriesByAxisBudget } from "@/features/charts/units";
 import { ENERGY_METRICS } from "./energy-telemetry";
+import { energyMeterIdentity, type CommissionedEnergyMeter } from "./energy-commissioned-meters";
+import { normalizeEnergySeriesSelection } from "./energy-series-selection";
 import { markEnergyHistorySegmentStart } from "@/features/energy/energy-history-segment";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -33,6 +35,71 @@ function sample(
 }
 
 describe("Energy canonical chart scene", () => {
+  it("selects two commissioned meters with the same Unit independently of legacy history", () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      label: id,
+      modelLabel: "SDM",
+      family: "sdm120",
+    }));
+    const samples = [...meters.map((meter) => meter.equipmentId), "SDM120M-1"].map((id, index) =>
+      sample(id, "2026-08-19T00:05:00Z", {
+        equipment_id: id,
+        channel_id: "1-active-power",
+        value: index + 1,
+      }),
+    );
+    const keys = meters.map((meter) => energyMeterIdentity(meter.nodeId, meter.equipmentId));
+    expect(
+      normalizeEnergySeriesSelection(
+        [
+          { unitId: 1, meterKey: keys[0], metric: "electrical.power.active" },
+          { unitId: 99, meterKey: keys[1], metric: "electrical.power.active" },
+          { unitId: 1, metric: "electrical.power.active" },
+        ],
+        meters,
+      ),
+    ).toEqual([
+      { unitId: 1, metric: "electrical.power.active" },
+      { unitId: 1, meterKey: keys[0], metric: "electrical.power.active" },
+    ]);
+    const scene = buildEnergyChartScene({
+      samples,
+      meters,
+      selectedMeterKeys: keys,
+      selectedUnitIds: [1],
+      selectedMetric: "electrical.power.active",
+      status: "live",
+      historyWindow: null,
+    });
+    expect(scene.series).toHaveLength(3);
+    expect(new Set(scene.series.map((item) => chartSeriesKey(item.identity))).size).toBe(3);
+    expect(new Set(scene.series.map((item) => item.colorToken)).size).toBe(3);
+    const selected = buildEnergyChartScene({
+      samples,
+      meters,
+      selectedMeterKeys: keys,
+      selectedUnitIds: [1],
+      selectedPairs: [{ unitId: 1, meterKey: keys[0], metric: "electrical.power.active" }],
+      selectedMetric: "electrical.power.active",
+      status: "live",
+      historyWindow: null,
+    });
+    expect(selected.series.map((item) => item.identity.equipmentId)).toEqual([meters[0].equipmentId]);
+    expect(
+      buildEnergyChartScene({
+        samples,
+        meters,
+        selectedUnitIds: [1],
+        selectedMetric: "electrical.power.active",
+        status: "live",
+        historyWindow: null,
+      }).series.map((item) => item.identity.equipmentId),
+    ).toEqual(["SDM120M-1"]);
+  });
   it("keeps P/U/I on independent axes with distinct stable colors and exact pair selection", () => {
     const samples = ["electrical.power.active", "electrical.voltage", "electrical.current"].map((id) => {
       const metric = ENERGY_METRICS.find((item) => item.id === id)!;
@@ -104,6 +171,8 @@ describe("Energy canonical chart scene", () => {
       selectedUnitIds: [200],
       status: "live",
       historyWindow: { from: "2026-08-18T23:00:00.000Z", to: "2026-08-19T01:00:00.000Z" },
+      // Freshness is judged per series at this clock: 5 s after the newest sample.
+      now: Date.parse(second.captured_at) + 5_000,
     });
     expect(scene.xDomain).toEqual({
       fromMs: Date.parse("2026-08-18T23:00:00.000Z"),
@@ -155,5 +224,26 @@ describe("Energy canonical chart scene", () => {
     expect(scene.series[0].name).toContain("W1");
     expect(scene.series[0].name).toContain("200-active-power");
     expect(scene.series[0].freshness).toBe("reconnecting");
+  });
+
+  it("keeps a fixed custom period exact and never live (#1683)", () => {
+    const now = Date.parse("2026-08-19T00:06:00Z");
+    const options = {
+      samples: [sample("recent", "2026-08-19T00:05:50Z")],
+      selectedMetric: "electrical.power.active" as const,
+      selectedUnitIds: [200],
+      status: "live" as const,
+      historyWindow: { from: "2026-08-18T22:00:00.000Z", to: "2026-08-19T00:06:00.000Z" },
+      now,
+    };
+    expect(buildEnergyChartScene(options).series[0].freshness).toBe("live");
+
+    const scene = buildEnergyChartScene({ ...options, historical: true });
+    expect(scene.series[0].freshness).toBe("historical");
+    expect(scene.series[0].freshUntilMs).toBeUndefined();
+    expect(scene.xDomain).toEqual({
+      fromMs: Date.parse("2026-08-18T22:00:00.000Z"),
+      toMs: Date.parse("2026-08-19T00:06:00.000Z"),
+    });
   });
 });

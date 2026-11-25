@@ -104,6 +104,27 @@ describe("acquisition cadence client", () => {
     });
   });
 
+  it("accepts the agent's Waveshare family without blocking Dixell cadence", () => {
+    const data = payload();
+    data.policy.family_defaults.push({
+      bus_id: "analog-bus",
+      device_family: "waveshare_8ai",
+      interval_seconds: 10,
+    });
+    data.effective_devices.push({
+      device_id: "waveshare-8ai-1",
+      bus_id: "analog-bus",
+      device_family: "waveshare_8ai",
+      lifecycle: "active",
+      effective_interval_seconds: 10,
+      cadence_source: "family_default",
+    });
+    const result = normalizeCadenceConfiguration(data);
+    expect(result.familyDefaults.at(-1)?.deviceFamily).toBe("waveshare_8ai");
+    expect(result.effectiveDevices.at(-1)?.deviceFamily).toBe("waveshare_8ai");
+    expect(result.familyDefaults[0].deviceFamily).toBe("xjp60d");
+  });
+
   it("keeps unsupported and not-yet-activated families fail-closed", () => {
     const unsupported = payload();
     unsupported.policy.family_defaults[0] = {

@@ -22,8 +22,12 @@ import {
 import { EquipmentMetadataEditor } from "@/components/equipment/equipment-metadata-editor";
 import {
   isCommissionedControllerAsset,
+  isActiveCommissionedControllerAsset,
+  isCommissionedInputAsset,
+  type CommissionedInputRegistryAsset,
   type EquipmentRegistryAsset,
 } from "@/features/equipment/asset-registry";
+import type { ChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 
@@ -32,6 +36,7 @@ export function EquipmentAssetDetails({
   canManage,
   equipmentRepository,
   climateCatalogRepository,
+  channelNameRepository = null,
   onSaved,
   onClose,
   onPrevious,
@@ -41,6 +46,7 @@ export function EquipmentAssetDetails({
 }: {
   asset: EquipmentRegistryAsset;
   canManage: boolean;
+  channelNameRepository?: ChannelNameRepository | null;
   equipmentRepository: RefrigerationEquipmentRepository | null;
   climateCatalogRepository: ClimateCatalogRepository | null;
   onSaved: () => void;
@@ -164,7 +170,7 @@ export function EquipmentAssetDetails({
         </header>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-          {editing ? (
+          {editing && !isActiveCommissionedControllerAsset(asset) && !isCommissionedInputAsset(asset) ? (
             <EquipmentMetadataEditor
               asset={asset}
               equipmentRepository={equipmentRepository}
@@ -206,7 +212,15 @@ export function EquipmentAssetDetails({
                 </section>
               ))}
 
-              {asset.category === "physical-sensor" ? (
+              {isCommissionedInputAsset(asset) && canManage && channelNameRepository ? (
+                <ChannelDisplayNameEditor
+                  key={asset.key}
+                  asset={asset}
+                  repository={channelNameRepository}
+                  onSaved={onSaved}
+                />
+              ) : null}
+              {asset.category === "physical-sensor" && !isCommissionedInputAsset(asset) ? (
                 <section className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.07] p-4">
                   <h3 className="text-sm font-semibold text-amber-100">Межа metrology contract</h3>
                   <p className="mt-2 text-xs leading-5 text-amber-100/75">
@@ -284,6 +298,76 @@ export function EquipmentAssetDetails({
   );
 }
 
+function ChannelDisplayNameEditor({
+  asset,
+  repository,
+  onSaved,
+}: {
+  asset: CommissionedInputRegistryAsset;
+  repository: ChannelNameRepository;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(asset.source.customName ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async (value: string | null) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await repository.setName(asset.nodeId, asset.source.channelId, value);
+      onSaved();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не вдалося зберегти назву.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <section className="rounded-2xl border border-cyan-300/15 p-4">
+      <h3 className="text-sm font-semibold text-white">Назва каналу</h3>
+      <p className="mt-1 text-xs text-slate-400">
+        Змінюється лише підпис. ID та історія вимірювань не змінюються.
+      </p>
+      <form
+        className="mt-3 flex flex-wrap gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (name.trim()) void save(name.trim());
+        }}
+      >
+        <input
+          aria-label="Нова назва датчика"
+          value={name}
+          maxLength={128}
+          onChange={(event) => setName(event.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white"
+          placeholder={asset.source.displayName}
+        />
+        <button
+          type="submit"
+          disabled={saving || !name.trim()}
+          className="rounded-lg bg-blue-500 px-3 py-2 text-xs text-white disabled:opacity-50"
+        >
+          Зберегти
+        </button>
+        <button
+          type="button"
+          disabled={saving || !asset.source.customName}
+          onClick={() => void save(null)}
+          className="rounded-lg border border-white/20 px-3 py-2 text-xs text-slate-200 disabled:opacity-50"
+        >
+          Скинути назву
+        </button>
+      </form>
+      {error ? (
+        <p role="alert" className="mt-2 text-xs text-rose-300">
+          {error}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function canEditAsset(
   asset: EquipmentRegistryAsset,
   canManage: boolean,
@@ -294,7 +378,12 @@ function canEditAsset(
   if (asset.category === "refrigeration-equipment") {
     return equipmentRepository !== null && asset.source.lifecycleStatus !== "retired";
   }
-  if (isCommissionedControllerAsset(asset)) return false;
+  if (
+    isCommissionedControllerAsset(asset) ||
+    isActiveCommissionedControllerAsset(asset) ||
+    isCommissionedInputAsset(asset)
+  )
+    return false;
   return climateCatalogRepository !== null;
 }
 
@@ -378,6 +467,42 @@ function detailsSections(asset: EquipmentRegistryAsset, displayTimeZone: string)
       ["Підключення і стан", Network, connection],
       ["Розміщення", MapPin, placement],
       ["Пов’язане обладнання", Refrigerator, related],
+    ]);
+  }
+
+  if (isCommissionedInputAsset(asset)) {
+    const item = asset.source;
+    return sections([
+      ["Паспорт", Cpu, passport],
+      ["Підключення і стан", Network, connection],
+      [
+        "Вхід Dixell",
+        Thermometer,
+        compactDetails([
+          ["Назва", item.displayName],
+          ["Технічний ID (незмінний)", item.channelId],
+          ["Контролер", item.controllerLabel],
+          ["Номер входу", String(item.inputNumber)],
+          ["Вузол", item.nodeId],
+        ]),
+      ],
+    ]);
+  }
+
+  if (isActiveCommissionedControllerAsset(asset)) {
+    const channels = asset.source;
+    return sections([
+      ["Паспорт", Cpu, passport],
+      ["Підключення і стан", Network, connection],
+      [
+        "Активні входи",
+        Thermometer,
+        compactDetails([
+          ["Кількість підтверджених входів", String(channels.length)],
+          ["Вузол", asset.nodeId],
+          ["Канали", channels.map((item) => item.channelId).join(", ")],
+        ]),
+      ],
     ]);
   }
 

@@ -9,6 +9,7 @@ import {
   type EquipmentRegistryFailure,
   type EquipmentRegistryLoadProgress,
 } from "@/features/equipment/asset-registry";
+import type { ChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import type { EquipmentDiscoveryRepository } from "@/features/equipment/discovery-repository";
 import type { CommissioningRepository } from "@/features/equipment/commissioning-repository";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
@@ -31,6 +32,8 @@ export type UseEquipmentRegistryResult = {
   climateCatalogRepository: ClimateCatalogRepository | null;
   discoveryRepository: EquipmentDiscoveryRepository | null;
   commissioningRepository: CommissioningRepository | null;
+  channelNameRepository: ChannelNameRepository | null;
+  commissionedState: "available" | "unavailable";
   retry: () => void;
 };
 
@@ -49,6 +52,7 @@ export function useEquipmentRegistry({
   const climateCatalogRepository = runtime.climateCatalogRepository;
   const [assets, setAssets] = useState<EquipmentRegistryAsset[]>([]);
   const [failures, setFailures] = useState<EquipmentRegistryFailure[]>([]);
+  const [commissionedState, setCommissionedState] = useState<"available" | "unavailable">("unavailable");
   const [state, setState] = useState<EquipmentRegistryState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Pick<
@@ -71,12 +75,14 @@ export function useEquipmentRegistry({
         equipmentRepository,
         climateCatalogRepository,
         commissioningRepository: runtime.commissioningRepository,
+        channelNameRepository: runtime.channelNameRepository,
         concurrency: 4,
         signal: controller.signal,
         onProgress: (next) => {
           if (controller.signal.aborted) return;
           setAssets(next.assets);
           setFailures(next.failures);
+          setCommissionedState(next.commissionedState);
           setProgress({ completedChambers: next.completedChambers, totalChambers: next.totalChambers });
         },
       })
@@ -84,6 +90,7 @@ export function useEquipmentRegistry({
           if (controller.signal.aborted) return;
           setAssets(result.assets);
           setFailures(result.failures);
+          setCommissionedState(result.commissionedState);
           setProgress((current) =>
             current ? { ...current, completedChambers: current.totalChambers } : current,
           );
@@ -100,7 +107,14 @@ export function useEquipmentRegistry({
       window.clearTimeout(startId);
       controller.abort();
     };
-  }, [climateCatalogRepository, enabled, epoch, equipmentRepository, runtime.commissioningRepository]);
+  }, [
+    climateCatalogRepository,
+    enabled,
+    epoch,
+    equipmentRepository,
+    runtime.commissioningRepository,
+    runtime.channelNameRepository,
+  ]);
 
   const effectiveState: EquipmentRegistryState = !enabled ? "idle" : runtimeUnavailable ? "error" : state;
   const effectiveError = runtimeUnavailable
@@ -118,6 +132,8 @@ export function useEquipmentRegistry({
     climateCatalogRepository,
     discoveryRepository: runtime.discoveryRepository,
     commissioningRepository: runtime.commissioningRepository,
+    channelNameRepository: runtime.channelNameRepository ?? null,
+    commissionedState,
     retry: () => setEpoch((current) => current + 1),
   };
 }

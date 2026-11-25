@@ -100,6 +100,7 @@ export function ChartRendererHost({
       data-testid="chart-renderer-host"
       data-chart-x-domain-from-ms={scene.xDomain.fromMs}
       data-chart-x-domain-to-ms={scene.xDomain.toMs}
+      style={scene.rangeSelectionEnabled ? { touchAction: "pan-y" } : undefined}
       data-range-selection-enabled={scene.rangeSelectionEnabled ? "true" : "false"}
       role="application"
       aria-label="Interactive telemetry plot"

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,12 @@ from app.climate_catalog.repository import (
 from app.db import Database, TelemetryLatest, TelemetrySample
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
+from app.refrigeration.channel_labels import ChannelNameStore
+from app.refrigeration.commissioned_channels import (
+    CommissionedTemperature,
+    CommissionedTemperatureInventory,
+    section_temperature,
+)
 from app.refrigeration.equipment_repository import (
     DEFAULT_ORGANIZATION_ID,
     EquipmentNotFoundError,
@@ -33,6 +40,7 @@ from app.refrigeration.models import (
     RefrigerationLayoutDraft,
 )
 from app.refrigeration.schemas import (
+    DEFAULT_SENSOR_SLOT_CAPACITY,
     SensorBindingConfigurationItem,
     SensorConfigurationWrite,
 )
@@ -67,6 +75,11 @@ class ClimateChamberChannel:
     quality: str
     captured_at: datetime
     binding: EquipmentSensorBinding | None
+    controller_label: str | None = None
+    display_name: str | None = None
+    input_number: int | None = None
+    selectable: bool = True
+    sample_valid_until: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,12 +105,149 @@ class PostgresSensorConfigurationRepository:
         database: Database,
         *,
         climate_catalog_repository: PostgresClimateCatalogRepository | None = None,
+        read_commissioned: Callable[[], CommissionedTemperatureInventory | None] | None = None,
+        commissioned_organization_id: str = DEFAULT_ORGANIZATION_ID,
     ) -> None:
         self._engine = database.engine
         self._climate_catalog_repository = (
             climate_catalog_repository
             or PostgresClimateCatalogRepository(database)
         )
+
+        self._read_commissioned = read_commissioned
+        self._commissioned_organization_id = commissioned_organization_id
+
+    def list_scheme_channels(
+        self,
+        equipment: RefrigerationEquipmentRecord,
+        current_bindings: list[EquipmentSensorBinding],
+        *,
+        organization_id: str,
+    ) -> list[ClimateChamberChannel]:
+        inventory = self._read_inventory(organization_id)
+        with Session(self._engine, expire_on_commit=False) as session:
+            if equipment.climate_chamber_id:
+                _, legacy = self.list_climate_chamber_channels(
+                    equipment.climate_chamber_id, organization_id=organization_id
+                )
+            elif equipment.node_id:
+                _, legacy = self._legacy_node_channels(
+                    equipment.node_id, organization_id=organization_id
+                )
+            else:
+                legacy = []
+            commissioned = self._authorized_inventory(session, equipment, organization_id, inventory)
+            node_id = equipment.node_id or (commissioned.node_id if commissioned else None)
+            active = {item.channel_id: item for item in commissioned.channels} if commissioned else {}
+            section_rows = dict(active)
+            for binding in current_bindings:
+                identity = section_temperature(binding.channel_id)
+                if identity and binding.node_id == node_id:
+                    section_rows.setdefault(identity.channel_id, identity)
+            rows = {item.channel_id: item for item in legacy if not section_temperature(item.channel_id)}
+            if node_id and section_rows:
+                rows.update(
+                    self._section_channel_rows(
+                        session, equipment, node_id, active, section_rows,
+                        show_samples=self._owns_node(session, organization_id, node_id),
+                    )
+                )
+            session.expunge_all()
+            return list(rows.values())
+
+    def _read_inventory(self, organization_id: str) -> CommissionedTemperatureInventory | None:
+        if self._read_commissioned and organization_id == self._commissioned_organization_id:
+            return self._read_commissioned()
+        return None
+
+    @staticmethod
+    def _owns_node(session: Session, organization_id: str, node_id: str) -> bool:
+        owners = session.execute(
+            select(CentralNode.organization_id, CentralNode.state)
+            .where(CentralNode.node_id == node_id)
+            .limit(2)
+        ).all()
+        return len(owners) == 1 and tuple(owners[0]) == (organization_id, NodeState.ACTIVE.value)
+
+    def _authorized_inventory(
+        self,
+        session: Session,
+        equipment: RefrigerationEquipmentRecord,
+        organization_id: str,
+        inventory: CommissionedTemperatureInventory | None,
+    ) -> CommissionedTemperatureInventory | None:
+        if inventory and equipment.node_id in (None, inventory.node_id) and self._owns_node(
+            session, organization_id, inventory.node_id
+        ):
+            return inventory
+        return None
+
+    @staticmethod
+    def _section_channel_rows(
+        session: Session,
+        equipment: RefrigerationEquipmentRecord,
+        node_id: str,
+        active: dict[str, CommissionedTemperature],
+        candidates: dict[str, CommissionedTemperature],
+        *,
+        show_samples: bool,
+    ) -> dict[str, ClimateChamberChannel]:
+        bindings = session.scalars(
+            select(EquipmentSensorBinding).where(
+                EquipmentSensorBinding.organization_id == equipment.organization_id,
+                EquipmentSensorBinding.node_id == node_id,
+                EquipmentSensorBinding.channel_id.in_(candidates),
+                EquipmentSensorBinding.unbound_at.is_(None),
+            )
+        )
+        by_channel = {binding.channel_id: binding for binding in bindings}
+        latest = {}
+        if show_samples:
+            latest = {
+                sample.channel_id: sample
+                for sample in session.scalars(
+                    select(TelemetryLatest).where(
+                        TelemetryLatest.node_id == node_id,
+                        TelemetryLatest.metric == "temperature.probe",
+                        TelemetryLatest.unit == "degC",
+                        tuple_(TelemetryLatest.equipment_id, TelemetryLatest.channel_id).in_(
+                            [(item.equipment_id, item.channel_id) for item in candidates.values()]
+                        ),
+                    )
+                )
+            }
+        labels = ChannelNameStore._names(
+            session, equipment.organization_id, node_id, list(candidates),
+        )
+        rows = {}
+        now = datetime.now(UTC)
+        for channel_id, item in candidates.items():
+            sample = latest.get(channel_id)
+            captured_at = (sample.captured_at if sample else equipment.updated_at)
+            if captured_at.tzinfo is None:
+                captured_at = captured_at.replace(tzinfo=UTC)
+            valid_until = (
+                captured_at + timedelta(seconds=min(30, sample.stale_after_seconds or 30))
+                if sample else None
+            )
+            quality = sample.quality if sample else "no-data"
+            if sample and sample.value is not None and (now >= valid_until or captured_at > now):
+                quality = "stale"
+            rows[channel_id] = ClimateChamberChannel(
+                channel_id=channel_id,
+                metric="temperature.probe",
+                unit="degC",
+                latest_value=sample.value if sample else None,
+                quality=quality,
+                captured_at=captured_at,
+                binding=by_channel.get(channel_id),
+                controller_label=item.controller_label,
+                display_name=labels.get(channel_id) or f"{item.controller_label.split(' · ')[0]} · Вхід {item.input_number}",
+                input_number=item.input_number,
+                selectable=channel_id in active,
+                sample_valid_until=valid_until,
+            )
+        return rows
 
     def list_climate_chamber_channels(
         self,
@@ -139,6 +289,7 @@ class PostgresSensorConfigurationRepository:
         audit_event: AuditEventInput | None = None,
     ) -> SensorConfigurationMutation:
         now = datetime.now(UTC)
+        inventory = self._read_inventory(organization_id) if payload.bindings else None
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
@@ -169,8 +320,9 @@ class PostgresSensorConfigurationRepository:
                         equipment,
                         organization_id=organization_id,
                         current_bindings=current,
+                        inventory=inventory,
                     )
-                    if len(payload.bindings) > equipment.total_sensors:
+                    if len(payload.bindings) > DEFAULT_SENSOR_SLOT_CAPACITY:
                         raise SensorConfigurationCapacityError(
                             "sensor configuration exceeds the equipment slot capacity"
                         )
@@ -301,6 +453,10 @@ class PostgresSensorConfigurationRepository:
                         draft.version += 1
                         draft.updated_at = now
                     if bindings_changed:
+                        if payload.bindings and equipment.node_id is None:
+                            equipment.node_id = scope.node_id
+                        if len(payload.bindings) > equipment.total_sensors:
+                            equipment.total_sensors = DEFAULT_SENSOR_SLOT_CAPACITY
                         equipment.version += 1
                         equipment.updated_at = now
                     session.flush()
@@ -357,7 +513,11 @@ class PostgresSensorConfigurationRepository:
         *,
         organization_id: str,
         current_bindings: list[EquipmentSensorBinding],
+        inventory: CommissionedTemperatureInventory | None = None,
     ) -> EquipmentChannelScope:
+        inventory = self._authorized_inventory(session, equipment, organization_id, inventory)
+        section_ids = {item.channel_id for item in inventory.channels} if inventory else set()
+        bound_ids = {binding.channel_id for binding in current_bindings}
         if equipment.climate_chamber_id is not None:
             chamber, bus, channels = (
                 self._climate_catalog_repository.list_channels_for_chamber(
@@ -380,13 +540,23 @@ class PostgresSensorConfigurationRepository:
                 bus_id=bus.id,
                 bus_key=bus.bus_key,
                 allowed_channel_ids=frozenset(
-                    item.channel.channel_id for item in channels
+                    {
+                        item.channel.channel_id for item in channels
+                        if section_temperature(item.channel.channel_id) is None
+                    } | section_ids | bound_ids
                 ),
             )
 
         if equipment.node_id is None:
-            raise ClimateChamberNotFoundError(
-                "select a climate chamber before configuring measurement channels"
+            if inventory is None:
+                raise ClimateChamberNotFoundError("No authorized measurement node is available")
+            return EquipmentChannelScope(
+                climate_chamber_id=None,
+                climate_chamber_code=None,
+                node_id=inventory.node_id,
+                bus_id=None,
+                bus_key=None,
+                allowed_channel_ids=frozenset(section_ids),
             )
         normalized_node_id = normalize_node_id(equipment.node_id)
         node = session.scalar(
@@ -407,9 +577,10 @@ class PostgresSensorConfigurationRepository:
                 .distinct()
             )
         )
-        telemetry_channels.update(
-            binding.channel_id for binding in current_bindings
-        )
+        telemetry_channels = {
+            channel_id for channel_id in telemetry_channels if section_temperature(channel_id) is None
+        }
+        telemetry_channels.update(bound_ids | section_ids)
         return EquipmentChannelScope(
             climate_chamber_id=None,
             climate_chamber_code=None,
@@ -533,7 +704,7 @@ class PostgresSensorConfigurationRepository:
                 latest[binding.channel_id] = ClimateChamberChannel(
                     channel_id=binding.channel_id,
                     metric="unknown",
-                    unit="",
+                    unit="—",
                     latest_value=None,
                     quality="no-data",
                     captured_at=binding.bound_at,

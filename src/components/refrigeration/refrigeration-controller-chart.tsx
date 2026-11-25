@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { flipExpiredSeries } from "@/features/charts/series-freshness";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartRendererScene } from "@/features/charts";
 import { chartSeriesKey, type ChartXDomain } from "@/features/charts/domain";
@@ -17,9 +19,11 @@ export function RefrigerationControllerChart({
   emptyMessage,
   sharedCursorMs,
   onSharedCursorChange,
-  rangeSelectionEnabled = false,
-  rangeSelection = null,
+  rangeSelection,
   onRangeSelectionChange,
+  viewportDomain,
+  onViewportChange,
+  afterPlot,
 }: {
   title: string;
   context: string;
@@ -28,38 +32,40 @@ export function RefrigerationControllerChart({
   emptyMessage: string;
   sharedCursorMs: number | null;
   onSharedCursorChange: (timestampMs: number | null) => void;
-  rangeSelectionEnabled?: boolean;
-  rangeSelection?: ChartXDomain | null;
-  onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
+  rangeSelection: ChartXDomain | null;
+  onRangeSelectionChange: (domain: ChartXDomain | null) => void;
+  viewportDomain: ChartXDomain;
+  onViewportChange: (domain: ChartXDomain | null) => void;
+  afterPlot?: ReactNode;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
-  const [viewportSelection, setViewportSelection] = useState<{
-    rangeKey: string;
-    domain: ChartXDomain | null;
-  }>({ rangeKey: "", domain: null });
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [solo, setSolo] = useState<string | null>(null);
-  const baseRangeKey = `${baseScene.xDomain.fromMs}:${baseScene.xDomain.toMs}`;
-  const viewportDomain = viewportSelection.rangeKey === baseRangeKey ? viewportSelection.domain : null;
-  const setViewportDomain = (domain: ChartXDomain | null) => {
-    setViewportSelection({ rangeKey: baseRangeKey, domain });
-  };
 
+  // The clock only flips silent series to stale; it never rebuilds the scene (#1677).
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
   const scene = useMemo(
     () => ({
       ...baseScene,
-      xDomain: viewportDomain ?? baseScene.xDomain,
-      rangeSelectionEnabled,
+      xDomain: viewportDomain,
+      rangeSelectionEnabled: true,
       rangeSelection,
-      series: baseScene.series.map((series) => {
+      series: flipExpiredSeries(baseScene.series, clockMs).map((series) => {
         const key = chartSeriesKey(series.identity);
         return { ...series, visible: solo ? key === solo : !hidden.has(key) };
       }),
     }),
-    [baseScene, hidden, rangeSelection, rangeSelectionEnabled, solo, viewportDomain],
+    [baseScene, clockMs, hidden, rangeSelection, solo, viewportDomain],
   );
   const inspection = useMemo(
-    () => (sharedCursorMs === null ? null : inspectChartAtTimestamp(scene, sharedCursorMs)),
+    () =>
+      sharedCursorMs === null
+        ? null
+        : inspectChartAtTimestamp(scene, sharedCursorMs, { withinObservedSpan: true }),
     [scene, sharedCursorMs],
   );
 
@@ -75,6 +81,7 @@ export function RefrigerationControllerChart({
         <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-[#06142a]/70 p-8 text-center text-xs text-slate-500">
           {emptyMessage}
         </div>
+        {afterPlot}
       </section>
     );
   }
@@ -82,10 +89,13 @@ export function RefrigerationControllerChart({
   return (
     <div data-testid="refrigeration-controller-chart" data-chart-title={title}>
       <ChartShell
+        locale="uk"
         title={title}
+        onExportImage={() => void downloadChartPng(adapter, title)}
         context={context}
         selectedRange={rangeLabel}
         series={scene.series}
+        requestedWindow={baseScene.xDomain}
         inspection={inspection}
         onToggleSeries={(key) => {
           setSolo(null);
@@ -97,10 +107,7 @@ export function RefrigerationControllerChart({
           });
         }}
         onSoloSeries={(key) => setSolo((current) => (current === key ? null : key))}
-        onResetZoom={() => {
-          adapter.resetZoom();
-          setViewportDomain(null);
-        }}
+        onResetZoom={() => onViewportChange(null)}
       >
         <ChartRendererHost
           adapter={adapter}
@@ -109,9 +116,10 @@ export function RefrigerationControllerChart({
           sharedCursorMs={sharedCursorMs}
           interactionDomain={baseScene.xDomain}
           onCursor={(next) => onSharedCursorChange(next?.timestampMs ?? null)}
-          onXDomainChange={setViewportDomain}
+          onXDomainChange={onViewportChange}
           onRangeSelectionChange={onRangeSelectionChange}
         />
+        {afterPlot}
       </ChartShell>
     </div>
   );

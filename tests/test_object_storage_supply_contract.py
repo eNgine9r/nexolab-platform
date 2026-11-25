@@ -13,13 +13,13 @@ def test_versitygw_source_and_fixed_sdk_are_exact_for_both_architectures() -> No
     assert "VERSITYGW_VERSION=1.8.0" in DOCKERFILE
     assert "fd04bc1df2656298577b82667a4195c77f8c7563" in DOCKERFILE
     assert 'test "$(git rev-parse HEAD)" = "$VERSITYGW_COMMIT"' in DOCKERFILE
-    assert "GO_VERSION=1.27.2" in DOCKERFILE
-    assert "ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5" in DOCKERFILE
-    assert "94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8" in DOCKERFILE
+    assert "GO_VERSION=1.27.4" in DOCKERFILE
+    assert "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840" in DOCKERFILE
+    assert "3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92" in DOCKERFILE
     assert "sha256sum -c -" in DOCKERFILE
     assert "GOTOOLCHAIN=local" in DOCKERFILE
     assert "CGO_ENABLED=0" in DOCKERFILE
-    assert "golang.org/x/net@v0.60.0" in DOCKERFILE
+    assert "golang.org/x/net@v0.62.0" in DOCKERFILE
     assert "go mod verify" in DOCKERFILE
     assert "go mod download" in DOCKERFILE
     assert "-o /out/versitygw ./cmd/versitygw" in DOCKERFILE

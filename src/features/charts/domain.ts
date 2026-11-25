@@ -2,7 +2,21 @@ import type { TelemetryQuality } from "@/lib/telemetry/types";
 
 export type ChartMeasurementQuality = TelemetryQuality;
 
-export type ChartFreshnessState = "live" | "stale" | "connecting" | "reconnecting" | "offline";
+/**
+ * "invalid" = the channel is reporting, but its newest sample has no valid measurement
+ * (unknown / sensor_error / communication_error). It must never be presented as "live".
+ * "historical" = the series belongs to a fixed custom period (#1683): it has no liveness at all,
+ * so it is neither "live" nor "stale".
+ */
+export type ChartFreshnessState =
+  "live" | "stale" | "invalid" | "connecting" | "reconnecting" | "offline" | "historical";
+
+/** The true newest sample of a series, including non-plottable quality (legend/inspector truth). */
+export interface ChartSeriesLatest {
+  timestampMs: number;
+  value: number | null;
+  quality: ChartMeasurementQuality;
+}
 
 export interface ChartSeriesIdentity {
   nodeId: string;
@@ -52,11 +66,18 @@ export interface ChartSeries {
   dashStyle: "solid" | "dashed" | "dotted";
   markerShape: "circle" | "diamond" | "triangle" | "rect";
   freshness: ChartFreshnessState;
+  /**
+   * While `freshness === "live"`: the instant (epoch ms) the series turns stale, so surfaces can
+   * flip a silent series on a clock tick without rebuilding the scene (see series-freshness.ts).
+   */
+  freshUntilMs?: number;
   segments: readonly ChartSegment[];
   visible: boolean;
   semanticMode: "instantaneous" | "cumulative_counter";
   areaFillOpacity?: number;
   displayPrecision?: number;
+  /** Newest sample regardless of quality; when absent the legend falls back to the last plotted point. */
+  latest?: ChartSeriesLatest;
 }
 
 export interface ChartThreshold {

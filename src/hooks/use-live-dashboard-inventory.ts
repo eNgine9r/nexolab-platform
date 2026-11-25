@@ -25,20 +25,25 @@ export function useLiveDashboardInventory({
   enabled,
   organizationId,
   credentialProvider,
+  includeObserved = false,
 }: {
   enabled: boolean;
   organizationId: string | null;
   credentialProvider?: SecurityCredentialProvider;
+  includeObserved?: boolean;
 }): LiveDashboardInventoryModel {
   const scopeKey = organizationId ?? DEFAULT_SCOPE;
   const load = useCallback(async () => {
-    const client = createLiveDashboardInventoryClient(organizationId, { credentialProvider });
+    const client = createLiveDashboardInventoryClient(organizationId, {
+      credentialProvider,
+      includeObserved,
+    });
     return loadLiveDashboardInventory(client);
-  }, [credentialProvider, organizationId]);
+  }, [credentialProvider, includeObserved, organizationId]);
   const inventory = useMonitoringReadModel({
     enabled,
     scope: `live-dashboard-inventory:${scopeKey}`,
-    key: INVENTORY_CACHE_KEY,
+    key: includeObserved ? `${INVENTORY_CACHE_KEY}:observed` : INVENTORY_CACHE_KEY,
     load,
     cache: INVENTORY_CACHE,
   });

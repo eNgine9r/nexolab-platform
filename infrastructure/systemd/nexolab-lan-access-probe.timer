@@ -1,0 +1,14 @@
+# NEXOLAB #1468 source template only. Timer must remain disabled until approved.
+[Unit]
+Description=NEXOLAB offline local LAN access probe once per minute
+
+[Timer]
+OnBootSec=2min
+OnCalendar=*-*-* *:*:00
+AccuracySec=15s
+RandomizedDelaySec=5s
+Persistent=false
+Unit=nexolab-lan-access-probe.service
+
+[Install]
+WantedBy=timers.target

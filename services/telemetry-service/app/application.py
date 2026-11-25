@@ -32,9 +32,6 @@ from app.refrigeration.controller_binding_repository import (
 from app.refrigeration.sensor_configuration_api import (
     create_sensor_configuration_router,
 )
-from app.refrigeration.sensor_configuration_repository import (
-    PostgresSensorConfigurationRepository,
-)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -44,10 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.database,
         security_repository=app.state.security_repository,
     )
-    sensor_configuration_repository = PostgresSensorConfigurationRepository(
-        app.state.database,
-        climate_catalog_repository=climate_catalog_repository,
-    )
+    sensor_configuration_repository = app.state.sensor_configuration_repository
     discovery_repository = EquipmentDiscoveryRepository(
         app.state.database,
         security_repository=app.state.security_repository,

@@ -1,3 +1,4 @@
+import { resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
 export class SessionClientError extends Error {
   constructor(
     message: string,
@@ -20,7 +21,7 @@ export function getSessionsApiBaseUrl(): string {
     );
   }
 
-  const value = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+  const value = resolvePublicApiBaseUrl();
   if (!value) {
     throw new SessionClientError(
       "NEXT_PUBLIC_NEXOLAB_API_BASE_URL is required for the sessions workspace.",

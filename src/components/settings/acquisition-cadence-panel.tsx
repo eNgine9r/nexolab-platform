@@ -15,6 +15,7 @@ const familyLabels: Record<CadenceFamily, string> = {
   le01mp: "LE-01MP / енергомоніторинг",
   sdm120: "Eastron SDM120M",
   embraco: "Embraco Sync Controller",
+  waveshare_8ai: "Waveshare Modbus RTU Analog Input 8CH",
 };
 
 type CadenceChoice = "10" | "30" | "60" | "custom";

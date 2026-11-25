@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "kind": "nexolab-dr-scheduled-backup",
+  "_comment": "#1630 TEMPLATE ONLY. Every container name, volume path and cap MUST be confirmed read-only on the actual site before use (docker inspect / docker volume inspect). Install as /etc/nexolab/dr-backup.json mode 0600 root:root.",
+  "repository": "eNgine9r/nexolab-platform",
+  "source_commit_file": "/opt/nexolab/current/SOURCE_COMMIT",
+  "output_dir": "/var/backups/nexolab/dr",
+  "key_file": "/etc/nexolab/dr-backup.key",
+  "lock_file": "/run/nexolab-dr-backup/backup.lock",
+  "metrics_file": "/home/nexolab/nexolab-platform/runtime/observability/dr-backup.prom",
+  "reserve_free_bytes": 21474836480,
+  "max_backup_bytes": 8589934592,
+  "verify_after_capture": true,
+  "stores": [
+    {
+      "id": "postgresql",
+      "method": "docker_exec_stream",
+      "format": "pg_custom",
+      "entry_path": "postgresql/nexolab.dump",
+      "max_bytes": 6442450944,
+      "argv": [
+        "docker",
+        "exec",
+        "nexolab-central-postgres-1",
+        "nice",
+        "-n",
+        "19",
+        "pg_dump",
+        "-U",
+        "nexolab",
+        "-d",
+        "nexolab",
+        "-Fc",
+        "-Z",
+        "3"
+      ]
+    },
+    {
+      "id": "object-storage",
+      "method": "directory_snapshot",
+      "format": "volume_tar",
+      "entry_path": "object-storage/objects.tar",
+      "max_bytes": 1073741824,
+      "path": "/var/lib/docker/volumes/CONFIRM-object-storage-versitygw-data/_data"
+    },
+    {
+      "id": "mqtt-dynamic-security",
+      "method": "directory_snapshot",
+      "format": "volume_tar",
+      "entry_path": "mqtt/mosquitto-data.tar",
+      "max_bytes": 134217728,
+      "path": "/var/lib/docker/volumes/CONFIRM-nexolab-central-mqtt-data/_data"
+    },
+    {
+      "id": "edge-mqtt-persistence",
+      "method": "directory_snapshot",
+      "format": "volume_tar",
+      "entry_path": "edge-mqtt/mosquitto-data.tar",
+      "max_bytes": 134217728,
+      "path": "/var/lib/docker/volumes/CONFIRM-nexolab-edge-mqtt-data/_data"
+    },
+    {
+      "id": "edge-sqlite-outbox",
+      "method": "sqlite_online",
+      "format": "sqlite",
+      "entry_path": "edge/outbox.sqlite",
+      "max_bytes": 201326592,
+      "path": "/var/lib/docker/volumes/CONFIRM-nexolab-edge-device-agent-data/_data/CONFIRM-outbox.sqlite"
+    },
+    {
+      "id": "central-ingestion-spool",
+      "method": "sqlite_online",
+      "format": "sqlite",
+      "entry_path": "central/ingestion-spool.sqlite",
+      "max_bytes": 201326592,
+      "path": "/var/lib/docker/volumes/CONFIRM-nexolab-central-ingestion-spool/_data/CONFIRM-spool.sqlite"
+    },
+    {
+      "id": "local-auth-private-key",
+      "method": "docker_exec_stream",
+      "format": "pem",
+      "entry_path": "local-auth/private.pem",
+      "max_bytes": 65536,
+      "argv": [
+        "docker",
+        "exec",
+        "nexolab-central-telemetry-service-1",
+        "cat",
+        "/run/secrets/nexolab/local-auth-private.pem"
+      ]
+    },
+    {
+      "id": "local-auth-public-key",
+      "method": "docker_exec_stream",
+      "format": "pem",
+      "entry_path": "local-auth/public.pem",
+      "max_bytes": 65536,
+      "argv": [
+        "docker",
+        "exec",
+        "nexolab-central-telemetry-service-1",
+        "cat",
+        "/run/secrets/nexolab/local-auth-public.pem"
+      ]
+    }
+  ]
+}

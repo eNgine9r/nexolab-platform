@@ -64,12 +64,12 @@ export function RefrigerationControllerOverview({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           icon={<Thermometer className="h-4 w-4" />}
-          label="Cabinet"
+          label="Температура в об’ємі"
           sample={metric(EMBRACO_METRICS.cabinet)}
         />
         <KpiCard
           icon={<Snowflake className="h-4 w-4" />}
-          label="Evaporator"
+          label="Датчик відтайки"
           sample={metric(EMBRACO_METRICS.evaporator)}
         />
         <KpiCard

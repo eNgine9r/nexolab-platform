@@ -11,6 +11,7 @@ interface TopbarProps {
   onCreateSession?: () => void;
   createSessionHref?: string;
   showCreateSession?: boolean;
+  showAlerts?: boolean;
   securitySession?: SecuritySession | null;
   selectedMembership?: SecurityMembership | null;
   onOrganizationChange?: (organizationId: string) => void;
@@ -25,6 +26,7 @@ export function Topbar({
   onCreateSession,
   createSessionHref = "/sessions/new",
   showCreateSession = true,
+  showAlerts,
   securitySession = null,
   selectedMembership = null,
   onOrganizationChange,
@@ -52,11 +54,22 @@ export function Topbar({
       securitySession.identity.email ??
       securitySession.identity.subject)
     : null;
+  const alertsVisible =
+    showAlerts ??
+    Boolean(
+      securitySession &&
+      selectedMembership &&
+      securitySession.memberships.some(
+        (membership) =>
+          membership.organizationId === selectedMembership.organizationId &&
+          membership.permissions.includes("alerts.read"),
+      ),
+    );
 
   return (
     <header
       data-testid="platform-topbar"
-      className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6"
+      className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6 print:hidden"
     >
       <button
         type="button"
@@ -69,14 +82,16 @@ export function Topbar({
       <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{title}</p>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Link
-          href="/alerts"
-          className="icon-button inline-grid max-lg:min-h-11 max-lg:min-w-11"
-          aria-label="Відкрити тривоги"
-          title="Тривоги"
-        >
-          <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        </Link>
+        {alertsVisible ? (
+          <Link
+            href="/alerts"
+            className="icon-button inline-grid max-lg:min-h-11 max-lg:min-w-11"
+            aria-label="Відкрити тривоги"
+            title="Тривоги"
+          >
+            <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
+          </Link>
+        ) : null}
         {showCreateSession ? (
           onCreateSession ? (
             <button type="button" onClick={onCreateSession} className={createClasses} aria-label="Нова сесія">

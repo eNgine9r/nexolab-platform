@@ -117,6 +117,16 @@ If a task encounters a soft blocker:
 
 Stop only for the hard blockers declared in `PROJECT_PROFILE.yaml` and the operating standard, including unsafe hardware actions, destructive data operations, site cutover, missing mandatory access, materially different product decisions or exhausted usage limits.
 
+## Product Owner autonomous execution authorization (recorded 2026-11-22)
+
+The Product Owner explicitly authorized autonomous completion of the **XWEB Advanced Chart System programme** (WP-A … WP-J, tracked from #1643 onward). Within that programme, agents may, without asking again:
+
+- create/update GitHub Issues and feature branches, commit, push, open and review Pull Requests;
+- fix CI failures and **merge** a Pull Request into `main` when all of these hold: every required exact-head check is GREEN including NEXOLAB Merge Gate, the branch is up to date with `main`, the final diff was reviewed, acceptance criteria are met, no unresolved review threads or blocking defects remain, and project-state/checkpoint integrity passes (`scripts/validate-project-state.py`);
+- synchronize local `main` after merging, update Sprint state/checkpoints, and begin the next Ready Work Package.
+
+This authorization does **not** lift any safety boundary: no Modbus/hardware writes, no Raspberry Pi / site production cutover or release activation without separate approval, no destructive data operations, no secret handling, no billing/DNS change, no bypass of RBAC, tool permissions or CI gates. Stop only for the hard blockers in `PROJECT_PROFILE.yaml`. Missing real-hardware or site evidence must still be reported as unverified.
+
 ## Required completion report
 
 Every completed Work Package must report:

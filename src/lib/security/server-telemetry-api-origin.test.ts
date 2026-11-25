@@ -56,4 +56,31 @@ describe("NEXOLAB private server-side telemetry API origin", () => {
       }).origin,
     ).toBe("http://127.0.0.1:8082");
   });
+
+  it("fails closed for same-origin LAN mode without a private backend (#1734)", () => {
+    expect(() => getServerTelemetryApiBaseUrl({ NEXT_PUBLIC_NEXOLAB_API_BASE_URL: "same-origin" })).toThrow(
+      "private server-only",
+    );
+  });
+
+  it("uses the private Compose service for same-origin LAN mode", () => {
+    expect(
+      getServerTelemetryApiBaseUrl({
+        NEXT_PUBLIC_NEXOLAB_API_BASE_URL: "same-origin",
+        NEXOLAB_SERVER_API_BASE_URL: "http://telemetry-service:8082",
+      }).origin,
+    ).toBe("http://telemetry-service:8082");
+  });
+
+  it.each(["http://telemetry-service.evil.example:8082", "http://telemetry:8082", "http://dashboard:8082"])(
+    "refuses other service names %s",
+    (origin) => {
+      expect(() =>
+        getServerTelemetryApiBaseUrl({
+          NEXT_PUBLIC_NEXOLAB_API_BASE_URL: "same-origin",
+          NEXOLAB_SERVER_API_BASE_URL: origin,
+        }),
+      ).toThrow("private server API must use");
+    },
+  );
 });

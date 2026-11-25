@@ -31,7 +31,7 @@ import {
   configurationsEqual,
   moveConfiguredSensor,
   refreshStagedSensorChannelMetadata,
-  sensorSlotCapacity,
+  MAX_SENSOR_SLOT_CAPACITY,
   type StagedSensorConfiguration,
 } from "@/features/refrigeration/sensor-configuration";
 
@@ -136,8 +136,8 @@ export function CameraScopedLayoutEditor({
   );
   const snapSlots = useMemo(() => visibleConfiguration.map(({ x, y }) => ({ x, y })), [visibleConfiguration]);
   const placementSnapSlots = useMemo(
-    () => availableSensorSnapPoints(visibleConfiguration, equipment.totalSensors),
-    [equipment.totalSensors, visibleConfiguration],
+    () => availableSensorSnapPoints(visibleConfiguration, MAX_SENSOR_SLOT_CAPACITY),
+    [visibleConfiguration],
   );
   const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
@@ -234,18 +234,13 @@ export function CameraScopedLayoutEditor({
   const placePendingChannel = (point: NormalizedPoint) => {
     if (!pendingChannelId) return;
     const channel = channels.find((candidate) => candidate.channelId === pendingChannelId);
-    if (!channel) {
+    if (!channel || channel.selectable === false) {
       setPendingChannelId(null);
       setError("Вибраний канал більше недоступний для розміщення.");
       return;
     }
     try {
-      const added = addChannelToConfiguration(
-        configuration,
-        channel,
-        sensorSlotCapacity(equipment.totalSensors),
-        equipment.id,
-      );
+      const added = addChannelToConfiguration(configuration, channel, MAX_SENSOR_SLOT_CAPACITY, equipment.id);
       const snapped = applySnap(point, snapMode, {
         gridDivisions: 40,
         slots: placementSnapSlots,
@@ -359,7 +354,7 @@ export function CameraScopedLayoutEditor({
                   onChange={(event) => setSnapMode(event.target.value as SnapMode)}
                   className="max-w-32 bg-transparent text-[10px] text-slate-300 outline-none"
                 >
-                  <option value="none">Без прив’язки</option>
+                  <option value="none">Вільне розміщення</option>
                   <option value="grid">Сітка 40 × 40</option>
                   <option value="slots">Позиції датчиків</option>
                 </select>
@@ -388,7 +383,7 @@ export function CameraScopedLayoutEditor({
           <SensorPlacementManager
             equipment={equipment}
             organizationId={organizationId}
-            totalSlots={equipment.totalSensors}
+            totalSlots={MAX_SENSOR_SLOT_CAPACITY}
             channels={channels}
             configuration={visibleConfiguration}
             editingSensorId={editingSensorId}

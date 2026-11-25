@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .catalog import profile_unit_ids, section_probe_count
+
 import hashlib
 import json
 from dataclasses import dataclass, replace
@@ -189,7 +191,7 @@ class CommissioningActivationRepository:
                         "session_version": commissioning.version,
                         "state": "pending_activation",
                         "profile_id": plan["profile_id"],
-                        "polling_mode": "read_only_fc03",
+                        "polling_mode": plan["polling_mode"],
                         "modbus_writes": "none",
                         "hardware_writes": "none",
                     },
@@ -423,24 +425,35 @@ class CommissioningActivationRepository:
             row.bus_id,
             row.stable_transport_identifier,
             row.unit_id,
-            row.target_equipment_key,
+            row.target_equipment_key or row.display_name,
         )
         if any(value is None or value == "" for value in required):
             raise CommissioningLifecycleConflictError(
                 "Commissioning activation intent is incomplete"
             )
-        equipment = db.scalar(
-            select(RefrigerationEquipmentRecord).where(
-                RefrigerationEquipmentRecord.id == row.target_equipment_key,
-                RefrigerationEquipmentRecord.organization_id == organization_id,
-                RefrigerationEquipmentRecord.deleted_at.is_(None),
-                RefrigerationEquipmentRecord.lifecycle_status != "retired",
+        if row.target_equipment_key:
+            equipment = db.scalar(
+                select(RefrigerationEquipmentRecord).where(
+                    RefrigerationEquipmentRecord.id == row.target_equipment_key,
+                    RefrigerationEquipmentRecord.organization_id == organization_id,
+                    RefrigerationEquipmentRecord.deleted_at.is_(None),
+                    RefrigerationEquipmentRecord.lifecycle_status != "retired",
+                )
             )
-        )
-        if equipment is None:
-            raise CommissioningEquipmentReferenceError(
-                "Target equipment is unavailable in the active organization"
-            )
+            if equipment is None:
+                raise CommissioningEquipmentReferenceError(
+                    "Target equipment is unavailable in the active organization"
+                )
+        requested_units = set(profile_unit_ids(row.profile_id, int(row.unit_id)))
+        peers = db.scalars(select(EquipmentCommissioningSession).where(
+            EquipmentCommissioningSession.organization_id == organization_id,
+            EquipmentCommissioningSession.id != row.id,
+            EquipmentCommissioningSession.node_id == row.node_id,
+            EquipmentCommissioningSession.bus_id == row.bus_id,
+            EquipmentCommissioningSession.lifecycle == "active",
+        )).all()
+        if any(peer.unit_id is not None and requested_units.intersection(profile_unit_ids(peer.profile_id, peer.unit_id)) for peer in peers):
+            raise CommissioningActivationConflictError("Another instrument owns part of this Modbus address range")
         conflict = db.scalar(
             select(EquipmentCommissioningSession.id)
             .where(
@@ -448,8 +461,8 @@ class CommissioningActivationRepository:
                 EquipmentCommissioningSession.id != row.id,
                 EquipmentCommissioningSession.lifecycle == "active",
                 or_(
-                    EquipmentCommissioningSession.target_equipment_key
-                    == row.target_equipment_key,
+                    (EquipmentCommissioningSession.target_equipment_key == row.target_equipment_key)
+                    if row.target_equipment_key else False,
                     (
                         (EquipmentCommissioningSession.node_id == row.node_id)
                         & (EquipmentCommissioningSession.bus_id == row.bus_id)
@@ -463,7 +476,7 @@ class CommissioningActivationRepository:
             raise CommissioningActivationConflictError(
                 "Another active commissioning session already owns this equipment or Modbus identity"
             )
-        if profile.device_class == "temperature-controller":
+        if row.target_equipment_key and profile.device_class == "temperature-controller":
             active_binding = db.scalar(
                 select(RefrigerationControllerBinding).where(
                     RefrigerationControllerBinding.organization_id == organization_id,
@@ -488,12 +501,19 @@ class CommissioningActivationRepository:
             "xjp60d": "dixell-xjp60d",
             "le01mp": "f-and-f-le-01mp",
             "embraco": "embraco-sync",
+            "sdm120": "eastron-sdm120m",
+            "waveshare_8ai": "waveshare-analog-input-8ch-b-v3",
         }[family]
         equipment_id = {
             "xjp60d": f"K{row.unit_id}",
             "le01mp": f"LE01MP-{row.unit_id}",
             "embraco": f"EMBRACO-{row.unit_id}",
+            "sdm120": f"SDM120M:{row.bus_id}:{row.unit_id}" if str(row.bus_id).startswith("commissioning-") else f"SDM120M-{row.unit_id}",
+            "waveshare_8ai": f"WAVESHARE-8AI:{row.bus_id}:{row.unit_id}" if str(row.bus_id).startswith("commissioning-") else f"WAVESHARE-8AI-{row.unit_id}",
         }[family]
+        if section_probe_count(profile.id) is not None:
+            source = "dixell-xjp60d-sections"
+            equipment_id = f"XJP60D-S:{row.bus_id}:{row.unit_id}"
         evidence = preflight.evidence if isinstance(preflight.evidence, dict) else {}
         warnings = list(evidence.get("warnings", [])) if isinstance(evidence.get("warnings"), list) else []
         if preflight.evidence_level != "hardware_verified":
@@ -517,12 +537,13 @@ class CommissioningActivationRepository:
             "bus_id": str(row.bus_id),
             "stable_transport_identifier": str(row.stable_transport_identifier),
             "unit_id": int(row.unit_id),
-            "target_equipment_key": str(row.target_equipment_key),
+            "target_equipment_key": row.target_equipment_key,
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
-            "polling_mode": "read_only_fc03",
+            "polling_mode": "read_only_fc03_fc04" if family == "waveshare_8ai" else "read_only_fc04" if family == "sdm120" else "read_only_fc03",
             "binding_kind": (
-                "refrigeration_controller" if family == "embraco" else "commissioning_target"
+                "standalone_instrument" if not row.target_equipment_key
+                else "refrigeration_controller" if family == "embraco" else "commissioning_target"
             ),
             "warnings": warnings,
             "will_not_perform": [

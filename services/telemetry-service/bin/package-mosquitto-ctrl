@@ -1,0 +1,37 @@
+#!/bin/sh
+set -eu
+
+output=$1
+workspace="$(mktemp -d)"
+trap 'rm -rf "$workspace"' EXIT
+cd "$workspace"
+
+# APT verifies the Debian repository metadata and the downloaded archive.
+apt-get download mosquitto
+set -- mosquitto_*.deb
+test "$#" -eq 1
+original=$1
+test "$(dpkg-deb --field "$original" Package)" = mosquitto
+version="$(dpkg-deb --field "$original" Version)"
+architecture="$(dpkg-deb --field "$original" Architecture)"
+test "$architecture" = "$(dpkg --print-architecture)"
+source="$(dpkg-deb --field "$original" Source)"
+source=${source:-"mosquitto ($version)"}
+dpkg-deb --extract "$original" original
+
+# Package the unchanged client executable. Keep the source identity available
+# to vulnerability scanners, and retain the upstream licensing information.
+install -D -m 0755 original/usr/bin/mosquitto_ctrl package/usr/bin/mosquitto_ctrl
+install -D -m 0644 original/usr/share/doc/mosquitto/copyright \
+    package/usr/share/licenses/nexolab-mosquitto-ctrl/copyright
+mkdir -p package/DEBIAN
+cat >package/DEBIAN/control <<EOF
+Package: nexolab-mosquitto-ctrl
+Source: $source
+Version: $version
+Architecture: $architecture
+Maintainer: NEXOLAB
+Depends: libc6, libcjson1, libmosquitto1 (= $version), libssl3t64
+Description: Mosquitto dynamic security command-line client for NEXOLAB
+EOF
+dpkg-deb --root-owner-group --build package "$output"

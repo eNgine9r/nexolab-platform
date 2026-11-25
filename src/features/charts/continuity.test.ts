@@ -108,6 +108,16 @@ describe("chart continuity", () => {
     expect(segments[1].precedingBreak?.reason).toBe("source_gap");
   });
 
+  it("keeps the newest captured_at when an event identity repeats", () => {
+    const segments = buildChartSegments(identity, [
+      sample("a", 0, 1),
+      sample("b", 5_000, 2),
+      sample("a", 10_000, 3),
+    ]);
+    const points = segments.flatMap((segment) => segment.points);
+    expect(points.map((point) => point.value)).toEqual([2, 3]);
+  });
+
   it("deduplicates repeated event identities and keeps a stable active segment id as the tail grows", () => {
     const first = buildChartSegments(identity, [sample("a", 0, 1), sample("b", 5_000, 2)]);
     const second = buildChartSegments(identity, [

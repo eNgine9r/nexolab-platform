@@ -37,6 +37,12 @@ export interface MergeTelemetryOptions {
 export interface DeriveTelemetryOptions {
   now?: Date | number;
   staleAfterMs?: number;
+  /**
+   * Optional per-sample freshness threshold (#1634). Lets the caller apply the cadence-aware
+   * #1522 contract (server contract → observed cadence → default) without this pure module
+   * depending on the Live feature. Falls back to `staleAfterMs` / 30 s when omitted.
+   */
+  staleAfterMsFor?: (sample: TelemetrySample) => number;
   hasLoadedSnapshot: boolean;
   connectionState: TelemetryConnectionState;
   error: Error | null;
@@ -104,7 +110,9 @@ export function deriveDashboardTelemetry(
   const samples = Object.values(store.samples).sort((a, b) => captured(b) - captured(a));
   const lastCapturedAt = samples[0]?.captured_at ?? null;
   const ageMs = lastCapturedAt ? Math.max(0, now - Date.parse(lastCapturedAt)) : null;
-  const freshSamples = samples.filter((sample) => now - captured(sample) <= (options.staleAfterMs ?? 30_000));
+  const staleAfterFor = (sample: TelemetrySample) =>
+    options.staleAfterMsFor?.(sample) ?? options.staleAfterMs ?? 30_000;
+  const freshSamples = samples.filter((sample) => now - captured(sample) <= staleAfterFor(sample));
   let status: DashboardTelemetryStatus;
   if (["unauthorized", "forbidden", "configuration_error"].includes(options.connectionState)) {
     status = options.connectionState as DashboardTelemetryStatus;
@@ -203,10 +211,12 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
       ...mark,
     },
     {
-      label: "Активних тривог",
+      label: "Сигнали з відхиленнями",
       value: String(alarms.length),
-      detail: alarms.length ? "Порогові або комунікаційні помилки" : "Без telemetry alarms",
-      trend: "відсутній probe не створює тривогу",
+      detail: alarms.length
+        ? "Порогові спрацювання або помилки зв’язку у свіжих даних"
+        : "У свіжих даних немає порогових або комунікаційних відхилень",
+      trend: "Події журналу тривог — окремо",
       tone: alarms.length ? "red" : "green",
       icon: "alarm",
       ...mark,

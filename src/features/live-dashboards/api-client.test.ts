@@ -87,6 +87,46 @@ describe("LiveDashboardApiClient", () => {
     expect(result.etag).toBe('W/"live-dashboard-v4"');
   });
 
+  it("keeps the saved analysis view returned by the API and ignores an unusable one", async () => {
+    const viewSettings = {
+      schema_version: 1,
+      hidden_items: ["106-03|temperature.probe"],
+      range_kind: "6h",
+      range_from: null,
+      range_to: null,
+      viewport_from: null,
+      viewport_to: null,
+      density: 2500,
+    };
+    const responses = [
+      { ...dashboard, view_settings: viewSettings },
+      { ...dashboard, view_settings: null },
+      { ...dashboard, view_settings: { schema_version: 1, hidden_items: "corrupted" } },
+      dashboard,
+    ];
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify(responses.shift()), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: 'W/"live-dashboard-v3"' },
+        }),
+    );
+    const client = new LiveDashboardApiClient("http://127.0.0.1:8082", { fetch: fetchImpl });
+
+    expect((await client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).value.view_settings).toEqual(
+      viewSettings,
+    );
+    expect(
+      (await client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).value.view_settings,
+    ).toBeNull();
+    expect(
+      (await client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).value.view_settings,
+    ).toBeNull();
+    expect((await client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).value).not.toHaveProperty(
+      "view_settings",
+    );
+  });
+
   it("surfaces stale-writer versions without converting the conflict into generic failure", async () => {
     const fetchImpl = vi.fn(
       async () =>

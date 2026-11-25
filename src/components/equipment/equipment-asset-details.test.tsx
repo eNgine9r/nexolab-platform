@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { normalizeEquipmentRegistry, type EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
+import type { ChannelNameRepository } from "@/features/equipment/channel-name-repository";
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 import type {
   ClimateCatalogRepository,
@@ -202,5 +203,89 @@ describe("EquipmentAssetDetails metadata editing", () => {
       name: "Вітрина випробувальна",
     });
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Commissioned channel display names", () => {
+  const commissioned = normalizeEquipmentRegistry(
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      {
+        nodeId: "edge-01",
+        equipmentId: "XJP60D-S:rs485-sdm120:1",
+        channelId: "rs485-sdm120:1-S01",
+        controllerLabel: "Dixell №1 · rs485-sdm120",
+        inputNumber: 1,
+        displayName: "Dixell №1 · Вхід 1",
+        customName: null,
+      },
+    ],
+  ).find((item) => item.category === "physical-sensor");
+  if (!commissioned || !("commissionedInput" in commissioned))
+    throw new Error("Missing commissioned fixture");
+
+  it("does not permit renaming without equipment.manage", () => {
+    render(
+      <EquipmentAssetDetails
+        asset={commissioned}
+        canManage={false}
+        equipmentRepository={null}
+        climateCatalogRepository={null}
+        channelNameRepository={null}
+        onSaved={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Нова назва датчика")).not.toBeInTheDocument();
+  });
+
+  it("saves and resets a display name but never mutates a channel ID", async () => {
+    const setName = vi.fn<ChannelNameRepository["setName"]>(async (_node, _channel, value) => ({
+      nodeId: "edge-01",
+      equipmentId: "XJP60D-S:rs485-sdm120:1",
+      channelId: "rs485-sdm120:1-S01",
+      controllerLabel: "Dixell №1 · rs485-sdm120",
+      inputNumber: 1,
+      displayName: value ?? "Dixell №1 · Вхід 1",
+      customName: value,
+    }));
+    const repo: ChannelNameRepository = { list: vi.fn(), setName };
+    const onSaved = vi.fn();
+    const { rerender } = render(
+      <EquipmentAssetDetails
+        asset={commissioned}
+        canManage
+        equipmentRepository={null}
+        climateCatalogRepository={null}
+        channelNameRepository={repo}
+        onSaved={onSaved}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Нова назва датчика"), { target: { value: "Продукт №1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+    await waitFor(() => expect(setName).toHaveBeenCalledWith("edge-01", "rs485-sdm120:1-S01", "Продукт №1"));
+    expect(onSaved).toHaveBeenCalledOnce();
+    const renamed = {
+      ...commissioned,
+      source: { ...commissioned.source, customName: "Продукт №1", displayName: "Продукт №1" },
+    };
+    rerender(
+      <EquipmentAssetDetails
+        asset={renamed}
+        canManage
+        equipmentRepository={null}
+        climateCatalogRepository={null}
+        channelNameRepository={repo}
+        onSaved={onSaved}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Скинути назву" }));
+    await waitFor(() => expect(setName).toHaveBeenLastCalledWith("edge-01", "rs485-sdm120:1-S01", null));
   });
 });

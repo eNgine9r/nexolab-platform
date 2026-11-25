@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MonitoringReadModel } from "@/hooks/use-monitoring-read-model";
@@ -42,6 +42,46 @@ describe("AlarmsPanel", () => {
     expect(mocks.useAlerts).toHaveBeenCalledWith({ enabled: true, organizationId: "org-a" });
     act(() => vi.advanceTimersByTime(5_000));
     expect(mocks.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("labels an empty event journal without claiming all telemetry is healthy", () => {
+    mocks.useAlerts.mockReturnValue(readModel({ value: [], status: "ready" }));
+
+    render(<AlarmsPanel mode="live" organizationId="org-a" />);
+
+    expect(screen.getByText("Відкритих подій немає")).toBeVisible();
+    expect(
+      screen.getByText(
+        "У журналі немає активних або підтверджених подій. Відхилення телеметрії показані окремо.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText("Усе спокійно")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Повторити" })).not.toBeInTheDocument();
+  });
+
+  it("does not show a green all-clear when refreshing a cached empty journal fails", () => {
+    mocks.useAlerts.mockReturnValue(
+      readModel({ value: [], error: new Error("Alerts API unavailable"), status: "error" }),
+    );
+
+    render(<AlarmsPanel mode="live" organizationId="org-a" />);
+
+    expect(screen.getByText("Стан подій не підтверджено")).toBeVisible();
+    expect(
+      screen.getByText("Не вдалося оновити журнал тривог; останній отриманий список був порожнім."),
+    ).toBeVisible();
+    expect(screen.queryByText("Відкритих подій немає")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Повторити" }));
+    expect(mocks.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not claim the event journal is clear when its cached result is stale", () => {
+    mocks.useAlerts.mockReturnValue(readModel({ value: [], status: "stale", freshness: "stale" }));
+
+    render(<AlarmsPanel mode="live" organizationId="org-a" />);
+
+    expect(screen.getByText("Стан подій не підтверджено")).toBeVisible();
+    expect(screen.queryByText("Відкритих подій немає")).not.toBeInTheDocument();
   });
 
   it("keeps the last valid alert visible after a refresh error", () => {

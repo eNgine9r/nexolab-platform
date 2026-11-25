@@ -3,9 +3,9 @@ ARG TARGETARCH
 ARG BUILDARCH
 ARG VERSITYGW_VERSION=1.8.0
 ARG VERSITYGW_COMMIT=fd04bc1df2656298577b82667a4195c77f8c7563
-ARG GO_VERSION=1.27.2
-ARG GO_SHA256_AMD64=ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5
-ARG GO_SHA256_ARM64=94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8
+ARG GO_VERSION=1.27.4
+ARG GO_SHA256_AMD64=7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840
+ARG GO_SHA256_ARM64=3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92
 ENV PATH="/usr/local/go/bin:$PATH" GOTOOLCHAIN=local CGO_ENABLED=0 GOMAXPROCS=2 GOFLAGS="-p=2"
 RUN set -eux; \
     case "$TARGETARCH" in amd64|arm64) ;; *) exit 64 ;; esac; \
@@ -29,7 +29,7 @@ WORKDIR /src
 # Rebuild the same release with fixed Go HTTP/TLS and x/net. No SDK, Git,
 # module downloader or network dependency enters the finished local runtime.
 RUN set -eux; \
-    go get golang.org/x/net@v0.60.0; \
+    go get golang.org/x/net@v0.62.0; \
     go mod download; \
     go mod verify; \
     mkdir /out; \
@@ -37,7 +37,7 @@ RUN set -eux; \
       -ldflags="-s -w -X=main.Version=${VERSITYGW_VERSION} -X=main.Build=${VERSITYGW_COMMIT}" \
       -o /out/versitygw ./cmd/versitygw; \
     go version -m /out/versitygw | grep -F "go${GO_VERSION}"; \
-    go version -m /out/versitygw | grep -E 'golang.org/x/net[[:space:]]+v0\.60\.0[[:space:]]'; \
+    go version -m /out/versitygw | grep -E 'golang.org/x/net[[:space:]]+v0\.62\.0[[:space:]]'; \
     go version -m /out/versitygw | grep -F "GOARCH=${TARGETARCH}"; \
     if [ "$TARGETARCH" = "$BUILDARCH" ]; then /out/versitygw --version | grep -F "${VERSITYGW_VERSION}"; fi; \
     case "$TARGETARCH" in amd64) other_arch=arm64 ;; arm64) other_arch=amd64 ;; esac; \

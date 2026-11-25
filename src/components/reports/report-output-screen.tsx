@@ -38,6 +38,7 @@ export function ReportOutputScreen({ reportId }: { reportId: string }) {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Звіти"
         onClose={() => setSidebarOpen(false)}

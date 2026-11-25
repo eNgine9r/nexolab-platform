@@ -16,6 +16,7 @@ from sqlalchemy import (
     JSON,
     LargeBinary,
     String,
+    and_,
     create_engine,
     delete,
     func,
@@ -227,6 +228,19 @@ class RetentionResult:
     telemetry_deleted: int = 0
     raw_payloads_redacted: int = 0
     dead_letters_deleted: int = 0
+    batches: int = 0
+    backlog_remaining: bool = False
+    duration_seconds: float = 0.0
+
+
+@dataclass(frozen=True)
+class RetentionInventory:
+    """Read-only counts for an owner decision before telemetry deletion is enabled."""
+
+    cutoff: str
+    older_than_cutoff: int
+    eligible: int
+    preserved_session_evidence: int
 
 
 def _stale_after_seconds(raw_payload: dict[str, Any]) -> float | None:
@@ -736,6 +750,24 @@ class Database:
 
         return rows, resolved_snapshot_at
 
+    @staticmethod
+    def _session_linked() -> Any:
+        """Predicate for samples that are laboratory session evidence (#1551).
+
+        telemetry_session_contexts references samples with ON DELETE CASCADE, so
+        deleting a linked sample would silently destroy session evidence. The
+        current reading is not at risk: telemetry_latest keeps its own copy of
+        each series' latest value and is never rebuilt from history.
+        Imported lazily to avoid the attribution -> db import cycle.
+        """
+        from app.sessions.telemetry_attribution import TelemetrySessionContext
+
+        return (
+            select(TelemetrySessionContext.telemetry_event_id)
+            .where(TelemetrySessionContext.telemetry_event_id == TelemetrySample.event_id)
+            .exists()
+        )
+
     def cleanup_retention(
         self,
         *,
@@ -744,26 +776,42 @@ class Database:
         raw_payload_retention_days: int,
         dead_letter_retention_days: int,
         batch_size: int,
+        delete_telemetry: bool = True,
     ) -> RetentionResult:
+        """Run ONE bounded batch of each retention action in one short transaction.
+
+        Telemetry deletion removes only ordinary monitoring samples older than the
+        cutoff, never session-linked evidence; telemetry_latest is untouched.
+        ``delete_telemetry=False`` keeps every sample (raw payload redaction and
+        dead-letter cleanup still run).
+        """
         telemetry_cutoff = now - timedelta(days=telemetry_retention_days)
         raw_payload_cutoff = now - timedelta(days=raw_payload_retention_days)
         dead_letter_cutoff = now - timedelta(days=dead_letter_retention_days)
+        session_linked = self._session_linked()
+        eligible = and_(TelemetrySample.captured_at < telemetry_cutoff, ~session_linked)
 
         with self.engine.begin() as connection:
-            telemetry_ids = list(
-                connection.scalars(
-                    select(TelemetrySample.id)
-                    .where(TelemetrySample.captured_at < telemetry_cutoff)
-                    .order_by(TelemetrySample.id)
-                    .limit(batch_size)
-                )
-            )
-            if telemetry_ids:
-                connection.execute(
-                    delete(TelemetrySample).where(
-                        TelemetrySample.id.in_(telemetry_ids)
+            telemetry_ids: list[int] = []
+            if delete_telemetry:
+                telemetry_ids = list(
+                    connection.scalars(
+                        select(TelemetrySample.id)
+                        .where(eligible)
+                        .order_by(TelemetrySample.id)
+                        .limit(batch_size)
+                        .with_for_update(skip_locked=True)
                     )
                 )
+                if telemetry_ids:
+                    # Re-check the protection inside the DELETE so a sample that was
+                    # attributed to a session after selection is never removed.
+                    connection.execute(
+                        delete(TelemetrySample).where(
+                            TelemetrySample.id.in_(telemetry_ids),
+                            eligible,
+                        )
+                    )
 
             raw_payload_ids = list(
                 connection.scalars(
@@ -771,15 +819,17 @@ class Database:
                     .where(
                         TelemetrySample.received_at < raw_payload_cutoff,
                         TelemetrySample.raw_payload_retained.is_(True),
+                        ~session_linked,
                     )
                     .order_by(TelemetrySample.id)
                     .limit(batch_size)
+                    .with_for_update(skip_locked=True)
                 )
             )
             if raw_payload_ids:
                 connection.execute(
                     update(TelemetrySample)
-                    .where(TelemetrySample.id.in_(raw_payload_ids))
+                    .where(TelemetrySample.id.in_(raw_payload_ids), ~session_linked)
                     .values(raw_payload={}, raw_payload_retained=False)
                 )
 
@@ -802,7 +852,34 @@ class Database:
             telemetry_deleted=len(telemetry_ids),
             raw_payloads_redacted=len(raw_payload_ids),
             dead_letters_deleted=len(dead_letter_ids),
+            batches=1,
         )
+
+    def retention_inventory(
+        self,
+        *,
+        now: datetime,
+        telemetry_retention_days: int,
+    ) -> RetentionInventory:
+        """Count eligible and preserved samples without changing anything."""
+        cutoff = now - timedelta(days=telemetry_retention_days)
+        session_linked = self._session_linked()
+        older = TelemetrySample.captured_at < cutoff
+        with self._sessions() as session:
+            def count(*conditions: Any) -> int:
+                return int(
+                    session.scalar(
+                        select(func.count()).select_from(TelemetrySample).where(*conditions)
+                    )
+                    or 0
+                )
+
+            return RetentionInventory(
+                cutoff=cutoff.isoformat(),
+                older_than_cutoff=count(older),
+                eligible=count(older, ~session_linked),
+                preserved_session_evidence=count(older, session_linked),
+            )
 
     def count_samples(self) -> int:
         with self._sessions() as session:

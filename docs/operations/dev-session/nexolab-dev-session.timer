@@ -1,0 +1,15 @@
+# Start the NEXOLAB development session a few minutes after boot, so the
+# production stack (Docker, PostgreSQL, MQTT, Device Agent) starts first.
+# Owner-installed to /etc/systemd/system/ and enabled with
+#   sudo systemctl enable nexolab-dev-session.timer
+
+[Unit]
+Description=Start the NEXOLAB development session after boot (production first)
+
+[Timer]
+OnBootSec=5min
+AccuracySec=30s
+Unit=nexolab-dev-session.service
+
+[Install]
+WantedBy=timers.target

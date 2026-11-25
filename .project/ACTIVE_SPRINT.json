@@ -33,16 +33,23 @@
       "source_or_state_merge_alone_is_sufficient": false,
       "automatic_activation_authorized": false,
       "owner_local_root_boundary_retained": true
-    }
+    },
+    "max_ready_work_packages": 3,
+    "max_concurrent_primary_pr_reviews": 1,
+    "primary_work_package_must_be_leaf": true,
+    "portfolio_roadmap": "docs/operations/nexolab-execution-roadmap.md",
+    "verification_gate_matrix": "docs/operations/nexolab-verification-matrix.md",
+    "ready_acceptance": "One executable leaf Issue+branch+PR, T0 product/acceptance/dependency/paths/test plan complete; coordination parent never Ready.",
+    "site_release_rule": "Source merge != installed. Protected release needs real off-device DR/restore, rollback, required CI and exact owner approval."
   },
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_build_id": "zkjro8zBIxIPXErg7sqY0",
-    "frontend_release": "validated_package:ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
+    "frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "frontend_build_id": "PyM62Vg07TywCAwHY6JjL",
+    "frontend_release": "docker:nexolab/dashboard:issue-1638-f0295409-arm64@sha256:c6c5ae801e658d544f65e8e64330f789a8347baaa8e049addb83f687e05fc76a",
+    "frontend_rollback_release": "docker:nexolab/dashboard:issue-1522-469485b0-arm64@sha256:ec4d14d34a41e4573c67cc18759a0ae29890928c89f0358eca7d351976d97715; https external-ui/469485b0d7e76bb0dcb80b49f84a1bf4a0371e06",
+    "frontend_runtime_evidence": "private /home/nexolab/commander-workspaces/nexolab-1638-release-f0295409/site-activation-report-1638.json",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -56,17 +63,581 @@
     "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
-    "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
+    "protected_frontend_compatibility_source_sha": "f02954091bfa3113c2f435b71d8a7189967b4865",
+    "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
     "active_work_package": {
-      "issue": 1445,
-      "branch": "feature/1445-central-committed-receipt-outbox"
+      "issue": 1734
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1735
+    }
   },
   "work_packages": [
+    {
+      "issue": 1530,
+      "title": "Apply individually assigned page grants to navigation",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "PR #1531 must await #1528 foundation accepted; direct route authorization tested.",
+      "depends_on": [
+        1528
+      ],
+      "evidence": {
+        "pull_request": 1531,
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1530-per-page-navigation"
+    },
+    {
+      "issue": 1528,
+      "title": "Individually assignable page-grant contract foundation",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Source candidate PR #1529 for typed grants and backend permissions; exact-head CI needed.",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {
+        "pull_request": 1529,
+        "source_ci": "UNVERIFIED",
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review"
+      },
+      "branch": "feat/1528-page-grant-foundation"
+    },
+    {
+      "issue": 1522,
+      "title": "Cadence-aware Live/Stale telemetry",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Independent focused source-only freshness contract and targeted tests; no hardware or site mutation.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": "frontend-only completed 2026-11-21 (LAN+HTTPS, source 469485b0)",
+        "planned_branch_only": true,
+        "autonomous_start_requires_current_review_clearance": true,
+        "review_clearance": "2026-11-21 product owner authorized autonomous source-only #1522 branch+PR; #1460 verified merged (PR #1461), no file overlap",
+        "persisted_cadence_bootstrap": "seeded only from history already loaded for selected Live channels and Saved Dashboard series; zero additional /history requests (network probe from patch 0002 removed after E2E request-budget failure on PR #1627)",
+        "site_acceptance": "PENDING_AUTHENTICATED_OWNER_BROWSER",
+        "verified_head_sha": "bee2ee338ea71269b6b5aec13654ed084ce387ee",
+        "pull_request": 1627,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "JWT REST history WebSocket and acquisition invariant": "SUCCESS",
+          "Unit and component tests": "SUCCESS",
+          "Static quality and build": "SUCCESS"
+        },
+        "review_fix_head_sha": "e35ccabaa718f81bfd858472533552be043c7f5f",
+        "review_fix_head_ci": "NEXOLAB Merge Gate SUCCESS; Authenticated Dashboard E2E request budgets SUCCESS",
+        "independent_review_2026_11_21": "P1 cadence from chart-reduced history fixed; P2 malformed stale_after_seconds tolerated; Overview fixed-30s follow-up #1634"
+      },
+      "branch": "fix/1522-cadence-aware-live-freshness",
+      "permitted_paths": [
+        "src/features/live/",
+        "src/components/live/",
+        "src/features/acquisition/ (read-only cadence contract if required)",
+        "src/hooks/use-live-telemetry.ts (shared Live freshness consumer; justified expansion)",
+        "src/hooks/use-live-dashboard-telemetry.ts (Saved Dashboard shares the same 30 s defect; justified expansion)",
+        "src/components/live-dashboards/dashboard-live-view.tsx (Saved Dashboard series state; justified expansion)",
+        "src/lib/telemetry/contract.ts and types.ts (optional stale_after_seconds runtime-validated field; justified expansion)",
+        "focused Live tests",
+        "four canonical .project state files"
+      ],
+      "verification": [
+        "Reproduce 60 s Waveshare cadence against 30 s stale threshold in focused tests.",
+        "Prove on-time, overdue, unknown-quality, reconnect and cross-organization/channel cases.",
+        "Changed-file lint/format, TypeScript, module tests and required exact-head CI.",
+        "Real authenticated site/offline acceptance remains separate and hardware writes forbidden."
+      ]
+    },
+    {
+      "issue": 1587,
+      "title": "One protected operator release across LAN and Funnel",
+      "lifecycle": "blocked",
+      "priority": "critical",
+      "scope": "Release requires complete DR, safe network/reboot acceptance, matching ARM64 packages and owner-approved activation.",
+      "depends_on": [
+        1428,
+        1409,
+        1399
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1460,
+      "title": "Read-only complete backup inventory and capacity preflight",
+      "lifecycle": "completed",
+      "priority": "critical",
+      "scope": "Source-only read-only complete-backup policy and protected storage-capacity preflight; standalone pytest, exact-head CI, no production backup/restore or site actions.",
+      "depends_on": [],
+      "evidence": {
+        "pull_request": 1461,
+        "source_ci": "UNVERIFIED",
+        "site_cutover": false,
+        "live_pr_snapshot": "2026-11-19 open DRAFT, mergeable=false; requires drift/diff/CI review",
+        "worktree_scope": "isolated_reconciliation_only",
+        "reconciled_base": "current_main_after_1598",
+        "targeted_pytest": "15_pass",
+        "python_compile": "pass",
+        "state_model_validator": "pass",
+        "actual_backup": "NOT_PERFORMED",
+        "actual_restore": "NOT_PERFORMED",
+        "offline_hardware_verified": false,
+        "required_exact_head_ci": "SUCCESS (PR #1461 merged 2026-11-19; Issue closed COMPLETED)",
+        "verified_head_sha": "7c7bc70e74aba4f11dbef5fff5517565b8419550",
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "c8c57505bfd47b9e9243515c91511dd92e506141"
+        }
+      },
+      "branch": "feature/1460-offline-backup-preflight",
+      "permitted_paths": [
+        "scripts/nexolab-offline-backup-preflight.py",
+        "scripts/tests/test_nexolab_offline_backup_preflight.py",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/telemetry-service.yml",
+        "docs/operations/offline-backup-preflight-1460.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "verification": [
+        "Isolated read-only preflight pytest tests: 15/15 PASS on reconciled source candidate",
+        "Source Python compile and canonical State Model v2 integrity: PASS",
+        "Required exact-head GitHub CI, offline workflow and merge gate: PENDING on the updated PR head",
+        "Real encrypted off-device backup and isolated restore: not performed, parent #1428 remains blocked"
+      ]
+    },
+    {
+      "issue": 1598,
+      "title": "Dependency-driven roadmap and verification governance",
+      "lifecycle": "completed",
+      "priority": "critical",
+      "scope": "Documentation and canonical state only; all open issue/PR inventory; no site or code mutation.",
+      "depends_on": [],
+      "evidence": {
+        "branch": "governance/1598-roadmap-queue-and-test-gates",
+        "source_only": true,
+        "source_pr_ci": "PENDING",
+        "hardware_verified": false
+      },
+      "branch": "governance/1598-roadmap-queue-and-test-gates"
+    },
+    {
+      "issue": 1596,
+      "branch": "chore/1596-board-state-reconciliation",
+      "title": "Reconcile merged source Issues, open work and stale Sprint selection",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Administrative GitHub Issue closure backed by merged PR evidence, remaining-work classification and state-only PR; no site or hardware mutation.",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "review_date": "2026-11-19",
+        "source_main_sha": "b828eba3994e0dd45cd7da663cb72ce1b9cf5c3b",
+        "issues_open_before": 79,
+        "pull_requests_open_before": 46,
+        "closed_source_issues": [
+          1594,
+          1592,
+          1590,
+          1583,
+          1479,
+          1431,
+          1525
+        ],
+        "source_only_closure": true,
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pr_review_and_ci": "state-only CI required GREEN before merge; this source snapshot is not site acceptance",
+        "pull_request": 1597
+      }
+    },
+    {
+      "issue": 1592,
+      "branch": "release/1592-frontend-entrypoint-parity",
+      "title": "One operator-facing source/build version without loss of device enrollment",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Read-only source/build parity across local Docker, lab LAN and Funnel; preserve commissioned RS-485 onboarding and prepare guarded release handoff to #1587.",
+      "permitted_paths": [
+        "scripts/check-frontend-entrypoint-parity.py",
+        "scripts/tests/test_frontend_entrypoint_parity.py",
+        "docs/operations/nexolab-unified-operator-release-parity.md",
+        ".project/"
+      ],
+      "evidence": {
+        "source_commit": "d432820a49c5dc4add23b66c955fc4b06f3d5b4c",
+        "pull_request": 1593,
+        "unit_tests": "8/8 PASS on isolated Raspberry",
+        "python_compile": "PASS",
+        "markdown_prettier": "PASS",
+        "site_parity": "expected FAIL: Docker 4be678f6, Funnel 75ceb465, LAN 08f1c8a4",
+        "preserved_device_agent": "nexolab/quick-agent:1490",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "github_ci": "PENDING exact new #1593 head",
+        "dependency_release_issue": 1587,
+        "implementation_checkpoint": "cffaede682297b01aa0dea96dbc9992b8fd4a235",
+        "parity_unit_tests": "15 PASS including pinned-multi-origin CLI E2E",
+        "prettier": "PASS",
+        "manifest_policy": "Optional SHA256-pinned manifest; exact same approved source; distinct named build IDs",
+        "classifier_gate": "#1594 / PR #1595 merged after all 5 exact-head workflows GREEN",
+        "site_mutation": false
+      }
+    },
+    {
+      "issue": 1594,
+      "branch": "ci/1594-parity-verification-classification",
+      "title": "Precisely classify read-only parity tool to resolve missing CI workflow registration",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "scope": "Exact-path verification-only classification of two new read-only parity files while preserving full Core and fail-closed unknown-tool checks.",
+      "permitted_paths": [
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "7b8cac8e18c017f9d0acb80374de08006a50b9fd",
+        "targeted_unittest": "84 PASS",
+        "syntax": "PASS",
+        "required_ci": "PENDING exact-head CI plus dashboard/offline/refrigeration workflows",
+        "site_mutation": false,
+        "hardware_verified": false,
+        "dependency_issue": 1592,
+        "blocked_pr": 1593,
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1590,
+      "title": "Overview: distinguish telemetry deviations from alert journal events",
+      "branch": "feat/1590-alert-scope-copy",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Separate live telemetry deviation KPI from persisted alert-event feed; truthful empty/stale/error states in Overview without changing measurements or alert count calculations.",
+      "permitted_paths": [
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/alarms-panel.tsx",
+        "src/components/dashboard/alarms-panel.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "14 PASSED / 2 files",
+        "typescript_noemit": "PASS",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "source_semantics": "KPI counts fresh telemetry samples with alarm or communication_error; Alerts panel reads independent active/acknowledged event feed.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "github_exact_head_ci": "PENDING_PR",
+        "full_build": "PENDING_CI",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1585,
+      "branch": "feat/1585-registry-channel-labels",
+      "title": "Current Dixell in Equipment Registry with shared channel names",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Show read-only commissioned 6+2 inputs and scoped display names without altering immutable telemetry identities/history.",
+      "permitted_paths": [
+        "src/components/equipment/",
+        "src/components/live/",
+        "src/components/refrigeration/",
+        "src/features/equipment/",
+        "src/features/refrigeration/",
+        "src/hooks/",
+        "services/telemetry-service/app/",
+        "services/telemetry-service/migrations/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "base": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+        "python_tests": "18 passed",
+        "frontend_tests": "436 passed across 67 module files",
+        "migration": "isolated upgrade and guarded downgrade PASS",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "pending": "Exact-head PR CI and source build; site acceptance separately authorized.",
+        "build": "Next.js 16.3.6 LOCAL_LAN production build PASS",
+        "catalog_scope": "Only legacy Dixell catalog entries hidden by default when commissioned registry available; other controller families retained",
+        "ci_50af9a4b": "862 passed, 1 pinned Alembic revision assertion failed; merge gate blocked.",
+        "ci_repair": "Historic PostgreSQL circuit migration test compares applied revision with ScriptDirectory current head. Local single-head validation PASS. Exact-head CI pending.",
+        "source_merge_verified": "PR #1586 merged; 20/20 exact-head CI; installed release not verified"
+      }
+    },
+    {
+      "issue": 1583,
+      "branch": "feat/1583-refrigeration-scheme-channels",
+      "title": "Commissioned Dixell inputs in refrigeration schemes without a chamber requirement",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Make the climate chamber optional for refrigeration passports and use the local acquisition registry to add or replace commissioned Dixell temperature inputs in equipment schemes.",
+      "permitted_paths": [
+        "src/components/refrigeration/",
+        "src/features/refrigeration/",
+        "src/data/refrigeration.ts",
+        "services/telemetry-service/app/refrigeration/",
+        "services/telemetry-service/app/application.py",
+        "services/telemetry-service/app/main.py",
+        "services/telemetry-service/tests/test_refrigeration_sensor_configuration_api.py",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c",
+        "acceptance": "Create without a chamber, show active 6+2 section inputs, keep reserve/disabled out, preserve replacement label/coordinates/history and scope access by organization/node.",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "pending": "Required pull request checks and separately scoped site acceptance."
+      }
+    },
+    {
+      "issue": 1581,
+      "branch": "feat/1581-live-dashboard-legend",
+      "title": "Synchronize and compact the Saved Live Dashboard legend",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Saved Live Dashboard legend and shared historical inspection.",
+      "permitted_paths": [
+        "src/components/live-dashboards/",
+        "src/components/charts/chart-shell.tsx",
+        "src/features/live-dashboards/chart*",
+        "e2e/live.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "b57f7dee4532ef23e9ff36e033340e511219233a",
+        "behavior": "Saved Live Dashboard legends are grouped by instrument and filter by instrument, node, channel, metric or unit. Every panel derives its readout from the shared cursor and preserves recorded zeros and missing observations.",
+        "local_verification": "Focused chart and legend tests, TypeScript, lint and LOCAL_LAN production build.",
+        "pending": "Required exact-head authenticated Chromium acceptance. No Raspberry deployment requested for these chart work packages.",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "verified_head_sha": "ae85a7590415fe6ad820539a3911e122024ece8a",
+        "pull_request": 1582,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "ac2856ae2c2a185ef01d98ff2e2e73178631b88c"
+        }
+      }
+    },
+    {
+      "issue": 1579,
+      "title": "Synchronize controller graphs and analyze an observed refrigeration cycle",
+      "branch": "feat/1579-shared-controller-cycle",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Read-only Embraco controller history chart selection, viewport, cursor, relay and defrost evidence.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-controller-{chart,history}*",
+        "src/features/refrigeration/controller-timeline*",
+        "src/components/charts/chart-renderer-host.tsx",
+        "src/features/charts/{echarts-adapter,inspection}*",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "baseline": "d92350848fa67705bd74cbd75152495d82ff387e",
+        "operator_flow": "One timeline for temperature and setpoint, compressor RPM, controller state, defrost and four relay lanes. Select either plot; zoom and cursor apply across the plots and lanes. The alarm, relay journal and CSV interval follow the analysis selection.",
+        "data_quality": "Observed defrost duration counts controller state 3 and reports coverage. Unknown intervals are unfilled, and the numeric inspector suppresses samples beyond the observed span.",
+        "local_verification": "Focused chart/history, timeline, CSV, and renderer tests, ESLint, TypeScript, and LOCAL_LAN production build.",
+        "pending": "Separate Raspberry site acceptance",
+        "hardware_verified": false,
+        "site_cutover": false,
+        "source_merge": "b57f7dee4532ef23e9ff36e033340e511219233a",
+        "verified_head": "e3ac93a63871564a23e1d9ae9835839539d2a680",
+        "github_workflows": 4,
+        "browser_acceptance_run": 43894681745
+      }
+    },
+    {
+      "issue": 1577,
+      "title": "Restore replacement Dixell collection and canonical Overview monitoring",
+      "branch": "fix/1577-dixell-telemetry",
+      "priority": "high",
+      "lifecycle": "review",
+      "scope": "Read-only canonical temperature visibility, cadence contract alignment and legacy enrollment guard; owner runtime collection/API repair already verified.",
+      "permitted_paths": [
+        "src/lib/telemetry/temperature-channel*",
+        "src/lib/telemetry/dashboard-state.test.ts",
+        "src/components/dashboard/temperature-chart.test.tsx",
+        "docs/operations/dixell-telemetry-recovery.md",
+        ".project/",
+        "src/features/acquisition/temperature-monitoring*",
+        "src/hooks/use-monitored-temperature-channels*",
+        "src/features/acquisition/cadence-client*",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/settings/acquisition-cadence-panel*",
+        "src/app/api/device-agent/xjp60d/route*",
+        "scripts/acquisition-invariant-fixture.py",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "root_cause": "Parent devices were discovery_only; frontend private API origin absent; source Overview uses legacy numeric enrollment; cadence omits supported waveshare_8ai.",
+        "browser": "All eight latest values advance by 10s; six Unit1 persisted 1h series visually rendered. Monitoring auth error cleared; installed Overview and cadence contract defects remain.",
+        "runtime": "Owner verified registry46 with6+2 eligible inputs. Approved frontend-only origin override completed with FRONTEND_API_FIXED, unchanged build; journal /home/nexolab/nexolab-1577-ui-e86e61no. No agent build replacement or hardware write.",
+        "offline": "No new dependency or external runtime requirement. Hardware data and configuration remain local.",
+        "pending": "New exact-head CI/review; matching frontend-only artifact and separately approved activation; Overview and Unit7 persisted-history acceptance; future seven modules hardware-unverified.",
+        "source_checks": "Initial classifier44 targeted tests, lint, TypeScript and build passed; follow-up44 targeted tests in7files passed. Final full ESLint, TypeScript and LOCAL_LAN production build passed; canonical acceptance fixture returned two eligible channels without mutations; state/format checks passed.",
+        "prior_ci": "All four triggered workflows succeeded on d3570e944fcd24f1edd90447c9a3396e9002fe80; this does not cover new source changes.",
+        "ci_trigger": "Preserved fail-closed matrix; added fixture path to Refrigeration workflow so its already-required pull_request check launches."
+      }
+    },
+    {
+      "issue": 1575,
+      "title": "Preserve deployed commissioning and reconcile Live dashboard migrations",
+      "branch": "fix/1575-pi-alembic-bridge",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Paired frontend and Telemetry release preserving the deployed standalone instruments, names and energy export.",
+      "permitted_paths": [
+        "services/telemetry-service/app/commissioning/",
+        "services/telemetry-service/app/energy_export/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "deployed_telemetry_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "source_match": "All 229 tracked Telemetry Python app and migration files match the running service.",
+        "migration_check": "PostgreSQL 16.16 upgraded from both 0038 revisions; the existing name and new dashboard columns were present.",
+        "targeted_tests": "52 passed across the imported application-contract tests and Live inventory tests.",
+        "pending": "Required exact-head CI, matched ARM64 artifacts and guarded site activation.",
+        "site_cutover": false,
+        "verified_head_sha": "2552b7ef77f7cbf9207e4ff77dd0b813e244f725",
+        "pull_request": 1576,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "4722f9bd6f87307541b029ccef7f691e528bdc87"
+        }
+      }
+    },
+    {
+      "issue": 1573,
+      "title": "Create dashboards from connected sensors with direct channel selection",
+      "branch": "fix/1573-live-dashboard-connected-sensors",
+      "priority": "high",
+      "lifecycle": "completed",
+      "scope": "Responsive connected-channel picker and tenant-scoped standalone dashboard series.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "src/features/live-dashboards/",
+        "src/hooks/use-live-dashboard-*",
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "e2e/Live Dashboard verification",
+        ".project/"
+      ],
+      "evidence": {
+        "live_read_only_diagnosis": "24 recent series are absent from the climate catalog: eight each for XJP60D, SDM120M and Waveshare",
+        "local_source_checks": "targeted backend and frontend tests, lint, TypeScript and LOCAL_LAN production build",
+        "pending_checks": "Site acceptance after #1575",
+        "site_cutover": false,
+        "prior_verified_head": "181bf421a8e2c264c611f2be10401788481a67e5",
+        "integration_checks": "44 frontend tests, 51 Python tests, TypeScript, real PostgreSQL 16.16 inventory and rollback behavior on the combined source",
+        "security_baseline_issue": 1447,
+        "source_merged_pr": 1574,
+        "source_revision": "eb6302b0ff1a4fefa399dd07dea15fb48f9d491c"
+      }
+    },
+    {
+      "issue": 1564,
+      "title": "Use the pinned Nginx validator for protected frontend handoff",
+      "branch": "fix/1564-nginx-dynamic-user-validator",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Correct the root-gated Nginx syntax check and verify the existing byte-exact rollback. Keep the protected site untouched.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/"
+      ],
+      "evidence": {
+        "base_source": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "cause": "runuser cannot resolve the gateway systemd DynamicUser as a static account",
+        "targeted_tests": "10 passed; two new regression tests failed against the original validator",
+        "isolated_nginx": "1.26.3 -t accepted original and generated candidate, rejected invalid syntax",
+        "offline_runtime_dependency_change": "none",
+        "github_ci": "verify the published #1564 PR head",
+        "protected_site_change": "none in this work package",
+        "protected_https_unsigned_status": 302,
+        "latest_ui_package": "Issue #1569 records verified ARM64 staging for 3e4c10f3; prepare a source-bound handoff after checking the actual site"
+      }
+    },
+    {
+      "issue": 1569,
+      "title": "Reauthenticate when the Users & Access session is lost",
+      "branch": "fix/1569-user-admin-session-recovery",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "scope": "Local refresh invalidation and authenticated user administration recovery.",
+      "permitted_paths": [
+        "src/components/settings/users-screen.tsx",
+        "src/components/settings/users-screen.test.tsx",
+        "src/features/security/local-auth.ts",
+        "src/features/security/local-auth.test.ts",
+        "src/features/security/local-user-admin.ts",
+        "src/features/security/local-user-admin.test.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "live_observation": "refresh 401 immediately preceded create 401; protected tab retained admin controls; reload exposed local sign-in",
+        "targeted_tests": "42 passed across 5 files; initiating-tab invalidation assertion failed on baseline",
+        "full_frontend_tests": "1267 passed across 204 files; lint-staged regression passed",
+        "lint_typecheck_build": "passed; LOCAL_LAN local-auth configuration",
+        "local_chromium": "not run past browser startup; environment denied browser socket",
+        "github_ci": "9 successful workflows on exact PR head 90291327db256580c096e12dbe6d7d8d67dcb7db",
+        "protected_site_acceptance": "verified ARM64 staging and isolated Chromium on the Pi; live activation and real administrator acceptance pending",
+        "runtime_dependency_change": "none",
+        "source_merged_pr": 1570,
+        "source_revision": "3e4c10f33f5450208b12b3f76b584d3559bd7ba4",
+        "arm64_release_run": 43830341904
+      }
+    },
+    {
+      "issue": 1567,
+      "title": "Restore private lab access after Tailscale stop/start",
+      "branch": "fix/1567-private-lab-tunnel-recovery",
+      "priority": "critical",
+      "lifecycle": "review",
+      "scope": "Private lab DNS and HTTP systemd lifecycle, reversible console installation and live acceptance. Legacy private HTTPS topology assessed separately.",
+      "permitted_paths": [
+        "infrastructure/systemd/nexolab-lab-tailscale-lifecycle.conf",
+        "scripts/verify-raspberry-pi-private-lab-tailscale-lifecycle.sh",
+        "docs/operations/private-lab-tunnel-recovery.md",
+        ".project/"
+      ],
+      "evidence": {
+        "isolated_pi_systemd_fixture": "baseline reproduced; delayed readiness, stop/start and restart passed",
+        "live_lab_login_independent_tailnet_client": 200,
+        "live_legacy_inspection_login": 502,
+        "live_installation": "pending_owner_console",
+        "affected_client_reboot_and_network_return": "unverified"
+      }
+    },
     {
       "issue": 1343,
       "title": "Repair offline package storage authority and image identity before native handoff",
@@ -430,7 +1001,7 @@
       "title": "Validate complete LAN artifact contract before frontend completion handoff",
       "branch": "fix/1335-complete-lan-runtime-contract",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1333
       ],
@@ -462,6 +1033,12 @@
           "backend_mutation": "none",
           "controller_write": "none",
           "whole_site_authority": "unchanged_historical_D00"
+        },
+        "verified_head_sha": "7c6abd030cf8b5988255c81f9ddd1b35ea40a6ba",
+        "pull_request": 1336,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2"
         }
       }
     },
@@ -7825,7 +8402,7 @@
       "issue": 1315,
       "title": "Build protected ARM64 offline packages for unified update acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/protected-offline-package-workflow",
       "evidence": {
         "local_workflow_contract_tests": "30_passed",
@@ -7833,7 +8410,13 @@
         "actual_arm64_build": "pending_after_required_CI",
         "modbus_write": "none",
         "hardware_write": "none",
-        "runtime_mutation": "none"
+        "runtime_mutation": "none",
+        "verified_head_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "pull_request": 1316,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b"
+        }
       },
       "scope": "Optional protected offline artifact workflow; Dashboard public export fix",
       "verification": "Executable source/origin/worktree failure tests; required CI; actual ARM64 artifact builds after merge"
@@ -8013,7 +8596,7 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343,
         1351
@@ -8038,7 +8621,8 @@
         "native_roundtrip_issue": 1353,
         "native_update_operation": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8",
         "native_rollback_operation": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-        "owner_action": "consumed_succeeded_do_not_replay"
+        "owner_action": "consumed_succeeded_do_not_replay",
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8046,7 +8630,7 @@
       "title": "Pin native worker Git trust to the configured site repository",
       "branch": "fix/1351-native-worker-git-lineage",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343
       ],
@@ -8084,7 +8668,8 @@
           "target_storage_gate_started_at": "2026-10-13T10:55:08.189307+00:00",
           "target_storage_gate_duration_seconds": 208.328,
           "target_storage_gate_returncode": 0
-        }
+        },
+        "backlog_reconciliation_note_20261119": "Source work merged; native protected update/rollback operational acceptance remains unverified in the open GitHub Issue. Do not treat as installed/completed."
       }
     },
     {
@@ -8806,7 +9391,7 @@
       "title": "Record recovered ffdefc production authority and Energy page operator acceptance",
       "branch": "docs/1390-recovered-ffdefc-acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1388
       ],
@@ -8819,7 +9404,13 @@
         "chromium_login": "desktop_mobile_PASS_auth_gate",
         "owner_energy_page": "opens_after_login",
         "energy_csv_xlsx_on_ffdefc": "awaiting_operator_confirmation",
-        "ci": "pending"
+        "ci": "pending",
+        "verified_head_sha": "e634ae9f3d8d14b13b3598791d4969ab47c43b92",
+        "pull_request": 1391,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "bd56f38c77d06ce14ade1b69a249aa81b3852c3e"
+        }
       }
     },
     {
@@ -8827,7 +9418,7 @@
       "title": "Fail closed on Docker/physical-LAN CIDR overlap",
       "branch": "fix/1406-docker-lan-cidr-preflight",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Read-only Python IPv4 interface-vs-Docker IPAM gate integrated with offline Pi acceptance; no runtime network change.",
       "evidence": {
@@ -8837,7 +9428,8 @@
         "unit_tests": "16_passed",
         "production_site_changed": false,
         "owner_authorized_subnet_migration": false,
-        "exact_head_ci": "pending"
+        "exact_head_ci": "pending",
+        "portfolio_triage_20261119": "Source PR #1407 merged 2026-10-16; protected bridge migration still open."
       }
     },
     {
@@ -8845,7 +9437,7 @@
       "title": "Detect detached packaged object-storage private network after reboot",
       "branch": "fix/1400-offline-object-storage-network-gate",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "depends_on": [],
       "scope": "Read-only offline package API-to-VersityGW Docker network, alias, host-port and health gate; no site repair.",
       "evidence": {
@@ -8857,7 +9449,8 @@
         "ci": "pending",
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
-        "ci_policy_tests": "225_tests_1_expected_skip"
+        "ci_policy_tests": "225_tests_1_expected_skip",
+        "portfolio_triage_20261119": "Read-only source guard not proof of repaired site object-storage network."
       }
     },
     {
@@ -8865,8 +9458,11 @@
       "title": "Guarded packaged Docker boot network recovery",
       "branch": "feature/1399-offline-boot-network-observer",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428,
+        1409
+      ],
       "scope": "Read-only protected authority and Docker network drift observer first; later guarded owner-approved supervisor remains unimplemented.",
       "evidence": {
         "main_includes_1406": "6bb87b26d8e5781893b786e4a4a28faece426650",
@@ -8874,7 +9470,8 @@
         "source_tests": "16_passed",
         "automated_site_repair": "not_authorized_not_enabled",
         "exact_head_ci": "pending",
-        "manual_only_postgres_or_hardware_agent": "enforced"
+        "manual_only_postgres_or_hardware_agent": "enforced",
+        "portfolio_triage_20261119": "Source-only observer done; actual auto-repair gated on independent DR and safe network topology."
       }
     },
     {
@@ -8939,8 +9536,10 @@
       "title": "Migrate live Edge Docker bridge away from overlapping physical LAN without telemetry loss",
       "branch": "feature/1409-edge-ipam-readonly-inventory",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [],
+      "lifecycle": "blocked",
+      "depends_on": [
+        1428
+      ],
       "scope": "Stage 1 only: bounded read-only full Pi interface/all-routes/Docker subnet inventory, explicit RFC1918 candidate conflict analysis, mock regression tests, protected owner-gated runbook; no live network rewrite.",
       "permitted_paths": [
         "infrastructure/offline/inspect-edge-docker-ipam-readiness.py",
@@ -8969,7 +9568,8 @@
         "test_cases": 18,
         "initial_ci_format_failure": "runbook_prettier",
         "next_ci": "pending",
-        "unapproved_candidate_exit": "nonzero_fail_closed"
+        "unapproved_candidate_exit": "nonzero_fail_closed",
+        "portfolio_triage_20261119": "Source-only IPAM done; protected network cutover gated on full DR and owner approval."
       }
     },
     {
@@ -8977,11 +9577,9 @@
       "title": "Restore offline NEXOLAB backup/restore readiness with bounded PG incident snapshot",
       "branch": "fix/1428-bounded-incident-pg-backup",
       "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [
-        1399
-      ],
-      "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft.",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "scope": "First source-only slice: root-only 4 GiB bounded, no-write-check PostgreSQL dump helper and tests. Actual full offline DR scheduling, S3/MQTT/SQLite/auth backup, independent restore and production activation out of scope for this draft. Update 2026-11-22: all three source leaves are merged (A #1630/#1697, C #1693, B #1695, health gate #1698) and rehearsed on synthetic data; the hard gate remains the owner's real backup, off-device copy and independent restore.",
       "permitted_paths": [
         "scripts/nexolab-safe-pg-incident-backup.sh",
         "scripts/tests/test_nexolab_incident_pg_backup.py",
@@ -9017,7 +9615,8 @@
         "source_only_pr1430": "merged",
         "merged_sha": "eb3b42135f188e9a916313c9d335b32f49f020d9",
         "source_only_ci": "all_six_workflows_success",
-        "pending_full_dr": true
+        "pending_full_dr": true,
+        "portfolio_triage_20261119": "DR source can advance independent of reboot recovery; complete encrypted off-device backup+isolated restore blocked on real evidence."
       }
     },
     {
@@ -9332,78 +9931,12 @@
         "atomic_sqlite_prune": "not_implemented",
         "hardware": "unverified",
         "checks": {
-          "ci": "success",
-          "telemetry": "not_applicable_contract_only",
-          "offline": "success"
+          "ci": "pending",
+          "unit": "pending",
+          "offline": "pending"
         },
         "pr": 1411,
-        "merged_sha": "528ff5256d379ffd4a8ec77d831264db9180a47f",
-        "production_mutation": false
-      }
-    },
-    {
-      "issue": 1445,
-      "title": "Central PostgreSQL-committed telemetry receipt publisher with durable retry",
-      "branch": "feature/1445-central-committed-receipt-outbox",
-      "priority": "critical",
-      "lifecycle": "in_progress",
-      "depends_on": [
-        1410
-      ],
-      "scope": "Source-only central authenticated committed receipt publication with PostgreSQL-transactional outbox and durable retry; no broker ACL/Edge/site cutover",
-      "permitted_paths": [
-        "services/telemetry-service/",
-        "contracts/",
-        "docs/architecture/",
-        "docs/operations/",
-        ".project/CURRENT_STATE.md",
-        ".project/BLOCKERS.md",
-        ".project/ACTIVE_SPRINT.json",
-        ".project/LAST_CHECKPOINT.json"
-      ],
-      "evidence": {
-        "pr": 1446,
-        "head_sha": "bb77384c1027cfd1952eafe37c94358f6b3fa914",
-        "source_only": true,
-        "postgres_guard": "added",
-        "producer": "source_implemented_not_runtime_connected",
-        "mq_acl": "unverified",
-        "edge_ack": "not_implemented",
-        "site_activation": "not_performed",
-        "hardware": "unverified",
-        "checks": {
-          "targeted": "previous_exact_head_passed_new_commit_pending",
-          "required_workflows": "in_progress"
-        },
-        "publisher_core": "source_implemented_not_mqtt_connected",
-        "ingress_atomic_cursor_sample": "source_implemented_not_runtime_connected",
-        "out_of_order_replay": "source_implemented_pending_ci",
-        "node_sequence_unique_constraint": "source_implemented_pending_ci",
-        "security_dependency": "#1447 PR #1448 pending exact-head CI and owner review",
-        "receipt_mqtt_edge_compatible_strict_validation": "source_only_passed",
-        "local_focused_tests_passed": 37,
-        "postgres_integration_tests_skipped": 0,
-        "production_mutation": false,
-        "github_ci": "pending_new_head",
-        "independent_security_gate": "blocked_owner_review",
-        "arm64_postgres_fixture_version": "17.11_debian13",
-        "arm64_pg_receipt_tests_passed": 38,
-        "arm64_pg_receipt_tests_skipped": 0,
-        "pg_real_write_canonical_edge_contract": "passed_with_synthetic_broker_puback",
-        "postgres16_site_runtime": "unverified",
-        "site_mqtt_acl": "unverified",
-        "github_exact_head_ci": "pending_followup",
-        "central_mqtt_publisher": "source_implemented_not_runtime_connected",
-        "real_mosquitto_2_0_21_qos1": "synthetic_static_acl_delivery_passed",
-        "actual_pg17_to_mqtt_to_edge_sqlite": "source_only_end_to_end_passed",
-        "wrong_tenant_receipt_delivery": "denied_in_synthetic_static_acl",
-        "node_forged_receipt_delivery": "denied_in_synthetic_static_acl",
-        "site_mqtt_dynamic_security": "unverified",
-        "site_postgresql16": "unverified",
-        "site_device_agent": "unwired_unverified",
-        "fixtures_stopped": true,
-        "canonical_edge_protocol_ci_regression": "committed_source_only_test",
-        "postgres16_exact_new_head_ci": "pending"
+        "portfolio_triage_20261119": "Source contract PR #1411 merged 2026-10-30; ACK publisher/consumer remain open."
       }
     },
     {
@@ -9467,6 +10000,2240 @@
         "state_tests": 13,
         "state_tests_skipped": 1
       }
+    },
+    {
+      "issue": 1462,
+      "title": "Guarded offline central Docker network recovery after sandbox detachment",
+      "branch": "feature/1462-guarded-central-network-recovery",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1399,
+        1409
+      ],
+      "scope": "Source-only fixed identity, persistent volume and bridge network recovery guard; no installed boot supervisor, site cutover or production writes.",
+      "permitted_paths": [
+        "infrastructure/offline/guarded-central-network-recovery.py",
+        "infrastructure/offline/tests/test_guarded_central_network_recovery.py",
+        "docs/operations/guarded-central-network-recovery-1462.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/tests/standalone-offline-runtime-contract.sh"
+      ],
+      "evidence": {
+        "source_only": true,
+        "installed_package_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "live_dashboard": "LAN_http_200_recovery_verified",
+        "live_api": "LAN_http_200_recovery_verified",
+        "site_readonly_preflight": "blocked_physical_docker_cidr_not_safe",
+        "source_unit_tests": 16,
+        "site_execute": false,
+        "systemd_supervisor": "not_installed",
+        "production_mutation": false,
+        "hardware_acceptance": "unverified",
+        "existing_boot_observer_tests": 23,
+        "existing_cidr_guard_tests": 16,
+        "offline_bundle_ci_registration": "included_in_standalone_offline_runtime_contract",
+        "unit_tests_all": 55,
+        "auth_key_bind_mount_checks": "read_only_required_and_negative_tested",
+        "update_locks": "exclusive_across_all_operations",
+        "standalone_offline_contract": "passed",
+        "linux_real_lock_reentrancy_regression": "verified_no_self_deadlock",
+        "installed_auto_supervisor": "not_enabled",
+        "source_only_work_package": "completed_not_activated"
+      }
+    },
+    {
+      "issue": 1464,
+      "title": "Opt-in explicit Edge bridge IPAM without site-unsafe default",
+      "branch": "feature/1464-edge-ipam-approval-overlay",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1409
+      ],
+      "scope": "Source-only opt-in exact subnet Compose overlay and hermetic config/route tests; no live production network migration.",
+      "permitted_paths": [
+        "infrastructure/compose/compose.edge-safe-ipam.yaml",
+        "infrastructure/offline/tests/test_edge_safe_ipam_overlay.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-safe-ipam-overlay-1464.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "unit_tests": 14,
+        "required_subnet_without_default": true,
+        "docker_compose_synthetic_config": "PASS",
+        "real_pi_subnet_proposal": "candidate_unapproved_not_site_authorized",
+        "live_site_migration": false,
+        "live_docker_recreate": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "source_unit_tests": 14,
+        "edge_ipam_guard_unit_tests": 18,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_policy_skipped": 1,
+        "real_pi_readonly_candidate": "candidate_unapproved_exit1",
+        "site_mutation": false,
+        "source_only_merged": "observed_GREEN",
+        "live_subnet_migration": "not_implemented"
+      }
+    },
+    {
+      "issue": 1466,
+      "title": "Offline read-only Dashboard and Session API access probe",
+      "branch": "feature/1466-readonly-lan-auth-probe",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1399
+      ],
+      "scope": "Source-only local-only fixed-path unauthenticated login/access smoke probe. No scheduled host automation or live modifications.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-site-lan-access.py",
+        "infrastructure/offline/tests/test_site_lan_access.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-auth-path-smoke-1466.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "standalone_unit_tests": 18,
+        "pi_live_readonly_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "pi_live_no_credentials": true,
+        "pi_live_site_mutation": false,
+        "browser_owner_authentication": "unverified",
+        "hardware": "unverified",
+        "site_automatic_monitor": "not_installed",
+        "github_exact_head": "3_of_3_GREEN",
+        "standalone_offline_contract": "PASS",
+        "ci_contract_tests": 383,
+        "ci_contract_skips": 1,
+        "state_model_v2": "PASS",
+        "docs_prettier": "PASS",
+        "actual_lan_smoke": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "site_mutation": false,
+        "source_only_merge": "observed_merged"
+      }
+    },
+    {
+      "issue": 1469,
+      "title": "Verify exact Edge network cutover identities and rollback gates read-only",
+      "branch": "feature/1469-guarded-edge-site-migration-readiness",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1409,
+        1464
+      ],
+      "scope": "Source-only fail-closed exact immutable image, named-volume, route candidate and site release evidence gate; no production cutover.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-edge-site-migration-gates.py",
+        "infrastructure/offline/tests/test_edge_site_migration_gates.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/edge-site-migration-gates-1469.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "source_unit_tests": 17,
+        "pi_readonly_preflight": "BLOCKED_site_reservation_rollback_and_hardware_acceptance_required",
+        "site_candidate_subnet": "locally_disjoint_not_site_approved",
+        "protected_release_identity": "verified",
+        "edge_images_volumes_networks_ports": "verified",
+        "production_network_cutover": false,
+        "site_reboot_acceptance": "unverified",
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "existing_ipam_unit_tests": 18,
+        "existing_edge_overlay_unit_tests": 14,
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 383,
+        "ci_contract_expected_skips": 1,
+        "state_model_v2": "PASS",
+        "markdown_prettier": "PASS",
+        "pi_site_readonly_exit": 78,
+        "site_protected_image_and_volume_identity": "verified",
+        "source_only_green_merged": "observed"
+      }
+    },
+    {
+      "issue": 1468,
+      "title": "Local offline Dashboard/Session outage alerts and hardened periodic probe",
+      "branch": "feature/1468-local-lan-access-alerts",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1466
+      ],
+      "scope": "Source-only metrics collector, optional local Prometheus alerts, secure exporter directory-mode, hardened off-by-default systemd unit templates. No runtime activation or network repair.",
+      "permitted_paths": [
+        "infrastructure/offline/emit-lan-access-prometheus.py",
+        "infrastructure/offline/tests/test_lan_access_prometheus.py",
+        "scripts/serve-prometheus-textfile.py",
+        "infrastructure/compose/compose.observability.yaml",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.yml",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "infrastructure/systemd/nexolab-lan-access-probe.timer",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/lan-access-alerts-1468.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/CURRENT_STATE.md",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "infrastructure/observability/prometheus/optional-rules/lan-access-alerts.test.yml"
+      ],
+      "evidence": {
+        "source_only": true,
+        "local_monitor_active": false,
+        "new_unit_tests": 18,
+        "ci_impact_tests": 80,
+        "actual_pi_probe": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "actual_pi_metrics": "temporary_test_file_only",
+        "native_promtool_rule_syntax": "5_of_5_PASS",
+        "native_promtool_firing_and_resolved": "PASS_in_isolated_fixture",
+        "offline_rule_activation": "OPT_IN_NOT_LOADED",
+        "mutated_production": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "promtool_rules": "5_of_5_PASS",
+        "promtool_alert_firing_and_resolved": "tracked_fixture_PASS",
+        "full_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "expected_policy_skips": 1,
+        "native_systemd_verify": "PASS",
+        "site_activation": false,
+        "source_only_merged": "7_of_7_GREEN"
+      }
+    },
+    {
+      "issue": 1472,
+      "title": "Protected install-readiness for offline Dashboard/Session alerting",
+      "branch": "feature/1472-protected-lan-monitor-install-gate",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1468
+      ],
+      "scope": "Source-only fail-closed installed site/source/host metrics directory preflight and corrected systemd template, no site activation.",
+      "permitted_paths": [
+        "infrastructure/offline/inspect-lan-monitor-install-readiness.py",
+        "infrastructure/offline/tests/test_lan_monitor_install_readiness.py",
+        "infrastructure/systemd/nexolab-lan-access-probe.service",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-site-install-gate-1472.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "source_only": true,
+        "new_hermetic_tests": 18,
+        "installed_package_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "requested_previous_source": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "actual_metrics_host_bind": "/home/nexolab/nexolab-platform/runtime/observability",
+        "actual_directory_mode": "0700_owned_nexolab",
+        "legacy_dr_file_mode": "0600_owned_nexolab",
+        "corrected_systemd_template": "exact_host_path_not_installed",
+        "pi_live_readonly_preflight": "BLOCKED_source_not_installed_exit78",
+        "site_activation": false,
+        "hardware_acceptance": "unverified",
+        "github_exact_head": "pending",
+        "prior_collector_regression_tests": 18,
+        "prior_lan_access_regression_tests": 18,
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 384,
+        "ci_expected_skips": 1,
+        "systemd_analyze_verify": "PASS",
+        "source_python_ast": "PASS",
+        "markdown_prettier": "PASS",
+        "state_model_v2": "PASS",
+        "live_site_preflight": "BLOCKED_78_unaccepted_source",
+        "source_only_merge": "3_of_3_GREEN"
+      }
+    },
+    {
+      "issue": 1474,
+      "title": "Digest-bound opt-in LAN monitor assets in offline bundle",
+      "branch": "feature/1474-sealed-offline-lan-monitor-assets",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1472
+      ],
+      "scope": "Explicit optional source-only monitor assets in SHA256-bound offline bundle and all-or-none provenance verifier; no site activation.",
+      "permitted_paths": [
+        "scripts/build-offline-bundle.sh",
+        "scripts/verify-offline-bundle.py",
+        "scripts/tests/test_lan_monitor_offline_payload.py",
+        "scripts/tests/standalone-offline-runtime-contract.sh",
+        "docs/operations/lan-monitor-offline-payload-1474.md",
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml"
+      ],
+      "evidence": {
+        "source_only": true,
+        "optional_flag_off_by_default": true,
+        "assets_in_offline_bundle": 5,
+        "offline_bundle_provenance": "lan-access-monitor-source-only",
+        "sealed_bundle_asset_unit_tests": 16,
+        "real_pi_site_timer": "not_installed",
+        "real_pi_site_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "unprivileged_opt_source_path": "not_installed_or_accepted",
+        "site_activation": false,
+        "hardware": "unverified",
+        "github_exact_head": "pending_revised_commit",
+        "source_unit_tests": "16_PASS",
+        "full_standalone_offline_contract": "PASS",
+        "ci_policy_contract_tests": 385,
+        "ci_expected_skip": 1,
+        "original_package_policy_regression": "17_PASS",
+        "installed_site_version_manager_fixture": "64_PASS_14_BLOCKED_by_existing_external_frontend_in_test_host",
+        "live_site_activation": false,
+        "change_impact_route_tests": 81,
+        "exact_offline_bundle_test_path_registered": true,
+        "ci_impact_fail_closed": false,
+        "ci_impact_unknown_files": 0,
+        "required_external_workflows": "Authenticated_Dashboard_Acceptance_Offline_Bundle_Refrigeration_Browser_Acceptance",
+        "source_test_cases": 16,
+        "change_impact_test_cases": 81,
+        "ci_expected_skips": 1,
+        "source_ast_bash_prettier": "PASS",
+        "git_diff_check": "PASS"
+      }
+    },
+    {
+      "issue": 1505,
+      "title": "Persist commissioned RS-485 buses",
+      "branch": "feature/1505-persistent-rs485",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1503,
+      "title": "Commission bus-scoped SDM120M",
+      "branch": "feature/1503-sdm120-onboarding",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1502,
+      "title": "Commission Waveshare 8AI read-only",
+      "branch": "feature/1502-waveshare-onboarding",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1508,
+      "title": "Energy bus-scoped SDM meters",
+      "branch": "feature/1508-energy-scoped-sdm",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1511,
+      "title": "Isolate backup fixture device IDs",
+      "branch": "fix/1511-backup-fixture-filesystem",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1513,
+      "title": "Plan disposition of obsolete CP2104 buses",
+      "branch": null,
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 1514,
+      "title": "Update advanced onboarding browser acceptance",
+      "branch": "fix/1514-advanced-onboarding-e2e",
+      "lifecycle": "review",
+      "depends_on": [],
+      "evidence": {
+        "priority_interruption": "Product Owner requested sequential Overview UI optimization; #1515 is a draft stacked on unmerged feature/1508-energy-scoped-sdm",
+        "source_change": "preserved_no_modification"
+      }
+    },
+    {
+      "issue": 1516,
+      "title": "Checkpoint current onboarding and adapter evidence",
+      "branch": "docs/1516-current-device-checkpoint",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "74884abb8fc70ce7a4a85a99b2f0964a73b332ba",
+        "pull_request": 1517,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "e25f5f1899455690ff523695ce5b2056504087f8"
+        }
+      }
+    },
+    {
+      "issue": 1525,
+      "title": "Permission-aware navigation and known permission gaps",
+      "branch": "feat/1525-permission-aware-navigation",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "site_deployed": false,
+        "independent_page_grants": "not_implemented_issue_1526"
+      }
+    },
+    {
+      "issue": 1526,
+      "title": "Independently grant and enforce per-page access",
+      "branch": null,
+      "lifecycle": "queued",
+      "depends_on": [
+        1525
+      ],
+      "evidence": {
+        "portfolio_triage_20261119": "Coordination umbrella; executable grant contracts are source PR #1529 and follow-on #1531."
+      }
+    },
+    {
+      "issue": 1532,
+      "title": "Overview readable compact KPI and infrastructure status",
+      "branch": "feat/1532-overview-readability",
+      "priority": "normal",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Overview UI typography/labels/freshness only; source candidate in draft PR #1533. Merge depends on independent per-page grant UI integration, exact-head CI, authenticated browser acceptance; no production deployment.",
+      "permitted_paths": [
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/live-inventory-panel.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        "src/components/dashboard/*.test.tsx",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1532,
+        "pull_request": 1533,
+        "touched_file_tests": "7_passed_3_files_isolated_pi",
+        "touched_file_format": "passed",
+        "touched_file_eslint": "passed",
+        "source_matched_six_github_blobs": true,
+        "typescript_noemit": "passed",
+        "github_exact_head_ci": "PASS_42233327149_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42233327115_dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "production_build": "PASS_42233327149",
+        "runtime_offline_release": "not_installed",
+        "hardware_evidence": "not_applicable_no_hardware_change",
+        "modbus_write": "none",
+        "site_mutation": false,
+        "integration_gate": "Unmerged #1531/#1529 navigation work reviewed before merge; not a sprint-machine dependency",
+        "browser_responsive_overview_px": [
+          360,
+          1440,
+          1920
+        ],
+        "browser_responsive_header_px": [
+          320,
+          375,
+          768,
+          1280
+        ],
+        "browser_screenshot_artifact": 13510498719,
+        "human_visual_acceptance": "not_independently_recorded",
+        "github_exact_head_ci_update_note": "State-only recording commit after exact-head code acceptance; rerun required on new head.",
+        "merged_source_pr": 1533,
+        "merged_source_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "final_exact_head_sha": "90dcde6d550656acd54460b42301a6e7b5bb787d",
+        "final_ci": "PASS_42234941179",
+        "final_browser": "PASS_42234941253",
+        "site_installed": false,
+        "source_only": true
+      }
+    },
+    {
+      "issue": 1534,
+      "title": "Overview device-first sensor picker and scalable history controls",
+      "branch": "feat/1534-overview-sensor-picker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1532
+      ],
+      "scope": "Display-only Overview channel selector and chart controls; device-first hierarchy with explicit unknown fallback; no chamber assignment requirement, RS485 writes or telemetry backend changes.",
+      "permitted_paths": [
+        "src/components/dashboard/overview-sensor-groups.tsx",
+        "src/components/dashboard/overview-sensor-hierarchy.ts",
+        "src/components/dashboard/temperature-visibility-dialog.tsx",
+        "src/components/dashboard/temperature-chart.tsx",
+        "src/components/dashboard/overview-chart-panel.tsx",
+        "src/components/dashboard/*.test.tsx",
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue": 1534,
+        "source_branch_base": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue_1514_review_preserved": true,
+        "tests": "not_run",
+        "ci": "not_run",
+        "hardware_write": false,
+        "modbus_write": false,
+        "site_mutation": false,
+        "changed_ui_files": 4,
+        "changed_test_files": 3,
+        "targeted_tests": "28_passed_4_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 7,
+        "verified_workspace": "/home/nexolab/commander-workspaces/overview-1534-validation-20261106",
+        "source_ci": "not_run",
+        "browser_acceptance": "not_run",
+        "production_build": "PASS_42238642725",
+        "release": "not_installed",
+        "browser_test_update": "replace obsolete chamber bulk checkbox with optional context assertion; no weakened negative safety assertions",
+        "pull_request": 1535,
+        "verified_source_head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "github_exact_head_ci": "PASS_42238642725",
+        "authenticated_dashboard": "PASS_42_of_42_42238642310",
+        "frontend_browser_test_viewports": [
+          320,
+          375,
+          390,
+          768,
+          1280,
+          1440,
+          1920
+        ],
+        "source_only": true,
+        "site_installed": false,
+        "exact_head_ci_after_state_evidence": "pending"
+      }
+    },
+    {
+      "issue": 1537,
+      "title": "Live retry acceptance must wait for authenticated WebSocket before MQTT sample publication",
+      "branch": "fix/1537-websocket-retry-acceptance",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1534
+      ],
+      "scope": "Test-only stabilization: after socket retry wait for connected UI before publishing MQTT samples; preserve actual delivery and exactly-one-retry assertions.",
+      "permitted_paths": [
+        "e2e/live-terminal-offline-retry.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1537,
+        "pull_request": 1538,
+        "baseline_main_sha": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "browser_initial_failed_attempt": "41_of_42_42240068804_attempt1",
+        "browser_same_source_rerun": "42_of_42_42240068804_attempt2",
+        "isolated_pi_prettier": "PASS",
+        "isolated_pi_eslint": "PASS",
+        "isolated_pi_typescript": "PASS",
+        "exact_head_ci": "pending",
+        "authenticated_browser_acceptance": "pending",
+        "modbus_write": false,
+        "hardware_write": false,
+        "production_mutation": false,
+        "github_ci": "PASS_42283567771",
+        "selected_auth_browser": "PASS_13_of_13_42283567775",
+        "merged_source_pr": 1538,
+        "merged_source_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1536,
+      "title": "Live Data progressive advanced-filter disclosure and compact search",
+      "branch": "feat/1536-live-progressive-filters",
+      "priority": "normal",
+      "lifecycle": "completed",
+      "depends_on": [
+        1534,
+        1537
+      ],
+      "scope": "Frontend-only Live Data filtering UX: visible search; optional collapsible advanced Node/Equipment/Channel/Metric/Quality/Alarm selectors; active count and deep-link preservation; unchanged telemetry acquisition.",
+      "permitted_paths": [
+        "src/components/live/live-telemetry-explorer.tsx",
+        "src/components/live/live-telemetry-explorer.test.tsx",
+        "e2e/live.production.e2e.ts",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue": 1536,
+        "isolated_workspace": "/home/nexolab/commander-workspaces/nexolab-1536-live-filters-20261106",
+        "focused_vitest": "12_passed_1_file",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_code_test_blobs": 2,
+        "integrated_main_sha": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "github_ci": "pending",
+        "browser_acceptance": "pending",
+        "site_mutation": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "browser_acceptance_file": "e2e/live-chart-system.production.e2e.ts",
+        "github_exact_head_ci": "PASS_42285423569",
+        "authenticated_browser_acceptance": "PASS_42_of_42_42285423714",
+        "merged_source_pr": 1539,
+        "merged_source_commit": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1544,
+      "title": "Equipment connections: compact, searchable persisted read-only sessions",
+      "branch": "feat/1544-equipment-connections-readability",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1536
+      ],
+      "scope": "Equipment Connections read-only UI: accurate counters while loading/error; local-only session search, status filtering, readable saved bus/Unit identities; unchanged commissioning activation, LAN discovery, permissions and Modbus.",
+      "permitted_paths": [
+        "src/components/equipment/equipment-connections-workspace.tsx",
+        "src/components/equipment/equipment-connections-workspace.test.tsx",
+        "e2e/equipment-registry.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1544,
+        "related_discovery_issue": 1478,
+        "base_main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1544-equipment-ux-20261109",
+        "focused_vitest": "PASS_8_of_8",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "matched_source_blob_count": 3,
+        "authenticated_browser_acceptance": "not_observed_at_pr_creation",
+        "exact_head_ci": "not_run",
+        "production_build": "not_run",
+        "hardware_acceptance": "not_applicable_source_only",
+        "site_installed": false,
+        "hardware_write": false,
+        "modbus_write": false,
+        "pull_request": 1545,
+        "ready_for_review": true,
+        "github_ci": "not_observed_at_pr_creation",
+        "source_merged_pr": 1545,
+        "github_exact_head_ci": "PASS_42600416268",
+        "authenticated_equipment": "PASS_6_of_6_42600416103"
+      }
+    },
+    {
+      "issue": 1546,
+      "title": "Energy Monitoring: compact searchable multi-meter metric selector",
+      "branch": "feat/1546-energy-parameter-picker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1544
+      ],
+      "scope": "Display-only Energy parameter modal local search and selected-only review; preserve disabled unsupported metrics, multi-series/history/export, offline and all existing acquisition and permissions.",
+      "permitted_paths": [
+        "src/components/energy/energy-parameter-dialog.tsx",
+        "src/components/energy/energy-parameter-dialog.test.tsx",
+        "e2e/energy.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1546,
+        "workspace": "/home/nexolab/commander-workspaces/nexolab-1546-energy-ux-20261109",
+        "base_main_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "focused_vitest": "PASS_10_of_10_two_files",
+        "touched_file_prettier": "PASS",
+        "touched_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "verified_source_blobs": 3,
+        "github_ci": "pending",
+        "production_build": "pending",
+        "authenticated_energy_browser": "pending",
+        "modbus_write": false,
+        "hardware_write": false,
+        "site_mutation": false,
+        "source_merged_pr": 1547,
+        "source_merged_commit": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "main_ci": "PASS_42603616206",
+        "site_installed": false
+      }
+    },
+    {
+      "issue": 1548,
+      "title": "Refrigeration catalog: compact equipment cards and trustworthy controller summaries",
+      "branch": "feat/1548-refrigeration-catalog-density",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1546
+      ],
+      "scope": "Read-only refrigeration catalog presentation: compact equipment cards, long identity labels, persisted controller observations/timestamps and accessible status; no backend, source collection, hardware or production cutover.",
+      "permitted_paths": [
+        "src/components/refrigeration/refrigeration-catalog-screen.tsx",
+        "src/components/refrigeration/refrigeration-catalog-screen.test.tsx",
+        "e2e/refrigeration-layout.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1548,
+        "branch": "feat/1548-refrigeration-catalog-density",
+        "base_main_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "verified_workspace": "/home/nexolab/commander-workspaces/nexolab-1548-catalog-ui-validation-20261110",
+        "focused_vitest": "13_passed_1_file",
+        "prettier": "PASS",
+        "eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_blobs_sha_match": 3,
+        "github_exact_head_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_only": true,
+        "merged_source_pr": 1549,
+        "merged_source_sha": "182777186092cc1e3968182f2239bc6ce6c377e3"
+      }
+    },
+    {
+      "issue": 1553,
+      "title": "Reclaim inactive developer caches safely on NEXOLAB Raspberry SSD",
+      "branch": "chore/1553-safe-cache-reclamation",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "One-time verified deletion of generated ignored node_modules and .next outside the active site runtimes; protect production/rollback databases, images, archives and release packages.",
+      "permitted_paths": [
+        "docs/operations/nexolab-1553-safe-dev-cache-reclamation-2026-11-10.md",
+        ".project/"
+      ],
+      "evidence": {
+        "issue": 1553,
+        "base_main_sha": "182777186092cc1e3968182f2239bc6ce6c377e3",
+        "host": "nexolab-edge-01",
+        "device": "/dev/sda2",
+        "before_avail_bytes": 37260357632,
+        "after_avail_bytes": 45684551680,
+        "actual_reclaimed_bytes": 8424194048,
+        "active_containers": 13,
+        "removed_directories": 23,
+        "permission_denied": 2,
+        "symlink_skipped": 1,
+        "external_frontend_and_nginx": "active",
+        "telemetry_max_id_before": 13482333,
+        "telemetry_max_id_after": 13482381,
+        "all_production_database_rows_deleted": 0,
+        "git_tracked_files_deleted": 0,
+        "docker_images_or_volumes_deleted": 0,
+        "backups_or_rollback_deleted": 0,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_ci": "pending",
+        "site_release": "not_requested",
+        "separate_telemetry_issue": 1551,
+        "recovery_blocker_issue": 1428,
+        "source_only": true,
+        "merged_source_pr": 1554
+      }
+    },
+    {
+      "issue": 1550,
+      "title": "Sessions list: readable operator identity and truthful organization-scoped status",
+      "branch": "feat/1550-sessions-list-clarity",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1548
+      ],
+      "scope": "Readable compact read-only session list, explicit selection-scoped counts, requested state filters, organization-safe loading/error, responsive identity and focus. No backend/device/permission changes or site deployment.",
+      "permitted_paths": [
+        "src/components/sessions/sessions-list-screen.tsx",
+        "src/components/sessions/sessions-list-screen.test.tsx",
+        "e2e/test-sessions.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "5dae2981477a8c31a4d2aba0d03575b2439b02d7",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1550-sessions-ux-20261110",
+        "targeted_vitest": "7_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "PASS_42800767847",
+        "protected_site_installed": false,
+        "hardware_verification": "not_applicable_UI_only",
+        "modbus_write": false,
+        "hardware_write": false,
+        "browser_target_viewports": [
+          375,
+          768,
+          1440,
+          1920
+        ],
+        "merged_source_pr": 1557,
+        "merged_source_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "github_exact_head_ci": "PASS_42800767840",
+        "site_installed": false,
+        "source_merged_pr": 1557,
+        "merged_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1558,
+      "title": "Reports: readable searchable versions and truthful loaded-selection status",
+      "branch": "feat/1558-reports-operator-ui",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1550
+      ],
+      "scope": "Display-only reports list readability, searchable frozen session identity, localized report state, accurate selection-scoped counters and loading/error handling, focus and responsive behavior; no report generation/approval/download changes.",
+      "permitted_paths": [
+        "src/components/reports/reports-workspace.tsx",
+        "src/components/reports/reports-workspace.test.tsx",
+        "e2e/reports.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "base_main_sha": "3bafb041f8ae8a8eca78200727ff67ed4ba9973d",
+        "isolated_raspberry_workspace": "/home/nexolab/commander-workspaces/nexolab-1558-reports-ui-20261110",
+        "targeted_vitest": "9_passed_2_files",
+        "changed_file_prettier": "PASS",
+        "changed_file_eslint": "PASS",
+        "typescript_noemit": "PASS",
+        "source_ci": "pending",
+        "authenticated_browser": "pending",
+        "site_installed": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "source_merged_pr": 1559,
+        "merged_sha": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "exact_head_ci": "PASS"
+      }
+    },
+    {
+      "issue": 1560,
+      "title": "Source-bound NEXOLAB Raspberry Pi HTTPS frontend blue/green operator handoff",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "feat/1560-frontend-bluegreen-handoff",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "A fail-closed operator-run HTTPS-only blue/green cutover preserves original 3100 and read-only security, OAuth and API proxy; staged 08f1c8a4 ARM64 artifacts, separate 3104 service, old upstream fallback, exact-identity rollback. Does not change LAN Dashboard, Docker/IPAM, DB, Modbus or hardware.",
+      "permitted_paths": [
+        "scripts/nexolab-1560-bluegreen-handoff.py",
+        "scripts/tests/test_nexolab_1560_bluegreen_handoff.py",
+        "docs/operations/nexolab-1560-frontend-bluegreen-handoff.md",
+        ".project/",
+        ".github/workflows/authenticated-dashboard-acceptance.yml",
+        ".github/workflows/offline-bundle.yml",
+        ".github/workflows/refrigeration-browser-acceptance.yml"
+      ],
+      "evidence": {
+        "github_offdevice_artifact_run": 42805566839,
+        "github_offdevice_artifact": "SUCCESS_both_profiles",
+        "arm64_lan_sha256": "PASS",
+        "arm64_https_sha256": "PASS",
+        "target_source": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "old_source": "4be678f6aa2581ad7fc79bcc22c26cd520c94272",
+        "rpi_candidate_browser_login_sessions_reports": "HTTP_200_fixture_only",
+        "nginx_bluegreen_generated_syntax": "PASS_isolated",
+        "new_handoff_contract_tests": "5_passed",
+        "site_frontend_handoff": "NOT_PERFORMED",
+        "protected_root_connector": "DENIED",
+        "full_site_dr_restore": "UNVERIFIED",
+        "docker_lan_cidr_overlap": "UNRESOLVED",
+        "hardware_evidence": "NOT_APPLICABLE_NO_WRITES",
+        "ci_first_attempt": "FAILED_REQUIRED_WORKFLOW_NOT_TRIGGERED",
+        "ci_followup": "required path filters added; exact-head CI pending",
+        "operator_first_execute": "FAILED_CLOSED_NEW_IDENTITY_PROVENANCE_UNSUPPORTED",
+        "nginx_rollback_after_failure": "VERIFIED_ORIGINAL_SHA_b76c1120ae9e0981",
+        "new_systemd_is_active": true,
+        "new_loopback_http_3104": 200,
+        "new_runtime_identity_source": "offline_image_manifest",
+        "new_runtime_identity_source_commit": "08f1c8a4ed9212c25697d338583845bed5218ee5",
+        "new_build_id": "MCPKmYsrQCxN9zwMwDDnV",
+        "staging_and_installed_identity_metadata_corrected": true,
+        "second_stage_resume_command": "promote_NOT_execute",
+        "resume_hermetic_tests": "8_passed",
+        "protected_https_activation": false,
+        "required_github_ci": "old_SHA_1bd8d6d_GREEN_new_SHA_pending",
+        "no_hardware_or_modbus_write": true,
+        "verified_head_sha": "13769bb7d97dd264fe335faf2e828e7099b0f47a",
+        "pull_request": 1561,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074"
+        }
+      }
+    },
+    {
+      "issue": 1562,
+      "title": "Modern compact and responsive NEXOLAB Overview command center",
+      "branch": "feat/1562-overview-modern-command-center",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1550,
+        1558
+      ],
+      "scope": "Presentation-only Ukrainian Overview polish with clear heading, quick role-scoped shortcuts, compact truthful KPI row, temperature primary 8/12 and alerts/infrastructure 4/12 at desktop, lower sessions/layouts/cameras unchanged in meaning. No API/permissions/acquisition/site changes.",
+      "permitted_paths": [
+        "src/app/globals.css",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/kpi-card.tsx",
+        "src/components/dashboard/kpi-card.test.tsx",
+        "src/components/dashboard/overview-workspace-layout.tsx",
+        "src/components/dashboard/overview-workspace-layout.test.tsx",
+        "src/components/dashboard/overview-secondary-workspace.tsx",
+        "src/components/dashboard/telemetry-status-bar.tsx",
+        ".project/",
+        "e2e/authenticated-dashboard.production.e2e.ts"
+      ],
+      "evidence": {
+        "base_main_sha": "c55dc54b89bafda6c9760d5c95e80b42ac9e5074",
+        "worktree": "/home/nexolab/commander-workspaces/nexolab-1562-overview-v2-20261110",
+        "targeted_vitest": "15_of_15_PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "visual_browser_desktop": "1440x900_READONLY_DEMO_HTTP200",
+        "visual_browser_tablet": "768x1000_READONLY_DEMO_HTTP200",
+        "visual_browser_mobile": "390x844_READONLY_DEMO_HTTP200",
+        "horizontal_overflow": "NONE",
+        "page_errors": "NONE",
+        "visual_data": "EXPLICIT_DEMO_NOT_PRODUCTION",
+        "full_exact_head_github_ci": "PENDING_NEW_SHA",
+        "protected_site_installed": false,
+        "api_or_auth_modified": false,
+        "modbus_write": false,
+        "hardware_write": false,
+        "first_ci": "FAIL_only_authenticated_dashboard_41_of_42_heading_rename",
+        "remediation": "RESTORED_ORIGINAL_SESSION_HEADING",
+        "authenticated_dashboard_e2e_geometry": "V2_RESPONSIVE_ASSERTIONS_UPDATED_NO_WEAKENING_AUTH_OR_HISTORY",
+        "verified_head_sha": "e2fe27a268576e8f95b4e70652f929fe023b1ba8",
+        "pull_request": 1563,
+        "checks": {
+          "NEXOLAB Merge Gate": "SUCCESS",
+          "merged_to_main": "96582b96862a4b35c243b7608ca10399d08b347e"
+        }
+      }
+    },
+    {
+      "issue": 1486,
+      "title": "Authenticated bounded address search in commissioning wizard",
+      "priority": "unspecified",
+      "lifecycle": "blocked",
+      "branch": "feature/1486-search-ui",
+      "evidence": {
+        "hardware": "unverified",
+        "site_activation": false,
+        "production_mutation": false,
+        "owner_context": "instruments_not_yet_connected",
+        "integration_checks": "local_PASS_hosted_domain_gates_PASS_security_merge_gate_RED",
+        "local_device_agent_tests": 342,
+        "local_central_commissioning_tests": 24,
+        "local_frontend_tests": 1233,
+        "local_frontend_test_files": 200,
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "production_build": "PASS",
+        "api_transport_redirect_test": "PASS",
+        "ci": "blocked_security",
+        "isolated_search_capability": "explicit_only_no_production_enrollment",
+        "blocker_issue": 1447,
+        "pull_request": 1488,
+        "source_candidate_sha": "0577ec6e5efb6bd9f324d30428e6a0883e8f791b",
+        "github_ci": "11_of_13_workflows_PASS_security_and_merge_gate_FAIL"
+      },
+      "scope": "One address per bounded authenticated request; explicit isolated XJP60D scan, progress/cancel/selection; source-only, no automatic enrollment or site activation.",
+      "depends_on": [
+        1482
+      ]
+    },
+    {
+      "issue": 1479,
+      "title": "Identify newly connected RS-485 adapter",
+      "branch": "feature/1479-rs485-adapter-identification",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "f3afd92e25e023ce489ed9471848fe89b1b17370",
+        "pull_request": 1480,
+        "checks": {
+          "CI": "success_41792736839",
+          "authenticated_dashboard": "success_41792736667"
+        },
+        "scope": "source_only_UI",
+        "hardware": "unverified",
+        "site_activation": false
+      }
+    },
+    {
+      "issue": 1482,
+      "title": "Bounded XJP60D address search core",
+      "branch": "feature/1482-xjp-search-core",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "evidence": {
+        "pull_request": 1483,
+        "local_agent_tests": 338,
+        "source_candidate_sha": "1678d1979412a99135f169164607753013500a39",
+        "github_security_gate": "Trivy_installer_exit6_persists_after_failed_jobs_retry_and_refreshed_head_run41798806416",
+        "hardware": "unverified",
+        "site_activation": false,
+        "blocker_issue": 1447
+      }
+    },
+    {
+      "issue": 1484,
+      "title": "Avoid self-matching security test marker",
+      "branch": "fix/1484-ci-secret-marker",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "ef91a896d4a526fe0802a086dd24565ce5009210",
+        "pull_request": 1485,
+        "checks": {
+          "CI": "success_41794354174",
+          "offline_bundle": "success_41794354166"
+        },
+        "local_tests": 17,
+        "runtime_mutation": false
+      }
+    },
+    {
+      "issue": 1487,
+      "title": "Restore pinned CI scanner installation from official release",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "fix/1487-trivy-download",
+      "depends_on": [],
+      "scope": "CI-only fixed Trivy version and SHA256 official release installer, preserve action scans and vulnerability policy; no runtime or site changes.",
+      "evidence": {
+        "installer_negative_tests": 4,
+        "container_policy_tests": 53,
+        "actual_official_binary_sha256_verified": true,
+        "actual_version": "0.70.0",
+        "site_mutation": false,
+        "github_ci": "pending",
+        "blocker_issue": 1447,
+        "pull_request": 1489,
+        "hosted_source_sha": "542c05345bba4081105d8c2898940d18bf736848",
+        "hosted_run": 41800839925,
+        "image_build_and_scan_jobs": "5_of_5_PASS",
+        "unchanged_policy": "FAIL_expired_2026_10_20",
+        "telemetry_high": 74,
+        "telemetry_critical": 5,
+        "raw_telemetry_report_sha256": "dd7acb98eda780377aa5dfe4da8c3985be7bbda8c406db36b004a3d3fd60c06f",
+        "new_unexcepted_high": "libsqlite3-0/CVE-2026-119373_no_reported_fix",
+        "ci_routing_tests": 82,
+        "final_source_ci": "4_of_6_workflows_PASS_security_and_merge_gate_FAIL",
+        "final_source_sha": "af21be8a86a8f04d87608c2ff33c1e70be1a6953"
+      }
+    },
+    {
+      "issue": 1447,
+      "title": "Current source-bound container residual-risk technical review",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "security/1447-remediate-20261030-container-scan",
+      "depends_on": [],
+      "scope": "Review five immutable image SBOMs with fresh vulnerability DB, fix stale packaging tests and execute them in Telemetry CI, preserve exception registry and runtime versions.",
+      "evidence": {
+        "pull_request": 1448,
+        "reviewed_immutable_source": "0b50d7df348ea4234607a84ce4c692ee0c66ff59",
+        "source_image_run": 41076486729,
+        "verified_manifests": 5,
+        "verified_evidence_hashes": 15,
+        "current_db_updated_at": "2026-11-04T07:16:25.226375897Z",
+        "current_telemetry_high": 50,
+        "current_all_images_critical": 0,
+        "current_other_images_high": 0,
+        "unique_high_cves": 14,
+        "debian_trixie_open_cves": 14,
+        "current_tuple_policy": "BLOCKED_new_SQLite_119373",
+        "focused_local_tests": 67,
+        "exception_registry_changed": false,
+        "approval_scope": "technical_review_only",
+        "specific_owner_risk_decision": "pending",
+        "site_activation": false,
+        "hardware": "unverified",
+        "review_evidence": "docs/architecture/security-container-review-20261104.json",
+        "full_updated_head_ci": "pending",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086",
+        "checks": {
+          "github_workflows": "22/22 green",
+          "container_supply_chain": 43862880533,
+          "offline_bundle": 43862880148
+        }
+      },
+      "result_2026_11_16": {
+        "baseline_supply_chain_run": 43851624610,
+        "latest_remediation_head": "67351d3d0717a20c88a149669f24ea499179b086",
+        "status": "merged after all 22 required and triggered exact-head workflows passed",
+        "changes": "Rebuilt dependencies, split MQTT client package and removed unused Debian packages",
+        "supply_chain_evidence_run": 43862880533,
+        "broker_control_acceptance_run": 43862880406,
+        "telemetry_high": 18,
+        "telemetry_critical": 0,
+        "retired_registry_entries": 33,
+        "approved_registry_entries": 18,
+        "approval_expires_on": "2026-11-23",
+        "offline_evidence_run": 43862880148
+      }
+    },
+    {
+      "issue": 1588,
+      "branch": "feat/1588-live-friendly-search",
+      "title": "Live Data friendly-name search and readable chart context",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1585
+      ],
+      "scope": "Search existing commissioned names and display them in Live comparison and chart labels without changing channel identity or history.",
+      "permitted_paths": [
+        "src/components/live/",
+        "src/features/live/",
+        ".project/",
+        "e2e/live-chart-system.production.e2e.ts",
+        "e2e/equipment-multi-axis-chart.production.e2e.ts"
+      ],
+      "evidence": {
+        "base": "8ab3be4ab67b202e4df99c23d0cc4a81d8d0f3bc",
+        "targeted_vitest": "29 PASS across 3 files",
+        "eslint_touched": "PASS",
+        "prettier_touched": "PASS",
+        "typescript_noemit": "PASS",
+        "git_diff_check": "PASS",
+        "full_build": "NOT_RUN_ON_PRODUCTION_PI",
+        "github_exact_head_ci": "PENDING_REPAIR_COMMIT",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "first_pr_ci": "FAIL: browser tests waited for retired English placeholder in 5 scenarios; static/build and unit checks PASS",
+        "browser_selector_fix": "Accessible search textbox label Poshuk; focused component 13 PASS; exact-head rerun pending",
+        "source_merge_verified": "PR #1589, #1591 or #1595 merged after exact-head GREEN; site unmodified"
+      }
+    },
+    {
+      "issue": 1601,
+      "title": "Move same physical Embraco Sync Unit 2 from CoolJet KK2 to CoolesSlim KK1 with read-only telemetry",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "feature/1601-embraco-bus-scoped-kk1",
+      "depends_on": [],
+      "scope": "Product Owner confirmed same physical Embraco Unit 2, not two distinct controllers; preserve legacy EMBRACO-2 telemetry/history and perform bounded audited site transfer from legacy KK2 to KK1, read-only acquisition, hardware/data evidence.",
+      "permitted_paths": [
+        "services/device-agent/",
+        "services/telemetry-service/app/commissioning/",
+        "services/telemetry-service/app/refrigeration/",
+        "services/telemetry-service/migrations/versions/",
+        "services/telemetry-service/tests/",
+        "src/features/equipment/",
+        "src/components/equipment/",
+        "docs/operations/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "hardware_read_preflight": "PASS_FC03_ONLY",
+        "site_software_activation": "BLOCKED",
+        "implementation": "NOT_STARTED_CODEX_PROVIDER_QUOTA",
+        "main_changes": false,
+        "target": "KK1:11111",
+        "legacy_binding": "KK2:EMBRACO-2_PROTECTED",
+        "checks": {
+          "project_state_validation": "PASS_previous_checkpoint",
+          "real_hardware_fc03": "PASS_7_checks_4_observations",
+          "edge_restart_health": "PASS",
+          "read_only_activation": "PASS_13_targets",
+          "postgres_latest_after_activation": "PASS_2_cycles_26_successes_0_failures",
+          "postgres_binding_transaction": "PASS",
+          "dashboard_http_200": "PASS",
+          "telemetry_api_http_200": "PASS",
+          "modbus_write": "NONE",
+          "targeted_source_tests": "NOT_APPLICABLE_NO_PRODUCT_SOURCE_CHANGE",
+          "frontend_build": "NOT_RUN",
+          "browser_auth_acceptance": "NOT_RUN",
+          "offline_reboot": "NOT_RUN"
+        },
+        "superseded_old_distinct_device_premise": true,
+        "site_transfer": "owner_explicitly_authorized_and_completed_2026-11-19",
+        "source_code_changes": "not_required_same_controller",
+        "registry_change": "old_disabled_embraco-2_transferred_to_commissioning_c4b6_bus_and_activated_rev_54",
+        "edge_activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "postgres_binding": "old_KK2_soft_unbound_new_KK1_active_audited",
+        "telemetry_latest_new_samples": 13,
+        "polling_successes": 26,
+        "polling_failures": 0,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "hardware_fc03_verified": true,
+        "live_acquisition_verified": true,
+        "temperature_probes_verified": false,
+        "browser_acceptance": "NOT_RUN",
+        "offline_restart_after_activation": "NOT_RUN",
+        "site_network_risk": "172.18_cidr_overlap_separate_issues_1399_1409"
+      }
+    },
+    {
+      "issue": 1603,
+      "title": "KK1 Embraco cabinet/defrost probe charts, signed raw register view and traceable CSV export",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1603-embraco-probes-chart-export",
+      "depends_on": [
+        1601
+      ],
+      "scope": "Source-only charts for two Embraco temperature probes on KK1 with existing time range and series selection; export both with timestamps, quality, original and signed raw and confirmed engineering value if present; exclude old KK2 history before new binding. No speculative Celsius scaling.",
+      "permitted_paths": [
+        "src/features/refrigeration/",
+        "src/components/refrigeration/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1603",
+        "source_only": true,
+        "runtime_cutover": false,
+        "hardware_read_verified": "previous read-only Embraco FC03, 13/13 targets active",
+        "temperature_conversion_verified": false,
+        "temperature_scale": "UNSET; render signed raw separately, no Celsius invention",
+        "legacy_kk2": "historical samples preserved and excluded from KK1 history before boundAt",
+        "checks": {
+          "focused_vitest": "27/27 PASS (4 suites)",
+          "refrigeration_module_vitest": "271/271 PASS (37 suites)",
+          "changed_file_prettier": "PASS",
+          "changed_file_eslint": "PASS",
+          "typescript_noemit": "PASS",
+          "git_diff_check": "PASS",
+          "full_build": "PASS hosted static quality and production build on source PR #1604",
+          "github_exact_head_ci": "GREEN before merge; NEXOLAB Merge Gate, Chromium, PostgreSQL, local S3",
+          "site_browser": "HTTP 200 LAN and HTTPS 3105 loopback; public HTTPS anonymous OAuth 302; authenticated browser NOT TESTED",
+          "site_offline": "Core local services intact; HTTPS + LAN offline-reboot and authenticated browser NOT TESTED"
+        },
+        "post_merge_rollout": {
+          "lan": "frontend-only Docker Dashboard HTTP200, source edd04b4aabdd28c7c46ada056cc746434796bdde, build 9B-pHrz8lObcc5N_TX8F1, backend unchanged",
+          "https": "OAuth-gated user frontend 3105 source edd04b4aabdd28c7c46ada056cc746434796bdde, build qe-NDhbsh-6WHXhvG0luq, existing 18790 gateway unchanged",
+          "hardware_celsius_scale": "NOT VERIFIED; raw Modbus signed registers only"
+        }
+      }
+    },
+    {
+      "issue": 1607,
+      "title": "Activate Embraco KK1 probe charts and CSV on existing OAuth-gated HTTPS frontend",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1607-https-embraco-activation-evidence",
+      "depends_on": [
+        1603
+      ],
+      "scope": "Owner-approved HTTPS frontend-only runtime activation using the exact already-GREEN #1604 source and SHA256-verified off-device ARM64 HTTPS artifact; existing Tailscale Funnel/OAuth at 18790 forwards authenticated UI to user-level 3105. Preserve gateway, LAN Dashboard, backend, read-only hardware and rollback. Source branch is evidence-only; no product/architecture changes.",
+      "permitted_paths": [
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1607",
+        "source": "edd04b4aabdd28c7c46ada056cc746434796bdde",
+        "https_build_id": "qe-NDhbsh-6WHXhvG0luq",
+        "prior_https_source": "75ceb4654afbc0e7ae8b59ee5cbbb76917eb1045",
+        "completed_at_utc": "2026-11-19T15:20:13.777147+00:00",
+        "site_report_private": "/home/nexolab/commander-workspaces/nexolab-1603-release-artifacts/https-1607/activation-report-1607.json",
+        "artifact": "HTTPS ARM64 source verified, 12/12 manifest entries and 17613 runtime-file SHA256 entries PASS",
+        "isolated_preview": "3107, source/build exact, routes / /login /refrigeration /refrigeration/KK1 all 200",
+        "protected_frontend": "3105 exact identity and routes HTTP 200",
+        "oauth_funnel": "Public anonymous HTTPS /, /login, /refrigeration, KK1, /api/runtime-identity, /api/v1/telemetry/latest all 302; gateway PID/Tailscale route unchanged",
+        "rollback": "Initial activation failed due to stale unit identity env; exact prior frontend restored; corrected env and promoted GREEN; old release retained",
+        "backend": "All 5 observed backend container IDs/images/networks unchanged; LAN source/build and API unchanged",
+        "modbus_writes": "NONE",
+        "hardware_writes": "NONE",
+        "db_mutations": "NONE",
+        "temperature_celsius": "NOT VERIFIED; raw chart is not °C",
+        "authenticated_browser": "NOT RUN; requires logged-in Product Owner test of graph/export",
+        "offline_restart": "NOT RUN; see #1606 for canonical startup/version authority",
+        "release_gate": "LAN source PR #1604 required CI GREEN; HTTPS runtime cutover verified read-only post checks"
+      }
+    },
+    {
+      "issue": 1609,
+      "title": "Owner-specified Embraco KK1 Unit 2 probe interpretation 0.1 °C/count with source-quality provenance",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1609-embraco-operator-celsius",
+      "depends_on": [
+        1603,
+        1607
+      ],
+      "scope": "User accepts 0.1 °C / signed int16 raw count for Embraco Sync Unit 2 cabinet/defrost probes at KK1. Frontend-only operator-derived Celsius traces and explicit CSV columns, original telemetry unchanged and still quality=unknown, with physical scale validation remaining separate. Do not affect other controllers, Modbus, DB, API or Device Agent.",
+      "permitted_paths": [
+        "src/features/refrigeration/",
+        "src/components/refrigeration/",
+        ".project/",
+        "e2e/refrigeration-layout.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1609",
+        "owner_scale": 0.1,
+        "scale_unit": "degC_per_signed_raw_count",
+        "scale_provenance": "operator_confirmed_hardware_unverified",
+        "approval": "2026-11-19 Product Owner message: Давай без фото, так і є",
+        "site_hardware_scale_verified": false,
+        "hmi_photo": "NOT PROVIDED",
+        "backend_source_quality": "Persisted source values remain NULL/unknown until actual hardware verification",
+        "affected_equipment": "EMBRACO-2 on CoolesSlim VCC L1250 KK1 only",
+        "affected_metrics": [
+          "temperature.cabinet",
+          "temperature.evaporator"
+        ],
+        "unit_tests": "25/25 targeted PASS (four suites, including negative boundaries)",
+        "types_and_lint": "TypeScript noEmit and touched-file ESLint PASS",
+        "site_deployment": "VERIFIED LAN Docker Dashboard-only and OAuth-gated HTTPS frontend-only; no backend modifications",
+        "authenticated_user_browser": "NOT DONE",
+        "hardware_writes": "NONE",
+        "db_mutations": "NONE",
+        "browser_e2e_contract": "Refrigeration-layout Chromium selectors and CSV expected headers reconciled for operator °C; exact-head CI pending",
+        "source_sha": "27b273865a96a60e5a6c1766fc55dc29cecf72ef",
+        "source_pr": "#1610 MERGED with exact-head CI GREEN",
+        "arm64_artifacts": "GitHub Actions #44562627634 SUCCESS; dual SHA256-verified ARM64 releases",
+        "lan_build": "4QJaWhiSXkGsAyTaVtVjf",
+        "https_build": "qfF_dxzeeg5BUGOKOpEoc",
+        "lan_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/site-dashboard-only/activation-report-1609.json",
+        "https_report": "/home/nexolab/commander-workspaces/nexolab-1609-release-artifacts/https-1609/activation-report-1609.json",
+        "browser_authenticated": "NOT YET VERIFIED",
+        "hardware_scale": "operator-confirmed ×0.1; physical calibration UNVERIFIED",
+        "offline_restart": "NOT TESTED; follow-up #1606"
+      }
+    },
+    {
+      "issue": 1611,
+      "title": "Record verified operator Celsius LAN/HTTPS frontend-only release evidence",
+      "priority": "medium",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1611-operator-celsius-site-evidence",
+      "depends_on": [
+        1609
+      ],
+      "scope": "State evidence only; do not modify product/backend/site runtime",
+      "permitted_paths": [
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1611",
+        "lan_and_https": "ACTIVATED",
+        "scale": "operator-provided not hardware-verified",
+        "CI": "PENDING_SOURCE_STATE_PR",
+        "no_site_mutation": true
+      }
+    },
+    {
+      "issue": 1613,
+      "title": "Live Embraco saved dashboard: two operator Celsius traces plus compressor RPM; remove evaporator_2",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "feature/1613-live-embraco-three-series",
+      "depends_on": [
+        1609,
+        1611
+      ],
+      "scope": "Operator-signed ×0.1 °C only for exact edge-01 EMBRACO-2 probes; preserve raw quality, add two-axis chart/legend/latest and source-preserving downsample. Separate owner-authenticated version-checked dashboard config repair from 4 items to 3 only after frontend release. Export CSV remains backend source-value-only and requires separate explicit backend release/acceptance; do not claim CSV scaling.",
+      "permitted_paths": [
+        "src/features/live-dashboards/",
+        "src/components/live-dashboards/",
+        "src/hooks/use-live-dashboard-telemetry.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1613",
+        "preflight": "Owner-local authenticated dashboard GET v2 exact four items PASS; no DB write performed",
+        "target_channels": [
+          "2-cabinet-temperature",
+          "2-evaporator-temperature",
+          "2-compressor-speed"
+        ],
+        "deleted_view_selection": "2-evaporator-2-temperature (dashboard item only, not telemetry)",
+        "tests": "53/53 saved-dashboard/hooks tests PASS; TS noEmit and touched file ESLint PASS",
+        "hardware_celsius": "operator-confirmed 0.1/raw; unverified hardware",
+        "backend_export": "followup #1615; absent on running API",
+        "runtime": "NO #1613 SITE CUTOVER YET",
+        "sprint_selection": "#1460 unchanged",
+        "modbus_writes": "NONE",
+        "production_ui": "LAN+HTTPS frontend activation PASS with rollback reports; authored source 52ec42fb1a9ac7bae5021f94c6d1cdc87e0c9c6e, merged main 0516cd6181167486613ad96333938c497e640d3e",
+        "production_saved_config": "Authorized audited API PUT exact 4→3, v2→v3; backup before-1613.json",
+        "browser": "Chromium LAN 3/3 channels °C/rpm, 1 chart, legend and mobile PASS, no API/page errors",
+        "hardware": "operator scale only; hardware unverified"
+      }
+    },
+    {
+      "issue": 1615,
+      "title": "Export Embraco saved dashboard source-preserving signed raw operator Celsius CSV columns",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "feature/1615-saved-embraco-csv",
+      "depends_on": [
+        1613
+      ],
+      "scope": "Add five append-only CSV fields including unsigned raw/signed16/estimated °C/count/basis for exact edge-01 EMBRACO-2 two temperature probes. Preserve value/quality/event/tenant auth. Backend-only source candidate; no runtime deployment without separate approved guarded Telemetry Service release.",
+      "permitted_paths": [
+        "services/telemetry-service/app/live_dashboard/",
+        "services/telemetry-service/tests/test_live_dashboard_api.py",
+        "services/telemetry-service/tests/test_live_dashboard_embraco_operator_csv.py",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1615",
+        "frontend_dependency": "#1613 source and LAN+HTTPS site verified",
+        "hardware_scale": "operator provided 0.1 °C/count; hardware unverified",
+        "focused_tests": "7/7 PASS; dashboard module 31 PASSED 1 SKIPPED (PostgreSQL-only unavailable locally)",
+        "runtime": "NOT DEPLOYED; server CSV currently remains source-only",
+        "backend_cutover": "hard blocker until current protected telemetry and rollback/deployment authority reviewed and separately approved",
+        "modbus_write": "none"
+      }
+    },
+    {
+      "issue": 1617,
+      "title": "Security: rebuild fixed VersityGW object-storage binary with official Go 1.27.4 SHA256 pins",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "security/1617-go-1274-object-storage",
+      "depends_on": [],
+      "scope": "Only infrastructure/object-storage/Dockerfile pinned security Go patch; no object storage production deployment, dependency upgrades beyond Go patch, modifications to volume or endpoint. A separate focused security source PR unblocks #1616 Go stdlib CVE CI gate.",
+      "permitted_paths": [
+        "infrastructure/object-storage/Dockerfile",
+        "tests/test_object_storage_supply_contract.py",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1617",
+        "build_reproduction": "PR #1616 Container Supply Chain run 44608818848: HIGH CVE-2026-97054 usr/local/bin/versitygw go stdlib v1.27.3",
+        "sha256_source": "go.dev/dl/?mode=json publicly verified both architecture tarball hashes",
+        "Go_patch": "1.27.4 from 1.27.3; x/net v0.62.0 unchanged, VersityGW commit unchanged",
+        "runtime": "NONE; source-only; no site cutover",
+        "checks": {
+          "official_sha256": "Go 1.27.4 SHA256 amd64/arm64 verified via go.dev/dl/?mode=json",
+          "local_contracts": "8/8 focused object storage and packaging pytest PASS",
+          "first_ci": "previous source head had an expected old-Go version assertion in test; replaced with exact newly verified Go 1.27.4 pins",
+          "exact_head_ci": "pending new source sha and supply-chain scan",
+          "final_ci": "38 SUCCESS with required NEXOLAB Merge Gate (PR #1618)"
+        },
+        "hardware": "No device writes",
+        "source_merge": "main 91266af356016f7e44df9121d8ef5d3f2d12f31b; no site deployment"
+      }
+    },
+    {
+      "issue": 1621,
+      "title": "Fix misleading Embraco signed raw ×0.1 presentation vs physical +0.1 °C HMI; bounded x0.01 candidate",
+      "priority": "critical",
+      "lifecycle": "needs_validation",
+      "branch": "fix/1621-embraco-hmi-scale",
+      "depends_on": [
+        1603
+      ],
+      "scope": "Frontend-only derived candidate ×0.01 for exact edge-01/EMBRACO-2 cabinet & evaporator channels; readable provisional HMI-unverified provenance, chart 2 decimals and frontend chart CSV. No Device Agent or backend modifications, no site release without operator scale/mapping evidence.",
+      "permitted_paths": [
+        "src/features/refrigeration/embraco-operator-scale.ts",
+        "src/features/refrigeration/embraco-operator-scale.test.ts",
+        "src/features/refrigeration/controller-chart.ts",
+        "src/features/refrigeration/controller-chart.test.ts",
+        "src/features/refrigeration/controller-history-export.ts",
+        "src/features/refrigeration/controller-history-export.test.ts",
+        "src/features/live-dashboards/chart.ts",
+        "src/features/live-dashboards/chart.test.ts",
+        "src/features/live-dashboards/embraco-series.test.ts",
+        "src/components/live-dashboards/dashboard-live-view.tsx",
+        "src/components/refrigeration/refrigeration-controller-history.tsx",
+        "src/components/refrigeration/refrigeration-controller-history.test.tsx",
+        ".project/",
+        "e2e/refrigeration-layout.production.e2e.ts"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1621",
+        "physical_controller_display": "+0.1 °C reported by owner 2026-11-20 ~09:21 Kyiv; which probe/display mapping remains unverified",
+        "physical_readonly_raw_07_22_utc": {
+          "cabinet": 65514,
+          "evaporator": 24,
+          "condenser": 3202
+        },
+        "old_display_celsius": {
+          "cabinet": -2.2,
+          "evaporator": 2.4,
+          "condenser_candidate_if_scaled": 320.2
+        },
+        "new_candidate_celsius": {
+          "cabinet": -0.22,
+          "evaporator": 0.24,
+          "condenser_plausibility_only": 32.02
+        },
+        "source_acceptance": "not hardware calibrated; CI pending, no live site update",
+        "runtime": "NO SITE MUTATION",
+        "hardware": "read-only PostgreSQL and code analysis; no Modbus write",
+        "backend_dependency": "separate #1622; old staged #1615 ×0.1 API image prohibited",
+        "local_vitest": "69/69 PASS relevant suite; all 16 files",
+        "local_static": "TypeScript noEmit, ESLint and changed-file Prettier PASS",
+        "runtime_unchanged": true,
+        "browser_first_ci": "Exact-head #9d91ad9 browser acceptance failed only on literal obsolete ×0.1 warning text; new source/UI note asserted by targeted updated browser E2E; full exact-head CI rerun required"
+      }
+    },
+    {
+      "issue": 1622,
+      "title": "Stop and correct stale x0.1 Embraco backend Saved Dashboard CSV prior to protected site activation",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "fix/1622-embraco-csv-hmi-scale",
+      "depends_on": [
+        1621,
+        1428
+      ],
+      "scope": "Backend Saved Dashboard CSV source-only correction x0.01 candidate matching merged frontend #1621. Source validation/PR allowed; production backend release remains BLOCKED until independently verified backup + isolated restore #1428, protected reserve and safe no-loss owner site gate.",
+      "permitted_paths": [
+        "services/telemetry-service/app/live_dashboard/export.py",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1622",
+        "block_reason": "Incorrect previous ×0.1 multiplier in staged backend exporter conflicts with new physical HMI; old backend image not deployed and MUST NOT be activated",
+        "modbus_writes": "none",
+        "source_baseline": "5a32b0aa806c9b98c6a88ff2f1da6cdd8fbec05c",
+        "new_scale_candidate": "0.01 unverified",
+        "new_basis": "candidate_0p01_hmi_not_calibrated",
+        "local_tests": "31/31 backend Dashboard pytest PASS, one PostgreSQL-only skipped; run against separate venv",
+        "runtime": "UNCHANGED original telemetry-service; site activation HARD BLOCKED",
+        "source_tests": "release CI still pending",
+        "old_image": "Staged #1615 incorrect x0.1 NOT APPROVED"
+      }
+    },
+    {
+      "issue": 1625,
+      "title": "Frontends source-pinned Embraco provisional Celsius ×0.01 activation on LAN and OAuth HTTPS",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "branch": "ops/1625-frontend-temperature-release-evidence",
+      "depends_on": [
+        1621,
+        1622
+      ],
+      "scope": "Publish merged frontend source only to existing stateless LAN Docker Dashboard and protected HTTPS user service. Preserve backend/Device Agent/MQTT/DB and OAuth gate unchanged, replay-safe rollback. Source release GREEN, physical scale unverified. ",
+      "permitted_paths": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ],
+      "evidence": {
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1625",
+        "source": "8854fae2fd40f4706e30a4ab2cd4183452fc753e",
+        "arm64_workflow": "https://github.com/eNgine9r/nexolab-platform/actions/runs/44712932452",
+        "lan": "ACTIVATED source 8854fae2 build BWbEQWMGUfn-_kqZjIRoj image sha256:3fd6453f3d99e7972f9108c89479c4c87716bdf3fb37773a93732ca464acf42f",
+        "https": "ACTIVATED source 8854fae2 build N94Tr6VkW3hXQ9TkFRZNm via exact user service drop-in; anonymous 302 preserved",
+        "checks": {
+          "artifact_integrity": "LAN/HTTPS 12 package digests and 17,613 runtime files each PASS",
+          "isolated_previews": "LAN 3125 and HTTPS 3126 exact identity and 5 routes HTTP200",
+          "production_paths": "LAN/HTTPS five paths each HTTP200, public OAuth 6 paths anonymous 302",
+          "backend_immutability": "five exact container ids/image ids/network modes unchanged",
+          "sampling": "read-only PostgreSQL 90 events each of three Embraco channels / 15m, average interval 10.000sec",
+          "disk": "22,828,228,608 bytes available after release >=20GiB"
+        },
+        "release_audit": "/home/nexolab/commander-workspaces/nexolab-1625-release-8854fae2/site-activation-report-1625.json",
+        "disk_reserve_bytes": 22828228608,
+        "actual_hardware_calibration": "UNVERIFIED, provisional x0.01; HMI cabinet channel identity owner-confirmed",
+        "authenticated_owner_browser": "NOT YET VERIFIED",
+        "backend_csv": "NOT deployed; server CSV and site DR #1428 remain blocked",
+        "hardware_writes": "NONE"
+      }
+    },
+    {
+      "issue": 1643,
+      "title": "Per-series truthful freshness for Saved Dashboards and main dashboard (XWEB chart programme WP-A)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Frontend-only source change: Saved Dashboard chart freshness per series (#1522 contract) and cadence-aware main-dashboard freshness (#1634). No backend, hardware, polling or site change.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 216 files/1402 tests PASS; eslint --max-warnings=0 PASS; tsc --noEmit PASS; prettier PASS; next build PASS (local, 2026-11-21T23:21:12Z)",
+        "review_clearance": "No critical Ready software WP in sprint (all critical blocked on #1428/#1409/#1399 site gates); Product Owner requested XWEB-level chart programme 2026-11-22",
+        "closes": [
+          1634
+        ],
+        "source_merge": "PR #1644 90d46905; source-only, no site deployment"
+      },
+      "branch": "fix/1643-per-series-dashboard-freshness",
+      "permitted_paths": [
+        "src/features/live-dashboards/",
+        "src/components/live-dashboards/",
+        "src/hooks/use-live-dashboard-telemetry.ts",
+        "src/hooks/use-dashboard-telemetry.ts",
+        "src/lib/telemetry/dashboard-state.ts",
+        "src/features/live/freshness.ts",
+        ".project/"
+      ]
+    },
+    {
+      "issue": 1645,
+      "title": "Interval statistics from raw persisted samples (WP-B)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Saved Dashboards show exact Min/Max/Average/sample count/coverage/gaps for the whole requested interval or the zoomed viewport, computed from raw pre-reduction measurements (never reduced render points); average withheld below 80 % coverage or under 3 samples; non-valid samples counted separately and never treated as zero. AGENTS.md now records the Product Owner autonomous-execution authorization and its unchanged safety boundaries.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 218 files/1417 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1646 b7e4cbae; source-only, no site deployment"
+      },
+      "branch": "feat/1645-interval-statistics"
+    },
+    {
+      "issue": 1647,
+      "title": "Alarm events, regions and threshold markers from canonical alerts (WP-C)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Saved Dashboard charts now draw canonical alert events (triggered/acknowledged/resolved/closed with time and source), alarm regions and threshold lines for plotted series only, from the read-only alerts API; an accessible events table lists them with text severity/state. Unavailable or forbidden alert logs degrade to an explicit note. Telemetry-sample alarm context still never creates markers.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 220 files/1427 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1648 805db348; source-only, no site deployment"
+      },
+      "branch": "feat/1647-alert-event-markers"
+    },
+    {
+      "issue": 1649,
+      "title": "Preserve Energy extrema and stop silent session-history truncation (WP-D)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Energy charts keep each bucket's min and max for instantaneous metrics (spikes and dips survive reduction; counters and continuity markers unchanged); the session history now paginates completely, polls tail-only and states explicitly when the page cap truncates it.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 222 files/1435 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1650 aca7737f; source-only, no site deployment"
+      },
+      "branch": "feat/1649-extrema-and-history"
+    },
+    {
+      "issue": 1620,
+      "title": "User-selectable chart detail with aggregate cap and benchmark (WP-E)",
+      "lifecycle": "review",
+      "priority": "high",
+      "scope": "Saved Dashboards get «Деталізація / точок на лінію» (Авто/250/500/1000/2500/5000): per-series maximum rendered points resolved under an aggregate cap (Auto target 3 840, manual cap 6 000), applied by reloading the same window and re-reducing with the evidence-preserving reducer, with a truth-in-presentation line (shown vs available measurements) and a note when the cap lowers a request; the reduction bad-sample scan is now O(n log n). A desktop headless-Chromium density matrix is recorded; Raspberry Pi timings are not measured.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 224 files/1447 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local); density matrix measured on desktop Chromium only",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)"
+      },
+      "branch": "feat/1620-chart-density"
+    },
+    {
+      "issue": 1652,
+      "title": "Consistent per-series freshness across Overview, Energy and Refrigeration (WP-F)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Series freshness is now derived from each series' own newest sample: Overview uses the cadence-aware #1522 rule on raw samples, Saved Dashboards and Overview flip silent series to stale via an identity-stable clock overlay (no per-tick scene rebuild), and Energy/Refrigeration report invalid when a series' newest sample has no valid measurement. Per-series staleness for Energy/Refrigeration (needs raw cadence there) remains open.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1455 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1653 2063d47d; source-only, no site deployment"
+      },
+      "branch": "feat/1652-per-series-freshness"
+    },
+    {
+      "issue": 1655,
+      "title": "Synchronized state lanes: UNKNOWN vs NO DATA and compressor lane (WP-G)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Refrigeration controller lanes now distinguish UNKNOWN (polled, no valid state: hatched, text «Невідомо», never OFF and never counted as active or covered time) from NO DATA (silent gap, empty), add a compressor ON/OFF lane derived from measured speed (>0 rpm) and a state legend. Door/fan/status/alarm lanes and Saved Dashboard lanes are classified as needing a canonical digital-channel taxonomy / item decode schema.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1459 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1656 bfe8b4ce; source-only, no site deployment"
+      },
+      "branch": "feat/1655-state-lanes"
+    },
+    {
+      "issue": 1654,
+      "title": "Live comparison supports 24 series (WP-H)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "The Live Data comparison limit rises from 8 to 24 channels through the single shared constant (hook, URL restore, stored preference, message); 24 mixed-unit series across equipment produce valid scenes with at most five Y axes each, bounded by the aggregate point budget. Saved Dashboards already support 64 series with device-grouped picker and legend. A device-grouped selection table in Live and server-side downsampled history for very long ranges are classified as follow-ups (UI rework / backend decision).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 225 files/1456 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local); e2e guidance assertion updated after CI",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1657 a894f0d3; source-only, no site deployment"
+      },
+      "branch": "feat/1654-live-24-series"
+    },
+    {
+      "issue": 1658,
+      "title": "PNG export of the visible plot and display-timezone CSV (WP-I)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Every chart surface (Saved Dashboards, Live, Overview, Energy, Refrigeration) gets «Зберегти PNG», rendered locally from the mounted Canvas (no network, no telemetry access); the Saved Dashboard CSV request now carries the display time-zone preference instead of the browser zone. Server-side Saved Dashboard CSV was verified in code to export persisted rows rather than reduced chart points. Shared saved analysis views (hidden series, custom range, zoom) need new persisted fields and a migration, so they are classified as a separate backend work package; XLSX/PDF are not supported by the existing Saved Dashboard code.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 226 files/1460 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1659 21a2da4a; source-only, no site deployment"
+      },
+      "branch": "feat/1658-png-export"
+    },
+    {
+      "issue": 1660,
+      "title": "Interval statistics on Live Data from raw history (WP-J)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Live Data now shows the exact interval statistics table (min/max/average/count/coverage/gaps, whole window vs zoomed viewport) computed from compact raw per-channel columns captured before chart reduction, kept current by the live tail and pruned with the rolling window. Energy and Refrigeration keep their own analysis surfaces; Energy history is reduced before the chart and would need its own raw columns.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 226 files/1462 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1661 533185c1; source-only, no site deployment"
+      },
+      "branch": "feat/1660-live-statistics"
+    },
+    {
+      "issue": 1662,
+      "title": "Session chart window domain and consolidated release candidate (WP-J)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "The session history chart now uses the requested history window as its x domain so silent edges stay visible as gaps, and docs/operations/chart-programme-release-candidate.md records the consolidated programme release candidate: merged PRs, verification evidence, what is not proven (no Pi, site, hardware or signed-in browser evidence), classified follow-ups and the owner-run frontend-only Raspberry Pi update procedure. No deployment performed or authorised.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 228 files/1470 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1663 126c4619; source-only, no site deployment"
+      },
+      "branch": "feat/1662-session-window-rc"
+    },
+    {
+      "issue": 1664,
+      "title": "Chart detail (point density) control on Live Data (WP-K)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Live Data gets the «Деталізація / точок на лінію» control sharing the aggregate-capped budget module with Saved Dashboards: the history loader and live-tail merge take the per-channel budget, the hook re-loads the same window when it changes and the explorer shows shown-vs-available measurements. Energy and Refrigeration keep fixed budgets (classified follow-ups).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 228 files/1471 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1665 9e601a57; source-only, no site deployment"
+      },
+      "branch": "feat/1664-live-density"
+    },
+    {
+      "issue": 1666,
+      "title": "Saved analysis views: save and restore in the live view (WP-L, frontend)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "The Saved Dashboard live view can save the analysis view (hidden series, history range, zoom, chart detail) through the existing dashboard update path and restores it when reopened; unusable parts of a stored view are ignored, saving does not re-create the live view, and the UI refuses to report a save that an older API did not persist. The API half (#1667) is blocked by an unfixed HIGH CVE in the Device Agent image awaiting a risk-owner decision (see BLOCKERS).",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 230 files/1480 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1669 c621a8ec; source-only, no site deployment"
+      },
+      "branch": "feat/1666-saved-analysis-views-ui"
+    },
+    {
+      "issue": 1668,
+      "title": "Chart detail control on Energy and Refrigeration (WP-M, completes #1620)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Energy and Refrigeration get the capped «Деталізація / точок на лінію» control: the Energy history loader, tail merge, comparison orchestration and hook take the per-series budget (part of the retained-history cache key; reload on change; extrema survive), and the Refrigeration scene builders take it over raw history.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 230 files/1477 tests PASS; eslint --max-warnings=0, tsc --noEmit, prettier, next build PASS (local)",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1670 6a24635a; source-only, no site deployment"
+      },
+      "branch": "feat/1668-energy-refrigeration-density"
+    },
+    {
+      "issue": 1671,
+      "title": "Device-grouped searchable Live channel selection (WP-P)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Live channel picker grouped by device with search, collapse, select-all/none within the 24-series limit and operator names.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1672 5b3e4fa9; source-only"
+      },
+      "branch": "feat/1671-live-device-picker"
+    },
+    {
+      "issue": 1673,
+      "title": "Offline XLSX export and printable report for Saved Dashboards (WP-R)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Dependency-free OOXML XLSX writer, print-to-PDF report layout, authoritative CSV, local PNG; no cloud service.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1674 929a7823; source-only"
+      },
+      "branch": "feat/1673-lab-export"
+    },
+    {
+      "issue": 1675,
+      "title": "Exact interval statistics on Energy, Overview, session and Refrigeration (WP-N)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Statistics computed from raw measurement columns (never reduced vertices) on every surface; Energy raw store keyed per range.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1676 f80aa2d5; source-only"
+      },
+      "branch": "feat/1675-exact-statistics"
+    },
+    {
+      "issue": 1677,
+      "title": "Per-series staleness, canonical alerts, unified range presets and history coverage (WP-Q)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Energy/Refrigeration per-series staleness; canonical alert markers and events on Live; presets 1 година/6 годин/24 години/7 днів/Власний період on every surface; partial-history notice; °C display unit.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 237 files/1527 tests PASS; eslint, tsc, prettier PASS; exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1678 874215fa, PR #1681 d411df6d; source-only"
+      },
+      "branch": "feat/1677-staleness-presets"
+    },
+    {
+      "issue": 1679,
+      "title": "Digital state lanes with canonical taxonomy (WP-O)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Saved Dashboard lanes for relay bits, compressor, evaporator fan, defrost and alarm bits from raw columns; ON/OFF/UNKNOWN/NO DATA; no lanes where no source metric exists.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest/eslint/tsc/prettier/build PASS (local); exact-head CI GREEN",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1680 fbcf62b1; source-only"
+      },
+      "branch": "feat/1679-digital-lanes"
+    },
+    {
+      "issue": 1683,
+      "title": "Custom period for Overview and Energy history (WP-Q)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Fixed custom window (no live tail, own history key, historical freshness, 31-day limit) on Overview and Energy.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "vitest 238 files/1545 tests PASS; eslint, tsc, prettier PASS; exact-head CI GREEN; unit tests only, no real-browser run",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1683 f3413284; source-only"
+      },
+      "branch": "feat/1683-custom-range-overview-energy"
+    },
+    {
+      "issue": 1667,
+      "title": "Saved analysis view settings in the Telemetry API (WP-L backend)",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Optional view_settings on Saved Dashboards (migration 20261122_0041, 17 tests). Blocked: HIGH CVE-2026-124709 in the Device Agent image (libssl3t64, no fixed version) fails the container vulnerability policy; needs a Product Owner risk decision, a Debian fix or an image change. No exception added, no check bypassed, no production migration. Update 2026-11-22: real-stack acceptance on PostgreSQL is green (saved view round trip, RBAC, compatibility, corrupted values) and found two frontend defects fixed by #1690; only the container vulnerability policy blocks the merge. See docs/security/cve-2026-124709-assessment.md. Merged 2026-11-22 (PR #1667, 7db6e1a8) after the Product Owner's exact-exception decision; every exact-head gate green.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "backend 17 view-settings tests + 48-test Saved Dashboard suite PASS on isolated PostgreSQL 16 with the real Alembic chain; 9/9 migration scenarios; real-stack browser acceptance GREEN on PR #1667; Merge Gate red only for the container vulnerability policy",
+        "review_clearance": "Product Owner autonomous XWEB chart programme authorization (AGENTS.md, recorded 2026-11-22)",
+        "source_merge": "PR #1667 7db6e1a8; source-only, no production migration"
+      },
+      "branch": "feat/1666-saved-analysis-views-api"
+    },
+    {
+      "issue": 1685,
+      "title": "CVE-2026-124709 (OpenSSL QUIC) blocks every backend-classified PR",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "Exposure assessment (docs/security/cve-2026-124709-assessment.md, PR #1686 merged), unused openssl CLI removed from telemetry-service (draft PR #1687), exact time-limited exception scope prepared for the Product Owner's decision. No patched OpenSSL exists before 2026-12-01 and Debian trixie is unfixed; bookworm bases are not viable today. No exception added, no gate bypassed. Resolved: assessment #1686, hardening and exact approved exceptions #1687; retirement tracked in #1692.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "NOT_APPLICABLE_SOURCE_ONLY",
+        "local_checks": "libssl consumer inventory of the three images (no QUIC server API references); local Trivy 0.70.0 and CI evidence show the telemetry scope reduced to libssl3t64 only after #1687",
+        "review_clearance": "Product Owner decision required for any exception (not self-approvable)",
+        "source_merge": "PR #1686, PR #1687; exceptions expire 2026-12-15 (#1692)"
+      },
+      "branch": "security/1685-telemetry-drop-openssl-cli"
+    },
+    {
+      "issue": 1630,
+      "title": "DR leaf A: scheduled encrypted complete backup of all eight stores (source) and object metadata fidelity",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Streaming AES-256-GCM container, orchestrator, hardened timer templates (#1635) and the VersityGW user.* xattr preservation fix (#1697). Site timer install and a real backup are owner steps; nothing was run on the Pi.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "198 tests in a Linux container; rehearsal on synthetic data: restored HEAD ETag/Content-Type equal to source",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1635, PR #1697 (5dc35eb0)"
+      },
+      "branch": "fix/dr-object-metadata-xattrs"
+    },
+    {
+      "issue": 1631,
+      "title": "DR leaf C: verified off-device copy with custody receipt and key custody",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "nexolab-dr-offdevice-copy.py (copy, enroll, retention report-only, verify-destination), custody receipt v1, key-custody procedure. Needs the owner's media, key custodians and a real copy with the internet disconnected.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "36 tests + related suites 336 passed on Linux",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1693 (2f12002d)"
+      },
+      "branch": "feat/1631-dr-offdevice-copy"
+    },
+    {
+      "issue": 1632,
+      "title": "DR leaf B: independent isolated restore, verification receipt and health-gate integration",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "nexolab-dr-isolated-restore.py (+ rehearsal driver), v2 inventory restore fields, and the health gate that re-verifies a strict site-mode receipt (#1698). Latest full rehearsal on main: REHEARSAL_PASS_WITH_WAIVERS, 30 checks, 0 failed, RTO 28.4 s, RPO gap 74.9 s (not site evidence). Needs an isolated host and the leaf-C media.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "41 + health-gate tests; 285 combined DR/classifier tests passed on Linux; #1702 fixes the gate that still expected the legacy PRESERVED value (found after #1697)",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1695 (94f8f9cb), PR #1698 (09fd371b), PR #1702 (b415985f: the gate accepts the restore tool's metadata fidelity OK)"
+      },
+      "branch": "feat/1632-dr-isolated-restore"
+    },
+    {
+      "issue": 1692,
+      "title": "Retire the CVE-2026-124709 exceptions: OpenSSL 3.5.10 (2026-12-01) and Debian fix",
+      "lifecycle": "queued",
+      "priority": "high",
+      "scope": "Check OpenSSL 3.5.10 and the Debian trixie fix; rebuild and verify amd64 and arm64; delete the three exceptions immediately when a fix exists; fresh Product Owner decision if none by 2026-12-15.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "tracked issue; 18 telemetry exceptions renewed only to 2026-11-30",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "n/a",
+        "revalidation_2026_11_23": "CVE Exposure Evidence run 45151013470 (PR #1714 head c2015af5; 5 images x native amd64/arm64, no cache, gate Trivy pin): exactly two blocked tuples (device-agent, telegram-gateway; libssl3t64 3.5.9-1~deb13u1; no fix); no QUIC server API use outside OpenSSL; no UDP. Proposed exact installed_version re-pin awaiting Product Owner decision (docs/security/cve-2026-124709-assessment.md section 10; PRs #1719, #1720, #1721). Not applied.",
+        "repin_2026_11_23": "Product Owner approved exact re-pin of device-agent and telegram-gateway libssl3t64 to 3.5.9-1~deb13u1 (expiry 2026-12-15 unchanged); PR #1723 merged 7dfa6eeef974d2cfd91abf3be62edec4c17dd9df after exact-head GREEN CI incl. Container Supply Chain"
+      },
+      "branch": ""
+    },
+    {
+      "issue": 1699,
+      "title": "Reconcile the unmerged RS-485 onboarding stack (#1483→#1521) with main",
+      "lifecycle": "hardware_validation",
+      "priority": "high",
+      "scope": "Site/main drift: the commissioned runtime lineage is not in main; hardware acceptance stays with the owner. Not required by the XWEB release.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "2026-11-23 reconcile merge of stack head 4be678f6 into main (81 files; governance/state keep main); device-agent suite 373 tests OK locally; CI: unit/component, device-agent builds, fleet/acquisition/offline acceptance passed; Prettier and a pytest-only test module fixed",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "PR #1714 merged ebc47ebd05a97369d3a2839b7a87d1bab8e5b150 after exact-head GREEN CI (head 324ddc89: 24 pass incl. device-agent build, vulnerability policy, NEXOLAB Merge Gate); 13 superseded stacked PRs closed with branches kept",
+        "pull_request": 1714,
+        "blocker": "Resolved 2026-11-23: Product Owner approved the exact CVE-2026-124709 re-pin to libssl3t64 3.5.9-1~deb13u1 (PR #1723 merged).",
+        "hardware_acceptance": "OWNER: real-device read-only acceptance of XJP search, section-addressed XJP60D, Waveshare 8AI, SDM120 and persistent buses is not claimed by CI"
+      },
+      "branch": "feat/1699-rs485-onboarding-reconcile"
+    },
+    {
+      "issue": 1700,
+      "title": "Refresh the stale Dependabot batch after the XWEB release",
+      "lifecycle": "queued",
+      "priority": "high",
+      "scope": "next 16.4.6 with eslint-config-next, lucide-react, supabase-js, tailwind, actions/cache; deliberately deferred until after the release.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "read-only triage 2026-11-22",
+        "review_clearance": "Product Owner autonomous execution authorization (AGENTS.md; overnight directive recorded 2026-11-22)",
+        "source_merge": "n/a"
+      },
+      "branch": ""
+    },
+    {
+      "issue": 1706,
+      "title": "Move the Claude Code development control plane to an isolated Raspberry Pi ARM64 workspace",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Development-only: isolated nexolab-dev account (no sudo/docker/serial, sandboxed transient tmux unit, user-1001.slice 768/1280 MiB, 1 CPU, 128 tasks), native ARM64 Claude Code, fresh clone, PC-independent runbook docs/operations/raspberry-pi-development-control-plane.md. No production, deployment, hardware or database change.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "2026-11-23 read-only from the sandboxed session: isolation (sudo refused, docker.sock/operator home/etc/nexolab inaccessible, no serial devices), slice limits, 24 GiB free, Claude 2.1.323 aarch64, gh auth (masked), Device Agent /health ok and telemetry /health/ready ready (lag ~0.18 s); validate-project-state passed",
+        "owner_pending": "PC-off continuity, approved reboot recovery test, before/after production container identity comparison (no Docker access from the dev account by design)",
+        "review_clearance": "Product Owner directive 2026-11-23 (Pi primary development environment) and AGENTS.md autonomous execution authorization",
+        "source_merge": "PR #1707 merged 26ed183e24f6c0b3661c3bb366bdf4cd75db03ab after exact-head GREEN NEXOLAB Merge Gate (head d75267b0)",
+        "dev_tooling": "user-local Node 22.23.1 (checksum-verified) and Prettier 3.9.9 in the dev home for format checks",
+        "persistent_session": "Owner reported 2026-11-23: persistent dev session (unit + boot timer + gated start script) installed; takes effect at the next boot.",
+        "guard_internal_readiness": "PR #1737 merged 64f8de31: readiness on 127.0.0.1:8082 then #1733 compat address; bounded re-check every 60 s up to 12 h then gates/auto-resume; owner reinstall of /usr/local/lib/nexolab-dev/nexolab-dev-session-start.sh (sha256 9102b18f...aeca16) pending"
+      },
+      "branch": "docs/1706-pi-dev-control-plane"
+    },
+    {
+      "issue": 1641,
+      "title": "Keep historical evidence when project-state.py writes a checkpoint",
+      "lifecycle": "completed",
+      "priority": "high",
+      "scope": "scripts/project-state.py checkpoint starts from the existing checkpoint, refreshes only event fields and fails closed on any dropped evidence; differing sprint/checkpoint baselines refused unless --accept-baseline-changes; stale pre-#1638 sprint frontend baselines reconciled to the checkpoint.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_applicable_tooling",
+        "local_checks": "35 project-state tests OK on the Pi (1 skipped: no pwsh); new tests fail against the unfixed script; replaced unique active_issue_evidence archived, not dropped; real checkpoint --dry-run changes only event fields; validate-project-state passed",
+        "pull_request": 1708,
+        "review_clearance": "Product Owner directive 2026-11-23 and AGENTS.md autonomous execution authorization",
+        "source_merge": "PR #1708 merged 97f7f95c6734fd89300ab78080ff7d91a1ae2725 after exact-head GREEN NEXOLAB Merge Gate incl. Authenticated Dashboard, Offline Bundle and Refrigeration Browser acceptance (head 1765c3b8)",
+        "ci_classifier": "scripts/project-state.py and tests/test_ci_project_state_v2.py classified as ci_governance; previously failed closed as cross_surface with unreachable external workflows"
+      },
+      "branch": "fix/1641-checkpoint-preserves-evidence"
+    },
+    {
+      "issue": 1710,
+      "title": "System audit, safe dev cleanup, reboot-persistent dev session and storage/resource policy",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Read-only audit (disk/RAM/CPU, repository, Git); verified dev-cache cleanup owned by nexolab-dev; owner-installed persistent dev session (unit+timer+gated start script, opt-in Claude auto-resume); owner read-only inventory script; owner cleanup manifest; storage policy; focused obsolete-code removal PRs. No production, Docker, DB or hardware change.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "2026-11-23: dev cleanup npm cache 3544->16 KiB and 3 merged local branches; start script pass/fail paths exercised with a throwaway HOME; systemd-analyze verify clean; inventory script exercised without root (docker denied as expected)",
+        "owner_pending": "install persistent session (docs/operations/dev-session), run read-only inventory, decide manifest M1-M6, R1-R4",
+        "review_clearance": "Product Owner directive 2026-11-23 (audit and cleanup programme) and AGENTS.md autonomous execution authorization",
+        "source_merge": "PR #1711 merged a8f4749577e2d2693af5302bdb63829cd8ebfbd4 (head ee51fe2c) and PR #1712 merged 2d917dd311773ca3e2466eae20c780cfcebd1bfc (head e5c8971b), both after exact-head GREEN NEXOLAB Merge Gate",
+        "repository_audit": "module-level scans clean (319 frontend modules, all Python service modules, all package.json deps referenced); one intentional duplicate kept; obsolete hazardous scripts/deploy-disabled-auth-websocket-fix.sh removed (#1712)",
+        "inventory_candidates": "PR #1718 merged 37452c82: owner inventory prints exact M1-M5 CLEAN/REVIEW/PROTECTED candidates and an estimated total; nothing deleted",
+        "housekeeping_guard": "PR #1726 merged 29cdf1f4: owner-installed disk guard (warn < 40 GiB, critical < 20 GiB) and weekly housekeeping in report mode by default (APT, build cache > 7 d, unused unprotected dangling images > 7 d, frontend releases outside newest 3 / > 14 d / unreferenced / unprotected); staged plan to >= 50 GiB",
+        "guard_report_2026_11_23": "Owner reported: storage guard installed; report mode: free 22.93 GiB; estimated candidates 18,669,299,003 bytes (11 dangling images, 14 superseded frontend releases, APT 919,920,476 bytes); apply not enabled. v2 (fail-closed inventories/Docker, container mounts, record references, checksum-pinned manifest apply) in PR for review before any apply.",
+        "strict_scan_dedupe": "PR #1729 merged a0b09a53: strict reference scan (missing/unreadable root, unreadable dir/file, escaping symlinked dir -> all image/release candidates withheld; every regular file streamed); hard-link dedupe of byte-identical archives with checksum-pinned plan",
+        "owner_report_v2": "Owner reported 2026-11-23: v2 manifest /var/lib/nexolab-storage/manifest-20261123T123701Z.json sha256 ec909e83...e21e27, 5,261,205,689 bytes (8 frontend releases, 1 dangling image; APT already cleaned); guarded-update-1313: 20 GiB, no active systemd/process/mount references, historical deployment/recovery references, 3 byte-identical archives 2.21 GiB; free 23.90 GiB. Consolidated gated owner command prepared (identity gate + strict apply + hard-link dedupe).",
+        "cleanup_result_2026_11_23": "Owner ran the consolidated gated cleanup (manifest ec909e83 + guarded-update-1313 hard-link dedupe): free space 23.90 -> 30.29 GiB (agent-observed df 30.29 GiB, guard last run exit 0)."
+      },
+      "branch": "ops/1710-persistent-dev-session"
+    },
+    {
+      "issue": 1713,
+      "title": "Automate GitHub to corporate GitLab fast-forward synchronization",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "Owner-installed systemd service+timer (5 min, OnBootSec 10 min), DynamicUser identity, LoadCredential token and approved-tags, check/push modes, fast-forward-only main, approved release tags, divergence/rewrite/tag-collision fail-closed, SHA read-back verification, ci.skip push option, disk/memory reserve, bounded redacted JSON logging. Corporate endpoint kept out of the public repository.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_applicable_dev_infrastructure",
+        "local_checks": "tests/test_ci_gitlab_sync.py 29 tests OK on the Pi against local bare repositories (pre-receive hook verifies ci.skip); systemd-analyze verify clean on systemd 257; askpass look-alike host flaw found and fixed by test",
+        "owner_pending": "install per docs/operations/gitlab-sync.md, authenticated check-mode history comparison, first push with SHA comparison, then enable timer; synchronization NOT operational until then",
+        "review_clearance": "Product Owner directive 2026-11-23 (#1713) and AGENTS.md autonomous execution authorization",
+        "source_merge": "PR #1716 merged effc1cdb487f52d374570a576c3f782a5f1e44eb after exact-head GREEN NEXOLAB Merge Gate (head fedca928)",
+        "related": "#1633 shadow GitLab CI (pipelines skipped via ci.skip until reviewed)",
+        "owner_installation": "Owner reported 2026-11-23: GitLab sync installed. Operational status (authenticated check result, first verified push, timer) not yet recorded in the repository; not claimed operational here.",
+        "operational_evidence_2026_11_23": "Agent-observed (read-only systemd): nexolab-gitlab-sync.timer active every 5 min; last service run 2026-11-23T13:27:36Z Result=success ExecMainStatus=0 (owner reports push mode installed). Destination SHA comparison remains an owner record."
+      },
+      "branch": "ops/1713-gitlab-sync"
+    },
+    {
+      "issue": 1551,
+      "title": "Evidence-safe 30-day telemetry retention and bounded Raspberry Pi disk reclamation",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Telemetry service: 30-day ordinary-telemetry policy; session-linked samples never deleted (selection and DELETE); telemetry_latest untouched; irreversible deletion gated by RETENTION_TELEMETRY_DELETE_ENABLED (default false, enable after #1428); multi-batch cycles with time budget, pause and backlog interval; read-only --dry-run counts; observability. PostgreSQL physical reclamation runbook (owner, maintenance window). No production change.",
+      "depends_on": [
+        1428
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "OWNER_SITE_EVIDENCE_REQUIRED",
+        "local_checks": "telemetry-service retention/latest/metrics/health/cors/openapi tests OK on the Pi (SQLite); PostgreSQL retention test added for CI",
+        "owner_pending": "#1428 verified backup+restore; dry-run counts; then enable deletion; later VACUUM FULL window per docs/operations/postgresql-storage-reclamation.md",
+        "supersedes_draft_pr": 1552,
+        "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
+        "source_merge": "PR #1725 merged e658e58ac9eda4b90e75b5218560c6afbf33ac19 after exact-head GREEN CI (head 10389cb5: 39 pass; telemetry suite 892 passed on PostgreSQL incl. test_retention_postgres); draft #1552 closed as superseded",
+        "activation_sequence": "Backup tool needs free >= max_backup_bytes (8 GiB) + 20 GiB reserve = 28 GiB on /var/backups; after the consolidated cleanup (~31 GiB expected) #1428 step A (--plan, first manual backup) becomes feasible; retention stays off until B (isolated restore) is verified."
+      },
+      "branch": "feat/1551-evidence-aware-retention"
+    },
+    {
+      "issue": 1733,
+      "title": "P0 network-change recovery: interim compatibility service address (WP1)",
+      "lifecycle": "completed",
+      "priority": "critical",
+      "scope": "Owner-run checksum-pinned tool docs/operations/network/nexolab-network-compat-recovery.py: read-only diagnose; apply adds 172.18.48.66/32 on lo (lo:nxcompat) + arp_ignore=1 on eth0/wlan0, docker start/restart only existing containers publishing on it, never recreates, verifies IDs/images/mounts; rollback; optional interim boot unit before docker.service.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "recovered_interim",
+        "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
+        "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
+        "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
+        "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only",
+        "source_merge": "PR #1736 merged 6b04db2d after exact-head GREEN NEXOLAB Merge Gate (head 938adcaf); tool sha256 3b64b483...6664689 identical to the owner-staged copy",
+        "owner_pending": "owner runs diagnose + apply; record dropped-message counter, GREEN marker, lag drain",
+        "clock_finding": "Host booted 07:23:29Z; Device Agent started_at 05:47:18Z => wall clock ~1h37m behind until network time sync; early captured_at values wrong (tracked #1734 item 2e)",
+        "owner_report_2026_11_25": "Owner reported NEXOLAB_NETWORK_COMPAT_RECOVERY_GREEN; agent runtime check 08:45Z contradicts it: no 172.18.48.66 on lo, :8082/:3000 unreachable, veth set unchanged since 07:56Z (no container start), lock file absent, no reboot. Production recovery NOT verified; full apply output requested. NetworkManager now lists lo as an activated connection (possible alias removal).",
+        "recovery_2026_11_25": "Recovery v3.2 (sha256 54aa3f30...b722b, merged #1746 17e8d6ca) run 20261125T105848Z --minimal-network-model: NEXOLAB_NETWORK_REPAIR_GREEN_STABLE; DNS postgres/mqtt, ports, API 200, Dashboard 200; Edge sent 13636->14194; PostgreSQL max id 17184993->17189427; boot compat unit installed. Agent-verified 11:04Z: readiness ready, ingestion_lag 0.82 s, LAN :3000 7db6e1a8 CWBsCWWebOZGHa5YyWp18, HTTPS 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4, lab 08f1c8a4.",
+        "data_impact": "Not sampled 05:50:37-07:24 (powered off); recovered 5,283 rows 07:24-07:43:10; lost for central 07:43:10-~10:59 (~53,000 rows estimated, Edge queue cap after local PUBACK); ~1,125 rows with wrong captured_at (05:47-05:51, real ~07:24-07:28) identifiable by received_at>=10:50; no data changed. docs/operations/network/incident-2026-11-25.md",
+        "tooling_history": "v1 (#1736) alias on NM-tracked lo, unconfirmed; v2 (#1745) provenance/stability, start/restart cannot restore endpoints; v3 PermissionError on root-only compose; v3.1 privileged projection helper; v3.2 (#1746) verify only meant-to-run containers"
+      },
+      "branch": "fix/1733-network-compat-recovery"
+    },
+    {
+      "issue": 1734,
+      "title": "Network-independent LOCAL_LAN addressing: loopback/internal plane, same-origin LAN UI (WP2)",
+      "lifecycle": "in_progress",
+      "priority": "critical",
+      "scope": "2a same-origin frontend API/WS mode; 2b loopback publishes + Docker-DNS Edge/Device Agent targets + LAN gateway overlay + CORS/object storage; 2c guarded owner migration with rollback; 2d acceptance matrix (Ethernet, Wi-Fi, switching, DHCP change, reboot, offline, Tailscale, fresh telemetry, no data loss).",
+      "depends_on": [
+        1733
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_started",
+        "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+        "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source",
+        "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
+        "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
+        "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
+        "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
+      },
+      "branch": "feat/1734-same-origin-runtime"
+    },
+    {
+      "issue": 1735,
+      "title": "Wi-Fi reliability: LAB KK1 no-secrets, autoconnect and real connectivity verification (WP3)",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "Owner read-only confirmation of profile permissions/psk-flags; owner-run system-wide profile with system-stored PSK, unlimited autoconnect retries, Ethernet-preferred metrics; verify DHCP/route/DNS/gateway/UI/Tailscale over Wi-Fi.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_pending",
+        "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read"
+      },
+      "branch": null
     }
   ],
   "maintenance_actions": [
@@ -9541,6 +12308,13 @@
       "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
+    },
+    {
+      "id": "nexolab-1553-safe-cache-cleanup-20261110",
+      "description": "Removed 23 ignored generated dependency/build cache directories only; verified 8424194048 bytes increase in available SSD space, 13 active containers, telemetry progress, active external frontend/nginx. Protected recovery assets untouched.",
+      "status": "completed",
+      "issue": 1553,
+      "timestamp": "2026-11-10T09:01:05Z"
     }
   ],
   "observations": [
@@ -11039,70 +13813,507 @@
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T09:46:38Z",
-      "kind": "1445_source_only_receipt_schema_strict_and_models_import_fixed",
+      "observed_at": "2026-11-03T08:15:36Z",
+      "kind": "1462_guarded_network_recovery_source_only",
       "data": {
-        "issue": 1445,
-        "pr": 1446,
-        "tests_passed": 20,
-        "postgres_tests_skipped": 17,
-        "production_mutation": false,
-        "main_sha": "af39219ad292ce91dd56e5d0ff07e2c8d94774ff",
-        "hardware": "unverified"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-11-02T12:43:47Z",
-      "kind": "1445_real_isolated_postgres17_arm64_receipt_acceptance",
-      "data": {
-        "issue": 1445,
-        "pr": 1446,
-        "postgres_version": "17.11",
-        "tests": 37,
-        "skips": 0,
-        "db_isolated": true,
-        "unix_socket_only": true,
-        "production_mutation": false,
-        "canonical_edge_contract": "passed_synthetic_puback",
-        "postgres16_production": "unverified"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-11-02T13:30:33Z",
-      "kind": "1445_actual_pg17_qos1_broker_edge_sqlite_synthetic_fixture",
-      "data": {
-        "issue": 1445,
-        "pr": 1446,
-        "broker_version": "2.0.21",
-        "postgres_version": "17.11",
-        "static_acl": "fixture_only",
-        "actual_broker_qos1": "pass",
-        "correct_node_delivery": "pass",
-        "wrong_tenant_nondelivery": "pass",
-        "forged_node_publish_nondelivery": "pass",
-        "exact_receipt_sqlite_prune": "pass",
-        "fixture_servers_stopped": true,
+        "issue": 1462,
+        "parent": 1399,
+        "unit_tests": 14,
+        "live_check": "blocked_cidr_overlap",
         "production_mutation": false,
         "hardware": "unverified"
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-11-02T19:18:55Z",
-      "kind": "1445_postgresql_edge_canonical_receipt_ci_regression",
+      "observed_at": "2026-11-03T08:36:31Z",
+      "kind": "1462_real_flock_regression_lock_recheck",
       "data": {
-        "issue": 1445,
-        "pr": 1446,
-        "postgres_version": "17.11",
-        "tests": 38,
-        "skipped": 0,
-        "actual_transaction": true,
-        "broker_puback": "synthetic",
-        "ci_regression_checked_in": true,
+        "issue": 1462,
+        "tested_real_flock": true,
+        "tests": 16,
+        "offline_integration": "PASS",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1464_optin_source_edge_ipam_overlay",
+      "data": {
+        "issue": 1464,
+        "parent": 1409,
+        "tests": 14,
+        "source_only": true,
+        "real_site_cidr": "blocked",
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T08:59:57Z",
+      "kind": "1462_source_only_pr_1463_merged_green",
+      "data": {
+        "issue": 1462,
+        "pr": 1463,
+        "merge_sha": "9dd88ae96b09603801e794497b21fc6ca3032a5e",
+        "exact_head_checks": "3/3_GREEN",
+        "site_supervisor_enabled": false,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1464_source_only_green_merged",
+      "data": {
+        "issue": 1464,
+        "pr": 1465,
+        "merge_sha": "a758570094b0f217133dc98787cbc6d077d588b2",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:05:58Z",
+      "kind": "1466_real_lan_access_smoke_no_credentials",
+      "data": {
+        "issue": 1466,
+        "unit_tests": 18,
+        "site_read_only": true,
+        "status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "api_session_unauthenticated": "401",
+        "dashboard_http": "200",
+        "no_site_changes": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:08:52Z",
+      "kind": "1466_source_verification_offline_and_live_probe",
+      "data": {
+        "issue": 1466,
+        "tests": 18,
+        "ci_contracts": 383,
+        "skip": 1,
+        "offline_contract": "PASS",
+        "runtime_status": "LOCAL_LAN_AUTH_PATH_REACHABLE",
+        "site_mutation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1466_source_only_green_merged",
+      "data": {
+        "issue": 1466,
+        "pr": 1467,
+        "merge_sha": "6bc5f5243523503e04a907fe900fb254a378d654",
+        "exact_head_ci": "3/3_GREEN",
+        "site_schedule_installed": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:25:32Z",
+      "kind": "1469_edge_site_readonly_cutover_gate_initial",
+      "data": {
+        "issue": 1469,
+        "tests": 17,
+        "site": "blocked_unapproved_candidate",
         "production_mutation": false,
         "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:40:13Z",
+      "kind": "1468_source_only_optin_alerting_work",
+      "data": {
+        "issue": 1468,
+        "unit_tests": 18,
+        "ci_impact_tests": 80,
+        "prometheus_rule_test": "PASS",
+        "site_activation": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T10:45:38Z",
+      "kind": "1469_edge_gate_merged_3_of_3_green",
+      "data": {
+        "issue": 1469,
+        "pr": 1470,
+        "merge_sha": "533b803d9d267d4526d86d14a8f4f21f5c74c15d",
+        "checks": "3/3_GREEN",
+        "live_ipam_migration": false,
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1468_source_only_merged_green",
+      "data": {
+        "issue": 1468,
+        "pr": 1471,
+        "merge_sha": "4f0923c0a4c7aa7f89a09a3309e0b13141dc7302",
+        "exact_head_checks": "7/7_GREEN",
+        "live_monitor_enabled": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T11:31:19Z",
+      "kind": "1472_readonly_install_guard_source",
+      "data": {
+        "issue": 1472,
+        "tests": 18,
+        "source_only": true,
+        "site_activation": false,
+        "site_preflight": "blocked_older_installed_source",
+        "hardware": "unverified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1472_source_only_green_merged",
+      "data": {
+        "issue": 1472,
+        "pr": 1473,
+        "merge_sha": "525940a8749b4d7c7299442aaebbdf3573b61576",
+        "exact_head_ci": "3_of_3_GREEN",
+        "site_activation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:06:11Z",
+      "kind": "1474_optional_monitor_bundle_source",
+      "data": {
+        "issue": 1474,
+        "assets": 5,
+        "new_tests": 14,
+        "default_include": false,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-03T12:14:07Z",
+      "kind": "1474_exact_ci_classifier_and_offline_trigger_registered",
+      "data": {
+        "issue": 1474,
+        "tests": 81,
+        "fail_closed": false,
+        "unknown_files": 0,
+        "required_external": 3,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-05T12:14:14.443448+00:00",
+      "kind": "obsolete_cp2104_decision_and_active_device_inventory",
+      "data": {
+        "issue": 1513,
+        "owner_no_longer_needs_adapters": [
+          "0133F090",
+          "0133F246"
+        ],
+        "registry_revision": 34,
+        "old_bus_active_targets": [
+          40,
+          13
+        ],
+        "old_active_devices": 12,
+        "protected_adapter": "A10Q34QC",
+        "protected_section_targets": [
+          6,
+          2
+        ],
+        "runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:19:31.956Z",
+      "kind": "1532_overview_source_candidate",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "branch": "feat/1532-overview-readability",
+        "targeted_tests": 7,
+        "files_checked": 6,
+        "blob_match": true,
+        "format": "PASS",
+        "eslint": "PASS",
+        "typecheck": "PASS",
+        "ci": "pending",
+        "browser_acceptance": "pending",
+        "site_mutation": false,
+        "hardware_write": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:32:52.833Z",
+      "kind": "1532_ci_browser_acceptance_green",
+      "data": {
+        "issue": 1532,
+        "pr": 1533,
+        "head": "dd660a491d3597a5f3ab4c165b55beb92a8bad3b",
+        "ci_run": 42233327149,
+        "authenticated_dashboard_run": 42233327115,
+        "browser_pass": 42,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:45:46.063Z",
+      "kind": "1532_source_merged_1534_selected",
+      "data": {
+        "merged_pr": 1533,
+        "merged_sha": "5dc924d6f42067d69ef198e95974537c27d3de4d",
+        "issue": 1534,
+        "branch": "feat/1534-overview-sensor-picker",
+        "source_only": true,
+        "previous_active_issue": 1514,
+        "previous_active_moved_to_review": true,
+        "production_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T14:53:23.842Z",
+      "kind": "1534_device_first_source_isolated_pass",
+      "data": {
+        "issue": 1534,
+        "tests": 28,
+        "source_files": 7,
+        "source_blob_match": true,
+        "format": "PASS",
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T15:06:55.926Z",
+      "kind": "1534_source_green_premerge",
+      "data": {
+        "issue": 1534,
+        "pr": 1535,
+        "head": "693d983cd280fbb453b588303d4048b67bc879fb",
+        "core_run": 42238642725,
+        "browser_run": 42238642310,
+        "browser_passed": 42,
+        "targeted_tests": 28,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T19:52:59.892Z",
+      "kind": "1537_flaky_browser_retry_isolated_source_candidate",
+      "data": {
+        "issue": 1537,
+        "pr": 1538,
+        "source_merged_issue": 1534,
+        "source_merge_sha": "a5e39e12eebe0eb386230b0e01285c9f0cd9cb11",
+        "browser_one_failed_attempt": true,
+        "browser_rerun_passed": 42,
+        "test_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-06T20:01:57.324Z",
+      "kind": "1537_source_merged_1536_ui_source_candidate",
+      "data": {
+        "merged_issue": 1537,
+        "merged_pr": 1538,
+        "merged_main_commit": "767fa6f3b82790dba52219cc389103c6c5806797",
+        "new_issue": 1536,
+        "tests_passed": 12,
+        "blobs_matched": 2,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:15:16.545Z",
+      "kind": "1536_merged_1544_equipment_candidate",
+      "data": {
+        "prior_issue": 1536,
+        "source_merged_pr": 1539,
+        "main_sha": "b854590323e3213ad2ef32a8828de502324a4b98",
+        "issue": 1544,
+        "linked_discovery": 1478,
+        "focused_tests": 8,
+        "source_blobs_matched": 3,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:18:58.056Z",
+      "kind": "1544_pr_open_checks_not_yet_observed",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "branch": "feat/1544-equipment-connections-readability",
+        "workflow_runs_count_at_creation": 0,
+        "release_not_authorized": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:38:06.071Z",
+      "kind": "1544_merged_1546_energy_isolated_candidate",
+      "data": {
+        "previous_pr": 1545,
+        "previous_source_merge": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "issue": 1546,
+        "focused_tests": 10,
+        "verified_blobs": 3,
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-09T10:40:52.840Z",
+      "kind": "1544_source_merged_observation",
+      "data": {
+        "issue": 1544,
+        "pr": 1545,
+        "merge_sha": "9caffc8f0a106f2b151ce12a15ee0e26a974bc53",
+        "source_only": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-10T06:16:54.688Z",
+      "kind": "1546_merged_1548_ui_source_and_site_readiness_blocker",
+      "data": {
+        "source_merged_issue": 1546,
+        "source_merge_sha": "7815a9d503173d5b079ae065c63f82be9f704533",
+        "source_candidate_issue": 1548,
+        "verified_targeted_tests": 13,
+        "ssd_percent_used": 97,
+        "ssd_avail_gb": 7.2,
+        "docker_cidr": "172.18.0.0/16",
+        "lan_cidr": "172.18.48.0/21",
+        "protected_runtime_revision": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+        "site_update_blocked": true,
+        "site_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-04T08:11:34.227467+00:00",
+      "kind": "rs485_source_progress",
+      "data": {
+        "merged_prs": [
+          1480,
+          1485
+        ],
+        "pending_core_pr": 1483,
+        "separate_monitor_pr": 1477,
+        "deployment_unchanged": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-16T12:20:53Z",
+      "kind": "1448_source_merge",
+      "data": {
+        "issue": 1447,
+        "pull_request": 1448,
+        "merge_sha": "87e3d484f0e8f0ec002cd06c56c6c0dca2f967df",
+        "verified_head_sha": "67351d3d0717a20c88a149669f24ea499179b086"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T11:00:39.790Z",
+      "kind": "1598_portfolio_snapshot",
+      "data": {
+        "open_issues_including_governance": 73,
+        "open_prs": 46,
+        "epics": 7,
+        "note": "dated planning observation, not live synchronized status"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:10:40Z",
+      "kind": "1601_embarco_kk1_runtime_blocker",
+      "data": {
+        "issue": 1601,
+        "feature_branch": "feature/1601-embraco-bus-scoped-kk1",
+        "observed_on": "nexolab-edge-01",
+        "target": "CoolesSlim VCC L1250 / KK1 / 11111",
+        "target_equipment_key": "ece48888-d73e-44d6-a11d-2804a10d4cb9",
+        "controller_bus": "commissioning-c4b6e68057fa4c7f",
+        "controller_adapter_suffix": "A10Q2SIF",
+        "unit_id": 2,
+        "fc03_hardware_preflight": "passed_hardware_verified_7_checks_4_observations_133ms",
+        "legacy_binding": "EMBRACO-2 bound to CoolJet KK2; retain unchanged",
+        "legacy_last_sample_utc": "2026-11-05T14:17:06Z",
+        "activation": "not_started_three_attempts_recovery_required_http_422",
+        "codex_execution": "blocked_usage_limit_returned_2026-11-19",
+        "provider_recheck": "NEXUS and NEXUS Raspberry tool failed internally",
+        "site_changes": false,
+        "db_writes": false,
+        "modbus_writes": false,
+        "priority": "high",
+        "release": "not_ready",
+        "note": "Authoritative live observations; no software or site deployment occurred for issue 1601."
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-11-19T13:33:09Z",
+      "kind": "1601_owner_confirmed_same_embraco_kk1_runtime_accepted",
+      "data": {
+        "issue": 1601,
+        "issue_url": "https://github.com/eNgine9r/nexolab-platform/issues/1601",
+        "owner_correction": "same_physical_unit_2_relocated_KK2_to_KK1",
+        "edge_physical_bus": "commissioning-c4b6e68057fa4c7f",
+        "adapter": "A10Q2SIF",
+        "previous_equipment_code": "CS-001",
+        "target_equipment_code": "11111",
+        "controller_telemetry_identity": "EMBRACO-2",
+        "edge_registry_revision": 54,
+        "activation_id": "e6d03479-ceac-41fa-850a-fa978fc5c72b",
+        "active_targets": 13,
+        "read_only_poll_successes": 26,
+        "read_only_poll_failures": 0,
+        "new_postgresql_latest_rows": 13,
+        "valid_metrics": 4,
+        "unknown_metrics": 9,
+        "new_last_sample_at_utc": "2026-11-19T13:29:46Z",
+        "historic_bindings_preserved": true,
+        "edge_db_backup": "/var/lib/nexolab/owner-kk1-embraco-before-transfer-20261119.db",
+        "modbus_writes": false,
+        "hardware_writes": false,
+        "owner_approved_site_transfer": true,
+        "future_site_mutations_authorized": false,
+        "hardware_temperature_inputs_verified": false,
+        "browser_acceptance": "not_run",
+        "reboot_after_activation": "not_run"
       }
     }
   ],

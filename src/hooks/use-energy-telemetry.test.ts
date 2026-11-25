@@ -10,6 +10,7 @@ import {
   resetRetainedEnergyHistoryForTests,
 } from "@/features/energy/energy-history-retention";
 import type { TelemetryHistoryQuery, TelemetryLiveHandlers, TelemetrySample } from "@/lib/telemetry/types";
+import type { CommissionedEnergyMeter } from "@/features/energy/energy-commissioned-meters";
 
 const adapterState = vi.hoisted(() => ({
   latest: vi.fn(),
@@ -128,6 +129,138 @@ describe("useEnergyTelemetry startup coverage", () => {
       adapterState.handlers = handlers;
       return { close: vi.fn() };
     });
+  });
+
+  it("accepts only authorized same-node scoped meters and clears them when inventory changes", async () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      label: id,
+      modelLabel: "SDM",
+      family: "sdm120",
+    }));
+    const { result, rerender } = renderHook(
+      ({ inventory }) => useEnergyTelemetry({ commissionedMeters: inventory }),
+      {
+        initialProps: { inventory: meters },
+      },
+    );
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(adapterState.latest).toHaveBeenCalledOnce());
+    const now = new Date().toISOString();
+    act(() => {
+      for (const [index, meter] of meters.entries()) {
+        adapterState.handlers?.onSample?.({
+          ...sdmEnergySample(`meter-${index}`, now),
+          equipment_id: meter.equipmentId,
+        });
+      }
+      adapterState.handlers?.onSample?.({
+        ...sdmEnergySample("foreign", now),
+        node_id: "edge-02",
+        equipment_id: meters[0].equipmentId,
+      });
+      adapterState.handlers?.onSample?.({
+        ...sdmEnergySample("unknown", now),
+        equipment_id: "SDM120M:commissioning-aaaaaaaaaaaaaaaa:1",
+      });
+    });
+    await waitFor(() =>
+      expect(result.current.samples.map((item) => item.equipment_id).sort()).toEqual(
+        meters.map((meter) => meter.equipmentId).sort(),
+      ),
+    );
+    rerender({ inventory: [meters[0]] });
+    await waitFor(() =>
+      expect(result.current.samples.every((item) => item.equipment_id !== meters[1].equipmentId)).toBe(true),
+    );
+  });
+
+  it("loads scoped and legacy histories without mixing equal Unit IDs", async () => {
+    const meters: CommissionedEnergyMeter[] = ["0123456789abcdef", "fedcba9876543210"].map((id) => ({
+      nodeId: "edge-01",
+      busId: `commissioning-${id}`,
+      unitId: 1,
+      equipmentId: `SDM120M:commissioning-${id}:1`,
+      label: id,
+      modelLabel: "SDM",
+      family: "sdm120",
+    }));
+    const capturedAt = new Date(Date.now() - 30_000).toISOString();
+    const items = [
+      ...meters.map((meter, index) => ({
+        ...sdmEnergySample(`scoped-history-${index}`, capturedAt),
+        equipment_id: meter.equipmentId,
+      })),
+      sdmEnergySample("legacy-history", capturedAt),
+      {
+        ...sdmEnergySample("other-node", capturedAt),
+        node_id: "edge-other",
+        equipment_id: meters[0].equipmentId,
+      },
+    ];
+    adapterState.history.mockResolvedValue({ ...emptyHistoryResponse(), items, count: items.length });
+    const { result } = renderHook(() => useEnergyTelemetry({ commissionedMeters: meters }));
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    expect(result.current.historySamples.map((item) => item.equipment_id).sort()).toEqual(
+      [...meters.map((meter) => meter.equipmentId), "SDM120M-1"].sort(),
+    );
+  });
+
+  it("queries and filters the explicitly selected node", async () => {
+    const meter: CommissionedEnergyMeter = {
+      nodeId: "edge-02",
+      busId: "commissioning-0123456789abcdef",
+      unitId: 1,
+      equipmentId: "SDM120M:commissioning-0123456789abcdef:1",
+      label: "Other",
+      modelLabel: "SDM",
+      family: "sdm120",
+    };
+    const historyAt = new Date(Date.now() - 60_000).toISOString();
+    adapterState.history.mockResolvedValue({
+      ...emptyHistoryResponse(),
+      items: [
+        {
+          ...sdmEnergySample("remote-history", historyAt),
+          node_id: "edge-02",
+          equipment_id: meter.equipmentId,
+        },
+        { ...sdmEnergySample("legacy-history-wrong-node", historyAt), node_id: "edge-02" },
+      ],
+      count: 2,
+    });
+    const { result } = renderHook(() =>
+      useEnergyTelemetry({ nodeId: "edge-02", commissionedMeters: [meter] }),
+    );
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    expect(adapterState.subscribe.mock.calls[0][0]).toEqual({ node_id: "edge-02" });
+    expect(cadenceState.read).not.toHaveBeenCalled();
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(adapterState.latest).toHaveBeenCalledOnce());
+    const at = new Date().toISOString();
+    act(() => {
+      adapterState.handlers?.onSample?.({
+        ...sdmEnergySample("other", at),
+        node_id: "edge-02",
+        equipment_id: meter.equipmentId,
+      });
+      adapterState.handlers?.onSample?.({
+        ...sdmEnergySample("wrong", at),
+        node_id: "edge-01",
+        equipment_id: meter.equipmentId,
+      });
+      adapterState.handlers?.onSample?.({ ...sdmEnergySample("legacy-wrong-node", at), node_id: "edge-02" });
+    });
+    await waitFor(() => expect(result.current.samples.map((item) => item.node_id)).toEqual(["edge-02"]));
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    expect(result.current.historySamples.every((item) => item.equipment_id === meter.equipmentId)).toBe(true);
+    expect(result.current.historySamples.some((item) => item.event_id.includes("remote-history"))).toBe(true);
   });
 
   it("keeps workspace status and fresh samples aligned with persisted SDM cadence", async () => {
@@ -528,6 +661,62 @@ describe("useEnergyTelemetry startup coverage", () => {
     expect(to - from).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
     expect(to - from).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
   });
+  it("loads a custom period as a fixed window with exact raw statistics and no live tail (#1683)", async () => {
+    const toMs = Date.now() - 3 * 60 * 60 * 1000;
+    const fromMs = toMs - 2 * 60 * 60 * 1000;
+    const inside = [
+      { ...energySample("custom-a", new Date(fromMs + 60_000).toISOString()), value: 100 },
+      { ...energySample("custom-b", new Date(toMs - 60_000).toISOString()), value: 300 },
+    ];
+    adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => ({
+      ...emptyHistoryResponse(),
+      items: queryTime(query.to) === toMs ? inside : [],
+    }));
+    const { result } = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    const presetCalls = adapterState.history.mock.calls.length;
+
+    act(() => result.current.applyCustomHistoryRange(fromMs, toMs));
+    await waitFor(() => {
+      expect(result.current.historyRange).toBe("custom");
+      expect(result.current.historyStatus).toBe("ready");
+      expect(result.current.historySamples.length).toBeGreaterThan(0);
+    });
+    const query = adapterState.history.mock.calls[presetCalls][0] as TelemetryHistoryQuery;
+    expect(queryTime(query.from)).toBe(fromMs);
+    expect(queryTime(query.to)).toBe(toMs);
+    const expectedWindow = { from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() };
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+
+    const seriesKey = ["edge-01", "LE01MP-200", "200-power-active", "electrical.power.active", "W"]
+      .map((part) => encodeURIComponent(part))
+      .join("|");
+    const statistics = result.current.intervalStatistics?.(
+      seriesKey,
+      "electrical.power.active",
+      fromMs,
+      toMs,
+    );
+    expect(statistics).not.toBeNull();
+    expect(statistics?.min).toBe(100);
+    expect(statistics?.max).toBe(300);
+
+    const samplesBefore = result.current.historySamples;
+    act(() => {
+      adapterState.handlers?.onSample?.(energySample("live-now", new Date().toISOString()));
+    });
+    await waitFor(() => expect(result.current.samples.length).toBeGreaterThan(0));
+    expect(result.current.historySamples).toBe(samplesBefore);
+    expect(result.current.historyWindow).toEqual(expectedWindow);
+    expect(
+      result.current.historySamples.some(
+        (sample) => energyHistorySourceEventId(sample.event_id) === "live-now",
+      ),
+    ).toBe(false);
+  });
+
   it("loads multiple metrics on one authenticated subscription and keeps live quality breaks independent", async () => {
     const now = Date.now();
     const voltage = {

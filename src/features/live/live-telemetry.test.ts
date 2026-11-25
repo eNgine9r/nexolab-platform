@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  LIVE_SELECTION_LIMIT,
   defaultLiveTelemetryFilters,
   filterLiveTelemetry,
   groupLiveSamplesByUnit,
@@ -69,6 +70,24 @@ describe("live telemetry inventory", () => {
     expect(filterLiveTelemetry([power, temperature], filters)).toEqual([temperature]);
   });
 
+  it("searches channel display names without changing technical identity or crossing nodes", () => {
+    const current = sample();
+    const otherNode = sample({ event_id: "other-node", node_id: "edge-02" });
+    const labels = { "edge-01/106-03": "Подача повітря" };
+    const namedSearch = { ...defaultLiveTelemetryFilters(), search: "пОдАчА" };
+
+    expect(filterLiveTelemetry([current, otherNode], namedSearch, labels)).toEqual([current]);
+    expect(filterLiveTelemetry([current, otherNode], namedSearch)).toEqual([]);
+    expect(filterLiveTelemetry([current, otherNode], { ...namedSearch, search: "106-03" }, labels)).toEqual([
+      current,
+      otherNode,
+    ]);
+    expect(filterLiveTelemetry([current, otherNode], { ...namedSearch, nodeId: "edge-02" }, labels)).toEqual(
+      [],
+    );
+    expect(liveChannelKey(current)).toBe("edge-01|DIXELL-106|106-03|temperature|degC");
+  });
+
   it("retains stale values but classifies them separately from live", () => {
     const value = sample({ captured_at: "2026-08-03T23:59:00.000Z" });
 
@@ -78,10 +97,10 @@ describe("live telemetry inventory", () => {
 
 describe("live telemetry selection", () => {
   it("prevents duplicates and reports the configured capacity limit", () => {
-    const available = new Set(Array.from({ length: 9 }, (_, index) => `key-${index}`));
-    const selected = Array.from({ length: 8 }, (_, index) => `key-${index}`);
+    const available = new Set(Array.from({ length: LIVE_SELECTION_LIMIT + 1 }, (_, index) => `key-${index}`));
+    const selected = Array.from({ length: LIVE_SELECTION_LIMIT }, (_, index) => `key-${index}`);
 
-    expect(toggleLiveSelection(selected, "key-8", available)).toEqual({
+    expect(toggleLiveSelection(selected, `key-${LIVE_SELECTION_LIMIT}`, available)).toEqual({
       selected,
       changed: false,
       reason: "limit",

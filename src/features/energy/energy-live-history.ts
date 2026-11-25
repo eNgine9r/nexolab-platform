@@ -3,81 +3,91 @@ import {
   markEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
 import { resolveEnergyMeter } from "@/features/energy/energy-telemetry";
+import {
+  energyMeterIdentity,
+  type CommissionedEnergyMeter,
+} from "@/features/energy/energy-commissioned-meters";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export interface EnergyLiveHistoryReconciliation {
   samples: TelemetrySample[];
-  pendingUnitIds: Set<number>;
-  newestCapturedAtByUnitId: Map<number, number>;
+  pendingMeterKeys: Set<string>;
+  newestCapturedAtByMeterKey: Map<string, number>;
 }
 
 export interface EnergyLiveHistorySeed {
-  pendingUnitIds: Set<number>;
-  newestCapturedAtByUnitId: Map<number, number>;
+  pendingMeterKeys: Set<string>;
+  newestCapturedAtByMeterKey: Map<string, number>;
 }
 
 function isRenderable(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
 
-export function seedEnergyLiveHistoryState(samples: readonly TelemetrySample[]): EnergyLiveHistorySeed {
-  const latestByUnitId = new Map<number, { sample: TelemetrySample; capturedAt: number }>();
+export function seedEnergyLiveHistoryState(
+  samples: readonly TelemetrySample[],
+  meters: readonly CommissionedEnergyMeter[] = [],
+): EnergyLiveHistorySeed {
+  const latestByMeterKey = new Map<string, { sample: TelemetrySample; capturedAt: number }>();
 
   for (const sample of samples) {
-    const meter = resolveEnergyMeter(sample);
+    const meter = resolveEnergyMeter(sample, meters);
     const capturedAt = Date.parse(sample.captured_at);
     if (!meter || !Number.isFinite(capturedAt)) continue;
 
-    const current = latestByUnitId.get(meter.unitId);
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const current = latestByMeterKey.get(key);
     if (current === undefined || capturedAt > current.capturedAt) {
-      latestByUnitId.set(meter.unitId, { sample, capturedAt });
+      latestByMeterKey.set(key, { sample, capturedAt });
     }
   }
 
-  const pendingUnitIds = new Set<number>();
-  const newestCapturedAtByUnitId = new Map<number, number>();
-  for (const [unitId, latest] of latestByUnitId) {
-    newestCapturedAtByUnitId.set(unitId, latest.capturedAt);
+  const pendingMeterKeys = new Set<string>();
+  const newestCapturedAtByMeterKey = new Map<string, number>();
+  for (const [key, latest] of latestByMeterKey) {
+    newestCapturedAtByMeterKey.set(key, latest.capturedAt);
     if (!isRenderable(latest.sample) || isEnergyHistoryBreakPending(latest.sample.event_id)) {
-      pendingUnitIds.add(unitId);
+      pendingMeterKeys.add(key);
     }
   }
 
-  return { pendingUnitIds, newestCapturedAtByUnitId };
+  return { pendingMeterKeys, newestCapturedAtByMeterKey };
 }
 
 export function reconcileEnergyLiveHistory(
   samples: readonly TelemetrySample[],
-  pendingUnitIds: ReadonlySet<number> = new Set(),
-  newestCapturedAtByUnitId: ReadonlyMap<number, number> = new Map(),
+  pendingMeterKeys: ReadonlySet<string> = new Set(),
+  newestCapturedAtByMeterKey: ReadonlyMap<string, number> = new Map(),
+  meters: readonly CommissionedEnergyMeter[] = [],
 ): EnergyLiveHistoryReconciliation {
-  const pending = new Set(pendingUnitIds);
-  const newest = new Map(newestCapturedAtByUnitId);
+  const pending = new Set(pendingMeterKeys);
+  const newest = new Map(newestCapturedAtByMeterKey);
   const reconciled: TelemetrySample[] = [];
   const sorted = [...samples].sort(
     (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
   );
 
   for (const sample of sorted) {
-    const meter = resolveEnergyMeter(sample);
+    const meter = resolveEnergyMeter(sample, meters);
     const capturedAt = Date.parse(sample.captured_at);
     if (!meter || !Number.isFinite(capturedAt)) continue;
 
-    const newestCapturedAt = newest.get(meter.unitId);
+    const key = energyMeterIdentity(sample.node_id, meter.equipmentId);
+    const newestCapturedAt = newest.get(key);
     const advancesCursor = newestCapturedAt === undefined || capturedAt > newestCapturedAt;
 
     if (!isRenderable(sample)) {
       if (advancesCursor) {
-        pending.add(meter.unitId);
-        newest.set(meter.unitId, capturedAt);
+        pending.add(key);
+        newest.set(key, capturedAt);
       }
       reconciled.push(sample);
       continue;
     }
 
     if (advancesCursor) {
-      newest.set(meter.unitId, capturedAt);
-      if (pending.delete(meter.unitId)) {
+      newest.set(key, capturedAt);
+      if (pending.delete(key)) {
         reconciled.push(markEnergyHistorySegmentStart(sample));
         continue;
       }
@@ -88,7 +98,7 @@ export function reconcileEnergyLiveHistory(
 
   return {
     samples: reconciled,
-    pendingUnitIds: pending,
-    newestCapturedAtByUnitId: newest,
+    pendingMeterKeys: pending,
+    newestCapturedAtByMeterKey: newest,
   };
 }

@@ -1,5 +1,6 @@
 import { TelemetryClientError } from "./errors";
 import type { TelemetryMode, TelemetryRuntimeConfig } from "./types";
+import { resolvePublicApiBaseUrl, resolvePublicWebSocketUrl } from "@/lib/runtime/public-endpoints";
 
 export interface TelemetryRuntimeConfigInput {
   mode?: string;
@@ -57,7 +58,7 @@ export function validateTelemetryRuntimeConfig(input: TelemetryRuntimeConfigInpu
 export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
   return validateTelemetryRuntimeConfig({
     mode: process.env.NEXT_PUBLIC_NEXOLAB_DATA_MODE,
-    apiBaseUrl: process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL,
-    websocketUrl: process.env.NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL,
+    apiBaseUrl: resolvePublicApiBaseUrl(),
+    websocketUrl: resolvePublicWebSocketUrl(),
   });
 }

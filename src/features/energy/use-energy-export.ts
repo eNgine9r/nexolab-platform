@@ -40,12 +40,16 @@ export function useEnergyExport({
   enabled,
   organizationId,
   securityScopeId,
+  viewScopeId,
 }: {
   enabled: boolean;
   organizationId: string | null;
   securityScopeId: string | null;
+  viewScopeId?: string;
 }): EnergyExportController {
-  const key = JSON.stringify([organizationId, securityScopeId]);
+  const key = JSON.stringify(
+    viewScopeId ? [organizationId, securityScopeId, viewScopeId] : [organizationId, securityScopeId],
+  );
   const storageKey = `nexolab:energy-export:${key}`;
   const client = useMemo(() => {
     if (!enabled || !organizationId || !securityScopeId) return null;

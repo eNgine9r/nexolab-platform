@@ -147,11 +147,13 @@ def test_supported_profile_catalog_is_read_only_and_exact() -> None:
         (item["id"], item["version"], item["read_only"], item["activation_supported"])
         for item in response.json()["items"]
     ] == [
+        ("waveshare-8ai-b-v3", "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1", True, True),
+        ("eastron-sdm120m", "eastron-sdm120m-fc04-v1", True, True),
         ("dixell-xjp60d", "dixell-xjp60d-fc03-v1", True, True),
         ("f-and-f-le01mp", "f-and-f-le01mp-fc03-v2", True, True),
         ("embraco-sync", "embraco-sync-fc03-v1.00.04", True, True),
         ("danfoss-ak-cc25-pro", "danfoss-ak-cc25-pro-sw1.3x-fc03-v1", True, False),
-    ]
+    ] + [(f"dixell-xjp60d-sections-{count}", f"dixell-xjp60d-sections-v1-{count}", True, True) for count in range(1, 7)]
     profile = TestClient(app).get("/api/v1/equipment/commissioning/profiles/embraco-sync")
     missing = TestClient(app).get("/api/v1/equipment/commissioning/profiles/unknown")
     assert profile.status_code == 200
@@ -455,3 +457,52 @@ def test_equipment_manage_permission_is_required_for_drafts(tmp_path: Path) -> N
         headers={"Idempotency-Key": "denied"},
     )
     assert denied.status_code == 403
+
+
+def test_named_standalone_instrument_is_ready_and_persists_without_passport(tmp_path: Path) -> None:
+    api, database = _client(tmp_path)
+    payload = _draft(
+        manufacturer="Dixell", model="XJP60D", profile_id="dixell-xjp60d",
+        display_name="  Dixell   стенд 2  ", node_id="edge-01", bus_id="rs485-sdm120",
+        stable_transport_identifier="/dev/serial/by-id/usb-test", unit_id=2,
+    )
+    created = api.post("/api/v1/equipment/commissioning/sessions", json=payload,
+                       headers={"Idempotency-Key": "standalone-name"})
+    assert created.status_code == 201
+    row = created.json()
+    assert row["lifecycle"] == "ready_for_preflight"
+    assert row["display_name"] == "Dixell стенд 2"
+    assert row["target_equipment_key"] is None
+    assert api.get(f"/api/v1/equipment/commissioning/sessions/{row['id']}").json()["lifecycle"] == "ready_for_preflight"
+    replay = api.post("/api/v1/equipment/commissioning/sessions", json=payload,
+                      headers={"Idempotency-Key": "standalone-name"})
+    assert replay.json()["id"] == row["id"]
+    with Session(database.engine) as db:
+        assert db.query(RefrigerationEquipmentRecord).count() == 0
+
+
+def test_standalone_name_does_not_bypass_invalid_explicit_target(tmp_path: Path) -> None:
+    api, _ = _client(tmp_path)
+    created = api.post("/api/v1/equipment/commissioning/sessions",
+        json=_draft(display_name="Dixell", target_equipment_key="another-org-passport"),
+        headers={"Idempotency-Key": "standalone-invalid-target"})
+    assert created.status_code == 422
+
+
+def test_standalone_name_migration_preserves_existing_rows(tmp_path: Path) -> None:
+    import importlib.util
+    import sqlalchemy as sa
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    path = Path(__file__).resolve().parents[1] / "migrations/versions/20261104_0038_add_standalone_instrument_name.py"
+    spec = importlib.util.spec_from_file_location("standalone_name_migration", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    with engine.begin() as connection:
+        connection.execute(sa.text("CREATE TABLE equipment_commissioning_sessions (id TEXT PRIMARY KEY)"))
+        connection.execute(sa.text("INSERT INTO equipment_commissioning_sessions (id) VALUES ('retained')"))
+        migration.op = Operations(MigrationContext.configure(connection))
+        migration.upgrade()
+        row = connection.execute(sa.text("SELECT id, display_name FROM equipment_commissioning_sessions")).one()
+        assert tuple(row) == ("retained", None)

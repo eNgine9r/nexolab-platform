@@ -1,15 +1,37 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { LiveTelemetryModel } from "@/hooks/use-live-telemetry";
 
 import { LiveTelemetryExplorer } from "./live-telemetry-explorer";
 
+const navigationState = vi.hoisted(() => ({ search: "workspace=explorer" }));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/live",
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams("workspace=explorer"),
+  useSearchParams: () => new URLSearchParams(navigationState.search),
 }));
+
+vi.mock("@/features/equipment/channel-name-repository", () => ({
+  HttpChannelNameRepository: class {
+    async list() {
+      return {
+        state: "available",
+        items: [{ nodeId: "edge-01", channelId: "106-03", displayName: "Подача повітря" }],
+      };
+    }
+  },
+}));
+vi.mock("@/lib/telemetry/runtime-config", () => ({
+  getTelemetryRuntimeConfig: () => ({ mode: "live", apiBaseUrl: "http://localhost:8082" }),
+}));
+vi.mock("@/features/security/security-session", () => ({ createAuthenticatedFetch: () => fetch }));
+vi.mock("@/features/security/supabase-auth", () => ({ createRuntimeCredentialProvider: () => () => null }));
+
+afterEach(() => {
+  navigationState.search = "workspace=explorer";
+});
 
 vi.mock("@/components/live/live-chart-panel", () => ({
   LiveChartPanel: ({
@@ -104,7 +126,108 @@ function appearsBefore(left: Element, right: Element): boolean {
   return Boolean(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
+it("finds authorized channel names and shows them in the selected chart context", async () => {
+  const telemetry = modelWithChart();
+  render(<LiveTelemetryExplorer telemetry={telemetry} organizationId="lab-org" />);
+
+  const chart = screen.getByTestId("live-selected-context");
+  expect(await within(chart).findByText(/Подача повітря/)).toBeVisible();
+  expect(within(chart).getByTitle("Технічний канал: 106-03")).toBeVisible();
+
+  const search = screen.getByPlaceholderText("Назва датчика, прилад або технічний ID");
+  fireEvent.change(search, { target: { value: "подача" } });
+  expect(screen.getAllByTestId("live-channel-row")).toHaveLength(1);
+  fireEvent.change(search, { target: { value: "невідоме ім'я" } });
+  expect(screen.queryByTestId("live-channel-row")).not.toBeInTheDocument();
+  expect(telemetry.setSelectedKeys).not.toHaveBeenCalled();
+});
+
+describe("LiveTelemetryExplorer progressive filtering", () => {
+  it("keeps search visible, remembers hidden advanced selections and clears all filter conditions", () => {
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const search = screen.getByPlaceholderText("Назва датчика, прилад або технічний ID");
+    const expand = screen.getByRole("button", { name: /Додаткові фільтри/ });
+    const node = screen.getByLabelText("Вузол");
+
+    expect(search).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Пошук" })).toBe(search);
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(node).not.toBeVisible();
+    fireEvent.change(search, { target: { value: "K106" } });
+    expect(screen.getByText(/Активних умов: 1 · Обрано для графіка: 0/)).toBeVisible();
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(node).toBeVisible();
+    fireEvent.change(node, { target: { value: "edge-01" } });
+    expect(screen.getByText(/Активних умов: 2 · Обрано для графіка: 0/)).toBeVisible();
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(node).not.toBeVisible();
+    fireEvent.click(expand);
+    expect(node).toHaveValue("edge-01");
+    fireEvent.click(screen.getByRole("button", { name: "Очистити" }));
+    expect(screen.getByText(/Активних умов: 0 · Обрано для графіка: 0/)).toBeVisible();
+    expect(node).toHaveValue("all");
+    expect(search).toHaveValue("");
+    expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+    expect(telemetry.setSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  it("expands active advanced filters from a shared URL and leaves acquisition untouched", () => {
+    navigationState.search = "workspace=explorer&node=edge-01&quality=valid";
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const expand = screen.getByRole("button", { name: /Додаткові фільтри/ });
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Вузол")).toHaveValue("edge-01");
+    expect(screen.getByLabelText("Якість")).toHaveValue("valid");
+    expect(screen.getByText(/Активних умов: 2/)).toBeVisible();
+    fireEvent.click(expand);
+    expect(screen.getByLabelText("Якість")).not.toBeVisible();
+    expect(screen.getByText(/Активних умов: 2/)).toBeVisible();
+    expect(telemetry.retry).not.toHaveBeenCalled();
+    expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+  });
+});
+
 describe("LiveTelemetryExplorer graph-first composition", () => {
+  it("shows only evidenced Waveshare channel modes", () => {
+    const telemetry = model();
+    const sample = {
+      ...telemetry.samples[0],
+      source: "waveshare-analog-input-8ch-b-v3",
+      metric: "analog.input",
+      unit: "uA",
+      value: 12000,
+      raw_status: 3,
+    };
+    telemetry.samples = [sample];
+    telemetry.freshSamples = [sample];
+    const { rerender } = render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    expect(screen.getByText("Останній режим: 4–20 мА")).toBeVisible();
+    expect(screen.getByText("12 мА")).toBeVisible();
+    rerender(
+      <LiveTelemetryExplorer
+        telemetry={{ ...telemetry, samples: [{ ...sample, quality: "unknown", value: 0 }], freshSamples: [] }}
+      />,
+    );
+    expect(screen.getByText("Останній режим: 4–20 мА")).toBeVisible();
+    expect(screen.getByText("0 мА")).toBeVisible();
+    rerender(
+      <LiveTelemetryExplorer
+        telemetry={{
+          ...telemetry,
+          samples: [{ ...sample, quality: "communication_error", value: null }],
+          freshSamples: [],
+        }}
+      />,
+    );
+    expect(screen.queryByText("Останній режим: 4–20 мА")).not.toBeInTheDocument();
+  });
+
   it("places the canonical chart before filters and inventory in reading and focus order", () => {
     render(<LiveTelemetryExplorer telemetry={model()} />);
 
@@ -116,7 +239,7 @@ describe("LiveTelemetryExplorer graph-first composition", () => {
     expect(appearsBefore(filters, inventory)).toBe(true);
 
     const liveRange = within(chart).getByRole("button", { name: "Live" });
-    const search = screen.getByPlaceholderText("node, equipment, channel, metric, source...");
+    const search = screen.getByPlaceholderText("Назва датчика, прилад або технічний ID");
     const compare = screen.getByRole("checkbox", { name: /Порівнювати/ });
 
     expect(appearsBefore(liveRange, search)).toBe(true);
@@ -133,16 +256,16 @@ describe("LiveTelemetryExplorer viewport semantics", () => {
     const setHistoryRange = telemetry.setHistoryRange as ReturnType<typeof vi.fn>;
     render(<LiveTelemetryExplorer telemetry={telemetry} />);
 
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     fireEvent.click(screen.getByTestId("mock-reset-view"));
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     expect(setHistoryRange).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId("mock-manual-zoom"));
-    expect(screen.getByText("Paused view", { exact: true })).toBeVisible();
+    expect(screen.getByText("Призупинений перегляд", { exact: true })).toBeVisible();
 
     fireEvent.click(screen.getByTestId("mock-reset-view"));
-    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(screen.getByText("Live-стеження", { exact: true })).toBeVisible();
     expect(setHistoryRange).not.toHaveBeenCalled();
   });
 });
@@ -153,7 +276,7 @@ describe("Live channel selection shortcut", () => {
     render(<LiveTelemetryExplorer telemetry={telemetry} />);
     const chart = screen.getByTestId("live-primary-chart");
     fireEvent.click(within(chart).getByRole("button", { name: "Обрати датчики" }));
-    expect(screen.getByPlaceholderText("node, equipment, channel, metric, source...")).toHaveFocus();
+    expect(screen.getByPlaceholderText("Назва датчика, прилад або технічний ID")).toHaveFocus();
     expect(telemetry.setSelectedKeys).not.toHaveBeenCalled();
     expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
   });
@@ -162,7 +285,7 @@ describe("Live channel selection shortcut", () => {
     fireEvent.click(
       within(screen.getByTestId("live-primary-chart")).getByRole("button", { name: "Змінити датчики" }),
     );
-    expect(screen.getByPlaceholderText("node, equipment, channel, metric, source...")).toHaveFocus();
+    expect(screen.getByPlaceholderText("Назва датчика, прилад або технічний ID")).toHaveFocus();
   });
 });
 

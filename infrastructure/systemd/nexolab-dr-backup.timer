@@ -1,0 +1,14 @@
+# NEXOLAB #1630 source template only. DO NOT install/enable until the owner approves site activation.
+# Name is fixed: scripts/nexolab-dr-readonly-health.py checks nexolab-dr-backup.timer (Persistent=yes).
+[Unit]
+Description=NEXOLAB daily encrypted DR backup (missed runs are caught up after boot)
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=20min
+AccuracySec=1min
+Persistent=true
+Unit=nexolab-dr-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -144,3 +144,81 @@ describe("controller selected-interval CSV export", () => {
     );
   });
 });
+
+describe("temperature probe export", () => {
+  it("exports operator-scaled °C in separate provenance columns while retaining unknown source quality and raw", () => {
+    const cabinet: TelemetrySample = {
+      ...sample("cabinet-probe", 60, EMBRACO_METRICS.cabinet, 0, "2-cabinet-temperature"),
+      raw_value: 65485,
+      value: null,
+      unit: "degC",
+      quality: "unknown",
+    };
+    const defrost: TelemetrySample = {
+      ...sample("defrost-probe", 120, EMBRACO_METRICS.evaporator, 0, "2-evaporator-temperature"),
+      raw_value: 65418,
+      value: null,
+      unit: "degC",
+      quality: "unknown",
+    };
+    const csv = buildControllerAnalysisCsv({
+      history: new Map([
+        [EMBRACO_METRICS.cabinet, [cabinet]],
+        [EMBRACO_METRICS.evaporator, [defrost]],
+      ]),
+      range,
+      duty,
+      compressorStarts: [],
+      relayTransitions: [],
+      equipmentId: "EMBRACO-2",
+      timeZone: "Europe/Kyiv",
+    });
+    expect(csv).toContain(
+      "raw_value,raw_signed,operator_celsius_degC,operator_scale_degC_per_count,operator_scale_basis,raw_status",
+    );
+    const cabinetRow = csv.split("\r\n").find((line) => line.includes("cabinet-probe"));
+    const defrostRow = csv.split("\r\n").find((line) => line.includes("defrost-probe"));
+    expect(cabinetRow).toContain("temperature.cabinet");
+    expect(cabinetRow).toContain(",unknown,");
+    expect(cabinetRow).toContain(",65485,-51,-0.51,0.01,candidate_0p01_hmi_not_calibrated,");
+    expect(cabinetRow).toContain("відповідність HMI/датчика не підтверджена");
+    expect(defrostRow).toContain("temperature.evaporator");
+    expect(defrostRow).toContain(",65418,-118,-1.18,0.01,candidate_0p01_hmi_not_calibrated,");
+    expect(defrostRow).toContain("Датчик відтайки");
+    // The operator-derived Celsius MUST NOT overwrite persisted source `value` or quality.
+    const headers = csv.split("\r\n")[0]!.replace("\uFEFF", "").split(",");
+    const cabinetColumns = splitCsvRow(cabinetRow!);
+    expect(cabinetColumns[headers.indexOf("value")]).toBe("");
+    expect(cabinetColumns[headers.indexOf("quality")]).toBe("unknown");
+    expect(cabinetColumns[headers.indexOf("operator_celsius_degC")]).toBe("-0.51");
+  });
+
+  it("exports calibrated Celsius as valid only when the source sample itself is valid", () => {
+    const calibrated: TelemetrySample = {
+      ...sample("calibrated", 60, EMBRACO_METRICS.cabinet, -0.51, "2-cabinet-temperature"),
+      raw_value: 65485,
+      unit: "degC",
+      quality: "valid",
+    };
+    const csv = buildControllerAnalysisCsv({
+      history: new Map([[EMBRACO_METRICS.cabinet, [calibrated]]]),
+      range,
+      duty,
+      compressorStarts: [],
+      relayTransitions: [],
+      equipmentId: "EMBRACO-2",
+      timeZone: "UTC",
+    });
+    expect(csv).toContain("temperature.cabinet");
+    expect(csv).toContain(",-0.51,degC,valid,");
+    expect(csv).toContain("підтверджене значення °C");
+    const calibratedRow = csv.split("\r\n").find((line) => line.includes("calibrated"))!;
+    const headers = csv.split("\r\n")[0]!.replace("\uFEFF", "").split(",");
+    expect(splitCsvRow(calibratedRow)[headers.indexOf("operator_celsius_degC")]).toBe("");
+  });
+});
+
+/** A quoted localized timestamp includes a comma, so plain split is incorrect. */
+function splitCsvRow(line: string): string[] {
+  return line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+}

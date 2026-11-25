@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from xjp60d_sections import connected_count, section_units, section_equipment_id, read_section, SOURCE as SECTION_SOURCE
+
 import logging
 import os
 import signal
 import threading
 import time
 import uuid
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -17,12 +19,14 @@ from acquisition_capacity import BusCapacityProfile
 from akcc25 import AKCC25ProReader
 from acquisition_registry import AcquisitionRegistry, DeviceLifecycleMutation, LifecycleMutation
 from commissioning_connections import connection_inventory, resolve_commissioning_adapter
+from commissioning_search import parse_search_request, run_search
 from commissioning_activation import (
     CommissioningActivationJournal,
     CommissioningActivationRequest,
     activation_fingerprint,
     parse_activation_request,
 )
+from commissioning_buses import CommissionedBus, CommissionedBusStore
 from commissioning_preflight import (
     CommissioningPreflightRequest,
     PROFILES,
@@ -80,24 +84,39 @@ class _AllBusOperationLock:
     """Acquire every configured physical bus lock in deterministic order."""
 
     def __init__(self, locks: dict[str, threading.Lock]) -> None:
-        self._locks = tuple(locks[bus_id] for bus_id in sorted(locks))
+        self._locks = locks
+        self._guard = threading.RLock()
+        self._acquired = threading.local()
 
     def __enter__(self) -> "_AllBusOperationLock":
         acquired: list[threading.Lock] = []
+        self._guard.acquire()
         try:
-            for lock in self._locks:
+            for bus_id in sorted(self._locks):
+                lock = self._locks[bus_id]
                 lock.acquire()
                 acquired.append(lock)
         except BaseException:
             for lock in reversed(acquired):
                 lock.release()
+            self._guard.release()
             raise
+        self._acquired.locks = acquired
         return self
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
         del exc_type, exc, traceback
-        for lock in reversed(self._locks):
+        for lock in reversed(self._acquired.locks):
             lock.release()
+        del self._acquired.locks
+        self._guard.release()
+
+    def register(self, bus_id: str, lock: threading.Lock) -> None:
+        with self._guard:
+            existing = self._locks.get(bus_id)
+            if existing is not None and existing is not lock:
+                raise ValueError("A different operation lock already owns this bus")
+            self._locks[bus_id] = lock
 
 
 class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
@@ -105,6 +124,14 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
     def __init__(self, settings: Settings) -> None:
         configured_topology = RS485BusTopology.explicit_from_environment(settings)
+        self._commissioned_bus_store = CommissionedBusStore(settings.database_path)
+        commissioned = self._commissioned_bus_store.active_buses()
+        if commissioned and configured_topology is None:
+            raise ValueError("Persisted commissioning buses require explicit configured topology")
+        if configured_topology is not None:
+            configured_topology = configured_topology.with_commissioned_buses(commissioned)
+            # Binding callbacks can be reused if the topology is extended later.
+            self.rs485_topology = configured_topology
         sdm120_bus_for_unit = None
         if configured_topology is not None and settings.sdm120_bus_id is not None:
             sdm120_bus_for_unit = lambda unit_id: configured_topology.bus_for_unit_on(
@@ -118,10 +145,11 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         topology_store = (
             TopologyAwareEnrollmentStore(
                 settings.database_path,
-                bus_for_unit=configured_topology.bus_for_unit,
-                bind_registry=configured_topology.bind_registry,
+                bus_for_unit=lambda unit_id: self.rs485_topology.bus_for_unit(unit_id),
+                bind_registry=lambda registry: self.rs485_topology.bind_registry(registry),
                 sdm120_bus_for_unit=sdm120_bus_for_unit,
                 waveshare_8ai_bus_for_unit=waveshare_8ai_bus_for_unit,
+                commissioned_bus_ids=lambda: set(self.rs485_topology.commissioned_bus_ids),
             )
             if configured_topology is not None
             else None
@@ -143,6 +171,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._commissioning_activation_journal = CommissioningActivationJournal(settings.database_path)
         self._commissioning_adapter_locks: dict[str, threading.Lock] = {}
         self._commissioning_adapter_locks_guard = threading.Lock()
+        self._topology_change_lock = threading.Lock()
 
         if not self.rs485_topology.explicit:
             return
@@ -158,6 +187,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             self._bus_operation_locks
         )
         for binding in self.rs485_topology.bindings:
+            commissioned_bus = binding.bus_id in self.rs485_topology.commissioned_bus_ids
             client = ModbusRTUClient(
                 binding.serial_device,
                 baudrate=binding.baudrate,
@@ -166,21 +196,22 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 timeout=binding.timeout_seconds,
                 retries=binding.retries,
                 request_observer=self._logical_bus_observer(binding.bus_id),
+                exclusive=commissioned_bus,
             )
             self._bus_clients[binding.bus_id] = client
-            if mode_uses_xjp60d(self.settings.device_mode):
+            if commissioned_bus or mode_uses_xjp60d(self.settings.device_mode):
                 self._bus_xjp60d_readers[binding.bus_id] = XJP60DReader(
                     client,
                     scale=self.settings.xjp60d_scale,
                     unit="degC",
                 )
-            if mode_uses_le01mp(self.settings.device_mode):
+            if commissioned_bus or mode_uses_le01mp(self.settings.device_mode):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
-            if mode_uses_sdm120(self.settings.device_mode):
+            if commissioned_bus or mode_uses_sdm120(self.settings.device_mode):
                 self._bus_sdm120_readers[binding.bus_id] = SDM120Reader(client)
-            if mode_uses_waveshare_8ai(self.settings.device_mode):
+            if commissioned_bus or mode_uses_waveshare_8ai(self.settings.device_mode):
                 self._bus_waveshare_8ai_readers[binding.bus_id] = Waveshare8AIReader(client)
-            if mode_uses_embraco(self.settings.device_mode):
+            if commissioned_bus or mode_uses_embraco(self.settings.device_mode):
                 self._bus_embraco_readers[binding.bus_id] = EmbracoSyncReader(
                     client,
                     temperature_scale=self.settings.embraco_temperature_scale,
@@ -278,9 +309,93 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             path_present=Path(binding.serial_device).exists(),
         )
 
+    def search_bus(self, bus_id: str) -> PreflightBus:
+        if any(binding.bus_id == bus_id for binding in self.rs485_topology.bindings):
+            return self.preflight_bus(bus_id)
+        adapter = resolve_commissioning_adapter(bus_id, topology=self.rs485_topology, isolated_search=True)
+        return PreflightBus(bus_id=bus_id, serial_device=adapter.runtime_path, path_present=True)
+
     def _commissioning_adapter_lock(self, bus_id: str) -> threading.Lock:
         with self._commissioning_adapter_locks_guard:
             return self._commissioning_adapter_locks.setdefault(bus_id, threading.Lock())
+
+    def _assert_unique_physical_bus(self, bus_id: str) -> None:
+        """Never poll two identities that resolve to the same present device."""
+        topology = self.rs485_topology
+        if not topology.commissioned_bus_ids:
+            return
+        binding = topology.binding(bus_id)
+        actual = Path(binding.serial_device).resolve(strict=True)
+        for other in topology.bindings:
+            if other.bus_id == bus_id:
+                continue
+            try:
+                other_actual = Path(other.serial_device).resolve(strict=True)
+            except OSError:
+                continue
+            if actual == other_actual:
+                raise OSError("RS-485 stable identities resolve to the same physical device")
+
+    def _enroll_commissioning_bus(self, request: CommissioningActivationRequest, profile: PreflightProfile) -> None:
+        """Turn a verified, unowned adapter into a durable empty polling bus.
+
+        Registry targets remain inactive until the existing activation journal
+        completes. Prepared bus records are ignored at startup. A committed bus
+        without an active device is harmless and can be retried after a crash.
+        """
+        if not self.rs485_topology.explicit:
+            raise ValueError("Persistent adapter enrollment requires explicit topology")
+        with self._topology_change_lock:
+            try:
+                self.rs485_topology.binding(request.bus_id)
+                return
+            except ValueError:
+                pass
+            proof = execute_preflight(CommissioningPreflightRequest(
+                request.node_id, request.bus_id, request.stable_transport_identifier,
+                request.unit_id, request.profile_id, request.profile_version, 5.0,
+            ), self)
+            if proof["result"] != "passed":
+                raise ValueError("A fresh read-only preflight is required before adapter activation")
+            adapter_lock = self._commissioning_adapter_lock(request.bus_id)
+            with adapter_lock, self._bus_operation_lock, self._registry_lock:
+                adapter = resolve_commissioning_adapter(request.bus_id, topology=self.rs485_topology)
+                if canonical_serial_identifier(adapter.stable_path) != canonical_serial_identifier(request.stable_transport_identifier):
+                    raise ValueError("Commissioning adapter identity changed")
+                bus = CommissionedBus(
+                    request.bus_id, canonical_serial_identifier(adapter.stable_path),
+                    profile.baudrate, profile.parity, profile.stopbits,
+                    profile.timeout_seconds, profile.retries,
+                )
+                protected = {binding.serial_device for binding in self.rs485_topology.bindings}
+                state = self._commissioned_bus_store.prepare(bus, activation_id=request.activation_id, protected_paths=protected)
+                extended = self.rs485_topology.with_commissioned_buses((bus,))
+                binding = extended.binding(bus.bus_id)
+                client = ModbusRTUClient(
+                    binding.serial_device, baudrate=binding.baudrate, parity=binding.parity,
+                    stopbits=binding.stopbits, timeout=binding.timeout_seconds, retries=binding.retries,
+                    request_observer=self._logical_bus_observer(bus.bus_id), exclusive=True,
+                )
+                current = self._registry
+                current = self._registry_store.enroll_commissioned_bus(
+                    current, bus_id=bus.bus_id, expected_revision=current.revision,
+                    actor=f"commissioning:{request.activation_id}",
+                )
+                self._registry = current
+                if state == "prepared":
+                    self._commissioned_bus_store.activate(bus, activation_id=request.activation_id)
+                self._bus_clients[bus.bus_id] = client
+                self._bus_xjp60d_readers[bus.bus_id] = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
+                self._bus_le01mp_readers[bus.bus_id] = LE01MPReader(client)
+                self._bus_sdm120_readers[bus.bus_id] = SDM120Reader(client)
+                self._bus_waveshare_8ai_readers[bus.bus_id] = Waveshare8AIReader(client)
+                self._bus_embraco_readers[bus.bus_id] = EmbracoSyncReader(
+                    client, temperature_scale=self.settings.embraco_temperature_scale,
+                    control_scale=self.settings.embraco_control_scale,
+                )
+                self.scheduler.register_bus_lock(bus.bus_id, adapter_lock)
+                self._bus_operation_lock.register(bus.bus_id, adapter_lock)
+                self.rs485_topology = extended
 
     def preflight_unit_owner(
         self,
@@ -297,15 +412,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         if bus_id is not None:
             if bus_id in owners:
                 return bus_id
-            if not owners:
-                return None
-            if len(owners) > 1:
-                rendered = ", ".join(sorted(owners))
-                raise PreflightExecutionError(
-                    "unit_id_conflict",
-                    f"Unit ID {unit_id} is assigned to other physical buses ({rendered})",
-                )
-            return next(iter(owners))
+            # Unit addresses are local to the requested physical bus. The bus
+            # and stable adapter are validated separately before this lookup.
+            return None
         if len(owners) > 1:
             rendered = ", ".join(sorted(owners))
             raise PreflightExecutionError(
@@ -314,6 +423,15 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 "bus-scoped identity is required",
             )
         return next(iter(owners)) if owners else None
+
+    def validate_section_claim(self, bus_id: str, base: int, version: str) -> None:
+        requested = set(section_units(base))
+        for device in self._registry_snapshot().document.devices:
+            if device.bus_id != bus_id:
+                continue
+            occupied = set(section_units(device.unit_id)) if connected_count(device.profile_version) is not None else {device.unit_id}
+            if requested & occupied and (device.unit_id != base or device.profile_version != version):
+                raise ValueError("Overlapping Modbus section ownership")
 
     def preflight_registry_identity(
         self,
@@ -342,15 +460,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         bus_id: str,
         unit_id: int,
         deadline_monotonic: float,
+        commissioning_only: bool = False,
     ) -> tuple[PreflightObservation, ...]:
         topology = self.rs485_topology
         temporary_client: ModbusRTUClient | None = None
         if topology.explicit:
             try:
-                topology.binding(bus_id)
+                binding = topology.binding(bus_id)
             except ValueError:
                 try:
-                    adapter = resolve_commissioning_adapter(bus_id, topology=topology)
+                    adapter = resolve_commissioning_adapter(bus_id, topology=topology, isolated_search=commissioning_only)
                 except ValueError as error:
                     raise PreflightExecutionError("bus_unavailable", str(error)) from error
                 temporary_client = ModbusRTUClient(
@@ -373,12 +492,24 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     control_scale=self.settings.embraco_control_scale,
                 )
             else:
+                if commissioning_only:
+                    raise PreflightExecutionError("bus_unavailable", "Search cannot use a production-owned bus")
+                if bus_id in topology.commissioned_bus_ids and (
+                    binding.baudrate, binding.parity, binding.stopbits
+                ) != (profile.baudrate, profile.parity, profile.stopbits):
+                    raise PreflightExecutionError("serial_profile_mismatch", "Serial settings differ from the commissioned bus profile")
+                if profile.profile_id == "eastron-sdm120m" and (
+                    binding.baudrate, binding.parity, binding.stopbits
+                ) != (profile.baudrate, profile.parity, profile.stopbits):
+                    raise PreflightExecutionError("serial_profile_mismatch", "Configured serial settings do not match the meter profile")
                 client = self._bus_clients.get(bus_id)
                 lock = self._bus_operation_locks.get(bus_id)
                 xjp60d = self._bus_xjp60d_readers.get(bus_id)
                 le01mp = self._bus_le01mp_readers.get(bus_id)
                 embraco = self._bus_embraco_readers.get(bus_id)
         else:
+            if commissioning_only:
+                raise PreflightExecutionError("bus_unavailable", "Search requires an unowned commissioning adapter")
             if bus_id != topology.bindings[0].bus_id:
                 raise PreflightExecutionError("bus_unavailable", f"Unknown RS-485 bus {bus_id}")
             client = self.modbus_client
@@ -397,15 +528,29 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 f"RS-485 bus {bus_id} did not become available before the preflight deadline",
             )
         try:
+            if temporary_client is None:
+                try:
+                    self._assert_unique_physical_bus(bus_id)
+                except OSError as error:
+                    raise PreflightExecutionError("adapter_unavailable", "Adapter is unavailable or aliases another bus") from error
             with client.instrumentation_scope(
                 device_family=profile.device_family,
                 target_id=f"commissioning-preflight:{unit_id}",
                 operation="commissioning_preflight",
                 deadline_monotonic=deadline_monotonic,
             ):
-                if profile.profile_id == "dixell-xjp60d":
+                if connected_count(profile.profile_version) is not None:
+                    count = connected_count(profile.profile_version)
                     if xjp60d is None:
-                        raise PreflightExecutionError("profile_unavailable", "XJP60D reader is unavailable")
+                        xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
+                    for channel, section_unit in enumerate(section_units(unit_id), 1):
+                        reading = xjp60d.read_channel(section_unit, 1)
+                        if channel <= count and reading.quality != "valid":
+                            raise PreflightExecutionError("section_sensor_unavailable", f"Attached probe {channel} is not valid")
+                        observations.append(PreflightObservation(key=f"section-{channel:02d}", quality=reading.quality, semantic=reading.alarm))
+                elif profile.profile_id == "dixell-xjp60d":
+                    if xjp60d is None:
+                        xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
                     reading = xjp60d.read_channel(unit_id, 1)
                     observations.append(
                         PreflightObservation(
@@ -416,12 +561,33 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     )
                 elif profile.profile_id == "f-and-f-le01mp":
                     if le01mp is None:
-                        raise PreflightExecutionError("profile_unavailable", "LE-01MP reader is unavailable")
+                        le01mp = LE01MPReader(client)
                     reading = le01mp.read_metric(unit_id, "voltage")
                     observations.append(PreflightObservation(key="voltage", quality=reading.quality))
+                elif profile.profile_id == "eastron-sdm120m":
+                    reader = SDM120Reader(client)
+                    for key in ("voltage", "frequency"):
+                        try:
+                            reading = reader.read_metric(unit_id, key)
+                        except ModbusError:
+                            raise
+                        except RuntimeError as error:
+                            raise PreflightExecutionError("malformed_response", "Meter returned an invalid value") from error
+                        observations.append(PreflightObservation(key=key, quality=reading.quality))
+                elif profile.profile_id == "waveshare-8ai-b-v3":
+                    reader = Waveshare8AIReader(client)
+                    try:
+                        reading = reader.read_channel(unit_id, 1)
+                    except ModbusError:
+                        raise
+                    except RuntimeError as error:
+                        raise PreflightExecutionError("malformed_response", "Analog module returned an invalid mode or value") from error
+                    if (reading.mode in {0, 1} and reading.raw_value > 10000) or (reading.mode in {2, 3} and reading.raw_value > 20000):
+                        raise PreflightExecutionError("profile_mismatch", "Analog value exceeds the selected electrical input range")
+                    observations.append(PreflightObservation(key="channel-01", quality=reading.quality, semantic=reading.mode_label))
                 elif profile.profile_id == "embraco-sync":
                     if embraco is None:
-                        raise PreflightExecutionError("profile_unavailable", "Embraco Sync reader is unavailable")
+                        embraco = EmbracoSyncReader(client, temperature_scale=self.settings.embraco_temperature_scale, control_scale=self.settings.embraco_control_scale)
                     for key in ("control_state", "relay_state_bits", "compressor_speed", "alarm_state_bits"):
                         reading = embraco.read_metric(unit_id, key)
                         observations.append(
@@ -456,18 +622,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 else:
                     raise PreflightExecutionError("unsupported_profile", "Preflight profile is unsupported")
         except ModbusTimeoutError as error:
-            raise PreflightExecutionError("timeout", "Bounded FC03 preflight timed out") from error
+            raise PreflightExecutionError("timeout", "Bounded profile preflight timed out") from error
         except ModbusExceptionResponse as error:
             raise PreflightExecutionError(
                 "profile_mismatch",
-                "Target rejected the fixed profile-approved FC03 verification read",
+                "Target rejected the fixed profile-approved verification read",
             ) from error
         except ModbusProtocolError as error:
-            raise PreflightExecutionError("malformed_response", "Target returned a malformed FC03 response") from error
+            raise PreflightExecutionError("malformed_response", "Target returned a malformed read response") from error
         except OSError as error:
             raise PreflightExecutionError("adapter_unavailable", "RS-485 adapter became unavailable") from error
         except ModbusError as error:
-            raise PreflightExecutionError("read_failed", "Profile-approved FC03 verification failed") from error
+            raise PreflightExecutionError("read_failed", "Profile-approved verification read failed") from error
         finally:
             lock.release()
             if temporary_client is not None:
@@ -500,6 +666,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         if owner is not None and owner != request.bus_id:
             raise ValueError("activation Unit ID belongs to another physical bus")
 
+        self._enroll_commissioning_bus(request, profile)
+
         actor = f"commissioning:{request.activation_id}"
         reason = "Activate repository-owned read-only commissioning target"
         with self._bus_operation_lock, self._registry_lock:
@@ -519,7 +687,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 self._registry = current
 
             device = self._commissioning_device(current, request, profile.device_family)
-            targets = tuple(target for target in current.document.targets if target.device_id == device.device_id)
+            count = connected_count(request.profile_version)
+            targets = tuple(target for target in current.document.targets if target.device_id == device.device_id
+                            and (count is None or int(target.key.split("-")[-1]) <= count))
             if not targets:
                 raise ValueError("activation profile has no repository-owned acquisition targets")
             rollback = {
@@ -584,9 +754,13 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             bus_for_unit=lambda _unit_id: request.bus_id,
         )
         if family == "xjp60d":
-            return self._registry_store.enroll_xjp60d(current, **kwargs)
+            return self._registry_store.enroll_xjp60d(current, profile_version=request.profile_version, **kwargs)
         if family == "le01mp":
             return self._registry_store.enroll_le01mp(current, **kwargs)
+        if family == "sdm120":
+            return self._registry_store.enroll_sdm120(current, scoped=request.bus_id.startswith("commissioning-"), **kwargs)
+        if family == "waveshare_8ai":
+            return self._registry_store.enroll_waveshare_8ai(current, scoped=request.bus_id.startswith("commissioning-"), **kwargs)
         if family == "embraco":
             return self._registry_store.enroll_embraco(current, **kwargs)
         raise ValueError("unsupported commissioning activation family")
@@ -666,8 +840,11 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
     @staticmethod
     def _activation_response(request: CommissioningActivationRequest, journal: dict[str, Any]) -> dict[str, Any]:
         profile = PROFILES[request.profile_id]
-        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync"}[profile.device_family]
-        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}"}[profile.device_family]
+        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync", "sdm120": "eastron-sdm120m", "waveshare_8ai": "waveshare-analog-input-8ch-b-v3"}[profile.device_family]
+        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}", "sdm120": f"SDM120M:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"SDM120M-{request.unit_id}", "waveshare_8ai": f"WAVESHARE-8AI:{request.bus_id}:{request.unit_id}" if request.bus_id.startswith("commissioning-") else f"WAVESHARE-8AI-{request.unit_id}"}[profile.device_family]
+        if connected_count(request.profile_version) is not None:
+            source = SECTION_SOURCE
+            equipment_id = section_equipment_id(request.bus_id, request.unit_id)
         return {
             "schema_version": 1,
             "activation_id": request.activation_id,
@@ -683,7 +860,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             "registry_revision": journal.get("registry_revision_after") or journal.get("registry_revision_rollback") or journal.get("registry_revision_before"),
             "telemetry_source": source,
             "telemetry_equipment_id": equipment_id,
-            "polling_mode": "read_only_fc03",
+            "polling_mode": "read_only_fc03_fc04" if profile.device_family == "waveshare_8ai" else "read_only_fc04" if profile.device_family == "sdm120" else "read_only_fc03",
             "modbus_writes": "none",
             "hardware_writes": "none",
             "reason": journal.get("reason"),
@@ -760,6 +937,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         equipment_id = self._equipment_for(target)
 
         try:
+            self._assert_unique_physical_bus(target.bus_id)
             with client.instrumentation_scope(
                 device_family=target.device_family,
                 target_id=target.target_id,
@@ -771,8 +949,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         raise RuntimeError(
                             f"XJP60D reader is unavailable for {target.bus_id}"
                         )
-                    channel = int(target.key.removeprefix("channel-"))
-                    reading = reader.read_channel(target.unit_id, channel)
+                    section = target.key.startswith("section-")
+                    channel = int(target.key.split("-")[-1])
+                    reading = read_section(reader, target.unit_id, channel) if section else reader.read_channel(target.unit_id, channel)
                     record = TelemetryRecord(
                         event_id=str(uuid.uuid4()),
                         node_id=self.settings.node_id,
@@ -1059,6 +1238,23 @@ class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", maxsplit=1)[0]
+        if path == "/api/v1/commissioning/address-search":
+            try:
+                payload = self._read_json_body()
+                request = parse_search_request(payload)
+                if request.first_unit_id != request.last_unit_id or request.deadline_seconds != 2.0:
+                    raise ValueError("Address search accepts one address with a two-second deadline")
+                result = run_search(request, self.agent, cancelled=threading.Event())
+                self._send_json(200, {
+                    "schema_version": 1, "node_id": request.node_id, "bus_id": request.bus_id,
+                    "stable_transport_identifier": request.stable_transport_identifier,
+                    "unit_id": request.first_unit_id, "profile_id": request.profile_id,
+                    "profile_version": request.profile_version, **asdict(result),
+                    "modbus_writes": "none", "hardware_writes": "none",
+                })
+            except (ValueError, TypeError) as error:
+                self._send_json(422, {"detail": {"code": "search_request_invalid", "message": str(error)}})
+            return
         if path == "/api/v1/commissioning/preflight":
             try:
                 request = parse_preflight_request(self._read_json_body())

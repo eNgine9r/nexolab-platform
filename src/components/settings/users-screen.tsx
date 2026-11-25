@@ -30,11 +30,7 @@ import {
   type LocalUserPermissionOption,
   type LocalUserRoleOption,
 } from "@/features/security/local-user-admin";
-import {
-  createAuthenticatedFetch,
-  type SecurityEffectivePermission,
-  type SecurityProductRole,
-} from "@/features/security/security-session";
+import type { SecurityEffectivePermission, SecurityProductRole } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
@@ -96,7 +92,7 @@ export function UsersScreen() {
   const [permissions, setPermissions] = useState<LocalUserPermissionOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReturnType<typeof describeFailure> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | SecurityProductRole | "legacy">("all");
@@ -125,7 +121,8 @@ export function UsersScreen() {
     );
     return new LocalUserAdminClient({
       apiBaseUrl: runtime.apiBaseUrl,
-      fetchImpl: createAuthenticatedFetch(fetch.bind(globalThis), credentialProvider),
+      fetchImpl: fetch.bind(globalThis),
+      credentials: credentialProvider,
     });
   }, [runtime, security.membership]);
 
@@ -148,7 +145,7 @@ export function UsersScreen() {
         current && nextUsers.some((user) => user.id === current) ? current : (nextUsers[0]?.id ?? null),
       );
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(describeFailure(cause));
     } finally {
       setLoading(false);
     }
@@ -200,6 +197,21 @@ export function UsersScreen() {
       <UsersGate
         title="Користувачі доступні лише в local live mode"
         message="Users & Access працює з локальною PostgreSQL identity authority і не використовує demo accounts."
+      />
+    );
+  }
+
+  if (error?.authenticationRequired) {
+    return (
+      <SecurityGate
+        state="unauthenticated"
+        error="Щоб керувати користувачами, увійдіть у NEXOLAB повторно."
+        errorCode="AUTHENTICATION_REQUIRED"
+        diagnostics={null}
+        onRetry={() => {
+          setError(null);
+          security.retry();
+        }}
       />
     );
   }
@@ -256,7 +268,7 @@ export function UsersScreen() {
       await action();
       await refresh();
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(describeFailure(cause));
     } finally {
       setBusy(false);
     }
@@ -305,6 +317,7 @@ export function UsersScreen() {
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
+        security={security}
         open={sidebarOpen}
         activeItem="Налаштування"
         onClose={() => setSidebarOpen(false)}
@@ -358,7 +371,7 @@ export function UsersScreen() {
               </div>
             </section>
 
-            {error ? <Notice tone="error" text={error} /> : null}
+            {error ? <Notice tone="error" text={error.message} /> : null}
             {notice ? <Notice tone="success" text={notice} /> : null}
 
             {createOpen ? (
@@ -811,9 +824,17 @@ function togglePermission(
     : [...current, permission].sort();
 }
 
-function errorMessage(cause: unknown): string {
-  if (cause instanceof LocalUserAdminApiError) return `${cause.message} (${cause.code})`;
-  return cause instanceof Error ? cause.message : "Невідома помилка керування користувачами.";
+function describeFailure(cause: unknown): { message: string; authenticationRequired: boolean } {
+  if (cause instanceof LocalUserAdminApiError) {
+    return {
+      message: `${cause.message} (${cause.code})`,
+      authenticationRequired: cause.status === 401,
+    };
+  }
+  return {
+    message: cause instanceof Error ? cause.message : "Невідома помилка керування користувачами.",
+    authenticationRequired: false,
+  };
 }
 
 function formatDate(value: string, displayTimeZone: string): string {

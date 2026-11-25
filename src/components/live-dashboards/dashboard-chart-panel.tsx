@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
+import { downloadChartPng } from "@/components/charts/chart-png-export";
 import { ChartShell } from "@/components/charts/chart-shell";
-import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
+import type { ChartXDomain } from "@/features/charts/domain";
+import { inspectChartAtTimestamp } from "@/features/charts/inspection";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import type { SavedDashboardChartGroup } from "@/features/live-dashboards/chart";
+import { DashboardChartLegend } from "./dashboard-chart-legend";
 
 export function DashboardChartPanel({
   group,
@@ -30,7 +33,13 @@ export function DashboardChartPanel({
   onSoloSeries: (seriesKey: string) => void;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
-  const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
+  const inspection = useMemo(
+    () =>
+      sharedCursorMs === null
+        ? null
+        : inspectChartAtTimestamp(group.scene, sharedCursorMs, { withinObservedSpan: true }),
+    [group.scene, sharedCursorMs],
+  );
   const unitLabel = group.nativeUnits.join(" · ") || "без одиниць";
 
   return (
@@ -41,10 +50,21 @@ export function DashboardChartPanel({
           group.nativeUnits.length === 1 ? "динамічна вісь Y" : "динамічні осі Y"
         }`}
         selectedRange={rangeLabel}
+        locale="uk"
         series={group.scene.series}
+        requestedWindow={resetDomain}
         inspection={inspection}
+        legend={
+          <DashboardChartLegend
+            group={group}
+            inspection={inspection}
+            onToggleSeries={onToggleSeries}
+            onSoloSeries={onSoloSeries}
+          />
+        }
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}
+        onExportImage={() => void downloadChartPng(adapter, group.title)}
         onResetZoom={() => {
           adapter.resetZoom();
           onXDomainChange(resetDomain);
@@ -58,10 +78,7 @@ export function DashboardChartPanel({
           reducedMotion
           sharedCursorMs={sharedCursorMs}
           interactionDomain={resetDomain}
-          onCursor={(nextInspection) => {
-            setInspection(nextInspection);
-            onSharedCursorChange(nextInspection?.timestampMs ?? null);
-          }}
+          onCursor={(nextInspection) => onSharedCursorChange(nextInspection?.timestampMs ?? null)}
           onXDomainChange={onXDomainChange}
         />
       </ChartShell>
