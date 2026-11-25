@@ -1,3 +1,7 @@
+## 2026-11-25 — P0 #1733 production degraded after network change (owner action required)
+
+Telemetry API, central MQTT, object storage and the LAN Dashboard ports are down because they bind the former address 172.18.48.66. Ingestion into PostgreSQL is stopped and Edge bridge overflow may drop telemetry. Recovery requires the owner-run #1733 `apply` (privileged `ip`/`sysctl`, `docker start`/`restart` of existing containers). The agent has no docker/sudo access. Permanent fix #1734 needs a guarded owner migration. Wi-Fi #1735 needs owner credential entry.
+
 ## 2026-11-23 — resolved: CVE-2026-124709 exception drift
 
 The Product Owner approved the exact re-pin of the device-agent and telegram-gateway CVE-2026-124709 exceptions to `libssl3t64 3.5.9-1~deb13u1` (expiry 2026-12-15 unchanged) after the native amd64/arm64 revalidation (run 45151013470). Recorded in PR #1723; the Container Supply Chain policy passes again. Still open and separate: the 18 telemetry-service exceptions expire 2026-11-30; retire all three libssl entries when Debian ships OpenSSL 3.5.10 (#1692).
