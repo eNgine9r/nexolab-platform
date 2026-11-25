@@ -1,0 +1,29 @@
+# NEXOLAB unattended Docker network endpoint repair (#1399, #1733).
+# Owner-installed to /etc/systemd/system/ with the tool at
+# /usr/local/lib/nexolab-network/nexolab-network-compat-recovery.py (root-owned, 0644).
+# Runs as the operator with Docker access only (no sudo). It does nothing and
+# exits at once while every production container keeps its network endpoints.
+[Unit]
+Description=NEXOLAB repair of lost Docker network endpoints (unattended, no sudo)
+After=docker.service nexolab-compat-address.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+User=nexolab
+Group=nexolab
+WorkingDirectory=/home/nexolab
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -u -I -B /usr/local/lib/nexolab-network/nexolab-network-compat-recovery.py boot-repair
+# Exit 0 ok/repaired; 1 unstable or rolled back; 3 blocked or backoff. Non-zero marks the unit
+# failed (visible in `systemctl --failed`); the timer still runs it again 5 minutes later.
+TimeoutStartSec=900
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+MemoryMax=192M
+CPUWeight=50
+Nice=5

@@ -12176,21 +12176,25 @@
     {
       "issue": 1733,
       "title": "P0 network-change recovery: interim compatibility service address (WP1)",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
       "priority": "critical",
       "scope": "Owner-run checksum-pinned tool docs/operations/network/nexolab-network-compat-recovery.py: read-only diagnose; apply adds 172.18.48.66/32 on lo (lo:nxcompat) + arp_ignore=1 on eth0/wlan0, docker start/restart only existing containers publishing on it, never recreates, verifies IDs/images/mounts; rollback; optional interim boot unit before docker.service.",
       "depends_on": [],
       "evidence": {
         "hardware_verified": false,
         "site_cutover": false,
-        "site_acceptance": "pending_owner_run",
+        "site_acceptance": "recovered_interim",
         "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
         "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
         "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
         "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only",
         "source_merge": "PR #1736 merged 6b04db2d after exact-head GREEN NEXOLAB Merge Gate (head 938adcaf); tool sha256 3b64b483...6664689 identical to the owner-staged copy",
         "owner_pending": "owner runs diagnose + apply; record dropped-message counter, GREEN marker, lag drain",
-        "clock_finding": "Host booted 07:23:29Z; Device Agent started_at 05:47:18Z => wall clock ~1h37m behind until network time sync; early captured_at values wrong (tracked #1734 item 2e)"
+        "clock_finding": "Host booted 07:23:29Z; Device Agent started_at 05:47:18Z => wall clock ~1h37m behind until network time sync; early captured_at values wrong (tracked #1734 item 2e)",
+        "owner_report_2026_11_25": "Owner reported NEXOLAB_NETWORK_COMPAT_RECOVERY_GREEN; agent runtime check 08:45Z contradicts it: no 172.18.48.66 on lo, :8082/:3000 unreachable, veth set unchanged since 07:56Z (no container start), lock file absent, no reboot. Production recovery NOT verified; full apply output requested. NetworkManager now lists lo as an activated connection (possible alias removal).",
+        "recovery_2026_11_25": "Recovery v3.2 (sha256 54aa3f30...b722b, merged #1746 17e8d6ca) run 20261125T105848Z --minimal-network-model: NEXOLAB_NETWORK_REPAIR_GREEN_STABLE; DNS postgres/mqtt, ports, API 200, Dashboard 200; Edge sent 13636->14194; PostgreSQL max id 17184993->17189427; boot compat unit installed. Agent-verified 11:04Z: readiness ready, ingestion_lag 0.82 s, LAN :3000 7db6e1a8 CWBsCWWebOZGHa5YyWp18, HTTPS 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4, lab 08f1c8a4.",
+        "data_impact": "Not sampled 05:50:37-07:24 (powered off); recovered 5,283 rows 07:24-07:43:10; lost for central 07:43:10-~10:59 (~53,000 rows estimated, Edge queue cap after local PUBACK); ~1,125 rows with wrong captured_at (05:47-05:51, real ~07:24-07:28) identifiable by received_at>=10:50; no data changed. docs/operations/network/incident-2026-11-25.md",
+        "tooling_history": "v1 (#1736) alias on NM-tracked lo, unconfirmed; v2 (#1745) provenance/stability, start/restart cannot restore endpoints; v3 PermissionError on root-only compose; v3.1 privileged projection helper; v3.2 (#1746) verify only meant-to-run containers"
       },
       "branch": "fix/1733-network-compat-recovery"
     },
@@ -12208,7 +12212,11 @@
         "site_cutover": false,
         "site_acceptance": "not_started",
         "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
-        "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source"
+        "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source",
+        "wp2b": "PR #1740 merged (head e661b7d4, exact-head GREEN): dependency-free Node LAN gateway 0.0.0.0:3000 (dashboard + same-origin /api/v1 HTTP/WebSocket to loopback upstreams, fail-closed config, explicit 503, bounded), hardened unit, same-origin photo loading via authenticated API; 7 gateway tests on the Pi. Not installed.",
+        "wp2e": "PR #1741 open: Device Agent /health clock.synchronized (read-only adjtimex, lazy ctypes; distroless lacks libffi -> timesyncd marker fallback or unavailable) + time-source runbook. Fleet/offline acceptance pass after the libffi fix; blocked only by the container vulnerability policy (CVE-2026-107494 libssl3t64 3.5.9-1~deb13u1 no fix; CVE-2026-124851 libzstd1 fixed in +deb13u1, base image not yet rebuilt). Product Owner decision.",
+        "rtc_finding": "rpi-rtc present, hctosys=1, charging_voltage=0: no working backup battery; owner to fit rechargeable ML-2020 and enable dtparam=rtc_bbat_vchg=3000000 only for that cell",
+        "interim_state": "nxcompat0 172.18.48.66/32 boot unit active (interim until WP2c); Tailscale serve also proxies to 172.18.48.66:3000 and :8082/api (to migrate in WP2c)"
       },
       "branch": "feat/1734-same-origin-runtime"
     },

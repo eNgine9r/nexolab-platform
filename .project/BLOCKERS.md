@@ -1,6 +1,12 @@
-## 2026-11-25 — P0 #1733 production degraded after network change (owner action required)
+## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 
-Telemetry API, central MQTT, object storage and the LAN Dashboard ports are down because they bind the former address 172.18.48.66. Ingestion into PostgreSQL is stopped and Edge bridge overflow may drop telemetry. Recovery requires the owner-run #1733 `apply` (privileged `ip`/`sysctl`, `docker start`/`restart` of existing containers). The agent has no docker/sudo access. Permanent fix #1734 needs a guarded owner migration. Wi-Fi #1735 needs owner credential entry.
+New device-agent, telemetry-service and telegram-gateway images fail the vulnerability policy on CVE-2026-107494 (`libssl3t64 3.5.9-1~deb13u1`, OpenSSL QUIC, no fixed version).
+
+- Evidence run 45589190384 (native amd64 and arm64): no QUIC client or server API outside libssl, and no UDP.
+- CVE-2026-124851 (`libzstd1`) is fixed in PR #1744 by an exact Debian package overlay.
+- The exact exception request (expiry 2026-12-15) is in `docs/security/cve-2026-107494-assessment.md` §4 and is not applied.
+
+This blocks #1744, #1741 (WP2e) and the receipt chain #1445/#1451 from merging.
 
 ## 2026-11-23 — resolved: CVE-2026-124709 exception drift
 

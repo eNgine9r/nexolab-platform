@@ -1,3 +1,28 @@
+## 2026-11-25 — P0 network incident: production recovered (interim), data impact measured
+
+Recovery v3.2 (#1746) produced `GREEN_STABLE`, and the agent verified it independently at 11:04Z: readiness `ready`, ingestion lag 0.82 s, the Edge bridge delivering, new PostgreSQL rows, and LAN/HTTPS/lab identities as expected. The interim boot unit keeps `172.18.48.66/32` on `nxcompat0`.
+
+Data impact (docs/operations/network/incident-2026-11-25.md):
+
+- 05:50:37–07:24 not sampled (device powered off);
+- 5,283 rows recovered (07:24–07:43);
+- about 53,000 rows lost for central (07:43–10:59), caused by the Edge queue cap after the local PUBACK;
+- about 1,125 rows with wrong `captured_at`, identifiable and not modified.
+
+Next:
+
+- WP2c (#1734): remove the fixed-IP dependency, including Tailscale serve targets.
+- Unattended endpoint repair after reboot (#1399).
+- Committed-receipt chain #1397/#1445/#1451/#1449, gated with the image CVE decision #1743/#1744.
+- WP2e (#1741).
+
+## 2026-11-25 — P0 network: WP2b LAN gateway merged; WP2e blocked by vulnerability policy; WP1 recovery unverified
+
+- **WP2b (#1740) merged.** A dependency-free LAN gateway on all interfaces serves the dashboard and the same-origin API/WebSocket from loopback upstreams. Photos load through the authenticated API. Not installed.
+- **WP2e (#1741).** Device Agent clock-synchronization health and a time-source runbook. The RTC has no working battery. Blocked only by two new base-image CVEs (Product Owner decision).
+- **WP1.** The owner reported GREEN, but the runtime check shows the alias absent and no container started. Production is still degraded and evidence has been requested.
+- **WP2c.** The guarded migration waits for the owner's `diagnose` output of the installed Compose authority.
+
 ## 2026-11-25 — P0 network: WP1 tool, WP4 guard and WP2a same-origin mode merged; owner run pending
 
 - **WP1 #1733.** Recovery tool merged (#1736, `6b04db2d`). Checksum `3b64b483…` matches the owner-staged copy. Production stays degraded until the owner runs `diagnose` + `apply`.
