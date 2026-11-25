@@ -1,0 +1,82 @@
+name: Committed Receipt Acceptance
+
+# #1762 slice 3: isolated committed-receipt end-to-end acceptance. Disposable
+# Mosquitto Dynamic Security + PostgreSQL + telemetry-service + one simulated
+# Device Agent. Throwaway credentials are generated at runtime. No Modbus,
+# serial device, hardware, production broker or production database.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "contracts/durable_receipt_v1.py"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.committed-receipt-acceptance.yaml"
+      - "scripts/run-committed-receipt-acceptance.sh"
+      - "scripts/security-acceptance-role-permissions.sql"
+      - ".github/workflows/committed-receipt-acceptance.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "contracts/durable_receipt_v1.py"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.committed-receipt-acceptance.yaml"
+      - "scripts/run-committed-receipt-acceptance.sh"
+      - "scripts/security-acceptance-role-permissions.sql"
+      - ".github/workflows/committed-receipt-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: committed-receipt-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Committed-receipt end-to-end acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate acceptance script
+        run: bash -n scripts/run-committed-receipt-acceptance.sh
+
+      - name: Run committed-receipt end-to-end acceptance
+        timeout-minutes: 15
+        run: |
+          set -o pipefail
+          bash scripts/run-committed-receipt-acceptance.sh \
+            2>&1 | tee /tmp/committed-receipt-acceptance.log
+
+      - name: Publish recovery throughput summary
+        if: always()
+        run: |
+          mkdir -p test-results-committed-receipt
+          if [[ -f /tmp/committed-receipt-acceptance.log ]]; then
+            cp /tmp/committed-receipt-acceptance.log \
+              test-results-committed-receipt/acceptance.log
+          fi
+          if [[ -f test-results-committed-receipt/summary.md ]]; then
+            cat test-results-committed-receipt/summary.md >>"$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload committed-receipt evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: committed-receipt-acceptance-evidence
+          path: test-results-committed-receipt
+          if-no-files-found: warn
+          retention-days: 14

@@ -307,3 +307,43 @@ provisioned by the owner (#1449/#1450). Until then the flag stays `disabled`
 on site. The tests use fake MQTT clients and synthetic receipts with real
 SQLite; they are not broker-ACL, outage or hardware evidence. The isolated
 end-to-end acceptance is slice 3. Hardware and site remain **UNVERIFIED**.
+
+## 2026-11-25 — Dedicated receipt identities and isolated end-to-end acceptance (#1762 slice 3)
+
+**Provisioning gap closed in source.** `nexolab-dynsec-admin` has two new,
+explicit commands. The #1450 commands are unchanged.
+
+- `create-org-receipt-publisher <user> <client-id> <org> <password-file>`:
+  role `nexolab-central-receipts-org-{org}` with only `publishClientSend` on
+  `nexolab/v1/{org}/+/receipts`. Username and client id in the
+  `nexolab-central-receipts-*` namespace.
+- `create-node-receipt-subscriber receipts:{org}:{node} nexolab-{org}-{node}-receipts <org> <node> <password-file>`:
+  role `nexolab-node-receipt-subscriber-{org}-{node}` with only
+  `subscribeLiteral`, `unsubscribeLiteral` and `publishClientReceive` on
+  `nexolab/v1/{org}/{node}/receipts`. No publish.
+
+Both fail closed on non-default-deny brokers, plaintext remote
+administration, unsafe secret files and any existing role, client id or
+membership that differs. The real-broker deny cases (subscriber publish,
+other node, wildcard, other organization, publisher subscribe, publisher
+cross-organization and telemetry) run in **MQTT Broker Security Acceptance**.
+
+**Isolated end-to-end acceptance.** Workflow **Committed Receipt Acceptance**
+runs both flags enabled against a disposable Dynamic Security broker with
+`max_queued_messages 10`, PostgreSQL 16 and one simulated Device Agent. See
+`docs/operations/committed-receipt-acceptance.md`. First GREEN run
+(45688608839): 202 rows pending in a 93 s outage with observed broker queue
+overflow (drop after PUBACK); forged receipts from three non-publisher
+identities not delivered; wrong-node, out-of-order and duplicate receipts
+rejected without prune; two Edge restarts lost nothing; PostgreSQL held
+sequences 1..248 exactly once.
+
+**Measured recovery throughput (defaults: Edge replay interval 0.2 s,
+central publisher idle 1.0 s).** Head replay committed 1.14 rows/s. After an
+Edge restart the resend of all retained rows committed 7.2 rows/s. At
+1.14 rows/s the 2026-11-25 loss (about 53,000 rows) needs about 12.9 h
+without live flow, and head replay cannot catch up with the site's
+4.5 rows/s. From the code (not measured here): a receipt that arrives for a
+row that is not the Edge head is rejected and central does not re-send it,
+so after a gap every later row also needs its own replay. This is recorded as a follow-up; activation must not
+rely on head replay alone. Hardware and site remain **UNVERIFIED**.

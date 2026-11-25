@@ -23,6 +23,8 @@ Usage:
   nexolab-dynsec-admin create-ingestion <username> <client-id> <password-file>
   nexolab-dynsec-admin create-receipt-publisher <username> <client-id> <password-file>
   nexolab-dynsec-admin grant-node-receipts <username> <organization-id> <node-id>
+  nexolab-dynsec-admin create-org-receipt-publisher <username> <client-id> <organization-id> <password-file>
+  nexolab-dynsec-admin create-node-receipt-subscriber <username> <client-id> <organization-id> <node-id> <password-file>
   nexolab-dynsec-admin rotate-password <username> <password-file>
   nexolab-dynsec-admin disable-client <username>
   nexolab-dynsec-admin enable-client <username>
@@ -490,6 +492,134 @@ grant_node_receipts() {
   verify_receipt_client "$user" "$together"
 }
 
+# #1762 slice 3: dedicated receipt identities for the committed-receipt
+# runtime. Separate from create-receipt-publisher (all organizations) and
+# grant-node-receipts (node telemetry principal); neither is changed.
+require_canonical_receipt_scope() {
+  scope_org=$1
+  scope_node=$2
+  printf '%s\n' "$scope_org" | grep -Eq \
+    '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || {
+    echo "Noncanonical organization ID." >&2; exit 78;
+  }
+  if [ -n "$scope_node" ]; then
+    [ "$(printf %s "$scope_node" | wc -c)" -le 64 ] &&
+      printf '%s\n' "$scope_node" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' || {
+      echo "Unsafe node receipt identity." >&2; exit 78;
+    }
+  fi
+}
+require_receipt_secret_file() {
+  secret_path=$1
+  secret_label=$2
+  [ -f "$secret_path" ] && [ ! -L "$secret_path" ] && [ -r "$secret_path" ] || {
+    echo "$secret_label password must be a readable regular non-symlink file." >&2
+    exit 82
+  }
+  case "$(stat -c '%a' "$secret_path")" in
+    400|600) ;;
+    *)
+      echo "$secret_label password file permissions must be 0400 or 0600." >&2
+      exit 82 ;;
+  esac
+}
+ensure_exact_receipt_role() {
+  exact_role=$1
+  exact_acl=$2
+  shift 2
+  if role_exists "$exact_role"; then
+    verify_receipt_role "$exact_role" "$exact_acl"
+    return
+  fi
+  ctrl createRole "$exact_role" >/dev/null
+  while [ "$#" -ge 2 ]; do
+    ctrl addRoleACL "$exact_role" "$1" "$2" allow 100 >/dev/null
+    shift 2
+  done
+  verify_receipt_role "$exact_role" "$exact_acl"
+}
+ensure_exact_receipt_client() {
+  exact_user=$1
+  exact_cid=$2
+  exact_secret=$3
+  exact_role=$4
+  exact_member="$exact_role (priority: 100)"
+  if client_exists "$exact_user"; then
+    cid_existing="$(client_definition "$exact_user" | sed -n 's/^Clientid:[[:space:]]*//p')"
+    [ "$cid_existing" = "$exact_cid" ] || {
+      echo "Existing receipt principal/client-id mismatch." >&2; exit 80;
+    }
+  else
+    create_client "$exact_user" "$exact_cid" "$exact_secret"
+    ensure_client_role "$exact_user" "$exact_role" 100
+  fi
+  verify_receipt_client "$exact_user" "$exact_member"
+}
+
+# Central receipt publisher for ONE organization: publish-only on
+# nexolab/v1/{org}/+/receipts. No subscribe, no receive, no telemetry.
+create_org_receipt_publisher() {
+  user=$1
+  cid=$2
+  org=$3
+  secret=$4
+  required_value "$user" "Receipt publisher username"
+  required_value "$cid" "Receipt publisher client-id"
+  require_canonical_receipt_scope "$org" ""
+  require_secure_receipt_admin
+  require_receipt_identity "$user" "Receipt publisher username"
+  require_receipt_identity "$cid" "Receipt publisher client ID"
+  case "$user" in
+    "$ADMIN_USERNAME"|nexolab-central-ingestion|node:*|receipts:*)
+      echo "Dedicated receipt principal required." >&2; exit 81 ;;
+  esac
+  [ "$cid" != "$ADMIN_CLIENT_ID" ] &&
+    [ "$cid" != "nexolab-central-ingestion" ] || {
+    echo "Dedicated receipt client-id required." >&2; exit 81;
+  }
+  require_receipt_secret_file "$secret" "Receipt publisher"
+  verify_receipt_default_deny
+  topic="nexolab/v1/$org/+/receipts"
+  role="nexolab-central-receipts-org-$org"
+  ensure_exact_receipt_role "$role" \
+    "publishClientSend:allow:$topic(priority:100)" \
+    publishClientSend "$topic"
+  ensure_exact_receipt_client "$user" "$cid" "$secret" "$role"
+}
+
+# Edge receipt subscriber for exactly one node: read-only on
+# nexolab/v1/{org}/{node}/receipts. Literal subscribe only, never publish.
+create_node_receipt_subscriber() {
+  user=$1
+  cid=$2
+  org=$3
+  node=$4
+  secret=$5
+  require_canonical_receipt_scope "$org" "$node"
+  require_secure_receipt_admin
+  [ "$user" = "receipts:$org:$node" ] || {
+    echo "Receipt subscriber username must be receipts:<organization-id>:<node-id>." >&2
+    exit 81
+  }
+  [ "$cid" = "nexolab-$org-$node-receipts" ] || {
+    echo "Receipt subscriber client ID must be nexolab-<organization-id>-<node-id>-receipts." >&2
+    exit 81
+  }
+  require_receipt_secret_file "$secret" "Receipt subscriber"
+  verify_receipt_default_deny
+  topic="nexolab/v1/$org/$node/receipts"
+  role="nexolab-node-receipt-subscriber-$org-$node"
+  ensure_exact_receipt_role "$role" \
+    "$(printf '%s\n' \
+      "subscribeLiteral:allow:$topic(priority:100)" \
+      "unsubscribeLiteral:allow:$topic(priority:100)" \
+      "publishClientReceive:allow:$topic(priority:100)" | sort)" \
+    subscribeLiteral "$topic" \
+    unsubscribeLiteral "$topic" \
+    publishClientReceive "$topic"
+  ensure_exact_receipt_client "$user" "$cid" "$secret" "$role"
+}
+
 command=${1:-}
 [ -n "$command" ] || usage
 shift
@@ -503,6 +633,14 @@ case "$command" in
   grant-node-receipts)
     [ "$#" -eq 3 ] || usage
     grant_node_receipts "$1" "$2" "$3"
+    ;;
+  create-org-receipt-publisher)
+    [ "$#" -eq 4 ] || usage
+    create_org_receipt_publisher "$1" "$2" "$3" "$4"
+    ;;
+  create-node-receipt-subscriber)
+    [ "$#" -eq 5 ] || usage
+    create_node_receipt_subscriber "$1" "$2" "$3" "$4" "$5"
     ;;
 
   bootstrap-defaults)
