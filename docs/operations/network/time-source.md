@@ -14,7 +14,7 @@
 
 ## Software guard (this Work Package)
 
-Device Agent `/health` includes `clock: {synchronized, kernel_state, source}`, read by a read-only `adjtimex` call (no privilege, never changes the clock). `synchronized: false` means samples are being stamped by an undisciplined clock. `null` means the status is unavailable and must not be read as synchronized. This applies to new Device Agent builds; the commissioned site agent `nexolab/quick-agent:1490` is unchanged until a separately approved agent release.
+Device Agent `/health` includes `clock: {synchronized, kernel_state, source}`, read by a read-only `adjtimex` call (no privilege, never changes the clock). The minimal (distroless) agent image has no `libffi`, so `ctypes` is loaded lazily. There the agent reads `systemd-timesyncd`'s marker when the host directory is mounted read-only (`/run/systemd/timesync:/run/systemd/timesync:ro`, part of the WP2c Compose change). Without that mount it reports `unavailable`. `synchronized: false` means samples are being stamped by an undisciplined clock. `null` means the status is unavailable and must not be read as synchronized. This applies to new Device Agent builds; the commissioned site agent `nexolab/quick-agent:1490` is unchanged until a separately approved agent release.
 
 ## Verification
 

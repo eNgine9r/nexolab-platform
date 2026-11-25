@@ -32,9 +32,31 @@ class ClockStatusTests(unittest.TestCase):
         def failing(_buffer) -> int:
             raise OSError("seccomp")
 
-        for status in (ClockStatus(adjtimex=None).snapshot(), ClockStatus(adjtimex=failing).snapshot(),
-                       ClockStatus(adjtimex=lambda _b: -1).snapshot()):
+        missing = "/nonexistent/timesync"
+        for status in (ClockStatus(adjtimex=None, timesync_dir=missing).snapshot(),
+                       ClockStatus(adjtimex=failing, timesync_dir=missing).snapshot(),
+                       ClockStatus(adjtimex=lambda _b: -1, timesync_dir=missing).snapshot()):
             self.assertIsNone(status["synchronized"])
+            self.assertEqual(status["source"], "unavailable")
+
+    def test_timesyncd_marker_fallback_when_mounted(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            unsynced = ClockStatus(adjtimex=None, timesync_dir=directory).snapshot()
+            self.assertEqual((unsynced["synchronized"], unsynced["source"]), (False, "timesyncd-marker"))
+            open(f"{directory}/synchronized", "w").close()
+            synced = ClockStatus(adjtimex=None, timesync_dir=directory).snapshot()
+            self.assertTrue(synced["synchronized"])
+
+    def test_module_imports_and_reports_without_ctypes(self) -> None:
+        """The distroless runtime has no libffi: importing ctypes fails there."""
+        import subprocess
+        code = ("import sys; sys.modules['ctypes'] = None; sys.path.insert(0, %r); "
+                "import clock_status; print(clock_status.clock_status()['source'])"
+                % str(Path(__file__).resolve().parents[1]))
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn(out.stdout.strip(), ("unavailable", "timesyncd-marker"))
 
     def test_result_is_cached_for_thirty_seconds(self) -> None:
         calls = []
