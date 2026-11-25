@@ -1,0 +1,46 @@
+# NEXOLAB Operator Broker (#1758). Owner-installed; root-owned code under
+# /usr/local/lib/nexolab-operator/. Socket-activated: it never starts before or instead
+# of production services and has no install section of its own (only the socket is enabled).
+# Fixed operation IDs only: no shell, no arbitrary scripts or paths, no Docker API proxy.
+[Unit]
+Description=NEXOLAB Operator Broker (fixed, audited operations)
+Requires=nexolab-operator-broker.socket
+After=nexolab-operator-broker.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py serve
+Environment=NEXOLAB_OPERATOR_ALLOWED_UIDS=1001
+Restart=on-failure
+RestartSec=5
+UMask=0027
+# Root is needed for docker/journal/nmcli reads; everything else is fenced.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/log/nexolab-operator /var/lib/nexolab-operator /etc/nexolab-operator/approvals /run/nexolab-operator
+ProtectHome=read-only
+InaccessiblePaths=-/etc/nexolab-gitlab-sync
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=no
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+# vcgencmd (power/throttling) needs the VideoCore mailbox; no other device.
+DevicePolicy=closed
+DeviceAllow=/dev/vcio rw
+DeviceAllow=/dev/vcio_gencmd rw
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# Read protected paths for the inventory, hand reports to the dev group; nothing else.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_CHOWN CAP_FOWNER
+MemoryHigh=192M
+MemoryMax=256M
+TasksMax=64
+CPUQuota=50%
+CPUWeight=20
+IOWeight=20
+Nice=10
+TimeoutStopSec=30

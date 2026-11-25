@@ -157,6 +157,22 @@ Stop development immediately, and record the reason in `.project/BLOCKERS.md`, w
 - Device Agent or telemetry readiness degrades while development is running;
 - any task would require production secrets, Docker, serial devices, privileges or a site action.
 
+## Autonomous engineering model (Product Owner, 2026-11-25)
+
+The development agent works continuously: it picks the next independent Ready Work Package, fixes ordinary implementation and CI failures itself, and keeps working while CI runs or owner approval is pending. Pending owner actions are recorded in `.project/BLOCKERS.md` and `.project/LAST_CHECKPOINT.json`, so the next session can resume them after an unexpected reboot.
+
+Privileged reach is limited to the [Operator Broker](operator-broker/README.md) (#1758). Through it the agent can use fixed, audited diagnostics: systemd, journal, Docker metadata, network and Wi-Fi, power, storage. It can also recover two already-installed NEXOLAB units, and only when they are down. It never gets sudo, a shell, the Docker socket or the ability to change privileged code.
+
+The owner is asked only for:
+
+- a physical action;
+- authentication;
+- a destructive or backup-sensitive operation;
+- an unresolved architectural decision;
+- the exact approval of a production change: cutover, release activation, network or credential change, reboot.
+
+Each such request comes fully prepared: preflight, checksum-pinned command, automatic rollback, and one approval line.
+
 ## What runs where
 
 | Work                                                                                                                      | Location                           |
