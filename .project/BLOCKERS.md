@@ -1,10 +1,13 @@
-## 2026-11-25 — Pending owner actions (resume point after any reboot)
+## 2026-11-25 — Pending owner actions (resume point after any reboot; updated evening)
 
-1. **Operator Broker install (#1758),** after the PR merges: a single checksum-pinned command, given in the PR/issue. It touches no production service.
-2. **Wi-Fi LAB KK1 (#1735):** router-side check of the PSK and any MAC block or ACL for the Pi. Then the guarded `nexolab-wifi-recover.sh apply`, with Ethernet staying primary.
-3. **WP2c Stage 2 (#1734):** exact approval of the same-origin LAN frontend activation, once the agent presents the preflight and binding plan.
-4. **Reboot cause:** owner read-only `vcgencmd get_throttled` / previous-boot journal (or `system.power` via the broker once it is installed).
-5. **SSD cleanup:** owner decision on the T1/T2 batches in the private cleanup plan. Nothing is deleted without approval.
+1. **Operator Broker install (#1758):**
+   ```
+   T=$(mktemp -d); sudo cat ~nexolab-dev/recovery-p0/broker-v1/install-operator-broker.sh > $T/i.sh && echo "42bf8b5b43fb561cdc9e7208c81934fe2d1e0d17101a3b847762439c18e8180c  $T/i.sh" | sha256sum -c - && bash $T/i.sh install /home/nexolab-dev/recovery-p0/broker-v1
+   ```
+2. **SSD cleanup:** `owner-2026-11-25-ssd-cleanup.sh t1`, then `t2a` (pinned `978209882d…`). Needed for the #1428 backup (28 GiB) and the Stage 2 build reserve (20 GiB).
+3. **WP2c Stage 2 (#1734):** `owner-2026-11-25-stage2.sh prepare` (pinned `19c0085c…`). After it passes, `execute` needs exact Product Owner approval.
+4. **Wi-Fi LAB KK1 (#1735):** router-side check for a MAC block/ACL on `2C:CF:67:A6:09:3A` and a changed PSK. Then the guarded `nexolab-wifi-recover.sh apply`.
+5. **Reboot cause:** run `system.power` and `logs.kernel filter=power boot=-1` through the broker once it is installed.
 6. **#1428 DR evidence (hard gate):** real encrypted backup, off-device copy and isolated restore.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
