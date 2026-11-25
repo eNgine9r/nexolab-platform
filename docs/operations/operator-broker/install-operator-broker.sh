@@ -18,7 +18,7 @@ declare -A PIN=(
   [nexolab-operator-broker.py]=2d80814c834c138070b73319ad916d7427a382909ba064b27053af60d5525f1f
   [nexolab-operator-broker.service]=90c1f0974d6807a92ab2c8e4082583e17e54a677dba177a247b5a1c59a311109
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
-  [nexolab-storage-inventory.sh]=31b32d0571d3fb532407dd934d1a67b3f6149dd3f0da29fa01e0d7b0d00154b4
+  [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b
 )
 LIB=/usr/local/lib/nexolab-operator
 UNIT_DIR=/etc/systemd/system
