@@ -68,10 +68,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1733
+      "issue": 1734
     },
     "next_work_package": {
-      "issue": 1734
+      "issue": 1735
     }
   },
   "work_packages": [
@@ -12081,7 +12081,8 @@
         "review_clearance": "Product Owner directive 2026-11-23 (Pi primary development environment) and AGENTS.md autonomous execution authorization",
         "source_merge": "PR #1707 merged 26ed183e24f6c0b3661c3bb366bdf4cd75db03ab after exact-head GREEN NEXOLAB Merge Gate (head d75267b0)",
         "dev_tooling": "user-local Node 22.23.1 (checksum-verified) and Prettier 3.9.9 in the dev home for format checks",
-        "persistent_session": "Owner reported 2026-11-23: persistent dev session (unit + boot timer + gated start script) installed; takes effect at the next boot."
+        "persistent_session": "Owner reported 2026-11-23: persistent dev session (unit + boot timer + gated start script) installed; takes effect at the next boot.",
+        "guard_internal_readiness": "PR #1737 merged 64f8de31: readiness on 127.0.0.1:8082 then #1733 compat address; bounded re-check every 60 s up to 12 h then gates/auto-resume; owner reinstall of /usr/local/lib/nexolab-dev/nexolab-dev-session-start.sh (sha256 9102b18f...aeca16) pending"
       },
       "branch": "docs/1706-pi-dev-control-plane"
     },
@@ -12175,7 +12176,7 @@
     {
       "issue": 1733,
       "title": "P0 network-change recovery: interim compatibility service address (WP1)",
-      "lifecycle": "review",
+      "lifecycle": "needs_validation",
       "priority": "critical",
       "scope": "Owner-run checksum-pinned tool docs/operations/network/nexolab-network-compat-recovery.py: read-only diagnose; apply adds 172.18.48.66/32 on lo (lo:nxcompat) + arp_ignore=1 on eth0/wlan0, docker start/restart only existing containers publishing on it, never recreates, verifies IDs/images/mounts; rollback; optional interim boot unit before docker.service.",
       "depends_on": [],
@@ -12186,14 +12187,17 @@
         "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
         "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
         "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
-        "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
+        "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only",
+        "source_merge": "PR #1736 merged 6b04db2d after exact-head GREEN NEXOLAB Merge Gate (head 938adcaf); tool sha256 3b64b483...6664689 identical to the owner-staged copy",
+        "owner_pending": "owner runs diagnose + apply; record dropped-message counter, GREEN marker, lag drain",
+        "clock_finding": "Host booted 07:23:29Z; Device Agent started_at 05:47:18Z => wall clock ~1h37m behind until network time sync; early captured_at values wrong (tracked #1734 item 2e)"
       },
       "branch": "fix/1733-network-compat-recovery"
     },
     {
       "issue": 1734,
       "title": "Network-independent LOCAL_LAN addressing: loopback/internal plane, same-origin LAN UI (WP2)",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "priority": "critical",
       "scope": "2a same-origin frontend API/WS mode; 2b loopback publishes + Docker-DNS Edge/Device Agent targets + LAN gateway overlay + CORS/object storage; 2c guarded owner migration with rollback; 2d acceptance matrix (Ethernet, Wi-Fi, switching, DHCP change, reboot, offline, Tailscale, fresh telemetry, no data loss).",
       "depends_on": [
@@ -12202,9 +12206,11 @@
       "evidence": {
         "hardware_verified": false,
         "site_cutover": false,
-        "site_acceptance": "not_started"
+        "site_acceptance": "not_started",
+        "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+        "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source"
       },
-      "branch": null
+      "branch": "feat/1734-same-origin-runtime"
     },
     {
       "issue": 1735,
