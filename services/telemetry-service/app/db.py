@@ -394,7 +394,8 @@ class Database:
 
         receipt_identity MUST come from a successful node-registry ingress
         authorization and a separately verified authenticated MQTT boundary.
-        This parameter is opt-in; no runtime call path currently supplies it.
+        This parameter is opt-in; only the default-OFF #1762 committed path
+        (NEXOLAB_COMMITTED_RECEIPTS=enabled) supplies it at runtime.
         """
         if receipt_identity is not None:
             if receipt_outbox_max_pending < 1:

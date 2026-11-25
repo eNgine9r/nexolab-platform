@@ -58,7 +58,7 @@ class NodeIngressAuthorizer:
         topic: str | None,
         observed_at: datetime,
     ) -> tuple[bool, str, str, bool | None]:
-        """Atomic registry/cursor/sample/outbox path (not runtime-connected).
+        """Atomic registry/cursor/sample/outbox path (#1762, default OFF).
 
         Callers must independently prove MQTT broker authentication, per-node
         ingress ACL and source identity. Validated registry state alone is not
