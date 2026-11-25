@@ -21,6 +21,8 @@ Usage:
   nexolab-dynsec-admin bootstrap-defaults
   nexolab-dynsec-admin create-node <username> <client-id> <organization-id> <node-id> <password-file>
   nexolab-dynsec-admin create-ingestion <username> <client-id> <password-file>
+  nexolab-dynsec-admin create-receipt-publisher <username> <client-id> <password-file>
+  nexolab-dynsec-admin grant-node-receipts <username> <organization-id> <node-id>
   nexolab-dynsec-admin rotate-password <username> <password-file>
   nexolab-dynsec-admin disable-client <username>
   nexolab-dynsec-admin enable-client <username>
@@ -299,12 +301,210 @@ create_ingestion() {
   ensure_client_role "$username" "$role_name" 100
 }
 
+
+# Receipt permissions are explicit, never part of create-node/create-ingestion.
+
+verify_receipt_default_deny() {
+  defaults="$(ctrl getDefaultACLAccess | sed 's/[[:space:]]//g' | sed '/^$/d' | sort)"
+  expected="$(printf '%s\n' \
+    'publishClientSend:deny' \
+    'publishClientReceive:deny' \
+    'subscribe:deny' \
+    'unsubscribe:deny' | sort)"
+  [ "$defaults" = "$expected" ] || {
+    echo "Receipt ACL requires all broker defaults to deny." >&2
+    exit 82
+  }
+}
+
+receipt_acls() {
+  ctrl getRole "$1" | awk '
+    /^ACLs:/ { active=1; sub(/^ACLs:[[:space:]]*/, ""); if(length($0)) print; next }
+    active && /^[[:alpha:]][[:alnum:]_]*:/ { exit }
+    active { if(length($0)) print }
+  ' | sed 's/[[:space:]]//g' | sed '/^$/d' | sort
+}
+receipt_members() {
+  printf '%s\n' "$1" | awk -v wanted="$2" '
+    $0 ~ ("^" wanted ":") {
+      active=1; sub(/^[^:]*:[[:space:]]*/, "")
+      if(length($0)) print
+      next
+    }
+    active && /^[[:alpha:]][[:alnum:]_]*:/ { exit }
+    active { sub(/^[[:space:]]+/, ""); if(length($0)) print }
+  ' | sort
+}
+verify_receipt_role() {
+  [ "$(receipt_acls "$1")" = "$2" ] || {
+    echo "Unexpected existing receipt-role ACL; refusing." >&2
+    exit 79
+  }
+}
+verify_receipt_client() {
+  detail="$(client_definition "$1")"
+  [ "$(receipt_members "$detail" Roles)" = "$2" ] &&
+    [ -z "$(receipt_members "$detail" Groups)" ] &&
+    ! printf '%s\n' "$detail" | grep -Eq '^Disabled:[[:space:]]*(true|1)[[:space:]]*$' || {
+    echo "Unexpected receipt client roles/groups/status; refusing." >&2
+    exit 80
+  }
+}
+
+# Never send administrative credentials or receipt identity secrets to an
+# unencrypted remote broker. Local-only plaintext is allowed in CI fixtures
+# and operator-controlled loopback; no default or installed ACL is changed.
+require_secure_receipt_admin() {
+  if [ "$TLS_ENABLED" != "true" ]; then
+    case "$BROKER_HOST" in
+      127.0.0.1|localhost|::1) ;;
+      *)
+        echo "Receipt ACL provisioning requires TLS for a non-loopback broker." >&2
+        exit 83
+        ;;
+    esac
+  fi
+}
+require_receipt_identity() {
+  name=$1
+  label=$2
+  printf '%s\n' "$name" | grep -Eq '^nexolab-central-receipts-[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$' || {
+    echo "$label requires canonical dedicated receipt namespace." >&2
+    exit 81
+  }
+}
+
+create_receipt_publisher() {
+  user=$1
+  cid=$2
+  secret=$3
+  required_value "$user" "Receipt publisher username"
+  required_value "$cid" "Receipt publisher client-id"
+  require_secure_receipt_admin
+  require_receipt_identity "$user" "Receipt publisher username"
+  require_receipt_identity "$cid" "Receipt publisher client ID"
+  case "$user" in
+    nexolab-central-receipts-*) ;;
+    *) echo "Receipt publisher username must use dedicated namespace." >&2; exit 81 ;;
+  esac
+  case "$cid" in
+    nexolab-central-receipts-*) ;;
+    *) echo "Receipt client ID must use dedicated namespace." >&2; exit 81 ;;
+  esac
+  [ -f "$secret" ] && [ ! -L "$secret" ] && [ -r "$secret" ] || {
+    echo "Receipt publisher password must be a readable regular non-symlink file." >&2
+    exit 82
+  }
+  secret_mode="$(stat -c '%a' "$secret")"
+  case "$secret_mode" in
+    400|600) ;;
+    *)
+      echo "Receipt publisher password file permissions must be 0400 or 0600." >&2
+      exit 82 ;;
+  esac
+  case "$user" in
+    "$ADMIN_USERNAME"|nexolab-central-ingestion|node:*)
+      echo "Dedicated receipt principal required." >&2; exit 81 ;;
+  esac
+  [ "$cid" != "$ADMIN_CLIENT_ID" ] &&
+    [ "$cid" != "nexolab-central-ingestion" ] || {
+    echo "Dedicated receipt client-id required." >&2; exit 81;
+  }
+  verify_receipt_default_deny
+  role=nexolab-central-receipts-only
+  exact="publishClientSend:allow:nexolab/v1/+/+/receipts(priority:100)"
+  if role_exists "$role"; then
+    verify_receipt_role "$role" "$exact"
+  else
+    ctrl createRole "$role" >/dev/null
+    ctrl addRoleACL "$role" publishClientSend "nexolab/v1/+/+/receipts" allow 100 >/dev/null
+    verify_receipt_role "$role" "$exact"
+  fi
+  member="$role (priority: 100)"
+  if client_exists "$user"; then
+    cid_existing="$(client_definition "$user" | sed -n 's/^Clientid:[[:space:]]*//p')"
+    [ "$cid_existing" = "$cid" ] || {
+      echo "Existing receipt principal/client-id mismatch." >&2; exit 80;
+    }
+    verify_receipt_client "$user" "$member"
+  else
+    create_client "$user" "$cid" "$secret"
+    ensure_client_role "$user" "$role" 100
+    verify_receipt_client "$user" "$member"
+  fi
+}
+grant_node_receipts() {
+  user=$1
+  org=$2
+  node=$3
+  printf '%s\n' "$org" | grep -Eq \
+    '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || {
+    echo "Noncanonical organization ID." >&2; exit 78;
+  }
+  [ "$(printf %s "$node" | wc -c)" -le 64 ] &&
+    printf '%s\n' "$node" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$' || {
+    echo "Unsafe node receipt identity." >&2; exit 78;
+  }
+  require_secure_receipt_admin
+  [ "$user" = "node:$org:$node" ] && client_exists "$user" || {
+    echo "Unprovisioned or mismatched receipt node." >&2; exit 81;
+  }
+  detail="$(client_definition "$user")"
+  cid_existing="$(printf '%s\n' "$detail" | sed -n 's/^Clientid:[[:space:]]*//p')"
+  [ "$cid_existing" = "nexolab-$org-$node" ] || {
+    echo "Node receipt client-id mismatch." >&2; exit 80;
+  }
+  verify_receipt_default_deny
+  base_role="nexolab-node-$org-$node"
+  base_acl="$(printf '%s\n' \
+    "publishClientSend:allow:nexolab/v1/$org/$node/telemetry(priority:100)" \
+    "publishClientSend:allow:nexolab/v1/$org/$node/health(priority:100)" \
+    "publishClientSend:allow:nexolab/v1/$org/$node/status(priority:100)" | sort)"
+  verify_receipt_role "$base_role" "$base_acl"
+  old="nexolab-node-$org-$node (priority: 100)"
+  role="nexolab-node-receipts-$org-$node"
+  new="$role (priority: 100)"
+  together="$(printf '%s\n%s\n' "$old" "$new" | sort)"
+  memberships="$(receipt_members "$detail" Roles)"
+  [ -z "$(receipt_members "$detail" Groups)" ] &&
+    { [ "$memberships" = "$old" ] || [ "$memberships" = "$together" ]; } || {
+    echo "Node role/group mismatch." >&2; exit 80;
+  }
+  topic="nexolab/v1/$org/$node/receipts"
+  exact="$(printf '%s\n' \
+    "subscribeLiteral:allow:$topic(priority:100)" \
+    "unsubscribeLiteral:allow:$topic(priority:100)" \
+    "publishClientReceive:allow:$topic(priority:100)" | sort)"
+  if role_exists "$role"; then
+    verify_receipt_role "$role" "$exact"
+  else
+    ctrl createRole "$role" >/dev/null
+    ctrl addRoleACL "$role" subscribeLiteral "$topic" allow 100 >/dev/null
+    ctrl addRoleACL "$role" unsubscribeLiteral "$topic" allow 100 >/dev/null
+    ctrl addRoleACL "$role" publishClientReceive "$topic" allow 100 >/dev/null
+    verify_receipt_role "$role" "$exact"
+  fi
+  if [ "$memberships" = "$old" ]; then
+    ctrl addClientRole "$user" "$role" 100 >/dev/null
+  fi
+  verify_receipt_client "$user" "$together"
+}
+
 command=${1:-}
 [ -n "$command" ] || usage
 shift
 prepare_control_options
 
 case "$command" in
+  create-receipt-publisher)
+    [ "$#" -eq 3 ] || usage
+    create_receipt_publisher "$1" "$2" "$3"
+    ;;
+  grant-node-receipts)
+    [ "$#" -eq 3 ] || usage
+    grant_node_receipts "$1" "$2" "$3"
+    ;;
+
   bootstrap-defaults)
     [ "$#" -eq 0 ] || usage
     bootstrap_defaults
