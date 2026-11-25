@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { EquipmentImageMetadata } from "@/data/refrigeration";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+import { resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
 
 /**
  * External staging only: download private S3-backed images via the protected
@@ -26,7 +27,7 @@ export function useExternalAuthenticatedImage(
     if (!stageEnabled || !imageId || imageId.startsWith("local-") || !expectedMime) {
       return;
     }
-    const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+    const apiBaseUrl = resolvePublicApiBaseUrl();
     const controller = new AbortController();
     let ownedUrl: string | null = null;
 

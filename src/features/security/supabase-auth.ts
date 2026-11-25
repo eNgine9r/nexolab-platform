@@ -7,6 +7,7 @@ import {
   type SecurityCredentialProvider,
   type SecurityCredentialSnapshot,
 } from "./security-session";
+import { resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
 
 const ACCEPTANCE_TOKEN_KEY = "nexolab.acceptance.access-token";
 const ACCEPTANCE_ORGANIZATION_KEY = "nexolab.acceptance.organization-id";
@@ -53,7 +54,7 @@ export function createRuntimeCredentialProvider(organizationId: string | null): 
   const providerKind = process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER ?? "supabase";
 
   if (providerKind === "local") {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+    const apiBaseUrl = resolvePublicApiBaseUrl();
     if (!apiBaseUrl) {
       return async (): Promise<SecurityCredentialSnapshot> => {
         const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };

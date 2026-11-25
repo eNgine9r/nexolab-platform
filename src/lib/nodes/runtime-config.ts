@@ -1,3 +1,4 @@
+import { resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
 export class NodeClientError extends Error {
   constructor(
     message: string,
@@ -19,7 +20,7 @@ export function getNodesApiBaseUrl(): string {
       "configuration",
     );
   }
-  const value = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+  const value = resolvePublicApiBaseUrl();
   if (!value) {
     throw new NodeClientError(
       "NEXT_PUBLIC_NEXOLAB_API_BASE_URL is required for the nodes workspace.",
