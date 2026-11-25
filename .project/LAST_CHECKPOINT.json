@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-25T22:30:00Z",
+  "timestamp": "2026-11-25T21:40:05Z",
   "actor": "claude",
-  "event": "#1769 broker installer fixed (#1770); #1762 slice 4 bulk committed-receipt catch-up in review (acceptance GREEN, 65.1 and 63.8 rows/s net vs 1.1 rows/s before)",
+  "event": "Broker live and verified; reboot forensics; broker v1.1 merged",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -1507,7 +1507,8 @@
       "default_off": true,
       "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
       "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762).",
-      "slice_3_acceptance": "Slice 3 PR #1768 (feat/1762-receipt-e2e-acceptance): dynsec admin create-org-receipt-publisher (publish-only nexolab/v1/{org}/+/receipts) and create-node-receipt-subscriber (literal read-only nexolab/v1/{org}/{node}/receipts) with real-broker deny cases; Committed Receipt Acceptance workflow GREEN run 45688608839: tiny broker queue overflow observed, forged receipts not delivered, wrong-node/out-of-order/duplicate rejected without prune, two Edge restarts lossless, PostgreSQL sequences 1..248 exactly once, Edge outbox drained. Throughput: head replay 1.14 rows/s, resend after Edge restart 7.2 rows/s; 53,000 rows about 12.9 h and no convergence with 4.5 rows/s live flow (follow-up). Hardware, site broker ACL and site UNVERIFIED."
+      "slice_3_acceptance": "Slice 3 PR #1768 (feat/1762-receipt-e2e-acceptance): dynsec admin create-org-receipt-publisher (publish-only nexolab/v1/{org}/+/receipts) and create-node-receipt-subscriber (literal read-only nexolab/v1/{org}/{node}/receipts) with real-broker deny cases; Committed Receipt Acceptance workflow GREEN run 45688608839: tiny broker queue overflow observed, forged receipts not delivered, wrong-node/out-of-order/duplicate rejected without prune, two Edge restarts lossless, PostgreSQL sequences 1..248 exactly once, Edge outbox drained. Throughput: head replay 1.14 rows/s, resend after Edge restart 7.2 rows/s; 53,000 rows about 12.9 h and no convergence with 4.5 rows/s live flow (follow-up). Hardware, site broker ACL and site UNVERIFIED.",
+      "slice_4_catch_up": "Slice 4 PR #1771 (feat/1762-receipt-bulk-catchup): Edge exact-row receipt binding replaces the FIFO-head rule (receipt prunes only the pending row whose event_id, node_sequence, org, node and scoped telemetry topic match; durable receipt_id ledger and single-row delete in one BEGIN IMMEDIATE; contract copies byte-identical, pending_row_topic replaces oldest_pending_sequence; unknown/pruned rows rejected). Edge windowed FIFO catch-up resend (window 50 in flight, 200 rows/s token bucket, stall and publish-failure backoff, paused while telemetry disconnected). Central batch publisher (50 per batch, per-message QoS1 PUBACK, durable per-row leases, no same-node ordering block) woken by the ingestion commit path. Acceptance gate: net catch-up >= 50 rows/s after central restart with live flow running; exactly-once, drained-outbox and rejection assertions unchanged. Before: head replay 1.14 rows/s, overall 2.3 rows/s. After (PR #1771, Committed Receipt Acceptance run 45696227212, two attempts GREEN): net catch-up 65.1 and 63.8 rows/s with live flow (68.9 rows/s PostgreSQL commits), whole recovery 36.0 and 39.1 rows/s, 1,201-row outage backlog, sequences 1..1472 exactly once, outbox drained. Device Agent tests 446/446 local; contract 24/24 local; telemetry PostgreSQL tests CI only. Hardware, site broker ACL and site throughput UNVERIFIED."
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3946,6 +3947,15 @@
       "default_off": true,
       "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
       "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762)."
+    },
+    "superseded_active_issue_evidence_2026-11-25T22:30:00Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "UNVERIFIED: needs #1428, an approved release and the owner-provisioned broker identity (#1449)",
+      "default_off": true,
+      "slice_2_edge": "feat/1762-edge-receipt-wiring: DEVICE_AGENT_COMMITTED_RECEIPTS=disabled|enabled (default disabled; legacy PUBACK delete unchanged). Enabled: fail-closed org/node + dedicated receipt subscriber identity (mounted password file, distinct from telemetry identity) + broker-ACL attestation; CommittedReceiptQueue (no delete on PUBACK, prune only by validated postgres_committed receipt), exact node receipt topic QoS1, bounded FIFO head replay, /health receipt and disk metrics. Fake MQTT + real SQLite tests only; broker ACL, Edge receipt identity provisioning, outage and site UNVERIFIED.",
+      "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762).",
+      "slice_3_acceptance": "Slice 3 PR #1768 (feat/1762-receipt-e2e-acceptance): dynsec admin create-org-receipt-publisher (publish-only nexolab/v1/{org}/+/receipts) and create-node-receipt-subscriber (literal read-only nexolab/v1/{org}/{node}/receipts) with real-broker deny cases; Committed Receipt Acceptance workflow GREEN run 45688608839: tiny broker queue overflow observed, forged receipts not delivered, wrong-node/out-of-order/duplicate rejected without prune, two Edge restarts lossless, PostgreSQL sequences 1..248 exactly once, Edge outbox drained. Throughput: head replay 1.14 rows/s, resend after Edge restart 7.2 rows/s; 53,000 rows about 12.9 h and no convergence with 4.5 rows/s live flow (follow-up). Hardware, site broker ACL and site UNVERIFIED."
     }
   },
   "observations": [
@@ -5576,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner runs broker-v2 install; then verify broker diagnostics from dev tmux; merge #1762 slice 4 when GREEN",
+  "next_action": "Owner: broker v1.1 upgrade + approvals; then agent runs cleanup/retire via broker, docker.service-model for Stage 3 plan; Stage 2 prepare",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
