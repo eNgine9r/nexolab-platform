@@ -1,3 +1,11 @@
+## 2026-11-25 — P0 network: WP1 tool, WP4 guard and WP2a same-origin mode merged; owner run pending
+
+- **WP1 #1733.** Recovery tool merged (#1736, `6b04db2d`). Checksum `3b64b483…` matches the owner-staged copy. Production stays degraded until the owner runs `diagnose` + `apply`.
+- **WP4 #1706.** Dev guard merged (#1737). It checks internal readiness endpoints (loopback, then the compatibility address) and re-checks every 60 s for up to 12 h, so it resumes by itself. Owner reinstall pending.
+- **WP2a #1734.** Merged (#1738, `553bf516`): a `same-origin` runtime API/WebSocket mode so a LAN build compiles no host IP. The server side fails closed without a private origin. Source only.
+
+Finding: at the 2026-11-25 boot the wall clock was about 1 h 37 min behind until it synchronized after network access. Early samples carry wrong `captured_at`, and offline operation has no time correction. Added to #1734 as item 2e (RTC or local NTP, unsynchronized samples flagged).
+
 ## 2026-11-25 — P0 network change: production degraded; WP1 recovery tool ready (owner-run), WP2/WP3 opened
 
 The Pi moved to another network (`eth0 192.168.1.220/24`, was `172.18.48.66/21`; Wi-Fi disconnected). The installed LOCAL_LAN contract publishes the Telemetry API, central MQTT and object storage on the former DHCP address. That address is also used as the Edge bridge target, the HTTPS gateway private API origin and the dev readiness URL, and it is compiled into the LAN browser bundle. Docker cannot bind it, so `:8082`, `:1884`, `:9000` and `:3000` are down. The Device Agent keeps sampling into the Edge broker, whose bridge queue (10,000 messages) drops overflow while central is unreachable. Any loss must be measured, not assumed zero.

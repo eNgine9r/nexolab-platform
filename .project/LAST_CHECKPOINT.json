@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-25T08:04:24Z",
+  "timestamp": "2026-11-25T08:39:44Z",
   "actor": "claude",
-  "event": "P0 network change (#1733): WP1 compat recovery tool ready for owner; WP2 #1734 and WP3 #1735 opened",
+  "event": "P0 network: #1736 WP1 tool, #1737 WP4 guard, #1738 WP2a same-origin merged; owner recovery run pending",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -31,7 +31,7 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "active_work": {
-    "issue": 1733
+    "issue": 1734
   },
   "evidence_snapshot": {
     "issue_1522_cadence_aware_freshness": {
@@ -1503,11 +1503,9 @@
     "active_issue_evidence": {
       "hardware_verified": false,
       "site_cutover": false,
-      "site_acceptance": "pending_owner_run",
-      "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
-      "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
-      "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
-      "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
+      "site_acceptance": "not_started",
+      "wp2a": "PR #1738 merged 553bf516 (head b8212e3f, exact-head GREEN incl. Authenticated Dashboard and Refrigeration Browser acceptance): same-origin runtime API/WS resolver at all browser call sites; server fails closed without private origin; private origin may be exact Compose service telemetry-service:8082. Source only, not built or released.",
+      "next": "2b runtime contract/gateway overlay after owner diagnose output shows installed Compose authority; 2e time source"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3882,6 +3880,15 @@
       "supersedes_draft_pr": 1552,
       "review_clearance": "Product Owner directive 2026-11-23 (#1551/#1710) and AGENTS.md autonomous execution authorization",
       "source_merge": "pending"
+    },
+    "superseded_active_issue_evidence_2026-11-25T08:04:24Z": {
+      "hardware_verified": false,
+      "site_cutover": false,
+      "site_acceptance": "pending_owner_run",
+      "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
+      "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
+      "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
+      "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
     }
   },
   "observations": [
@@ -5512,7 +5519,7 @@
       }
     }
   ],
-  "next_action": "Owner runs #1733 diagnose+apply; then WP4 guard endpoint (#1706) and WP2a same-origin mode (#1734)",
+  "next_action": "Owner runs #1733 diagnose+apply and reinstalls the dev guard; then WP2b on the installed Compose authority and WP2e time source",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
