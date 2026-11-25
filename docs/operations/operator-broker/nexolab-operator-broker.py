@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -85,6 +85,9 @@ READABLE_UNITS = (
     "systemd-timesyncd.service",
     "systemd-journald.service",
     "ssh.service",
+    # Legacy HTTPS pair (#1758 v1.1): readable so its restart loop can be diagnosed.
+    "nexolab-external-frontend.service",
+    "nexolab-external-nginx.service",
 )
 # Units the broker may (re)start, and only when they are already down. Never Docker,
 # networking, Tailscale or anything holding data.
@@ -194,8 +197,8 @@ REDACTIONS = (
     (re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^\s/@:]+:[^\s/@]+@"), r"\1[REDACTED]@"),
     (re.compile(r"(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}"), r"\1 [REDACTED]"),
     (re.compile(r"(?i)((?:[a-z0-9_.-]*)(?:password|passwd|passphrase|psk|secret|token|api[_-]?key|access[_-]?key"
-                r"|private[_-]?key|credential|cookie|authorization|wep-key\d?)[a-z0-9_.-]*)"
-                r"(\s*[:=]\s*|\s+)(?!\[REDACTED)(\"[^\"]*\"|'[^']*'|\S+)"),
+                r"|private[_-]?key|credential|cookie|authorization|wep-key\d?)[a-z0-9_.-]*)(?<!flags)"
+                r"([ \t]*[:=][ \t]*|[ \t]+)(?!\[REDACTED)(\"[^\"\n]*\"|'[^'\n]*'|[^\s]+)"),
      r"\1\2[REDACTED]"),
 )
 CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
@@ -259,8 +262,11 @@ class RunResult:
     timed_out: bool
 
 
-def run(argv: list[str], timeout: float, *, max_bytes: int = MAX_OUTPUT_BYTES, stdin: bytes | None = None) -> RunResult:
-    """Run a fixed argv without a shell, a clean environment, a timeout and an output cap."""
+def run(argv: list[str], timeout: float, *, max_bytes: int = MAX_OUTPUT_BYTES, stdin: bytes | None = None,
+        keep: str = "head") -> RunResult:
+    """Run a fixed argv without a shell, a clean environment, a timeout and an output cap.
+
+    keep="tail" retains the LAST max_bytes (logs: the newest lines matter)."""
     if not argv or not isinstance(argv, list) or not all(isinstance(a, str) for a in argv):
         raise Rejected("internal_error", "argv must be a list of strings")
     env = {"PATH": SAFE_PATH, "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8", "SYSTEMD_PAGER": "", "SYSTEMD_COLORS": "0",
@@ -282,6 +288,13 @@ def run(argv: list[str], timeout: float, *, max_bytes: int = MAX_OUTPUT_BYTES, s
             block = proc.stdout.read(65536)
             if not block:
                 return
+            if keep == "tail":
+                chunks.append(block)
+                size += len(block)
+                while size - len(chunks[0]) >= max_bytes:
+                    size -= len(chunks.pop(0))
+                    truncated = True
+                continue
             if size < max_bytes:
                 chunks.append(block[: max_bytes - size])
             size += len(block)
@@ -305,8 +318,11 @@ def run(argv: list[str], timeout: float, *, max_bytes: int = MAX_OUTPUT_BYTES, s
             pass
         proc.wait()
     thread.join(timeout=5)
-    return RunResult(None if timed_out else proc.returncode, b"".join(chunks).decode("utf-8", "replace"),
-                     truncated, timed_out)
+    data = b"".join(chunks)
+    if keep == "tail" and len(data) > max_bytes:
+        data = data[-max_bytes:]
+        truncated = True
+    return RunResult(None if timed_out else proc.returncode, data.decode("utf-8", "replace"), truncated, timed_out)
 
 
 # ----------------------------------------------------------------------------- operations
@@ -343,7 +359,7 @@ def steps(broker: "Broker", commands: list[tuple[str, list[str]]], timeout: floa
 
 
 def filtered(broker: "Broker", argv: list[str], pattern: str, lines: int, timeout: float) -> dict:
-    result = broker.runner(argv, timeout)
+    result = broker.runner(argv, timeout, keep="tail")  # newest matching lines, never the boot preamble
     expr = re.compile(pattern, re.I)
     kept = [line for line in result.output.splitlines() if expr.search(line)]
     return {"steps": [{"step": " ".join(argv[:2]), "exit": result.exit, "timed_out": result.timed_out,
@@ -386,6 +402,35 @@ def op_system_boots(broker: "Broker", _args: dict) -> dict:
     ], 30)
 
 
+DT_POWER = Path("/proc/device-tree/chosen/power")
+DT_POWER_FIELDS = ("power_reset", "rpi_power_supply", "max_current", "usb_over_current_detected", "sd_overcurrent",
+                   "usb_max_current_enable")
+
+
+def op_system_reset_reason(broker: "Broker", _args: dict) -> dict:
+    """Why the last boot happened: SoC reset status, PMIC/supply data from the firmware device tree."""
+    result = steps(broker, [
+        ("rsts", ["vcgencmd", "get_rsts"]),
+        ("bootloader", ["vcgencmd", "bootloader_version"]),
+        ("watchdog", ["systemctl", "show", "-p", "RuntimeWatchdogUSec,RebootWatchdogUSec", "--no-pager"]),
+        ("boots", ["journalctl", "--list-boots", "--no-pager", "-q"]),
+    ], 30)
+    values = []
+    for name in DT_POWER_FIELDS:
+        try:
+            values.append(f"{name}=0x{(DT_POWER / name).read_bytes().hex()}")
+        except OSError as exc:
+            values.append(f"{name}=unavailable ({type(exc).__name__})")
+    result["steps"].append({"step": "device-tree-power", "exit": 0, "timed_out": False, "output": "\n".join(values)})
+    return result
+
+
+def op_logs_boot_end(broker: "Broker", args: dict) -> dict:
+    """The last lines a previous boot wrote: a clean shutdown sequence versus an abrupt stop."""
+    return steps(broker, [(f"boot {args['boot']} end", [
+        "journalctl", "-b", args["boot"], "-n", str(args["lines"]), "--no-pager", "-o", "short-iso", "-q"])], 30)
+
+
 def op_logs_unit(broker: "Broker", args: dict) -> dict:
     return steps(broker, [(args["unit"], [
         "journalctl", "-u", args["unit"], "-b", args["boot"], "-n", str(args["lines"]), "-p", args["priority"],
@@ -398,7 +443,7 @@ def op_logs_kernel(broker: "Broker", args: dict) -> dict:
 
 
 def op_logs_system(broker: "Broker", args: dict) -> dict:
-    return filtered(broker, ["journalctl", "-b", args["boot"], "-n", "20000", "--no-pager", "-o", "short-iso", "-q"],
+    return filtered(broker, ["journalctl", "-b", args["boot"], "-n", "50000", "--no-pager", "-o", "short-iso", "-q"],
                     SYSTEM_FILTERS[args["filter"]], args["lines"], 45)
 
 
@@ -512,6 +557,75 @@ def op_docker_images(broker: "Broker", _args: dict) -> dict:
         {"step": "in-use", "exit": 0, "timed_out": False,
          "output": "\n".join(f"{name}\t{image}" for name, image in sorted(in_use.items()))},
     ]}
+
+
+ENV_VALUE_ALLOWED = re.compile(r"^(?:[A-Z0-9_]*_(?:HOST|PORT|URL|BASE_URL|ADDRESS|CLIENT_ID|MODE|ENABLED|PROFILE|TOPIC|"
+                               r"NETWORK|ORIGIN|BIND_ADDRESS|INTERVAL|SECONDS|TIMEOUT|LEVEL)|TZ|NODE_ENV|NEXOLAB_[A-Z_]+_STAGE)$")
+ENV_SECRET_NAME = re.compile(r"(?i)pass|secret|token|key|credential|cookie|auth|salt|cert|private|session")
+RUNTIME_MODEL_FORMAT = (
+    "{{json .Name}}\t{{json .Config.Image}}\t{{json .Image}}\t{{json .HostConfig.RestartPolicy.Name}}\t"
+    "{{json .HostConfig.NetworkMode}}\t{{json .HostConfig.PortBindings}}\t{{json .NetworkSettings.Networks}}\t"
+    "{{json .Mounts}}\t{{json .Config.Env}}\t{{json .Config.Labels}}\t{{json .Config.Healthcheck}}"
+)
+LABELS_KEPT = ("com.docker.compose.project", "com.docker.compose.service", "com.docker.compose.project.config_files",
+               "com.docker.compose.project.working_dir", "com.docker.compose.container-number",
+               "org.opencontainers.image.revision")
+
+
+def sanitize_env(entries: list[str] | None) -> list[str]:
+    """Keys always; values only for allow-listed, non-secret configuration keys."""
+    out = []
+    for entry in entries or []:
+        key, sep, value = entry.partition("=")
+        if sep and ENV_VALUE_ALLOWED.fullmatch(key) and not ENV_SECRET_NAME.search(key):
+            out.append(f"{key}={value}")
+        else:
+            out.append(f"{key}=<set>" if sep else key)
+    return sorted(out)
+
+
+def op_docker_runtime_model(broker: "Broker", _args: dict) -> dict:
+    """WP2c Phase 0 (#1734): the effective NEXOLAB container model, without secret values."""
+    names = sorted(container_names(broker))
+    model = []
+    for name in names:
+        result = broker.runner(["docker", "inspect", "--type", "container", "--format", RUNTIME_MODEL_FORMAT,
+                                "--", name], 20)
+        fields = result.output.strip().split("\t")
+        if result.exit != 0 or len(fields) != 11:
+            model.append({"name": name, "error": "inspect_failed"})
+            continue
+        try:
+            (cname, image, image_id, restart, net_mode, ports, networks, mounts, env, labels,
+             health) = (json.loads(f) for f in fields)
+        except ValueError:
+            model.append({"name": name, "error": "inspect_unparseable"})
+            continue
+        model.append({
+            "name": cname.lstrip("/"), "image": image, "image_id": image_id, "restart_policy": restart,
+            "network_mode": net_mode, "port_bindings": ports or {},
+            "networks": {n: {"aliases": (v or {}).get("Aliases"), "ip": (v or {}).get("IPAddress")}
+                         for n, v in (networks or {}).items()},
+            "mounts": [{"type": m.get("Type"), "name": m.get("Name"), "destination": m.get("Destination"),
+                        "rw": m.get("RW")} for m in (mounts or [])],
+            "env": sanitize_env(env),
+            "labels": {k: v for k, v in (labels or {}).items() if k in LABELS_KEPT},
+            "healthcheck": (health or {}).get("Test"),
+        })
+    nets = broker.runner(["docker", "network", "ls", "--format", "{{.Name}}"], 20)
+    network_model = []
+    for net in sorted(n for n in nets.output.split() if NEXOLAB_NETWORK.fullmatch(n)):
+        info = broker.runner(["docker", "network", "inspect", "--format",
+                              "{{json .Driver}}\t{{json .IPAM.Config}}\t{{json .Labels}}", "--", net], 20)
+        parts = info.output.strip().split("\t")
+        try:
+            driver, ipam, labels = (json.loads(p) for p in parts)
+        except ValueError:
+            network_model.append({"name": net, "error": "inspect_failed"})
+            continue
+        network_model.append({"name": net, "driver": driver, "ipam": ipam,
+                              "compose_project": (labels or {}).get("com.docker.compose.project")})
+    return {"containers": model, "networks": network_model}
 
 
 def op_docker_disk(broker: "Broker", _args: dict) -> dict:
@@ -665,6 +779,117 @@ def op_service_recover(broker: "Broker", args: dict) -> dict:
                 "ActiveState") in ("inactive", "active") and after.get("Result", "success") == "success")}
 
 
+# ----------------------------------------------------------------------------- approved handlers
+# Each run needs a single-use owner approval for the exact op (see `approve`). They re-verify
+# their preconditions at run time, never force anything, and report before/after evidence.
+
+
+def free_bytes(path: str = "/") -> int:
+    st = os.statvfs(path)
+    return st.f_bavail * st.f_frsize
+
+
+def docker_lines(broker: "Broker", argv: list[str], timeout: float = 60) -> list[str]:
+    result = broker.runner(argv, timeout)
+    if result.exit != 0:
+        raise Rejected("precondition_failed", f"{' '.join(argv[:3])} failed")
+    return [line.strip() for line in result.output.splitlines() if line.strip()]
+
+
+def op_storage_cleanup_regenerable(broker: "Broker", _args: dict) -> dict:
+    """Owner-approved T1 cleanup: only regenerable data. Volumes and every tagged or used image stay."""
+    before_free = free_bytes()
+    volumes_before = docker_lines(broker, ["docker", "volume", "ls", "-q"])
+    used = set(docker_lines(broker, ["docker", "ps", "-aq", "--no-trunc"]))
+    used_images = set()
+    for cid in used:
+        used_images.update(docker_lines(broker, ["docker", "inspect", "--type", "container", "--format",
+                                                 "{{.Image}}", "--", cid], 20))
+    report: list[dict] = []
+    prune = broker.runner(["docker", "builder", "prune", "--force", "--filter", "until=168h"], 600)
+    report.append({"step": "build cache older than 7 days", "exit": prune.exit, "output": prune.output[-600:]})
+    removed, skipped = [], []
+    for image_id in docker_lines(broker, ["docker", "images", "--filter", "dangling=true", "--no-trunc", "-q"]):
+        tags = broker.runner(["docker", "image", "inspect", "--format", "{{json .RepoTags}}", "--", image_id], 20)
+        try:
+            tag_list = json.loads(tags.output) if tags.exit == 0 else None
+        except ValueError:
+            tag_list = None
+        if tag_list != [] or image_id in used_images:  # containerd lists TAGGED images as dangling (#1710)
+            skipped.append(image_id)
+            continue
+        result = broker.runner(["docker", "image", "rm", "--", image_id], 120)  # never -f
+        (removed if result.exit == 0 else skipped).append(image_id)
+    report.append({"step": "untagged unused images", "removed": removed, "skipped_protected": skipped})
+    vacuum = broker.runner(["journalctl", "--vacuum-size=200M"], 120)
+    report.append({"step": "journal to 200M", "exit": vacuum.exit, "output": vacuum.output[-400:]})
+    volumes_after = docker_lines(broker, ["docker", "volume", "ls", "-q"])
+    if sorted(volumes_after) != sorted(volumes_before):
+        raise Rejected("internal_error", "volume set changed during cleanup")  # must never happen
+    return {"steps": report, "free_before_gib": round(before_free / 1024**3, 2),
+            "free_after_gib": round(free_bytes() / 1024**3, 2), "volumes_unchanged": True,
+            "in_use_images_kept": len(used_images)}
+
+
+LEGACY_HTTPS_UNITS = ("nexolab-external-frontend.service", "nexolab-external-nginx.service")
+LIVE_HTTPS_IDENTITY = "http://127.0.0.1:3105/api/runtime-identity"
+
+
+def live_https_identity() -> dict:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(LIVE_HTTPS_IDENTITY, timeout=5) as res:
+            data = json.load(res)
+    except Exception as exc:  # noqa: BLE001
+        raise Rejected("precondition_failed", f"live HTTPS UI identity unavailable: {type(exc).__name__}") from None
+    return {k: data.get(k) for k in ("source_commit", "build_id")}
+
+
+def op_service_retire_legacy_https(broker: "Broker", _args: dict) -> dict:
+    """Stop the prepared-only legacy HTTPS pair that restart-loops; the live :3105 UI is unaffected."""
+    fragment = Path(unit_state_props(broker, LEGACY_HTTPS_UNITS[0], "FragmentPath").get("FragmentPath", ""))
+    try:
+        header = fragment.read_text(encoding="utf-8", errors="replace")[:400]
+    except OSError:
+        header = ""
+    if "PREPARED ONLY" not in header:
+        raise Rejected("precondition_failed", "frontend unit is not the prepared-only legacy unit")
+    if unit_state(broker, LEGACY_HTTPS_UNITS[1]).get("ActiveState") == "active":
+        raise Rejected("precondition_failed", "legacy nginx is active; it is not the restart-loop case")
+    if unit_state(broker, LEGACY_HTTPS_UNITS[0]).get("ActiveState") == "active":
+        raise Rejected("precondition_failed", "legacy frontend is running; it is not the restart-loop case")
+    identity_before = live_https_identity()
+    before = {u: unit_state_props(broker, u, "ActiveState,SubState,UnitFileState,NRestarts") for u in LEGACY_HTTPS_UNITS}
+    actions = []
+    for argv in (["systemctl", "disable", "--now", LEGACY_HTTPS_UNITS[1]],
+                 ["systemctl", "stop", LEGACY_HTTPS_UNITS[0]],
+                 ["systemctl", "mask", LEGACY_HTTPS_UNITS[0]]):
+        result = broker.runner(argv, 60)
+        actions.append({"argv": argv[1:], "exit": result.exit})
+    time.sleep(12)
+    after = {u: unit_state_props(broker, u, "ActiveState,SubState,UnitFileState,NRestarts") for u in LEGACY_HTTPS_UNITS}
+    identity_after = live_https_identity()
+    loop_stopped = after[LEGACY_HTTPS_UNITS[0]].get("ActiveState") in ("inactive", "failed")
+    return {"before": before, "after": after, "actions": actions, "loop_stopped": loop_stopped,
+            "live_https_identity_unchanged": identity_before == identity_after, "live_https_identity": identity_after,
+            "undo": "approved op service.restore-legacy-https"}
+
+
+def op_service_restore_legacy_https(broker: "Broker", _args: dict) -> dict:
+    """Undo of retire-legacy-https: unmask and re-enable exactly as before (the loop will return)."""
+    actions = []
+    for argv in (["systemctl", "unmask", LEGACY_HTTPS_UNITS[0]], ["systemctl", "enable", LEGACY_HTTPS_UNITS[1]]):
+        result = broker.runner(argv, 60)
+        actions.append({"argv": argv[1:], "exit": result.exit})
+    return {"actions": actions,
+            "after": {u: unit_state_props(broker, u, "ActiveState,UnitFileState") for u in LEGACY_HTTPS_UNITS}}
+
+
+def unit_state_props(broker: "Broker", unit: str, props: str) -> dict:
+    out = broker.runner(["systemctl", "show", unit, "--no-pager", "-p", props], 10).output
+    return dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+
+
 def production_ops() -> dict[str, Operation]:
     unit = Enum(READABLE_UNITS)
     boot = Enum(("0", "-1", "-2"), "0")
@@ -703,6 +928,20 @@ def production_ops() -> dict[str, Operation]:
                   op_storage_summary, timeout=60),
         Operation("storage.inventory", "read", "Full read-only #1710 inventory report (pinned handler)",
                   op_storage_inventory, timeout=1600, heavy=True),
+        Operation("system.reset-reason", "read", "SoC reset status, PMIC/supply device-tree data, watchdog, boots",
+                  op_system_reset_reason),
+        Operation("logs.boot-end", "read", "Last journal lines of a previous boot (clean shutdown vs abrupt stop)",
+                  op_logs_boot_end, {"boot": Enum(("-1", "-2", "-3", "-4", "-5")), "lines": Int(1, 400, 120)}),
+        Operation("docker.service-model", "read", "WP2c Phase 0: NEXOLAB container/network model without secret values",
+                  op_docker_runtime_model, timeout=120),
+        Operation("storage.cleanup-regenerable", "approved",
+                  "Owner-approved T1: build cache >7 days, untagged unused images, journal to 200M",
+                  op_storage_cleanup_regenerable, timeout=1200, heavy=True),
+        Operation("service.retire-legacy-https", "approved",
+                  "Owner-approved: stop and mask the prepared-only legacy HTTPS pair that restart-loops",
+                  op_service_retire_legacy_https, timeout=120),
+        Operation("service.restore-legacy-https", "approved", "Owner-approved undo of retire-legacy-https",
+                  op_service_restore_legacy_https, timeout=120),
         Operation("service.recover", "recover", "Restart an enabled NEXOLAB unit that is down / run endpoint repair",
                   op_service_recover, {"unit": Enum(tuple(RECOVERABLE_UNITS))}, timeout=90),
     ]

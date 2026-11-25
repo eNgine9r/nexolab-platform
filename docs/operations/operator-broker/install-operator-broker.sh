@@ -2,6 +2,7 @@
 # NEXOLAB Operator Broker owner installation (#1758, #1769). Run as the owner (nexolab) with sudo:
 #
 #   bash install-operator-broker.sh install   <payload-dir>
+#   bash install-operator-broker.sh upgrade   <payload-dir>   (verify new pins first, then replace)
 #   bash install-operator-broker.sh status
 #   bash install-operator-broker.sh uninstall
 #
@@ -22,8 +23,8 @@ set -Eeuo pipefail
 umask 022
 
 declare -A PIN=(
-  [nexolab-operator-broker.py]=0fd74afcfb6531addcbaadbf190748e0396857a995b6946647a790b582cccde0
-  [nexolab-operator-broker.service]=90c1f0974d6807a92ab2c8e4082583e17e54a677dba177a247b5a1c59a311109
+  [nexolab-operator-broker.py]=37b2a02788ead4704a9f86138873b47c0a7d2c0c409e1e58a23ba8dd179e5900
+  [nexolab-operator-broker.service]=8d3cecf854d061ba00d161e98fb2641d4bf2aafbf2d2e2d5287f51b3a7776342
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
   [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b
 )
@@ -186,6 +187,24 @@ status() {
   sudo python3 -I -B "$LIB/nexolab-operator-broker.py" verify-audit 2>&1 || true
 }
 
+upgrade() {
+  local src="${1:?payload directory required}" name check
+  sudo -v || die "sudo"
+  # Verify the NEW payload before touching the running broker: a bad payload changes nothing.
+  check=$(sudo mktemp -d /root/nexolab-operator-check.XXXXXX) || die "staging"
+  for name in "${!PIN[@]}"; do
+    if ! sudo cat -- "$src/$name" | sudo tee "$check/$name" >/dev/null \
+      || ! echo "${PIN[$name]}  $check/$name" | sudo sha256sum -c --quiet -; then
+      sudo rm -rf -- "$check"; die "new payload invalid ($name); installed broker left unchanged"
+    fi
+  done
+  sudo rm -rf -- "$check"
+  say "new payload verified; replacing the installed broker (audit log kept)"
+  remove_installed
+  verify_removed || exit 2
+  install "$src"
+}
+
 uninstall() {
   sudo -v || die "sudo"
   remove_installed
@@ -195,7 +214,8 @@ uninstall() {
 
 case "${1:-}" in
   install) install "${2:-}" ;;
+  upgrade) upgrade "${2:-}" ;;
   status) status ;;
   uninstall) uninstall ;;
-  *) echo "usage: $0 install <payload-dir> | status | uninstall"; exit 64 ;;
+  *) echo "usage: $0 install <payload-dir> | upgrade <payload-dir> | status | uninstall"; exit 64 ;;
 esac

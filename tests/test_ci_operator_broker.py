@@ -456,6 +456,141 @@ class InstallerContractTests(unittest.TestCase):
             broker.close()
 
 
+class BrokerV11Tests(unittest.TestCase):
+    """#1758 v1.1: redaction boundaries, log tails, Phase 0 model, approved handlers."""
+
+    def test_redaction_never_crosses_lines_and_keeps_flags(self) -> None:
+        text = ("802-11-wireless-security.key-mgmt:      wpa-psk\n"
+                "802-11-wireless-security.pmf:           0 (default)\n"
+                "802-11-wireless-security.psk-flags:     0 (none)\n"
+                "802-11-wireless-security.psk:           supersecret\n"
+                "password=hunter2 next")
+        out, _ = broker_module.redact(text)
+        self.assertIn("802-11-wireless-security.pmf:           0 (default)", out)
+        self.assertIn("psk-flags:     0 (none)", out)
+        self.assertNotIn("supersecret", out)
+        self.assertNotIn("hunter2", out)
+
+    def test_run_can_keep_the_tail(self) -> None:
+        script = "import sys\nfor i in range(20000): print(f'line {i}')"
+        result = broker_module.run([sys.executable, "-c", script], 30, max_bytes=2000, keep="tail")
+        self.assertTrue(result.truncated)
+        self.assertIn("line 19999", result.output)
+        self.assertNotIn("line 0\n", result.output)
+        self.assertLessEqual(len(result.output), 2000)
+
+    def test_env_values_only_for_safe_configuration_keys(self) -> None:
+        env = broker_module.sanitize_env([
+            "CENTRAL_MQTT_HOST=172.18.48.66", "CENTRAL_MQTT_PORT=1884", "MQTT_PASSWORD=x", "DATABASE_URL=postgresql://u:p@db/x",
+            "NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082", "JWT_SECRET=abc", "PATH=/usr/bin",
+            "SESSION_TOKEN_URL=http://secret", "NODE_ENV=production"])
+        self.assertIn("CENTRAL_MQTT_HOST=172.18.48.66", env)
+        self.assertIn("NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082", env)
+        for hidden in ("MQTT_PASSWORD=<set>", "JWT_SECRET=<set>", "PATH=<set>", "SESSION_TOKEN_URL=<set>"):
+            self.assertIn(hidden, env)
+        self.assertIn("DATABASE_URL=postgresql://u:p@db/x", env)  # raw here; redact() strips the userinfo
+        self.assertNotIn("p@db", broker_module.redact("\n".join(env))[0])
+
+    def test_runtime_model_covers_only_nexolab_and_hides_secrets(self) -> None:
+        import json as _json
+        inspect = "\t".join(_json.dumps(v) for v in (
+            "/nexolab-central-dashboard-1", "nexolab/dashboard:x", "sha256:aa", "unless-stopped", "nexolab-central",
+            {"3000/tcp": [{"HostIp": "172.18.48.66", "HostPort": "3000"}]},
+            {"nexolab-central": {"Aliases": ["dashboard"], "IPAddress": "172.20.0.5"}},
+            [{"Type": "volume", "Name": "v1", "Destination": "/data", "RW": True}],
+            ["NEXOLAB_SERVER_API_BASE_URL=http://telemetry-service:8082", "AUTH_SECRET=zzz"],
+            {"com.docker.compose.project": "nexolab-central", "secret.label": "x"}, {"Test": ["CMD", "true"]}))
+
+        class Fake(FakeDocker):
+            def __call__(self, argv, _timeout, **_kw):
+                if argv[:2] == ["docker", "inspect"]:
+                    return broker_module.RunResult(0, inspect, False, False)
+                if argv[:3] == ["docker", "network", "inspect"]:
+                    return broker_module.RunResult(0, '"bridge"\t[{"Subnet":"172.20.0.0/16"}]\t{}', False, False)
+                if argv[:3] == ["docker", "network", "ls"]:
+                    return broker_module.RunResult(0, "nexolab-central\nsellora_default", False, False)
+                return super().__call__(argv, _timeout)
+
+        runner = Fake()
+        broker = type("B", (), {"runner": staticmethod(runner)})()
+        model = broker_module.op_docker_runtime_model(broker, {})
+        names = [c["name"] for c in model["containers"]]
+        self.assertNotIn("sellora-backend-1", " ".join(str(c) for c in runner.calls))
+        self.assertTrue(all(n.startswith("nexolab-") for n in names))
+        text = _json.dumps(model)
+        self.assertNotIn("zzz", text)
+        self.assertNotIn("secret.label", text)
+        self.assertIn("AUTH_SECRET=<set>", text)
+        self.assertEqual([n["name"] for n in model["networks"]], ["nexolab-central"])
+
+    def test_cleanup_removes_only_untagged_unused_images_without_force(self) -> None:
+        calls: list[list[str]] = []
+        tagged, used, free = "sha256:" + "1" * 64, "sha256:" + "2" * 64, "sha256:" + "3" * 64
+
+        def runner(argv, _timeout, **_kw):
+            calls.append(argv)
+            out = ""
+            if argv[:3] == ["docker", "volume", "ls"]:
+                out = "pgdata\nmqtt"
+            elif argv[:2] == ["docker", "ps"]:
+                out = "c1"
+            elif argv[:2] == ["docker", "inspect"]:
+                out = used
+            elif argv[:2] == ["docker", "images"]:
+                out = "\n".join((tagged, used, free))
+            elif argv[:3] == ["docker", "image", "inspect"]:
+                out = '["nexolab/dashboard:recovery-protected-arm64"]' if argv[-1] == tagged else "[]"
+            return broker_module.RunResult(0, out, False, False)
+
+        broker = type("B", (), {"runner": staticmethod(runner)})()
+        result = broker_module.op_storage_cleanup_regenerable(broker, {})
+        removals = [c for c in calls if c[:3] == ["docker", "image", "rm"]]
+        self.assertEqual(removals, [["docker", "image", "rm", "--", free]])
+        self.assertTrue(all("-f" not in c and "--force" not in c for c in removals))
+        self.assertIn(["docker", "builder", "prune", "--force", "--filter", "until=168h"], calls)
+        self.assertFalse([c for c in calls if "volume" in c and ("rm" in c or "prune" in c)])
+        self.assertEqual(sorted(result["steps"][1]["skipped_protected"]), sorted([tagged, used]))
+
+    def test_cleanup_stops_if_volume_set_changes(self) -> None:
+        state = {"n": 0}
+
+        def runner(argv, _timeout, **_kw):
+            out = ""
+            if argv[:3] == ["docker", "volume", "ls"]:
+                state["n"] += 1
+                out = "pgdata" if state["n"] == 1 else ""
+            return broker_module.RunResult(0, out, False, False)
+
+        broker = type("B", (), {"runner": staticmethod(runner)})()
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_storage_cleanup_regenerable(broker, {})
+
+    def test_retire_legacy_https_requires_the_prepared_only_unit(self) -> None:
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as temp:
+            unit = Path(temp) / "nexolab-external-frontend.service"
+            unit.write_text("[Unit]\nDescription=real production unit\n")
+            calls: list[list[str]] = []
+
+            def runner(argv, _timeout, **_kw):
+                calls.append(argv)
+                out = f"FragmentPath={unit}\nActiveState=activating\nSubState=auto-restart" if argv[:2] == [
+                    "systemctl", "show"] else ""
+                return broker_module.RunResult(0, out, False, False)
+
+            broker = type("B", (), {"runner": staticmethod(runner)})()
+            with mock.patch.object(broker_module, "live_https_identity", return_value={"build_id": "b"}):
+                with self.assertRaises(broker_module.Rejected):
+                    broker_module.op_service_retire_legacy_https(broker, {})
+                self.assertFalse([c for c in calls if c[:2] != ["systemctl", "show"]])
+                unit.write_text("# PREPARED ONLY: not installed/enabled\n[Unit]\n")
+                with mock.patch.object(broker_module.time, "sleep"):
+                    result = broker_module.op_service_retire_legacy_https(broker, {})
+            self.assertIn(["systemctl", "mask", "nexolab-external-frontend.service"], calls)
+            self.assertIn(["systemctl", "disable", "--now", "nexolab-external-nginx.service"], calls)
+            self.assertTrue(result["live_https_identity_unchanged"])
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
@@ -468,8 +603,11 @@ class BrokerStaticContractTests(unittest.TestCase):
         self.assertGreaterEqual(len(ops), 15)
         for name, op in ops.items():
             self.assertRegex(name, broker_module.OP_NAME.pattern)
-            self.assertIn(op.kind, ("read", "recover"))  # approved handlers arrive only in reviewed releases
+            self.assertIn(op.kind, ("read", "recover", "approved"))
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
+        approved = sorted(op.name for op in ops.values() if op.kind == "approved")
+        self.assertEqual(approved, ["service.restore-legacy-https", "service.retire-legacy-https",
+                                    "storage.cleanup-regenerable"])  # each one reviewed explicitly
         recover = [op for op in ops.values() if op.kind == "recover"]
         self.assertEqual([op.name for op in recover], ["service.recover"])
         self.assertEqual(set(broker_module.RECOVERABLE_UNITS),

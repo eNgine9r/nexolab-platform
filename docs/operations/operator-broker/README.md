@@ -21,7 +21,7 @@ A root-owned local service that gives the isolated development account (uid 1001
 
 The development account cannot write the code, the units, the approvals or the audit log. It cannot run `approve`, which exits 77 unless it runs as root.
 
-## Operations (v1.0.0)
+## Operations (v1.1.0)
 
 | Op                                                      | Kind    | What it returns                                                                                                                                                            |
 | ------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -36,7 +36,20 @@ The development account cannot write the code, the units, the approvals or the a
 | `service.recover unit=nexolab-lan-gateway.service`      | recover | Restart only if enabled and `failed`/`inactive`                                                                                                                            |
 | `service.recover unit=nexolab-network-endpoint-repair…` | recover | Run the same idempotent #1748 repair its timer runs                                                                                                                        |
 
-Approved deployment or network operations (Wi-Fi profile change, Stage 2/3 activation) are added later as separate reviewed handlers. Each one needs a new pinned broker release, installed by the owner, and an approval per run.
+v1.1 adds:
+
+| Op                             | Kind     | What it does                                                                                                                                                                                                      |
+| ------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `system.reset-reason`          | read     | SoC reset status (`vcgencmd get_rsts`), PMIC and supply data from the firmware device tree, watchdog settings, boot list                                                                                          |
+| `logs.boot-end`                | read     | Last lines of a previous boot. A clean shutdown sequence means a reboot was requested; an abrupt stop means power loss or a hang ended by the watchdog                                                            |
+| `docker.service-model`         | read     | WP2c Phase 0: the effective NEXOLAB container and network model (images, ports, networks and aliases, mounts, restart policy, labels). Environment keys are listed, values only for non-secret configuration keys |
+| `storage.cleanup-regenerable`  | approved | Build cache older than 7 days, untagged images used by no container (checked per image, never `-f`), journal vacuumed to 200 MB. Fails if the set of volumes changes                                              |
+| `service.retire-legacy-https`  | approved | Stops, disables and masks the prepared-only legacy HTTPS pair that restart-loops. Verifies the live `:3105` UI identity is unchanged                                                                              |
+| `service.restore-legacy-https` | approved | Exact undo of the above                                                                                                                                                                                           |
+
+Log operations now keep the newest output when it exceeds the cap. Redaction never crosses a line.
+
+Future approved deployment or network operations (Wi-Fi profile change, Stage 2/3 activation, backup) come as separate reviewed handlers. Each one needs a new pinned release, applied by the owner with `upgrade`, and an approval per run.
 
 ## Use (development account)
 
@@ -72,6 +85,7 @@ Any failure removes everything it installed and verifies the removal (`ROLLBACK_
 CI (`operator-broker-install-acceptance.yml`) performs the real installation on a disposable runner with systemd, with an owner account outside the socket group. It also covers a tampered payload, a failure during installation, a foreign container that must stay invisible, a NEXOLAB container logging a secret, and uninstall. Production services, containers, networks and credentials are not touched.
 
 ```bash
+bash install-operator-broker.sh upgrade <payload-dir>   # new pins verified before the installed broker is touched
 bash install-operator-broker.sh status
 bash install-operator-broker.sh uninstall   # keeps audit log and reports as evidence
 ```
