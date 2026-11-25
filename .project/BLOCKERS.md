@@ -1,13 +1,16 @@
 ## 2026-11-25 — Pending owner actions (resume point after any reboot; updated evening)
 
-1. **Operator Broker install (#1758/#1769, owner-approved):** fixed installer, merged in #1770; payload `~/recovery-p0/broker-v2`.
+1. **Operator Broker v1.0 is installed and verified** (2026-11-25). Apply **v1.1** (merged in #1773; payload `~/recovery-p0/broker-v1.1`):
    ```
-   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v2/install-operator-broker.sh > $T/i.sh && echo "1b21af15ce1c51dc9a3406fe68b0777659a9d22edecb08a676a1542b062f33f5  $T/i.sh" | sha256sum -c - && bash $T/i.sh install /home/nexolab-dev/recovery-p0/broker-v2
+   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.1/install-operator-broker.sh > $T/i.sh && echo "f89963a4bdd8dab9b724c002e59f9c66599a6f6d47fb9e5957db88aca1af826f  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.1
    ```
+   Then grant per-run approvals, which the agent executes through the broker:
+   - `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op storage.cleanup-regenerable --ttl-minutes 60 --reason "T1"`
+   - the same with `--op service.retire-legacy-https`, which stops the legacy frontend restart loop.
 2. **SSD cleanup:** `owner-2026-11-25-ssd-cleanup.sh t1`, then `t2a` (pinned `978209882d…`). Needed for the #1428 backup (28 GiB) and the Stage 2 build reserve (20 GiB).
 3. **WP2c Stage 2 (#1734):** `owner-2026-11-25-stage2.sh prepare` (pinned `19c0085c…`). After it passes, `execute` needs exact Product Owner approval.
-4. **Wi-Fi LAB KK1 (#1735):** router-side check for a MAC block/ACL on `2C:CF:67:A6:09:3A` and a changed PSK. Then the guarded `nexolab-wifi-recover.sh apply`.
-5. **Reboot cause:** run `system.power` and `logs.kernel filter=power boot=-1` through the broker once it is installed.
+4. **Wi-Fi (#1735):** the open `me_mac` profile and the `iPhone` hotspot profile have autoconnect on. This is a security risk; the owner decides whether to delete them. **LAB KK1:** router-side check for a MAC block/ACL on `2C:CF:67:A6:09:3A` and a changed PSK. Then the guarded `nexolab-wifi-recover.sh apply`.
+5. **Reboot cause (#1399):** cause undetermined (no undervoltage or PMIC event; abrupt stop; 1 min hardware watchdog). A heartbeat is running in `~/p0-evidence/heartbeat/`; the agent restarts it after a reboot (`setsid nohup ~/p0-evidence/heartbeat/heartbeat.sh &`).
 6. **#1428 DR evidence (hard gate):** real encrypted backup, off-device copy and isolated restore.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)

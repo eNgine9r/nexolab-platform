@@ -12244,7 +12244,7 @@
     {
       "issue": 1758,
       "title": "Autonomous Raspberry Pi operations via a bounded local operator broker",
-      "lifecycle": "needs_validation",
+      "lifecycle": "in_progress",
       "priority": "high",
       "scope": "Root-owned socket-activated broker: SO_PEERCRED uid 1001, fixed typed ops (read diagnostics, two down-only recover ops, approval-gated framework), redaction, replay protection, hash-chained audit, immutable-handler self check; checksum-pinned owner install/uninstall. No live installation by agent.",
       "depends_on": [
@@ -12264,7 +12264,8 @@
         "site_acceptance": "owner_install_pending",
         "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi",
         "source_merge": "PR #1759 merged 19a0f4c1 (exact-head GREEN); inventory handler repinned in #1760. Owner install pending (payload ~/recovery-p0/broker-v1, installer sha256 42bf8b5b...).",
-        "installer_fix_1769": "PR #1770 merged 65205691: owner EACCES / root unauthorized_peer / dev sandbox allowed proven by real systemd install in CI; NEXOLAB-only Docker scope; raw reports root-only; verified rollback. Owner command pinned installer sha256 1b21af15...."
+        "installer_fix_1769": "PR #1770 merged 65205691: owner EACCES / root unauthorized_peer / dev sandbox allowed proven by real systemd install in CI; NEXOLAB-only Docker scope; raw reports root-only; verified rollback. Owner command pinned installer sha256 1b21af15....",
+        "site_install": "v1.0 (#1770) owner-installed 2026-11-25; all ops verified from dev tmux; v1.1 (#1773) merged, owner upgrade pending (installer sha256 f89963a4...)."
       }
     },
     {

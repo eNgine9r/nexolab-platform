@@ -1,3 +1,26 @@
+## 2026-11-25 (night) — Operator Broker live; reboot forensics; broker v1.1 merged
+
+- **Broker:** v1.0 (#1770) was installed by the owner. The agent verified every operation from the dev session, including the denials (foreign container, `recover` on an active unit). Audit receipts are issued.
+- **Reboots (#1399):**
+  - no undervoltage, PMIC event, panic or OOM;
+  - official 27 W supply at 5 A;
+  - journals stop abruptly, and the 1 min hardware watchdog is active.
+
+  The cause is undetermined: a power interruption or a hang ended by the watchdog. A heartbeat logger is running.
+
+- **Found:**
+  - the legacy `nexolab-external-frontend.service` restart-loops every 5 s (prepared-only unit; the live HTTPS UI is `:3105`);
+  - an open `me_mac` Wi-Fi profile has autoconnect on;
+  - the dev cgroup is under memory pressure.
+- **#1773 broker v1.1:**
+  - `system.reset-reason`, `logs.boot-end`, `docker.service-model` (WP2c Phase 0);
+  - approved `storage.cleanup-regenerable` and `service.retire-legacy-https`/`restore`;
+  - line-bounded redaction, log-tail retention, installer `upgrade`.
+
+  The owner applies it with the pinned `upgrade` command.
+
+- **SSD:** the broker inventory confirms the corrected classification. CLEAN covers only 3 untagged images (492 MiB) plus about 3.3 GB of build cache; all recovery images are PROTECTED. The ≈16 GiB of old release workspaces need the owner `t2a` decision.
+
 ## 2026-11-25 (night) — committed-receipt bulk catch-up (#1762 slice 4) in review
 
 - **Slice 3 merged (#1768).** The isolated end-to-end acceptance passed, but recovery measured about 1.1 rows/s (head replay) and 2.3 rows/s overall.
