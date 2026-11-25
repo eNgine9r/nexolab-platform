@@ -431,19 +431,47 @@ DOCKER_INSPECT_FORMAT = (
 )
 
 
+# #1769: Docker diagnostics are scoped to NEXOLAB workloads only. Other products on the
+# host (their names, images, networks and logs) never reach the development account.
+NEXOLAB_CONTAINER = re.compile(r"^nexolab-[a-z0-9][a-z0-9_.-]{0,62}$")
+NEXOLAB_PROJECT = re.compile(r"^(nexolab(-[a-z0-9][a-z0-9_-]*)?)?$")  # empty = not Compose-managed
+NEXOLAB_NETWORK = re.compile(r"^nexolab[a-z0-9_.-]*$")
+NEXOLAB_IMAGE_REPO = re.compile(r"^nexolab/[a-z0-9][a-z0-9_.-]*$")
+SCOPE_FORMAT = "{{.Names}}\t{{.Label \"com.docker.compose.project\"}}\t{{.Image}}"
+
+
+def nexolab_containers(broker: "Broker") -> dict[str, str]:
+    """NEXOLAB container name -> image reference; everything else is invisible."""
+    result = broker.runner(["docker", "ps", "-a", "--no-trunc", "--format", SCOPE_FORMAT], 20)
+    allowed: dict[str, str] = {}
+    for line in result.output.splitlines():
+        name, _, rest = line.partition("\t")
+        project, _, image = rest.partition("\t")
+        if NEXOLAB_CONTAINER.fullmatch(name.strip()) and NEXOLAB_PROJECT.fullmatch(project.strip()):
+            allowed[name.strip()] = image.strip()
+    return allowed
+
+
 def container_names(broker: "Broker") -> set[str]:
-    result = broker.runner(["docker", "ps", "-a", "--format", "{{.Names}}"], 20)
-    return {line.strip() for line in result.output.splitlines() if line.strip()}
+    return set(nexolab_containers(broker))
 
 
 def existing_container(broker: "Broker", name: str) -> str:
     if name not in container_names(broker):
-        raise Rejected("unknown_container", name)
+        raise Rejected("unknown_container", "not a NEXOLAB container")
     return name
 
 
+def scoped_lines(result: RunResult, keep: Callable[[str], bool], title: str) -> dict:
+    lines = [line for line in result.output.splitlines() if keep(line)]
+    return {"step": title, "exit": result.exit, "timed_out": result.timed_out, "truncated": result.truncated,
+            "output": "\n".join(lines)}
+
+
 def op_docker_containers(broker: "Broker", _args: dict) -> dict:
-    return steps(broker, [("containers", ["docker", "ps", "-a", "--no-trunc", "--format", DOCKER_PS_FORMAT])], 30)
+    allowed = container_names(broker)
+    result = broker.runner(["docker", "ps", "-a", "--no-trunc", "--format", DOCKER_PS_FORMAT], 30)
+    return {"steps": [scoped_lines(result, lambda line: line.split("\t", 1)[0] in allowed, "containers")]}
 
 
 def op_docker_container(broker: "Broker", args: dict) -> dict:
@@ -459,19 +487,31 @@ def op_docker_logs(broker: "Broker", args: dict) -> dict:
 
 
 def op_docker_networks(broker: "Broker", _args: dict) -> dict:
-    return steps(broker, [
-        ("networks", ["docker", "network", "ls", "--no-trunc", "--format",
-                      "{{.Name}}\t{{.Driver}}\t{{.Scope}}\t{{.ID}}"]),
-        ("attachments", ["docker", "ps", "-a", "--format", "{{.Names}}\t{{.Networks}}"]),
-    ], 30)
+    allowed = container_names(broker)
+    networks = broker.runner(["docker", "network", "ls", "--no-trunc", "--format",
+                              "{{.Name}}\t{{.Driver}}\t{{.Scope}}\t{{.ID}}"], 30)
+    attachments = broker.runner(["docker", "ps", "-a", "--format", "{{.Names}}\t{{.Networks}}"], 30)
+    return {"steps": [
+        scoped_lines(networks, lambda line: bool(NEXOLAB_NETWORK.fullmatch(line.split("\t", 1)[0])), "networks"),
+        scoped_lines(attachments, lambda line: line.split("\t", 1)[0] in allowed, "attachments"),
+    ]}
 
 
 def op_docker_images(broker: "Broker", _args: dict) -> dict:
-    return steps(broker, [
-        ("images", ["docker", "image", "ls", "--digests", "--no-trunc", "--format",
-                    "{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.Digest}}\t{{.CreatedSince}}\t{{.Size}}"]),
-        ("in-use", ["docker", "ps", "-a", "--no-trunc", "--format", "{{.Names}}\t{{.Image}}"]),
-    ], 45)
+    in_use = nexolab_containers(broker)
+    used_refs = set(in_use.values())
+
+    def nexolab_image(line: str) -> bool:
+        ref = line.split("\t", 1)[0]
+        return bool(NEXOLAB_IMAGE_REPO.fullmatch(ref.rsplit(":", 1)[0])) or ref in used_refs
+
+    images = broker.runner(["docker", "image", "ls", "--digests", "--no-trunc", "--format",
+                            "{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.Digest}}\t{{.CreatedSince}}\t{{.Size}}"], 45)
+    return {"steps": [
+        scoped_lines(images, nexolab_image, "images"),
+        {"step": "in-use", "exit": 0, "timed_out": False,
+         "output": "\n".join(f"{name}\t{image}" for name, image in sorted(in_use.items()))},
+    ]}
 
 
 def op_docker_disk(broker: "Broker", _args: dict) -> dict:
@@ -563,14 +603,33 @@ def op_storage_inventory(broker: "Broker", _args: dict) -> dict:
         return {"steps": [{"step": "inventory", "exit": result.exit, "timed_out": result.timed_out,
                            "output": result.output[-4000:]}], "report": None}
     report = produced[-1]
-    os.chmod(report, 0o640)
-    if broker.report_group is not None:
-        os.chown(report, -1, broker.report_group)
+    os.chmod(report, 0o600)  # #1769: the raw report stays root-only; only a sanitized excerpt leaves
     data = report.read_bytes()
-    text = data.decode("utf-8", "replace")
-    tail = text[text.rfind("===== Cleanup candidates"):] if "===== Cleanup candidates" in text else text[-8000:]
-    return {"steps": [{"step": "inventory", "exit": result.exit, "timed_out": result.timed_out, "output": tail}],
-            "report": {"path": str(report), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}
+    return {"steps": [{"step": "inventory", "exit": result.exit, "timed_out": result.timed_out,
+                       "output": sanitize_inventory(data.decode("utf-8", "replace"))}],
+            "report": {"path": str(report), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+                       "mode": "0600 root (raw report not exposed)"}}
+
+
+INVENTORY_SECTIONS = (
+    "Filesystems", "Memory and load", "Largest top-level areas (root filesystem only)", "Commander workspaces",
+    "Docker disk usage", "Journal", "Cleanup candidates (estimates only; nothing deleted)",
+)
+WORKSPACE_PATH = re.compile(r"(commander-workspaces/)([^/\s']+)")
+NEXOLAB_WORKSPACE = re.compile(r"^(nexolab|unified-update)[A-Za-z0-9_.-]*$")
+
+
+def sanitize_inventory(text: str, max_chars: int = 60_000) -> str:
+    """Allow-listed sections only; non-NEXOLAB workspace names are masked; redaction runs later."""
+    kept: list[str] = []
+    for chunk in re.split(r"(?m)^(?====== )", text):
+        header = re.match(r"===== (.*?) =====", chunk)
+        if header and header.group(1) in INVENTORY_SECTIONS:
+            kept.append(chunk.rstrip())
+    joined = "\n\n".join(kept)
+    joined = WORKSPACE_PATH.sub(lambda m: m.group(1) + (m.group(2) if NEXOLAB_WORKSPACE.fullmatch(m.group(2))
+                                                         else "<non-nexolab-workspace>"), joined)
+    return joined[:max_chars]
 
 
 def unit_state(broker: "Broker", unit: str) -> dict:
@@ -778,7 +837,7 @@ def cmd_approve(ns: argparse.Namespace) -> int:
 class Broker:
     def __init__(self, *, ops: dict[str, Operation], allowed_uids: set[int], trusted_uid: int, install_dir: Path,
                  audit_path: Path, approval_dir: Path, report_dir: Path, lock_file: Path,
-                 runner: Callable[[list[str], float], RunResult] = run, report_group: int | None = None) -> None:
+                 runner: Callable[[list[str], float], RunResult] = run) -> None:
         self.ops = ops
         self.allowed_uids = allowed_uids
         self.trusted_uid = trusted_uid
@@ -787,7 +846,6 @@ class Broker:
         self.report_dir = report_dir
         self.lock_file = lock_file
         self.runner = runner
-        self.report_group = report_group
         self.audit = Audit(audit_path)
         self.slots = threading.BoundedSemaphore(MAX_CONCURRENT)
         self.heavy = threading.Lock()
@@ -961,20 +1019,13 @@ def cmd_serve(ns: argparse.Namespace) -> int:
         spec.loader.exec_module(module)
         ops.update(module.operations(sys.modules[__name__]))
     root = Path(ns.state_root) if ns.state_root else None
-    group = None
-    if not test_mode:
-        try:
-            import grp
-            group = grp.getgrnam(ns.report_group).gr_gid
-        except KeyError:
-            group = None
     broker = Broker(
         ops=ops, allowed_uids=allowed, trusted_uid=os.geteuid() if test_mode else 0,
         install_dir=Path(ns.install_dir) if ns.install_dir else INSTALL_DIR,
         audit_path=root / "audit.jsonl" if root else AUDIT_LOG,
         approval_dir=root / "approvals" if root else APPROVAL_DIR,
         report_dir=root / "reports" if root else REPORT_DIR,
-        lock_file=root / "mutation.lock" if root else LOCK_FILE, report_group=group)
+        lock_file=root / "mutation.lock" if root else LOCK_FILE)
     try:
         broker.self_check()
     except Rejected as exc:
@@ -1001,7 +1052,6 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     serve = sub.add_parser("serve")
     serve.add_argument("--allowed-uids")
-    serve.add_argument("--report-group", default="nexolab-dev")
     serve.add_argument("--install-dir")
     serve.add_argument("--state-root", help=argparse.SUPPRESS)
     serve.add_argument("--test-socket", help=argparse.SUPPRESS)
