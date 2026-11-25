@@ -67,8 +67,12 @@
     "protected_frontend_build_id": "U_-FTp6Unq2wciBPuPq1f"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 1733
+    },
+    "next_work_package": {
+      "issue": 1734
+    }
   },
   "work_packages": [
     {
@@ -12167,6 +12171,55 @@
         "activation_sequence": "Backup tool needs free >= max_backup_bytes (8 GiB) + 20 GiB reserve = 28 GiB on /var/backups; after the consolidated cleanup (~31 GiB expected) #1428 step A (--plan, first manual backup) becomes feasible; retention stays off until B (isolated restore) is verified."
       },
       "branch": "feat/1551-evidence-aware-retention"
+    },
+    {
+      "issue": 1733,
+      "title": "P0 network-change recovery: interim compatibility service address (WP1)",
+      "lifecycle": "review",
+      "priority": "critical",
+      "scope": "Owner-run checksum-pinned tool docs/operations/network/nexolab-network-compat-recovery.py: read-only diagnose; apply adds 172.18.48.66/32 on lo (lo:nxcompat) + arp_ignore=1 on eth0/wlan0, docker start/restart only existing containers publishing on it, never recreates, verifies IDs/images/mounts; rollback; optional interim boot unit before docker.service.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "pending_owner_run",
+        "incident": "2026-11-25: host moved to 192.168.1.220/24; no listeners :8082/:1884/:9000/:3000; Device Agent ok publishing to Edge broker only; HTTPS :3105 7db6e1a8 fLvuDhT8Ol-bCkGGhHBI4; lab :3104 08f1c8a4; wlan0 disconnected",
+        "data_risk": "Edge bridge max_queued_messages 10000, cleansession false: messages beyond the queue are dropped while central is unreachable; dropped counter to be recorded by diagnose, loss not assumed zero",
+        "lan_clients": "LAN build compiles http://172.18.48.66:8082 (frontend-public-contract of 7db6e1a8); other LAN clients need WP2 #1734",
+        "local_checks": "tests/test_ci_network_compat_recovery.py 9 tests OK on the Pi; selection logic exercised against the live route table read-only"
+      },
+      "branch": "fix/1733-network-compat-recovery"
+    },
+    {
+      "issue": 1734,
+      "title": "Network-independent LOCAL_LAN addressing: loopback/internal plane, same-origin LAN UI (WP2)",
+      "lifecycle": "ready",
+      "priority": "critical",
+      "scope": "2a same-origin frontend API/WS mode; 2b loopback publishes + Docker-DNS Edge/Device Agent targets + LAN gateway overlay + CORS/object storage; 2c guarded owner migration with rollback; 2d acceptance matrix (Ethernet, Wi-Fi, switching, DHCP change, reboot, offline, Tailscale, fresh telemetry, no data loss).",
+      "depends_on": [
+        1733
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "not_started"
+      },
+      "branch": null
+    },
+    {
+      "issue": 1735,
+      "title": "Wi-Fi reliability: LAB KK1 no-secrets, autoconnect and real connectivity verification (WP3)",
+      "lifecycle": "blocked",
+      "priority": "high",
+      "scope": "Owner read-only confirmation of profile permissions/psk-flags; owner-run system-wide profile with system-stored PSK, unlimited autoconnect retries, Ethernet-preferred metrics; verify DHCP/route/DNS/gateway/UI/Tailscale over Wi-Fi.",
+      "depends_on": [],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_pending",
+        "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read"
+      },
+      "branch": null
     }
   ],
   "maintenance_actions": [
