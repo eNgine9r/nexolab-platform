@@ -5,18 +5,20 @@ import { useEffect, useState } from "react";
 import type { EquipmentImageMetadata } from "@/data/refrigeration";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
-import { resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
+import { isSameOrigin, resolvePublicApiBaseUrl } from "@/lib/runtime/public-endpoints";
 
 /**
- * External staging only: download private S3-backed images via the protected
- * Telemetry API with a bearer JWT; never render private signed S3 URLs.
- * No change to the approved LAN image handling or demo images.
+ * External staging and same-origin LAN mode (#1734): download private
+ * S3-backed images via the protected Telemetry API with a bearer JWT; never
+ * render private signed S3 URLs, whose host would be a private or former
+ * address. Absolute-URL LAN builds and demo images keep their behaviour.
  */
 export function useExternalAuthenticatedImage(
   equipmentId: string,
   image: EquipmentImageMetadata | null,
 ): string | null {
   const stageEnabled = process.env.NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE === "true";
+  const proxied = stageEnabled || isSameOrigin(process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL);
   const [loaded, setLoaded] = useState<{ key: string; url: string } | null>(null);
   const imageId = image?.id ?? null;
   const originalUrl = image?.sourceUrl ?? null;
@@ -24,7 +26,7 @@ export function useExternalAuthenticatedImage(
   const imageKey = imageId ? `${equipmentId}:${imageId}` : null;
 
   useEffect(() => {
-    if (!stageEnabled || !imageId || imageId.startsWith("local-") || !expectedMime) {
+    if (!proxied || !imageId || imageId.startsWith("local-") || !expectedMime) {
       return;
     }
     const apiBaseUrl = resolvePublicApiBaseUrl();
@@ -37,7 +39,8 @@ export function useExternalAuthenticatedImage(
       try {
         const parsedBase = new URL(apiBaseUrl);
         if (
-          parsedBase.protocol !== "https:" ||
+          (stageEnabled && parsedBase.protocol !== "https:") ||
+          (parsedBase.protocol !== "https:" && parsedBase.protocol !== "http:") ||
           parsedBase.origin !== window.location.origin ||
           !["image/png", "image/jpeg", "image/webp"].includes(expectedMime)
         ) {
@@ -75,9 +78,9 @@ export function useExternalAuthenticatedImage(
       controller.abort();
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     };
-  }, [stageEnabled, equipmentId, imageId, expectedMime]);
+  }, [proxied, stageEnabled, equipmentId, imageId, expectedMime]);
 
   if (!image || !originalUrl) return null;
-  if (!stageEnabled || imageId?.startsWith("local-")) return originalUrl;
+  if (!proxied || imageId?.startsWith("local-")) return originalUrl;
   return loaded?.key === imageKey ? loaded.url : null;
 }
