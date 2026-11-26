@@ -400,6 +400,9 @@ CI_GOVERNANCE_PATHS = {
     "scripts/verify-pr-workflow-matrix.py",
     "scripts/prepare-clean-verification-worktree.sh",
     "scripts/verify-local-candidate.py",
+    # #1794 development-session memory guard (read-only; dev tooling, no runtime surface)
+    "scripts/dev-resource-guard.py",
+    "tests/test_ci_dev_resource_guard.py",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
     "tests/test_ci_project_state_v2.py",
