@@ -8,9 +8,11 @@ import {
   LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS,
   deriveLiveSourceGapMsByChannel,
   downsampleLiveHistory,
+  groupByChannelKey,
   markSegmentStart,
   newestRawSamplesPerChannel,
   reduceAnnotatedChannel,
+  sortByCapturedAt,
   type LiveHistoryResult,
   type LiveHistoryWindow,
 } from "@/features/live/live-history";
@@ -332,9 +334,8 @@ export async function loadAggregatedLiveHistory(
       );
     }
   }
-  samples.sort((left, right) => liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA"));
   return {
-    samples,
+    samples: groupByChannelKey(samples),
     snapshotAt: response.snapshotAt,
     cadenceSamples,
     intervalColumns,
@@ -452,15 +453,28 @@ export function mergeViewportDetail(
   detail: ViewportDetail | null,
 ): readonly TelemetrySample[] {
   if (!detail || detail.channels.size === 0) return history;
-  const kept = history.filter((sample) => {
-    if (!detail.channels.has(liveChannelKey(sample))) return true;
-    const timestampMs = Date.parse(sample.captured_at);
-    return timestampMs < detail.fromMs || timestampMs > detail.coveredToMs;
-  });
-  const merged = kept.concat(detail.samples);
-  return merged.sort(
-    (left, right) =>
-      liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA") ||
-      Date.parse(left.captured_at) - Date.parse(right.captured_at),
-  );
+  // Per channel: keys and timestamps computed once; no global comparator sort (#1813 perf).
+  const byChannel = new Map<string, TelemetrySample[]>();
+  for (const sample of history) {
+    const key = liveChannelKey(sample);
+    if (detail.channels.has(key)) {
+      const timestampMs = Date.parse(sample.captured_at);
+      if (timestampMs >= detail.fromMs && timestampMs <= detail.coveredToMs) continue;
+    }
+    const list = byChannel.get(key);
+    if (list) list.push(sample);
+    else byChannel.set(key, [sample]);
+  }
+  for (const sample of detail.samples) {
+    const key = liveChannelKey(sample);
+    const list = byChannel.get(key);
+    if (list) list.push(sample);
+    else byChannel.set(key, [sample]);
+  }
+  return [...byChannel.keys()]
+    .sort((left, right) => left.localeCompare(right, "uk-UA"))
+    .flatMap((key) => {
+      const list = byChannel.get(key)!;
+      return detail.channels.has(key) ? sortByCapturedAt(list) : list;
+    });
 }

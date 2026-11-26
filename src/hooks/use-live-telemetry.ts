@@ -333,6 +333,8 @@ export function useLiveTelemetry({
   const latestServerStatsRef = useRef<Map<string, IntervalStatistics>>(new Map());
   const statsRequestRef = useRef<{ key: string; startedAt: number; inFlight: boolean } | null>(null);
   const [statsVersion, setStatsVersion] = useState(0);
+  const rawStatsCacheRef = useRef<Map<string, IntervalStatistics | null>>(new Map());
+  const statsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [historySource, setHistorySource] = useState<"aggregate" | "raw">("raw");
   const requestServerStatistics = useCallback((fromMs: number, toMs: number) => {
     const adapter = historyAdapterRef.current;
@@ -393,13 +395,31 @@ export function useLiveTelemetry({
   const intervalStatistics = useCallback(
     (channelKey: string, fromMs: number, toMs: number) => {
       if (!aggregatedChannelsRef.current.has(channelKey)) {
-        return liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs);
+        // Exact, from raw columns; cached per range and column version because every viewport,
+        // clock tick and statistics row asks again (a 24-channel day sorted ~200 000 spacings).
+        const columns = intervalColumnsRef.current[channelKey];
+        const version = columns
+          ? `${columns.validTimestamps.length}:${columns.invalidTimestamps.length}:${columns.validTimestamps.at(-1) ?? ""}:${columns.validTimestamps[0] ?? ""}`
+          : "none";
+        const cacheKey = `${channelKey}|${fromMs}|${toMs}|${version}`;
+        const cache = rawStatsCacheRef.current;
+        const cached = cache.get(cacheKey);
+        if (cached !== undefined) return cached;
+        const computed = liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs);
+        if (cache.size > 1_000) cache.clear();
+        cache.set(cacheKey, computed);
+        return computed;
       }
       const exact = serverStatsRef.current.get(`${channelKey}|${fromMs}|${toMs}`);
       if (exact) return exact;
       // Never from display points: request exact server statistics; meanwhile show the latest
       // exact result for a window of the same length (it carries its own exact range).
-      setTimeout(() => requestServerStatistics(fromMs, toMs), 0);
+      // Trailing 400 ms: a fast pan sends one statistics request for where it stops.
+      if (statsDebounceRef.current !== null) clearTimeout(statsDebounceRef.current);
+      statsDebounceRef.current = setTimeout(() => {
+        statsDebounceRef.current = null;
+        requestServerStatistics(fromMs, toMs);
+      }, 400);
       const recent = latestServerStatsRef.current.get(channelKey);
       return recent && recent.toMs - recent.fromMs === toMs - fromMs ? recent : null;
     },
@@ -780,6 +800,7 @@ export function useLiveTelemetry({
         aggregatedChannelsRef.current = result.aggregatedChannels ?? new Set();
         serverStatsRef.current = new Map();
         latestServerStatsRef.current = new Map();
+        rawStatsCacheRef.current = new Map();
         statsRequestRef.current = null;
         setHistorySource(aggregatedChannelsRef.current.size > 0 ? "aggregate" : "raw");
         setViewportDetail(null);
