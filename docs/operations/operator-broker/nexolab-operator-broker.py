@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -796,8 +796,17 @@ def docker_lines(broker: "Broker", argv: list[str], timeout: float = 60) -> list
     return [line.strip() for line in result.output.splitlines() if line.strip()]
 
 
-def op_storage_cleanup_regenerable(broker: "Broker", _args: dict) -> dict:
-    """Owner-approved T1 cleanup: only regenerable data. Volumes and every tagged or used image stay."""
+BUILD_CACHE_PRUNE = {
+    "older-than-7d": ["docker", "builder", "prune", "--force", "--filter", "until=168h"],
+    # Every unused build-cache record (regenerable; images, containers and volumes are not build cache).
+    "all-unused": ["docker", "builder", "prune", "--all", "--force"],
+}
+
+
+def op_storage_cleanup_regenerable(broker: "Broker", args: dict) -> dict:
+    """Owner-approved T1 cleanup: only regenerable data. Volumes and every tagged or used image stay.
+
+    The approval binds `build_cache`, so "all-unused" needs the owner to approve exactly that."""
     before_free = free_bytes()
     volumes_before = docker_lines(broker, ["docker", "volume", "ls", "-q"])
     used = set(docker_lines(broker, ["docker", "ps", "-aq", "--no-trunc"]))
@@ -806,8 +815,9 @@ def op_storage_cleanup_regenerable(broker: "Broker", _args: dict) -> dict:
         used_images.update(docker_lines(broker, ["docker", "inspect", "--type", "container", "--format",
                                                  "{{.Image}}", "--", cid], 20))
     report: list[dict] = []
-    prune = broker.runner(["docker", "builder", "prune", "--force", "--filter", "until=168h"], 600)
-    report.append({"step": "build cache older than 7 days", "exit": prune.exit, "output": prune.output[-600:]})
+    prune = broker.runner(BUILD_CACHE_PRUNE[args.get("build_cache", "older-than-7d")], 600)
+    report.append({"step": f"build cache ({args.get('build_cache', 'older-than-7d')})", "exit": prune.exit,
+                   "output": prune.output[-600:]})
     removed, skipped = [], []
     for image_id in docker_lines(broker, ["docker", "images", "--filter", "dangling=true", "--no-trunc", "-q"]):
         tags = broker.runner(["docker", "image", "inspect", "--format", "{{json .RepoTags}}", "--", image_id], 20)
@@ -832,6 +842,7 @@ def op_storage_cleanup_regenerable(broker: "Broker", _args: dict) -> dict:
 
 
 LEGACY_HTTPS_UNITS = ("nexolab-external-frontend.service", "nexolab-external-nginx.service")
+ETC_UNIT_DIR = Path("/etc/systemd/system")
 LIVE_HTTPS_IDENTITY = "http://127.0.0.1:3105/api/runtime-identity"
 
 
@@ -862,10 +873,18 @@ def op_service_retire_legacy_https(broker: "Broker", _args: dict) -> dict:
     before = {u: unit_state_props(broker, u, "ActiveState,SubState,UnitFileState,NRestarts") for u in LEGACY_HTTPS_UNITS}
     actions = []
     for argv in (["systemctl", "disable", "--now", LEGACY_HTTPS_UNITS[1]],
-                 ["systemctl", "stop", LEGACY_HTTPS_UNITS[0]],
-                 ["systemctl", "mask", LEGACY_HTTPS_UNITS[0]]):
+                 ["systemctl", "stop", LEGACY_HTTPS_UNITS[0]]):
         result = broker.runner(argv, 60)
         actions.append({"argv": argv[1:], "exit": result.exit})
+    # `mask` cannot replace a real unit file in /etc/systemd/system (v1.1 site run: exit 1). Such a
+    # static unit stays down once nothing enabled pulls it in, so report that instead (#1775).
+    if fragment.parent == ETC_UNIT_DIR and fragment.is_file() and not fragment.is_symlink():
+        pulled_by = unit_state_props(broker, LEGACY_HTTPS_UNITS[0], "WantedBy,RequiredBy,BoundBy,UnitFileState")
+        actions.append({"argv": ["mask", LEGACY_HTTPS_UNITS[0]], "skipped": "unit file is a real file in /etc",
+                        "pulled_in_by": pulled_by})
+    else:
+        result = broker.runner(["systemctl", "mask", LEGACY_HTTPS_UNITS[0]], 60)
+        actions.append({"argv": ["mask", LEGACY_HTTPS_UNITS[0]], "exit": result.exit})
     time.sleep(12)
     after = {u: unit_state_props(broker, u, "ActiveState,SubState,UnitFileState,NRestarts") for u in LEGACY_HTTPS_UNITS}
     identity_after = live_https_identity()
@@ -883,6 +902,207 @@ def op_service_restore_legacy_https(broker: "Broker", _args: dict) -> dict:
         actions.append({"argv": argv[1:], "exit": result.exit})
     return {"actions": actions,
             "after": {u: unit_state_props(broker, u, "ActiveState,UnitFileState") for u in LEGACY_HTTPS_UNITS}}
+
+
+# ----------------------------------------------------------------------------- deployment (#1775)
+# deploy.lan-frontend runs the PINNED WP2c Stage 2 tool (#1734, handlers/) as the owner account in a
+# transient unit. The owner's approval binds the phase, the artifact SHA-256 and the identity of the
+# dashboard currently running, so the development account can neither change what is deployed nor
+# what it replaces. The artifact is copied into root-controlled staging and hashed while copying; the
+# tool only ever sees that verified copy.
+
+DEPLOY_USER_ENV = "NEXOLAB_OPERATOR_DEPLOY_USER"
+DEPLOY_DIR = Path("/var/lib/nexolab-operator-deploy")
+STAGE2_TOOL = "wp2c-stage2-frontend.py"
+STAGE2_WORKSPACE = "commander-workspaces/nexolab-wp2c-stage2"
+MAX_ARTIFACT_BYTES = 2 * 1024**3
+SHA256_OR_NONE = re.compile(r"^([0-9a-f]{64}|none)$")
+SOURCE_SHA = re.compile(r"^[0-9a-f]{40}$")
+BUILD_ID = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+STAGE2_MARKERS = re.compile(r"^(STAGE2_[A-Z_]+|HARD_BLOCKER_[A-Z_]+|STOP [^\n]{0,300})", re.M)
+STAGE2_RUNTIME_LIMIT = {"prepare": 3000, "execute": 1200, "rollback": 900}
+
+
+def deploy_account(broker: "Broker") -> tuple[str, Path, int]:
+    import pwd
+    name = os.environ.get(DEPLOY_USER_ENV, "nexolab")
+    try:
+        entry = pwd.getpwnam(name)
+    except KeyError:
+        raise Rejected("precondition_failed", f"deployment account {name} does not exist") from None
+    if entry.pw_uid == 0 or entry.pw_uid in broker.allowed_uids:
+        raise Rejected("precondition_failed", "deployment account must be the owner, not root or the dev account")
+    return name, Path(entry.pw_dir), entry.pw_gid
+
+
+def inbox_dir(broker: "Broker") -> Path:
+    import pwd
+    uid = min(broker.allowed_uids)
+    return Path(pwd.getpwuid(uid).pw_dir) / "operator-inbox"
+
+
+def stage_artifact(broker: "Broker", sha256: str, group_gid: int) -> Path:
+    """Copy <inbox>/<sha256>.zip into root-controlled staging, hashing the bytes that are written."""
+    if not SHA256_OR_NONE.fullmatch(sha256) or sha256 == "none":
+        raise Rejected("invalid_argument", "artifact_sha256 must be a SHA-256 for this phase")
+    source = inbox_dir(broker) / f"{sha256}.zip"
+    target = DEPLOY_DIR / f"{sha256}.zip"
+    if not DEPLOY_DIR.is_dir() or DEPLOY_DIR.is_symlink():
+        raise Rejected("precondition_failed", f"{DEPLOY_DIR} missing (installer creates it)")
+    if target.exists():
+        digest = hashlib.sha256()
+        with open(target, "rb") as handle:
+            for block in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(block)
+        if digest.hexdigest() == sha256:
+            return target
+        target.unlink()
+    try:
+        fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    except OSError:
+        raise Rejected("precondition_failed", f"artifact {source.name} not found in the operator inbox") from None
+    partial = DEPLOY_DIR / f".{sha256}.partial"
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or not 0 < st.st_size <= MAX_ARTIFACT_BYTES:
+            raise Rejected("precondition_failed", "artifact is not a regular file of an allowed size")
+        digest = hashlib.sha256()
+        out = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        with os.fdopen(fd, "rb", closefd=False) as src, os.fdopen(out, "wb") as dst:
+            for block in iter(lambda: src.read(1 << 20), b""):
+                digest.update(block)
+                dst.write(block)
+        if digest.hexdigest() != sha256:
+            raise Rejected("approval_mismatch", "artifact bytes do not match the approved SHA-256")
+        if os.geteuid() == 0:
+            os.chown(partial, 0, group_gid)
+        os.chmod(partial, 0o640)
+        os.replace(partial, target)
+        return target
+    finally:
+        os.close(fd)
+        if partial.exists():
+            partial.unlink()
+
+
+def staged_artifact_sha(workspace: Path) -> str | None:
+    """zip_sha256 recorded by the tool's `stage` (None when nothing is staged yet)."""
+    try:
+        fd = os.open(workspace / "stage.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    except FileNotFoundError:
+        return None
+    except OSError:
+        raise Rejected("precondition_failed", "stage.json is not a readable regular file") from None
+    with os.fdopen(fd, "rb") as handle:
+        try:
+            facts = json.loads(handle.read(256 * 1024))
+        except ValueError:
+            raise Rejected("precondition_failed", "stage.json is not valid JSON") from None
+    value = facts.get("zip_sha256") if isinstance(facts, dict) else None
+    if not isinstance(value, str) or not SHA256_OR_NONE.fullmatch(value) or value == "none":
+        raise Rejected("precondition_failed", "stage.json has no artifact SHA-256")
+    return value
+
+
+def run_as_owner(broker: "Broker", user: str, argv: list[str], limit: int) -> RunResult:
+    """Run a pinned handler as the owner account (docker group) in a bounded transient unit."""
+    unit = ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", f"--uid={user}",
+            "--working-directory=/", "-p", "NoNewPrivileges=yes", "-p", f"RuntimeMaxSec={limit}",
+            "-p", "Nice=10", "-p", "IOSchedulingClass=best-effort", "-p", "IOSchedulingPriority=7"]
+    return broker.runner(unit + argv, limit + 60, keep="tail")
+
+
+def op_deploy_lan_frontend(broker: "Broker", args: dict) -> dict:
+    """Owner-approved WP2c Stage 2: prepare (stage, offline build, preview, check), execute or rollback."""
+    phase = args["phase"]
+    user, home, gid = deploy_account(broker)
+    tool = broker.install_dir / "handlers" / STAGE2_TOOL
+    assert_trusted(tool, broker.trusted_uid, directory=False)
+    base = ["/usr/bin/python3", "-I", "-B", str(tool), "--workspace", str(home / STAGE2_WORKSPACE)]
+    identity = ["--rollback-source", args["expect_current_source"], "--rollback-build", args["expect_current_build"]]
+    runs: list[tuple[str, list[str]]] = []
+    staged = staged_artifact_sha(home / STAGE2_WORKSPACE)
+    if phase in ("prepare", "execute") and staged not in (None, args["artifact_sha256"]):
+        raise Rejected("approval_mismatch", "the workspace is staged with a different artifact than approved")
+    if phase == "execute" and staged is None:
+        raise Rejected("precondition_failed", "nothing staged: run phase=prepare first")
+    if phase == "prepare":
+        artifact = stage_artifact(broker, args["artifact_sha256"], gid)
+        if staged is None:
+            runs.append(("stage", ["stage", "--artifact-zip", str(artifact), "--expect-zip-sha256",
+                                   args["artifact_sha256"]]))
+        if not (home / STAGE2_WORKSPACE / "build.json").exists():  # resumable: the tool never rebuilds a tag
+            runs.append(("build", ["build", *identity]))
+        runs += [("preview", ["preview", *identity]), ("check", ["check", *identity])]
+    elif phase == "execute":
+        stage_artifact(broker, args["artifact_sha256"], gid)  # execute re-proves the approved artifact
+        runs.append(("execute", ["execute", *identity]))
+    else:
+        runs.append(("rollback", ["rollback"]))
+    deadline = time.monotonic() + STAGE2_RUNTIME_LIMIT[phase]
+    report, ok = [], True
+    for title, extra in runs:
+        left = int(deadline - time.monotonic())
+        if left < 60:
+            report.append({"step": title, "exit": None, "timed_out": True, "markers": []})
+            ok = False
+            break
+        result = run_as_owner(broker, user, base + extra, left)
+        report.append({"step": title, "exit": result.exit, "timed_out": result.timed_out,
+                       "markers": STAGE2_MARKERS.findall(result.output)[-12:], "output": result.output[-6000:]})
+        if result.exit != 0:
+            ok = False
+            break
+    return {"phase": phase, "ok": ok, "steps": report, "deploy_user": user,
+            "production_changed": phase in ("execute", "rollback"),
+            "next": {"prepare": "owner approves phase=execute with the same artifact and identity",
+                     "execute": "verify through the gateway; undo with phase=rollback",
+                     "rollback": "verify the previous dashboard identity"}[phase]}
+
+
+# ----------------------------------------------------------------------------- DR backup (#1775, #1428)
+DR_UNIT = "nexolab-dr-backup.service"
+DR_TIMER = "nexolab-dr-backup.timer"
+DR_CONFIG = Path("/etc/nexolab/dr-backup.json")
+DR_DIR = Path("/var/backups/nexolab/dr")
+DR_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$")
+
+
+def op_backup_health(broker: "Broker", _args: dict) -> dict:
+    """Read-only DR state: units, config presence (never contents), bundles, free space vs reserve."""
+    props = "LoadState,ActiveState,SubState,Result,UnitFileState,ExecMainStatus,ExecMainExitTimestamp"
+    units = {DR_UNIT: unit_state_props(broker, DR_UNIT, props),
+             DR_TIMER: unit_state_props(broker, DR_TIMER, "LoadState,ActiveState,UnitFileState,LastTriggerUSec,"
+                                                          "NextElapseUSecRealtime")}
+    bundles = []
+    if DR_DIR.is_dir():
+        entries = sorted(DR_DIR.iterdir(), key=lambda e: e.lstat().st_mtime, reverse=True)
+        for entry in entries[:30]:
+            st = entry.lstat()
+            if DR_NAME.fullmatch(entry.name) and stat.S_ISREG(st.st_mode):
+                bundles.append({"name": entry.name, "bytes": st.st_size, "mode": oct(stat.S_IMODE(st.st_mode)),
+                                "mtime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(st.st_mtime))})
+    free = free_bytes()
+    return {"units": units, "config_present": DR_CONFIG.is_file(), "backup_dir_present": DR_DIR.is_dir(),
+            "bundles": bundles, "free_gib": round(free / 1024**3, 2), "reserve_gib": 20,
+            "statement": "A captured bundle is CAPTURED_RESTORE_UNVERIFIED until an isolated restore (#1632) passes."}
+
+
+def op_backup_start(broker: "Broker", _args: dict) -> dict:
+    """Owner-approved: start the owner-installed DR backup once (same as its timer), never install it."""
+    state = unit_state_props(broker, DR_UNIT, "LoadState,ActiveState,FragmentPath")
+    if state.get("LoadState") != "loaded":
+        raise Rejected("precondition_failed", f"{DR_UNIT} is not installed (owner activation of #1630 first)")
+    if not DR_CONFIG.is_file():
+        raise Rejected("precondition_failed", f"{DR_CONFIG} missing (owner provisions keys and config)")
+    if state.get("ActiveState") in ("active", "activating"):
+        raise Rejected("busy", f"{DR_UNIT} is already running")
+    if free_bytes() < 28 * 1024**3:
+        raise Rejected("precondition_failed", "less than 28 GiB free (8 GiB bundle + 20 GiB reserve)")
+    started = broker.runner(["systemctl", "start", "--no-block", DR_UNIT], 20)
+    time.sleep(5)
+    return {"exit": started.exit, "after": unit_state_props(broker, DR_UNIT, "ActiveState,SubState,Result"),
+            "follow_with": "backup.health and logs.unit unit=nexolab-dr-backup.service"}
 
 
 def unit_state_props(broker: "Broker", unit: str, props: str) -> dict:
@@ -935,13 +1155,25 @@ def production_ops() -> dict[str, Operation]:
         Operation("docker.service-model", "read", "WP2c Phase 0: NEXOLAB container/network model without secret values",
                   op_docker_runtime_model, timeout=120),
         Operation("storage.cleanup-regenerable", "approved",
-                  "Owner-approved T1: build cache >7 days, untagged unused images, journal to 200M",
-                  op_storage_cleanup_regenerable, timeout=1200, heavy=True),
+                  "Owner-approved T1: build cache (>7 days or all unused), untagged unused images, journal to 200M",
+                  op_storage_cleanup_regenerable, {"build_cache": Enum(tuple(BUILD_CACHE_PRUNE), "older-than-7d")},
+                  timeout=1200, heavy=True),
         Operation("service.retire-legacy-https", "approved",
                   "Owner-approved: stop and mask the prepared-only legacy HTTPS pair that restart-loops",
                   op_service_retire_legacy_https, timeout=120),
         Operation("service.restore-legacy-https", "approved", "Owner-approved undo of retire-legacy-https",
                   op_service_restore_legacy_https, timeout=120),
+        Operation("deploy.lan-frontend", "approved",
+                  "Owner-approved WP2c Stage 2 LAN dashboard: prepare | execute | rollback (pinned tool, bound artifact)",
+                  op_deploy_lan_frontend,
+                  {"phase": Enum(("prepare", "execute", "rollback")),
+                   "artifact_sha256": Name(SHA256_OR_NONE, "none"),
+                   "expect_current_source": Name(SOURCE_SHA),
+                   "expect_current_build": Name(BUILD_ID)}, timeout=3100),
+        Operation("backup.health", "read", "DR backup units, config presence, bundle list, free space vs reserve",
+                  op_backup_health),
+        Operation("backup.start", "approved", "Owner-approved: start the installed DR backup unit once (#1630)",
+                  op_backup_start, timeout=60),
         Operation("service.recover", "recover", "Restart an enabled NEXOLAB unit that is down / run endpoint repair",
                   op_service_recover, {"unit": Enum(tuple(RECOVERABLE_UNITS))}, timeout=90),
     ]
@@ -1050,7 +1282,7 @@ def cmd_approve(ns: argparse.Namespace) -> int:
     raw: dict[str, Any] = {}
     for item in ns.arg or []:
         key, _, value = item.partition("=")
-        raw[key] = int(value) if re.fullmatch(r"-?\d+", value) else value
+        raw[key] = int(value) if re.fullmatch(r"-?\d{1,9}", value) else value  # hashes stay strings
     try:
         args = validate_args(ops[ns.op].schema, raw)
     except Rejected as exc:

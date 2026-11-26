@@ -591,6 +591,232 @@ class BrokerV11Tests(unittest.TestCase):
             self.assertTrue(result["live_https_identity_unchanged"])
 
 
+class BrokerV12Tests(unittest.TestCase):
+    """#1775 v1.2: upgrade rollback, bound deployment, DR backup handlers, mask on /etc units."""
+
+    def setUp(self) -> None:
+        from unittest import mock
+        self.mock = mock
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.inbox = self.root / "inbox"
+        self.deploy = self.root / "deploy"
+        self.home = self.root / "home"
+        self.install = self.root / "lib"
+        for path in (self.inbox, self.deploy, self.home, self.install / "handlers"):
+            path.mkdir(parents=True)
+        (self.install / "handlers" / "wp2c-stage2-frontend.py").write_text("# pinned tool\n")
+        self.calls: list[list[str]] = []
+        patches = [mock.patch.object(broker_module, "DEPLOY_DIR", self.deploy),
+                   mock.patch.object(broker_module, "inbox_dir", lambda _b: self.inbox),
+                   mock.patch.object(broker_module, "deploy_account", lambda _b: ("nexolab", self.home, os.getgid()))]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+        self.addCleanup(self.temp.cleanup)
+
+    def broker(self, exit_code: int = 0, output: str = "STAGE2_PREPARED\n") -> object:
+        def runner(argv, _timeout, **_kw):
+            self.calls.append(argv)
+            return broker_module.RunResult(exit_code, output, False, False)
+        return type("B", (), {"runner": staticmethod(runner), "install_dir": self.install,
+                              "trusted_uid": os.getuid(), "allowed_uids": {1001}})()
+
+    def artifact(self, data: bytes = b"zip-bytes") -> str:
+        digest = hashlib.sha256(data).hexdigest()
+        (self.inbox / f"{digest}.zip").write_bytes(data)
+        return digest
+
+    def args(self, phase: str, sha: str) -> dict:
+        return {"phase": phase, "artifact_sha256": sha, "expect_current_source": "7db6e1a8" + "0" * 32,
+                "expect_current_build": "CWBsCWWebOZGHa5YyWp18"}
+
+    def test_prepare_stages_a_verified_copy_and_runs_the_pinned_tool_as_the_owner(self) -> None:
+        sha = self.artifact()
+        result = broker_module.op_deploy_lan_frontend(self.broker(), self.args("prepare", sha))
+        self.assertTrue(result["ok"])
+        self.assertEqual([s["step"] for s in result["steps"]], ["stage", "build", "preview", "check"])
+        staged = self.deploy / f"{sha}.zip"
+        self.assertEqual(staged.read_bytes(), b"zip-bytes")
+        self.assertEqual(oct(staged.stat().st_mode & 0o777), "0o640")
+        for call in self.calls:
+            self.assertEqual(call[:6], ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", "--uid=nexolab"])
+            self.assertIn("NoNewPrivileges=yes", call)
+            self.assertIn(str(self.install / "handlers" / "wp2c-stage2-frontend.py"), call)
+        stage_call = self.calls[0]
+        self.assertEqual(stage_call[stage_call.index("--artifact-zip") + 1], str(staged))
+        self.assertIn(sha, stage_call)
+        self.assertIn("CWBsCWWebOZGHa5YyWp18", self.calls[1])
+        self.assertFalse(result["production_changed"])
+
+    def test_artifact_bytes_must_match_the_approved_hash(self) -> None:
+        sha = hashlib.sha256(b"approved").hexdigest()
+        (self.inbox / f"{sha}.zip").write_bytes(b"swapped by the dev account")
+        with self.assertRaises(broker_module.Rejected) as ctx:
+            broker_module.op_deploy_lan_frontend(self.broker(), self.args("prepare", sha))
+        self.assertEqual(ctx.exception.code, "approval_mismatch")
+        self.assertEqual(self.calls, [])
+        self.assertEqual(list(self.deploy.iterdir()), [])
+
+    def test_symlinked_artifact_is_refused(self) -> None:
+        real = self.root / "elsewhere.zip"
+        real.write_bytes(b"x")
+        sha = hashlib.sha256(b"x").hexdigest()
+        (self.inbox / f"{sha}.zip").symlink_to(real)
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_deploy_lan_frontend(self.broker(), self.args("prepare", sha))
+        self.assertEqual(self.calls, [])
+
+    def test_workspace_staged_with_another_artifact_is_refused(self) -> None:
+        sha = self.artifact()
+        workspace = self.home / broker_module.STAGE2_WORKSPACE
+        workspace.mkdir(parents=True)
+        (workspace / "stage.json").write_text(json.dumps({"zip_sha256": "f" * 64}))
+        for phase in ("prepare", "execute"):
+            with self.assertRaises(broker_module.Rejected) as ctx:
+                broker_module.op_deploy_lan_frontend(self.broker(), self.args(phase, sha))
+            self.assertEqual(ctx.exception.code, "approval_mismatch")
+        self.assertEqual(self.calls, [])
+
+    def test_execute_needs_a_prepared_workspace_and_skips_restaging(self) -> None:
+        sha = self.artifact()
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_deploy_lan_frontend(self.broker(), self.args("execute", sha))
+        workspace = self.home / broker_module.STAGE2_WORKSPACE
+        workspace.mkdir(parents=True)
+        (workspace / "stage.json").write_text(json.dumps({"zip_sha256": sha}))
+        result = broker_module.op_deploy_lan_frontend(self.broker(output="STAGE2_FRONTEND_GREEN\n"),
+                                                      self.args("execute", sha))
+        self.assertEqual([s["step"] for s in result["steps"]], ["execute"])
+        self.assertIn("STAGE2_FRONTEND_GREEN", result["steps"][0]["markers"])
+        self.assertTrue(result["production_changed"])
+        self.calls.clear()
+        result = broker_module.op_deploy_lan_frontend(self.broker(), self.args("prepare", sha))
+        self.assertEqual([s["step"] for s in result["steps"]], ["build", "preview", "check"])
+        (workspace / "build.json").write_text("{}")
+        result = broker_module.op_deploy_lan_frontend(self.broker(), self.args("prepare", sha))
+        self.assertEqual([s["step"] for s in result["steps"]], ["preview", "check"])
+
+    def test_a_failed_step_stops_the_sequence(self) -> None:
+        sha = self.artifact()
+        result = broker_module.op_deploy_lan_frontend(self.broker(exit_code=2, output="STOP WRONG_NODE x\n"),
+                                                      self.args("prepare", sha))
+        self.assertFalse(result["ok"])
+        self.assertEqual(len(result["steps"]), 1)
+        self.assertEqual(result["steps"][0]["markers"], ["STOP WRONG_NODE x"])
+
+    def test_deploy_schema_binds_phase_hash_and_current_identity(self) -> None:
+        schema = broker_module.production_ops()["deploy.lan-frontend"].schema
+        self.assertEqual(set(schema), {"phase", "artifact_sha256", "expect_current_source", "expect_current_build"})
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.validate_args(schema, {"phase": "execute", "artifact_sha256": "../../etc/passwd",
+                                                 "expect_current_source": "a" * 40, "expect_current_build": "abcdefgh"})
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.validate_args(schema, {"phase": "shell", "expect_current_source": "a" * 40,
+                                                 "expect_current_build": "abcdefgh"})
+
+    def test_deploy_account_is_never_root_or_the_dev_account(self) -> None:
+        self.mock.patch.stopall()
+        import pwd
+        me = pwd.getpwuid(os.getuid()).pw_name
+        fake = type("B", (), {"allowed_uids": {os.getuid()}})()
+        with self.mock.patch.dict(os.environ, {broker_module.DEPLOY_USER_ENV: me}):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.deploy_account(fake)
+        with self.mock.patch.dict(os.environ, {broker_module.DEPLOY_USER_ENV: "root"}):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.deploy_account(type("B", (), {"allowed_uids": {1001}})())
+
+    def test_cleanup_build_cache_scope_is_an_approved_argument(self) -> None:
+        schema = broker_module.production_ops()["storage.cleanup-regenerable"].schema
+        self.assertEqual(broker_module.validate_args(schema, {}), {"build_cache": "older-than-7d"})
+        self.assertEqual(broker_module.BUILD_CACHE_PRUNE["all-unused"], ["docker", "builder", "prune", "--all", "--force"])
+        calls: list[list[str]] = []
+
+        def runner(argv, _timeout, **_kw):
+            calls.append(argv)
+            return broker_module.RunResult(0, "v1" if argv[:3] == ["docker", "volume", "ls"] else "", False, False)
+
+        broker_module.op_storage_cleanup_regenerable(type("B", (), {"runner": staticmethod(runner)})(),
+                                                     {"build_cache": "all-unused"})
+        self.assertIn(["docker", "builder", "prune", "--all", "--force"], calls)
+        self.assertFalse([c for c in calls if "volume" in c and ("rm" in c or "prune" in c)])
+
+    def test_backup_start_requires_the_installed_unit_and_config(self) -> None:
+        def runner_for(state: str):
+            def runner(argv, _timeout, **_kw):
+                self.calls.append(argv)
+                return broker_module.RunResult(0, state, False, False)
+            return type("B", (), {"runner": staticmethod(runner)})()
+
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_backup_start(runner_for("LoadState=not-found\nActiveState=inactive"), {})
+        config = self.root / "dr-backup.json"
+        with self.mock.patch.object(broker_module, "DR_CONFIG", config):
+            with self.assertRaises(broker_module.Rejected):  # config missing
+                broker_module.op_backup_start(runner_for("LoadState=loaded\nActiveState=inactive"), {})
+            config.write_text("{}")
+            with self.assertRaises(broker_module.Rejected) as ctx:
+                broker_module.op_backup_start(runner_for("LoadState=loaded\nActiveState=activating"), {})
+            self.assertEqual(ctx.exception.code, "busy")
+        self.assertFalse([c for c in self.calls if c[:2] == ["systemctl", "start"]])
+
+    def test_backup_health_never_reads_the_config(self) -> None:
+        source = BROKER.read_text()
+        health = source[source.index("def op_backup_health"):source.index("def op_backup_start")]
+        self.assertNotIn("read_text", health)
+        self.assertNotIn("open(", health)
+
+    def test_retire_skips_mask_for_a_real_unit_file_in_etc(self) -> None:
+        unit = self.root / "nexolab-external-frontend.service"
+        unit.write_text("# PREPARED ONLY: not installed/enabled\n[Unit]\n")
+
+        def runner(argv, _timeout, **_kw):
+            self.calls.append(argv)
+            out = (f"FragmentPath={unit}\nActiveState=inactive\nRequiredBy=nexolab-external-nginx.service"
+                   if argv[:2] == ["systemctl", "show"] else "")
+            return broker_module.RunResult(0, out, False, False)
+
+        broker = type("B", (), {"runner": staticmethod(runner)})()
+        with self.mock.patch.object(broker_module, "ETC_UNIT_DIR", self.root), \
+                self.mock.patch.object(broker_module, "live_https_identity", return_value={"build_id": "b"}), \
+                self.mock.patch.object(broker_module.time, "sleep"):
+            result = broker_module.op_service_retire_legacy_https(broker, {})
+        self.assertFalse([c for c in self.calls if c[:2] == ["systemctl", "mask"]])
+        skipped = [a for a in result["actions"] if a.get("skipped")]
+        self.assertEqual(len(skipped), 1)
+        self.assertIn("RequiredBy", skipped[0]["pulled_in_by"])
+
+    def test_installer_restores_the_previous_version_on_a_failed_upgrade(self) -> None:
+        text = INSTALLER.read_text()
+        upgrade = text[text.index("\nupgrade() {"):text.index("\nrollback() {")]
+        # snapshot before anything is removed, and the restore target is armed before removal
+        self.assertLess(upgrade.index('snapshot_to "$PREV.pending"'), upgrade.index("remove_installed"))
+        self.assertLess(upgrade.index('RESTORE_FROM="$PREV.pending"'), upgrade.index("remove_installed"))
+        self.assertLess(upgrade.index("trap 'die"), upgrade.index("remove_installed"))
+        die = text[text.index("\ndie() {"):text.index("\n}", text.index("\ndie() {"))]
+        self.assertIn('restore_from "$RESTORE_FROM"', die)
+        self.assertIn("OPERATOR_BROKER_UPGRADE_ROLLED_BACK", die)
+        self.assertIn("verify_removed || exit 2", die)  # restore failure still ends verified
+        restore = text[text.index("\nrestore_from() {"):text.index("\ndie() {")]
+        self.assertIn("sha256sum -c --quiet MANIFEST.sha256", restore)
+        self.assertNotIn("die ", restore)  # runs inside die
+        self.assertIn("acceptance", restore)
+        self.assertIn("rollback) rollback ;;", text)
+        self.assertIn('-m 0700 "$dir"', text)  # snapshots are root-only
+        fault = [line for line in text.splitlines() if "NEXOLAB_OPERATOR_TEST_FAULT" in line]
+        self.assertEqual(len(fault), 1)
+        self.assertIn("|| die", fault[0])  # the test hook can only cause a rollback
+
+    def test_service_unit_names_the_deploy_account_and_staging(self) -> None:
+        unit = SERVICE.read_text()
+        self.assertIn("Environment=NEXOLAB_OPERATOR_DEPLOY_USER=nexolab", unit)
+        self.assertIn("ReadWritePaths=-/var/lib/nexolab-operator-deploy", unit)
+        installer = INSTALLER.read_text()
+        self.assertIn('-m 0750 "$DEPLOY_DIR"', installer)
+        self.assertIn('"$STAGE/wp2c-stage2-frontend.py" "$LIB/handlers/wp2c-stage2-frontend.py"', installer)
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
@@ -606,7 +832,8 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertIn(op.kind, ("read", "recover", "approved"))
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
-        self.assertEqual(approved, ["service.restore-legacy-https", "service.retire-legacy-https",
+        self.assertEqual(approved, ["backup.start", "deploy.lan-frontend", "service.restore-legacy-https",
+                                    "service.retire-legacy-https",
                                     "storage.cleanup-regenerable"])  # each one reviewed explicitly
         recover = [op for op in ops.values() if op.kind == "recover"]
         self.assertEqual([op.name for op in recover], ["service.recover"])
@@ -668,6 +895,7 @@ class BrokerStaticContractTests(unittest.TestCase):
             "nexolab-operator-broker.service": SERVICE,
             "nexolab-operator-broker.socket": SOCKET_UNIT,
             "nexolab-storage-inventory.sh": ROOT / "docs" / "operations" / "storage" / "nexolab-storage-inventory.sh",
+            "wp2c-stage2-frontend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage2-frontend.py",
         }
         self.assertEqual(set(pins), set(expected))
         for name, path in expected.items():

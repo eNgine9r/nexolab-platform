@@ -11,6 +11,8 @@ After=nexolab-operator-broker.socket
 Type=simple
 ExecStart=/usr/bin/python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py serve
 Environment=NEXOLAB_OPERATOR_ALLOWED_UIDS=1001
+# Owner account that runs pinned deployment handlers (deploy.lan-frontend, #1775).
+Environment=NEXOLAB_OPERATOR_DEPLOY_USER=nexolab
 Restart=on-failure
 RestartSec=5
 UMask=0027
@@ -20,6 +22,8 @@ ProtectSystem=strict
 ReadWritePaths=/var/log/nexolab-operator /var/lib/nexolab-operator /etc/nexolab-operator/approvals /run/nexolab-operator
 # Approved storage.cleanup-regenerable vacuums the journal to a bound (#1758 v1.1).
 ReadWritePaths=-/var/log/journal
+# Verified deployment artifacts handed to the owner account (deploy.lan-frontend, #1775).
+ReadWritePaths=-/var/lib/nexolab-operator-deploy
 ProtectHome=read-only
 InaccessiblePaths=-/etc/nexolab-gitlab-sync
 PrivateTmp=yes

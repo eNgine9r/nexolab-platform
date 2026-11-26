@@ -1,3 +1,25 @@
+## 2026-11-26 — first owner-approved broker runs; broker v1.2 merged (#1776)
+
+- **Approved runs via broker v1.1** (owner approvals, executed by the agent):
+  - `storage.cleanup-regenerable`: volumes unchanged and 18 in-use images kept. It freed only 0.18 GiB: the journal gave 68 MB, there were no untagged images, and the 3.3 GB build cache is younger than 7 days.
+  - `service.retire-legacy-https`: the restart loop stopped at 10305 restarts and legacy nginx is disabled. The live `:3105` identity is unchanged.
+  - `mask` failed on the real `/etc` unit file. Only the now-disabled nginx pulls the unit in, so it stays down. Fixed in v1.2.
+  - Post-checks: LAN `:80` and `192.168.1.220` 200, Tailscale `:8444` 200, telemetry ready with lag ~0.15 s and `last_persisted_at` advancing.
+  - Tailscale `:8443 /` returned 502 before and after: its target `127.0.0.1:3102` has no listener. This is pre-existing; owner to decide.
+- **Stage 3 Phase 0:** sanitized `docker.service-model` exported through the broker.
+  - Hazard: on `nexolab-standalone-runtime`, **both** MQTT brokers carry the alias `mqtt`. Today, name resolution picks the right broker only because the Docker networks happen to sort favourably. The Edge bridge must target the unique `central-mqtt`.
+  - A Stage 3 tool draft is in progress (#1734).
+- **#1776 broker v1.2 merged** (`79b40c36`):
+  - Upgrade snapshots the installed version and restores and re-accepts it on any failure. CI proves an upgrade from the real v1.1 with an injected fault, then upgrade, rollback and roll forward.
+  - Approved `deploy.lan-frontend` (Stage 2 through the broker; the approval binds phase, artifact SHA-256 and current dashboard identity).
+  - `backup.health` / `backup.start`.
+  - Cleanup `build_cache=all-unused`.
+  - Payload: `~/recovery-p0/broker-v1.2-20261126T064249Z` (installer `fcfeaea9…`).
+  - The Stage 2 artifact `f916352c…` is placed in `~/operator-inbox`.
+- **Wi-Fi (#1735):** LAB KK1 still fails with an auth timeout (status 16, zero BSSID) at signal 100. This is consistent with an AP-side MAC filter. Next: an approved bounded connect test with a temporary random MAC.
+- **Reboots (#1399):** none since 2026-11-25 17:13; the heartbeat is running.
+- **Production unchanged** apart from the two approved operations.
+
 ## 2026-11-25 (night) — Operator Broker live; reboot forensics; broker v1.1 merged
 
 - **Broker:** v1.0 (#1770) was installed by the owner. The agent verified every operation from the dev session, including the denials (foreign container, `recover` on an active unit). Audit receipts are issued.
