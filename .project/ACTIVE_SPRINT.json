@@ -12226,7 +12226,9 @@
         "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18).",
         "stage2_prepare_2026_11_26": "approved prepare: stage OK, build failed (BuildKit FROM image ID, fixed in #1783/v1.4); workspace stage.json retained, so prepare resumes at build after the v1.4 upgrade with a new approval",
         "stage2_prepare_2026_11_26_green": "Broker v1.4 approved deploy.lan-frontend prepare (receipt seq 67): BASE_PROVEN node:22.23.1-bookworm-slim; offline build (no network/pull/cache) IMAGE_VERIFIED nexolab/dashboard:wp2c-stage2-c5bb48a1dad3-arm64 sha256:c02579b1 files=17627; COMPOSE_FIDELITY_PROVEN rollback+candidate; PREVIEW identity c5bb48a1/xRUAt2U9c3oug1ETWuLsT + Docker DNS/server API verified, preview removed; STAGE2_CHECK_PASS NO_WRITES; production unchanged (LAN dashboard 7db6e1a8/CWBs..., all endpoints 200, telemetry persisting). Bundle: runtime contract same-origin, no backend ports/host origins; only external URL loaded at runtime is the Telegram Mini App SDK on that optional route (onError handled).",
-        "stage3_prove": "PR #1792 merge 20a59719 (exact-head GREEN; real systemd: pinned Stage 3 tool runs as nexolab, STOP WRONG_NODE on runner; ACCEPTANCE_OK 1.6.0). Broker v1.6 payload ~/recovery-p0/broker-v1.6-20261126T102928Z installer c92234a8..."
+        "stage3_prove": "PR #1792 merge 20a59719 (exact-head GREEN; real systemd: pinned Stage 3 tool runs as nexolab, STOP WRONG_NODE on runner; ACCEPTANCE_OK 1.6.0). Broker v1.6 payload ~/recovery-p0/broker-v1.6-20261126T102928Z installer c92234a8...",
+        "stage2_executed_2026_11_26": "Approved deploy.lan-frontend execute (2ad0636e): STAGE2_PREFLIGHT_PASS, STAGE2_FRONTEND_GREEN. LAN dashboard container, gateway 127.0.0.1 and 192.168.1.220, and Tailscale :8444 serve c5bb48a1/xRUAt2U9c3oug1ETWuLsT; /, /login, /live, /refrigeration 200; WebSocket upgrade via gateway 101; local login 401 for invalid credentials; telemetry continuous (lag ~0.1 s, 2 WS clients); 12 containers healthy. Authenticated browser login/Live Data/charts/photos: owner acceptance pending. Rollback: deploy.lan-frontend phase=rollback to 7db6e1a8/CWBs.",
+        "stage3_prove_2026_11_26": "Approved deploy.backend-loopback prove (f047fb9b): live plan matches (dual publish + bridge central-mqtt:1883, client ID preserved); stopped before Compose proof on UNACKNOWLEDGED_COMPAT_IP_REFERENCE CORS_ALLOWED_ORIGINS. Broker v1.7 (#1797) adds approval-bound retain_env."
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12394,7 +12396,7 @@
     {
       "issue": 1784,
       "title": "Tailscale :8443 private inspection origin returns 502 (stale staging target 127.0.0.1:3102)",
-      "lifecycle": "blocked",
+      "lifecycle": "ready",
       "priority": "medium",
       "scope": "Prepared owner fix: route :8443 / and /api through the LAN gateway 127.0.0.1:80 after Stage 2; /inspection-login unchanged; backup/verify/rollback runbook.",
       "depends_on": [
@@ -12409,7 +12411,8 @@
         "hardware_verified": false,
         "site_cutover": false,
         "site_acceptance": "after_stage2_execute",
-        "root_cause": "/ -> 127.0.0.1:3102 (unused protected candidate port; accepted 3100 retired); live 3104/3105 bundles compile the Funnel origin, so they are incompatible with the :8443 origin; /api shadows dashboard /api routes and depends on the compatibility address"
+        "root_cause": "/ -> 127.0.0.1:3102 (unused protected candidate port; accepted 3100 retired); live 3104/3105 bundles compile the Funnel origin, so they are incompatible with the :8443 origin; /api shadows dashboard /api routes and depends on the compatibility address",
+        "unblocked": "Stage 2 executed 2026-11-26; broker v1.7 network.tailscale-inspection-route apply/restore (#1797) awaits owner upgrade + approval"
       }
     },
     {
@@ -12459,6 +12462,57 @@
         "site_cutover": false,
         "site_acceptance": "owner_upgrade_pending",
         "merged": "PR #1790 merge 3471fcd6 (head 2bc41ed1, exact-head GREEN; real systemd ACCEPTANCE_OK 1.5.0, catalog reference skipped)"
+      }
+    },
+    {
+      "issue": 1794,
+      "title": "Development session memory stability: tmpfs charge, swap quota exhaustion, guard and consistent limits",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Root cause, read-only dev-resource-guard, rules, owner-approved TMPDIR and consistent persistent limits.",
+      "depends_on": [
+        1706
+      ],
+      "branch": "feat/1794-dev-memory-stability",
+      "permitted_paths": [
+        "scripts/dev-resource-guard.py",
+        "tests/test_ci_dev_resource_guard.py",
+        "docs/operations/dev-session-memory.md",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_limits_decision_pending",
+        "root_cause": "448 MB venv on tmpfs scratchpad charged as shmem filled the dev slice 512 MiB swap quota (536 MB) -> 2.28 M memory.high events; moved to ~/.cache: swap 536->87 MB, memory 905->748 MB, /tmp 517->69 MB",
+        "limits": "units: slice+service MemoryHigh 768M/Max 1280M/Swap 512M; runtime cgroup high 1152M (temporary, lost on reboot/daemon-reload)"
+      }
+    },
+    {
+      "issue": 1796,
+      "title": "Broker v1.7: approval-bound Stage 3 retain_env; approved Tailscale :8443 inspection route",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "retain_env=CORS_ALLOWED_ORIGINS for prove; network.tailscale-inspection-route apply/restore with backup, verify, auto-restore.",
+      "depends_on": [
+        1792,
+        1784
+      ],
+      "branch": "feat/1796-broker-v1-7",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "tests/test_ci_operator_broker.py",
+        ".github/workflows/operator-broker-install-acceptance.yml",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_upgrade_pending",
+        "merged": "PR #1797 merge 77673a1a (head 7e6685d1, exact-head GREEN incl. real systemd)",
+        "payload": "~/recovery-p0/broker-v1.7-20261126T110444Z installer 41a49d3b62263e2de7b7280012e5ead8c494d748394dadb2053ef847031bcfcc"
       }
     }
   ],
