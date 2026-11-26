@@ -829,7 +829,10 @@ export function useEnergyTelemetry({
       controller.signal,
       cadenceAuthority,
       pointsPerSeriesRef.current,
-      (raw) => rawCollected.push(...raw.filter(allowedEnergySample)),
+      // #1825: no argument spread — a page set can hold ~100 000 samples.
+      (raw) => {
+        for (const sample of raw) if (allowedEnergySample(sample)) rawCollected.push(sample);
+      },
       meters,
     )
       .then(({ samples, errors }) => {

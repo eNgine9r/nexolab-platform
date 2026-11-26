@@ -70,14 +70,26 @@ export class EnergyRawStatistics {
   append(rangeKey: string, samples: readonly TelemetrySample[]): void {
     const entry = this.entries.get(rangeKey);
     if (!entry) return;
+    // #1825: history pages arrive newest first. Inserting them one by one in that order put every
+    // older sample at index 0 of the sorted columns (O(n²) splices, seconds for a 7-day meter).
+    // Parse each timestamp once and append in ascending time order instead; the stable sort keeps
+    // the original first-seen order among equal timestamps, so duplicate handling is unchanged.
+    const rows: Array<{ columns: IntervalSampleColumns; timestampMs: number; value: number | null }> = [];
     for (const sample of samples) {
       const key = energyStatisticsKey(sample);
       if (!key || !entry.metrics.has(sample.metric)) continue;
-      const columns = entry.columns.get(key) ?? createIntervalSampleColumns();
-      entry.columns.set(key, columns);
+      let columns = entry.columns.get(key);
+      if (!columns) {
+        columns = createIntervalSampleColumns();
+        entry.columns.set(key, columns);
+      }
+      const timestampMs = Date.parse(sample.captured_at);
+      if (!Number.isFinite(timestampMs)) continue;
       const valid = sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
-      appendIntervalSample(columns, Date.parse(sample.captured_at), valid ? sample.value : null);
+      rows.push({ columns, timestampMs, value: valid ? sample.value : null });
     }
+    rows.sort((left, right) => left.timestampMs - right.timestampMs);
+    for (const row of rows) appendIntervalSample(row.columns, row.timestampMs, row.value);
   }
 
   prune(rangeKey: string, fromMs: number): void {

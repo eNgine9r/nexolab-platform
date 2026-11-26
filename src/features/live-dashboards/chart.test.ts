@@ -66,6 +66,50 @@ function series(sourceItem: LiveDashboardItem, history: TelemetrySample[]): Live
   return { item: sourceItem, latest: history.at(-1) ?? null, history };
 }
 
+describe("Saved Dashboard viewport detail survives chart reduction (#1821)", () => {
+  const probe = item("probe", 1, "T-1", "degC", "line", "#00C6E0");
+  // 240 full-day points (one per 6 min) plus 41 original 10 s measurements of a zoomed window.
+  const coarse = Array.from({ length: 240 }, (_, index) =>
+    sample(`c-${index}`, "T-1", "degC", index * 360_000, 4 + (index % 7) * 0.1),
+  );
+  const detailFrom = 120 * 360_000 + 1_000;
+  const detail = Array.from({ length: 41 }, (_, index) =>
+    sample(`d-${index}`, "T-1", "degC", detailFrom + index * 10_000, index === 20 ? 30 : 5),
+  );
+  const history = [
+    ...coarse.filter((point) => {
+      const offset = Date.parse(point.captured_at) - START;
+      return offset < detailFrom || offset > detailFrom + 400_000;
+    }),
+    ...detail,
+  ].sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at));
+  const xDomain = { fromMs: START + detailFrom, toMs: START + detailFrom + 400_000 };
+
+  function plotted(viewportDetail: boolean) {
+    const [group] = buildSavedDashboardChartGroups({
+      dashboardId: "dashboard-1",
+      series: [{ ...series(probe, history), continuityAnnotated: true, viewportDetail }],
+      status: "live",
+      xDomain,
+      pointsPerSeries: 240,
+    });
+    return group.scene.series[0].segments.flatMap((segment) => segment.points);
+  }
+
+  it("keeps every detail measurement and the peak when the series carries viewport detail", () => {
+    const points = plotted(true);
+    const inside = points.filter(
+      (point) => point.timestampMs >= xDomain.fromMs && point.timestampMs <= xDomain.toMs,
+    );
+    expect(inside).toHaveLength(41);
+    expect(inside.map((point) => point.value)).toContain(30);
+  });
+
+  it("keeps the configured budget for full-range history without detail", () => {
+    expect(plotted(false).length).toBeLessThanOrEqual(240);
+  });
+});
+
 describe("Saved Live Dashboard canonical chart mapping", () => {
   it("preserves persisted order and colors while grouping one equipment scene and excluding value/gauge", () => {
     const second = item("second", 2, "T-2", "degC", "area", "#123456");

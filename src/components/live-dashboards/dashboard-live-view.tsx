@@ -210,6 +210,12 @@ export function DashboardLiveView({
     [telemetry.historyWindow.from, telemetry.historyWindow.to],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
+  // #1821: a committed zoom/pan shows the original measurements of the visible window (raw
+  // columns in the browser, no request); the full range keeps its coarse points.
+  const setDetailViewport = telemetry.setDetailViewport;
+  useEffect(() => {
+    setDetailViewport?.(viewportDomain);
+  }, [setDetailViewport, viewportDomain]);
   const alertEvents = useDashboardAlertEvents({
     enabled: dashboard.items.length > 0,
     rangeKey: `${dashboard.id}:${telemetry.historyRange.kind}:${telemetry.historyRange.from}:${telemetry.historyRange.to}`,
@@ -761,20 +767,26 @@ export function DashboardLiveView({
         </section>
       ) : null}
 
-      {chartGroups.map((group) => (
-        <DashboardChartPanel
-          key={group.id}
-          group={group}
-          rangeLabel={telemetry.historyRange.label}
-          sharedCursorMs={sharedCursorMs}
-          resetDomain={resetDomain}
-          onSharedCursorChange={setSharedCursorMs}
-          onXDomainChange={(domain) => setViewportDomain(domain)}
-          onResetView={() => setViewportDomain(null)}
-          onToggleSeries={toggleSeries}
-          onSoloSeries={soloSeries}
-        />
-      ))}
+      <div
+        className="space-y-5"
+        data-testid="saved-dashboard-chart-workspace"
+        data-viewport-detail={telemetry.viewportDetailPoints ? `${telemetry.viewportDetailPoints}` : "none"}
+      >
+        {chartGroups.map((group) => (
+          <DashboardChartPanel
+            key={group.id}
+            group={group}
+            rangeLabel={telemetry.historyRange.label}
+            sharedCursorMs={sharedCursorMs}
+            resetDomain={resetDomain}
+            onSharedCursorChange={setSharedCursorMs}
+            onXDomainChange={(domain) => setViewportDomain(domain)}
+            onResetView={() => setViewportDomain(null)}
+            onToggleSeries={toggleSeries}
+            onSoloSeries={soloSeries}
+          />
+        ))}
+      </div>
 
       <DashboardIntervalStatistics
         rows={statisticsRows}
