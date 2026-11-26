@@ -785,6 +785,7 @@ export function useLiveDashboardTelemetry({
         latest: latest[key] ?? null,
         history: mergeSavedDashboardDetail(itemHistory, viewportDetail[key]),
         continuityAnnotated: true,
+        ...(viewportDetail[key] ? { viewportDetail: true } : {}),
       };
     });
   }, [dashboard, history, latest, viewportDetail]);

@@ -179,4 +179,6 @@ export interface LiveDashboardSeries {
    * The chart must then not re-derive a gap tolerance from the (minutes apart) reduced points.
    */
   continuityAnnotated?: boolean;
+  /** #1821: the history includes viewport detail (original measurements of a zoomed window). */
+  viewportDetail?: boolean;
 }

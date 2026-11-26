@@ -4,6 +4,7 @@ import {
   buildChartYAxisModel,
   chartSeriesKey,
   partitionChartSeriesByAxisBudget,
+  chartPointBudget,
   reduceChartSegmentsToPointBudget,
   type ChartFreshnessState,
   type ChartPhysicalQuantity,
@@ -173,6 +174,18 @@ function reduceTruthfully(
   return reduceChartSegmentsToPointBudget(segments, "saved-dashboard", { maximumPoints });
 }
 
+/**
+ * #1821: with viewport detail, the hook's history holds full-range points plus the zoomed window's
+ * original measurements, each within its own budget. Reducing that again over the whole span would
+ * discard the detail, so the chart-level reduction then only bounds both together.
+ */
+const ANNOTATED_HISTORY_BUDGET_FACTOR = 3;
+
+function chartBudget(source: LiveDashboardSeries, pointsPerSeries: number | undefined): number | undefined {
+  if (!source.continuityAnnotated || !source.viewportDetail) return pointsPerSeries;
+  return (pointsPerSeries ?? chartPointBudget("saved-dashboard")) * ANNOTATED_HISTORY_BUDGET_FACTOR;
+}
+
 function buildSeries(
   dashboardId: string,
   source: LiveDashboardSeries,
@@ -234,7 +247,7 @@ function buildSeries(
           perSeries.now ?? Date.now(),
         )
       : { freshness: savedDashboardChartFreshness(status) }),
-    segments: reduceTruthfully(segments, perSeries?.pointsPerSeries),
+    segments: reduceTruthfully(segments, chartBudget(source, perSeries?.pointsPerSeries)),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
     ...(identity.nativeUnit === "°C" && source.item.equipment_id === "EMBRACO-2"
