@@ -469,6 +469,13 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private renderedSignature: string | null = null;
   private zoomCommitTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingZoomDomain: ChartRendererScene["xDomain"] | null = null;
+  private programmaticZoom = false;
+
+  private cancelPendingZoomCommit(): void {
+    if (this.zoomCommitTimer !== null) clearTimeout(this.zoomCommitTimer);
+    this.zoomCommitTimer = null;
+    this.pendingZoomDomain = null;
+  }
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
@@ -709,6 +716,15 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       // domain callback until release avoids feeding each intermediate percentage range back
       // through a newly narrowed x-axis, which would otherwise make the visible span drift.
       this.pendingPrimaryDragDomain = domain;
+      // A pan that takes over from a wheel zoom supersedes its pending commit.
+      this.cancelPendingZoomCommit();
+      return;
+    }
+    if (this.programmaticZoom) {
+      // resetZoom(): keep the synchronous commit so the caller's follow-up (e.g. return to Live)
+      // runs after it and is not overwritten by a delayed commit.
+      this.cancelPendingZoomCommit();
+      this.options?.onXDomainChange(domain);
       return;
     }
     // #1810: ECharts already shows the zoomed window. Commit it to the React viewport once the
@@ -843,7 +859,13 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   }
 
   resetZoom(): void {
-    this.instance?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+    this.programmaticZoom = true;
+    try {
+      this.instance?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+    } finally {
+      this.programmaticZoom = false;
+    }
+    this.cancelPendingZoomCommit();
   }
 
   /**
@@ -885,9 +907,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
     this.cancelPendingCursor();
-    if (this.zoomCommitTimer !== null) clearTimeout(this.zoomCommitTimer);
-    this.zoomCommitTimer = null;
-    this.pendingZoomDomain = null;
+    this.cancelPendingZoomCommit();
     this.renderedSignature = null;
     this.lastCommittedCursorTimestampMs = undefined;
     this.primaryDragActive = false;

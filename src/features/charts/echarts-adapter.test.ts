@@ -832,4 +832,44 @@ describe("ECharts renderer adapter lifecycle", () => {
     pinned!.pinReasons = pinned!.pinReasons!.map(() => "alarm" as const);
     expect(sceneDataSignature(changed)).not.toBe(sceneDataSignature(scene));
   });
+
+  it("commits a programmatic reset synchronously and lets a pan supersede a pending wheel commit (#1810)", async () => {
+    const instance = new FakeEChartsInstance();
+    const onXDomainChange = vi.fn();
+    // The real runtime emits dataZoom synchronously from dispatchAction.
+    instance.dispatchAction = (action: object) => {
+      instance.actions.push(action);
+      if ((action as { type?: string }).type === "dataZoom") instance.handlers.get("dataZoom")?.(action);
+    };
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+
+    instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    adapter.resetZoom();
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    expect(onXDomainChange).toHaveBeenLastCalledWith(scene.xDomain);
+    await waitForZoomCommit();
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+
+    instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
+    instance.handlers.get("dataZoom")?.({ start: 20, end: 100 });
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    await waitForZoomCommit();
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.2,
+      toMs: scene.xDomain.toMs,
+    });
+    adapter.dispose();
+  });
 });
