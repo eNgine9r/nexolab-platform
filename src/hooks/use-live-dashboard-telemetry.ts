@@ -394,6 +394,12 @@ export function useLiveDashboardTelemetry({
         return entry ? tailSourceGapMs(entry[0]) : undefined;
       },
       controller.signal,
+      Date.now(),
+      // The loaded window bounds the request (a wide zoom plus margin could exceed 31 d, HTTP 422).
+      {
+        fromMs: historyWindowRef.current.from.getTime(),
+        toMs: Math.max(historyWindowRef.current.to.getTime(), Date.now()),
+      },
     )
       .then((detail) => {
         if (controller.signal.aborted) return;

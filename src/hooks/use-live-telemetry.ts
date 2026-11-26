@@ -537,6 +537,14 @@ export function useLiveTelemetry({
         budget,
         sourceGapMsFor,
         controller.signal,
+        Date.now(),
+        // The loaded window bounds the request (a wide zoom plus margin could exceed 31 d, HTTP 422).
+        historyWindowRef.current
+          ? {
+              fromMs: historyWindowRef.current.from.getTime(),
+              toMs: Math.max(historyWindowRef.current.to.getTime(), Date.now()),
+            }
+          : undefined,
       )
         .then((detail) => {
           if (controller.signal.aborted) return;
