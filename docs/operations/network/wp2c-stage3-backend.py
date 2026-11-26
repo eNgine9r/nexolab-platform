@@ -1,46 +1,56 @@
 #!/usr/bin/env python3
-"""WP2c Stage 3 (#1734): backend publishes on loopback, Edge bridge over Docker DNS, owner-run.
+"""WP2c Stage 3 (#1734): backend on loopback, Edge bridge over Docker DNS, owner-run.
 
-Runs on the production host as the operator account (docker group, never root).
-It recreates exactly five Compose services, each derived from ``docker inspect``
-(they belong to different Compose projects and configuration paths), in this order:
+Runs on the production host as the operator account (docker group, never root),
+strictly AFTER Stage 2 (same-origin LAN dashboard) is live. Every service is
+derived from ``docker inspect`` (they belong to different Compose projects and
+configuration paths). Two phases, each with its own fidelity proof and rollback:
 
-  central MQTT -> telemetry-service (readiness) -> MinIO -> dashboard -> Edge MQTT
+  switch (mode execute), order
+      central MQTT -> telemetry-service (readiness) -> MinIO -> dashboard -> Edge MQTT
+    * ADD a 127.0.0.1 publish next to every publish on the compatibility address
+      (default 172.18.48.66; same container port, same host port, dashboard host
+      port --dashboard-host-port). The compatibility publishes stay, so tailscale
+      serve, the LAN gateway and every other consumer keep working;
+    * Edge MQTT CENTRAL_MQTT_HOST=central-mqtt (the alias unique to the central
+      broker on nexolab-standalone-runtime; ``mqtt`` is carried by BOTH brokers
+      there) and CENTRAL_MQTT_PORT=1883. CENTRAL_BRIDGE_CLIENT_ID is preserved.
 
-The only intended changes are:
-
-  * host publishes on the compatibility address (default 172.18.48.66) move to
-    127.0.0.1 with the same ports (dashboard host port: --dashboard-host-port);
-  * telemetry-service OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = --object-storage-public-url;
-  * Edge MQTT CENTRAL_MQTT_HOST=central-mqtt (the alias unique to the central
-    broker on nexolab-standalone-runtime; ``mqtt`` is carried by BOTH brokers
-    there) and CENTRAL_MQTT_PORT=1883. CENTRAL_BRIDGE_CLIENT_ID is preserved.
+  drop-compat (Phase 4, mode drop-compat), order
+      central MQTT -> telemetry-service -> MinIO -> dashboard
+    * REMOVE the compatibility publishes (the loopback ones must exist);
+    * telemetry-service OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = --object-storage-public-url.
+    Refused unless the owner states --consumers-retargeted (tailscale serve, the
+    LAN gateway and the HTTPS private origin no longer use the compatibility
+    address; the tool cannot read their configuration as non-root).
 
 Image IDs, volumes and mounts, networks and aliases, labels, restart policy,
 healthcheck, user, command, entrypoint and every other environment entry stay
 identical. The tool never runs ``down``, ``-v``, ``rm``, ``prune``,
 ``--remove-orphans``, never creates or removes volumes or networks and never
-touches the Device Agent, serial devices or Modbus.
+touches the Device Agent, PostgreSQL, serial devices or Modbus.
 
 Modes:
 
-  plan     read-only change set from ``docker inspect`` (or --from-model JSON for
-           offline review), alias hazards, retained compatibility-address
-           references and the external consumers that remain an owner step.
-  check    read-only preflight: lock, non-root, node, 20 GiB reserve, a fresh
-           backup receipt (#1428), every container healthy, readiness, Docker DNS
-           of the bridge host from the Edge broker, compose models derivable.
-  execute  check, then write candidate + rollback Compose per service (0600 in a
-           0700 run directory), prove both with a daemon-free ``docker compose
-           config`` comparison, then switch in order with per-service
-           verification; any failure rolls back every attempted service in
-           reverse order and verifies. Finally telemetry continuity: readiness
-           ``last_persisted_at`` must advance within --continuity-seconds.
-  rollback explicit verified rollback from the recorded rollback Compose files.
+  plan         read-only change set (--phase switch|drop-compat) from ``docker
+               inspect`` (or --from-model JSON for offline review), alias hazards,
+               retained compatibility-address references and external consumers.
+  check        read-only preflight for --phase: lock, non-root, node, 20 GiB, a
+               fresh backup receipt (#1428), Stage 2 active (dashboard build is
+               not --pre-stage2-build), every container healthy, readiness,
+               exclusive aliases, Docker DNS of the bridge host from the Edge broker.
+  execute      the switch phase; drop-compat: the Phase 4 phase. Both run check,
+               write candidate + rollback Compose per service (0600 in a 0700 run
+               directory), prove both with a daemon-free ``docker compose config``
+               comparison and recreate in order with per-service verification; any
+               failure rolls back every attempted service in reverse order and
+               verifies. Finally readiness ``last_persisted_at`` must advance
+               within --continuity-seconds.
+  rollback     explicit verified rollback of the latest (or --run) run.
 
-Markers: STAGE3_BACKEND_GREEN (0), STAGE3_ROLLED_BACK_VERIFIED (3 after a failed
-switch, 0 for an explicit rollback), HARD_BLOCKER_ROLLBACK_UNVERIFIED (4),
-STOP <reason> (2, nothing switched).
+Markers: STAGE3_BACKEND_GREEN / STAGE3_DROP_COMPAT_GREEN (0),
+STAGE3_ROLLED_BACK_VERIFIED (3 after a failed switch, 0 for an explicit rollback),
+HARD_BLOCKER_ROLLBACK_UNVERIFIED (4), STOP <reason> (2, nothing switched).
 """
 from __future__ import annotations
 
@@ -78,6 +88,9 @@ GIB = 1024**3
 DEFAULT_SHM = 64 * 1024 * 1024
 POLL_SECONDS = 1.0
 WORK_PACKAGE = "1734-wp2c-stage3"
+PRE_STAGE2_BUILD = "CWBsCWWebOZGHa5YyWp18"
+AGENT_CONTAINER = "nexolab-edge-device-agent-1"
+AGENT_ALIAS = "edge-device-agent"
 
 
 class Spec(NamedTuple):
@@ -97,6 +110,8 @@ SERVICES = (
 BY_KEY = {spec.key: spec for spec in SERVICES}
 TELEMETRY, CENTRAL_MQTT, EDGE_MQTT, DASHBOARD = (BY_KEY["telemetry-service"], BY_KEY["central-mqtt"],
                                                   BY_KEY["edge-mqtt"], BY_KEY["dashboard"])
+PHASE_SERVICES = {"switch": SERVICES, "drop-compat": tuple(s for s in SERVICES if s.key != EDGE_MQTT.key)}
+GREEN_MARKER = {"switch": "STAGE3_BACKEND_GREEN", "drop-compat": "STAGE3_DROP_COMPAT_GREEN"}
 
 ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ALIAS = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
@@ -267,7 +282,10 @@ def bindings(container: dict) -> list[tuple[str, str, str]]:
 
 
 def local_url(container: dict) -> str:
+    """The loopback publish when present (after the switch), otherwise the single publish."""
     entries = bindings(container)
+    loop = [e for e in entries if e[1] == LOOPBACK]
+    entries = loop or entries
     need(len(entries) == 1, f"EXPECTED_ONE_PORT_BINDING {container.get('Name')} {entries}")
     _, host, port = entries[0]
     host = LOOPBACK if host in ("", "0.0.0.0") else host
@@ -347,6 +365,7 @@ def view_from_inspect(container: dict) -> dict:
         "image_id": container.get("Image"), "env": list(cfg.get("Env") or []), "ports": host.get("PortBindings") or {},
         "networks": {n: sorted(set((e or {}).get("Aliases") or []) | set((e or {}).get("DNSNames") or []))
                      for n, e in networks.items()},
+        "running": bool((container.get("State") or {}).get("Running")),
         "redacted": False,
     }
 
@@ -356,6 +375,7 @@ def view_from_model(item: dict) -> dict:
         "name": item["name"], "labels": item.get("labels") or {}, "image": item.get("image"), "image_id": item.get("image_id"),
         "env": list(item.get("env") or []), "ports": item.get("port_bindings") or {},
         "networks": {n: sorted((e or {}).get("aliases") or []) for n, e in (item.get("networks") or {}).items()},
+        "running": None,  # a sanitized model does not prove the running state
         "redacted": True,
     }
 
@@ -382,28 +402,47 @@ def service_delta(spec: Spec, view: dict, args: argparse.Namespace) -> dict:
     need(view["name"] == spec.container == f"{spec.project}-{spec.service}-1", "UNEXPECTED_CONTAINER_NAME " + view["name"])
     ports = []
     for cport, items in sorted(view["ports"].items()):
-        for binding in items or []:
-            hip, hport = binding.get("HostIp") or "", binding.get("HostPort") or ""
+        pairs = [(b.get("HostIp") or "", b.get("HostPort") or "") for b in items or []]
+        for hip, hport in pairs:
             need(hport, f"PORT_BINDING_WITHOUT_HOST_PORT {spec.container} {cport}")
-            if hip == args.compat_ip:
-                target = str(args.dashboard_host_port) if spec.key == DASHBOARD.key else hport
-                ports.append({"container_port": cport, "from": [hip, hport], "to": [LOOPBACK, target]})
-            else:
-                need(hip == LOOPBACK, f"UNEXPECTED_PUBLISH_ADDRESS {spec.container} {cport} {hip or '0.0.0.0'}:{hport}")
+            need(hip in (args.compat_ip, LOOPBACK),
+                 f"UNEXPECTED_PUBLISH_ADDRESS {spec.container} {cport} {hip or '0.0.0.0'}:{hport}")
+        compat = [p for p in pairs if p[0] == args.compat_ip]
+        loop = [p for p in pairs if p[0] == LOOPBACK]
+        need(len(compat) <= 1 and len(loop) <= 1, f"UNEXPECTED_PUBLISH_SET {spec.container} {cport} {pairs}")
+        if not compat:
+            continue
+        target = str(args.dashboard_host_port) if spec.key == DASHBOARD.key else compat[0][1]
+        if args.phase == "switch":
+            if loop:  # already switched: no change (a blocker for execute)
+                need(loop[0][1] == target, f"LOOPBACK_BINDING_UNEXPECTED {spec.container} {cport} {loop[0][1]}")
+                continue
+            ports.append({"container_port": cport, "action": "add", "binding": [LOOPBACK, target],
+                          "keep": list(compat[0])})
+        else:
+            need(loop, f"LOOPBACK_BINDING_MISSING {spec.container} {cport} (run execute, the switch phase, first)")
+            ports.append({"container_port": cport, "action": "remove", "binding": list(compat[0]),
+                          "keep": list(loop[0])})
     env = env_map(view["env"]) if not view["redacted"] else dict(item.partition("=")[::2] for item in view["env"])
     wanted: dict[str, str] = {}
-    if spec.key == TELEMETRY.key:
-        wanted[OBJECT_URL_ENV] = args.object_storage_public_url
     if spec.key == EDGE_MQTT.key:
-        wanted[BRIDGE_HOST_ENV] = args.bridge_host
-        wanted[BRIDGE_PORT_ENV] = str(args.bridge_port)
         need(env.get(BRIDGE_CLIENT_ENV) and env[BRIDGE_CLIENT_ENV] not in ("<set>", "[REDACTED]"), "BRIDGE_CLIENT_ID_MISSING")
+        bridge = {BRIDGE_HOST_ENV: args.bridge_host, BRIDGE_PORT_ENV: str(args.bridge_port)}
+        if args.phase == "switch":
+            wanted.update(bridge)
+        else:
+            need(all(env.get(k) == v for k, v in bridge.items()),
+                 f"EDGE_BRIDGE_NOT_SWITCHED {env.get(BRIDGE_HOST_ENV)}:{env.get(BRIDGE_PORT_ENV)} (run execute first)")
+    if spec.key == TELEMETRY.key and args.phase == "drop-compat":
+        wanted[OBJECT_URL_ENV] = args.object_storage_public_url
     changes = {}
     for key, value in wanted.items():
         need(key in env, f"ENV_KEY_MISSING {spec.container} {key}")
         if env[key] != value:
             changes[key] = [env[key], value]
-    retained = sorted(k for k, v in env.items() if k not in wanted and args.compat_ip in v)
+    # OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is owned by drop-compat; it stays valid while the compat publish exists.
+    handled = set(wanted) | ({OBJECT_URL_ENV} if spec.key == TELEMETRY.key else set())
+    retained = sorted(k for k, v in env.items() if k not in handled and args.compat_ip in v)
     preserved = {BRIDGE_CLIENT_ENV: env[BRIDGE_CLIENT_ENV]} if spec.key == EDGE_MQTT.key else {}
     return {"key": spec.key, "container": spec.container, "project": spec.project, "service": spec.service,
             "image_id": view["image_id"], "ports": ports, "env": changes, "preserved": preserved,
@@ -424,8 +463,20 @@ def alias_analysis(views: dict[str, dict], args: argparse.Namespace) -> dict:
             key, _, value = item.partition("=")
             if key.endswith("_HOST") and value in ambiguous:
                 consumers.append(f"{name} {key}={value}")
+    # Aliases that must resolve to exactly one container: another RUNNING carrier is a blocker;
+    # a carrier whose running state is unknown (offline model) is reported as unproven.
+    intruders, unproven = [], []
+    for alias, owner in ((args.bridge_host, CENTRAL_MQTT.container), (AGENT_ALIAS, AGENT_CONTAINER)):
+        for name in carriers.get(alias, []):
+            if name == owner:
+                continue
+            if views[name].get("running"):
+                intruders.append(f"{alias}:{name}")
+            elif views[name].get("running") is None:
+                unproven.append(f"{alias}:{name}")
     return {"bridge_host_carriers": carriers.get(args.bridge_host, []), "ambiguous_aliases": ambiguous,
-            "ambiguous_consumers": consumers}
+            "ambiguous_consumers": consumers, "exclusive_alias_intruders": intruders,
+            "exclusive_alias_unproven": unproven}
 
 
 def external_consumers(args: argparse.Namespace) -> list[str]:
@@ -435,46 +486,56 @@ def external_consumers(args: argparse.Namespace) -> list[str]:
         f"tailscale serve :8444 -> http://{ip}:3000: retarget to http://127.0.0.1:{port} or the LAN gateway",
         "nexolab-lan-gateway (port 80): upstreams to loopback, then remove the temporary compatibility allow flag",
         "HTTPS external UI private_api_origin: http://127.0.0.1:8082",
-        "nexolab-compat-address.service (nxcompat0): keep until Phase 4, then retire",
+        "nexolab-compat-address.service (nxcompat0): retire only after drop-compat is green (Phase 4)",
         f"Compose files of record still name {ip}; a later 'up' from them reverts this stage (update the catalog separately)",
-        "wp2c-stage2-frontend.py rollback.compose.yaml was recorded before Stage 3 and republishes the dashboard on the "
-        "compatibility address",
+        "wp2c-stage2-frontend.py rollback.compose.yaml was recorded before Stage 3 and publishes the dashboard on the "
+        "compatibility address only",
     ]
 
 
 def build_plan(views: dict[str, dict], args: argparse.Namespace) -> dict:
-    services = []
+    deltas = []
     for spec in SERVICES:
         need(spec.container in views, "CONTAINER_NOT_FOUND " + spec.container)
-        services.append(service_delta(spec, views[spec.container], args))
+        deltas.append(service_delta(spec, views[spec.container], args))
+    keys = {spec.key for spec in PHASE_SERVICES[args.phase]}
+    services = [d for d in deltas if d["key"] in keys]
     aliases = alias_analysis(views, args)
     blockers = []
-    if aliases["bridge_host_carriers"] != [CENTRAL_MQTT.container]:
-        blockers.append(f"BRIDGE_HOST_NOT_UNIQUE_TO_CENTRAL_MQTT {args.bridge_host} carriers={aliases['bridge_host_carriers']}")
+    if CENTRAL_MQTT.container not in aliases["bridge_host_carriers"]:
+        blockers.append(f"BRIDGE_HOST_NOT_ON_CENTRAL_MQTT {args.bridge_host}")
+    if aliases["exclusive_alias_intruders"]:
+        blockers.append("EXCLUSIVE_ALIAS_CARRIED_BY_OTHER_RUNNING_CONTAINER "
+                        + ", ".join(aliases["exclusive_alias_intruders"]))
+    bridge_unproven = [u for u in aliases["exclusive_alias_unproven"] if u.startswith(args.bridge_host + ":")]
+    if bridge_unproven:
+        blockers.append("BRIDGE_HOST_NOT_UNIQUE_TO_CENTRAL_MQTT " + ", ".join(bridge_unproven))
     for spec in (CENTRAL_MQTT, EDGE_MQTT):
         if args.shared_network not in views[spec.container]["networks"]:
             blockers.append(f"NOT_ON_SHARED_NETWORK {spec.container} {args.shared_network}")
-    central_ports = {cport for cport, _ in views[CENTRAL_MQTT.container]["ports"].items()}
+    central_ports = set(views[CENTRAL_MQTT.container]["ports"])
     if central_ports != {f"{args.bridge_port}/tcp"}:
         blockers.append(f"BRIDGE_PORT_NOT_CENTRAL_CONTAINER_PORT {args.bridge_port} central={sorted(central_ports)}")
-    unacknowledged = [f"{s['container']} {k}" for s in services for k in s["retained_compat_env"] if k not in args.retain_env]
-    for spec_delta in services:
-        if not spec_delta["ports"] and not spec_delta["env"]:
-            blockers.append("SERVICE_ALREADY_SWITCHED_OR_UNEXPECTED " + spec_delta["key"])
+    unacknowledged = [f"{d['container']} {k}" for d in deltas for k in d["retained_compat_env"] if k not in args.retain_env]
+    for delta in services:
+        if not delta["ports"] and not delta["env"]:
+            blockers.append(f"SERVICE_ALREADY_SWITCHED_OR_UNEXPECTED {delta['key']} (phase {args.phase})")
     if unacknowledged:
         blockers.append("UNACKNOWLEDGED_COMPAT_IP_REFERENCE " + ", ".join(unacknowledged) + " (review; --retain-env KEY)")
-    return {"compat_ip": args.compat_ip, "order": [s.key for s in SERVICES], "services": services,
-            "aliases": aliases, "external_consumers": external_consumers(args), "blockers": blockers,
-            "env_values_redacted": any(v["redacted"] for v in views.values())}
+    return {"phase": args.phase, "compat_ip": args.compat_ip, "order": [s.key for s in PHASE_SERVICES[args.phase]],
+            "services": services, "aliases": aliases, "external_consumers": external_consumers(args),
+            "blockers": blockers, "env_values_redacted": any(v["redacted"] for v in views.values())}
 
 
 def print_plan(plan: dict) -> None:
-    print(f"STAGE3_PLAN compat_ip={plan['compat_ip']} order={' -> '.join(plan['order'])}", flush=True)
+    print(f"STAGE3_PLAN phase={plan['phase']} compat_ip={plan['compat_ip']} order={' -> '.join(plan['order'])}",
+          flush=True)
     for index, item in enumerate(plan["services"], 1):
         print(f"[{index}] {item['key']}: {item['container']} (project {item['project']}, service {item['service']}, "
               f"image {item['image_id']})")
         for port in item["ports"]:
-            print(f"    publish {port['container_port']}: {':'.join(port['from'])} -> {':'.join(port['to'])}")
+            print(f"    publish {port['container_port']}: {port['action']} {':'.join(port['binding'])} "
+                  f"(keep {':'.join(port['keep'])})")
         for key, (old, new) in sorted(item["env"].items()):
             print(f"    env {key}: {old} -> {new}")
         for key, value in item["preserved"].items():
@@ -487,10 +548,17 @@ def print_plan(plan: dict) -> None:
         print(f"HAZARD alias '{alias}' on the shared network is carried by {', '.join(names)}")
     for consumer in plan["aliases"]["ambiguous_consumers"]:
         print(f"HAZARD ambiguous-alias consumer (unchanged by Stage 3): {consumer}")
+    for item in plan["aliases"]["exclusive_alias_unproven"]:
+        print(f"HAZARD exclusive alias also carried by a container of unknown running state: {item}")
     print(f"BRIDGE_HOST_CARRIERS {plan['aliases']['bridge_host_carriers']}")
     if plan["env_values_redacted"]:
-        print("NOTE offline model: secret env values are redacted; retained references can only be proven from docker inspect")
-    print("EXTERNAL consumers (NOT changed by this tool; separate owner step right after a green switch):")
+        print("NOTE offline model: secret env values are redacted; retained references can only be proven from "
+              "docker inspect")
+    if plan["phase"] == "switch":
+        print("EXTERNAL consumers keep working through the compatibility address (dual publish); retarget them to "
+              "loopback before drop-compat (owner step, NOT changed by this tool):")
+    else:
+        print("EXTERNAL consumers must already be retargeted (drop-compat requires --consumers-retargeted):")
     for line in plan["external_consumers"]:
         print("  - " + line)
     for blocker in plan["blockers"]:
@@ -660,10 +728,13 @@ def candidate_document(document: dict, spec: Spec, delta: dict) -> dict:
     cand = copy.deepcopy(document)
     svc = cand["services"][spec.service]
     for port in delta["ports"]:
-        old = f"{port['from'][0]}:{port['from'][1]}:{port['container_port']}"
-        new = f"{port['to'][0]}:{port['to'][1]}:{port['container_port']}"
-        need(svc["ports"].count(old) == 1, f"PORT_DELTA_NOT_APPLICABLE {spec.key} {old}")
-        svc["ports"][svc["ports"].index(old)] = new
+        entry = f"{port['binding'][0]}:{port['binding'][1]}:{port['container_port']}"
+        if port["action"] == "add":
+            need(entry not in svc["ports"], f"PORT_DELTA_NOT_APPLICABLE {spec.key} {entry}")
+            svc["ports"].append(entry)
+        else:
+            need(svc["ports"].count(entry) == 1, f"PORT_DELTA_NOT_APPLICABLE {spec.key} {entry}")
+            svc["ports"].remove(entry)
     for key, (old, new) in delta["env"].items():
         entry = f"{key}={old}"
         need(svc["environment"].count(entry) == 1, f"ENV_DELTA_NOT_APPLICABLE {spec.key} {key}")
@@ -690,9 +761,7 @@ def model_changes(rollback: dict, candidate: dict, spec: Spec) -> list[str]:
 
 def expected_model_changes(spec: Spec, delta: dict) -> list[str]:
     out = [f"environment.{k}" for k in sorted(delta["env"])]
-    for port in delta["ports"]:
-        out.append(f"ports:{port['from'][0]}:{port['from'][1]}:{port['container_port']}")
-        out.append(f"ports:{port['to'][0]}:{port['to'][1]}:{port['container_port']}")
+    out += [f"ports:{p['binding'][0]}:{p['binding'][1]}:{p['container_port']}" for p in delta["ports"]]
     return sorted(out)
 
 
@@ -776,20 +845,31 @@ def effective(container: dict) -> dict:
         "labels": {k: v for k, v in (cfg.get("Labels") or {}).items() if not k.startswith("com.docker.compose.")},
         "networks": {n: sorted(set((e or {}).get("Aliases") or []) - auto) for n, e in sorted(networks.items())},
         "mounts": mounts,
-        "host_config": _norm({k: host.get(k) for k in HOSTCONFIG_COMPARE}),
+        "host_config": _norm({k: sorted_bindings(host.get(k)) if k == "PortBindings" else host.get(k)
+                              for k in HOSTCONFIG_COMPARE}),
     }
+
+
+def sorted_bindings(port_bindings: dict | None) -> dict:
+    return {cport: sorted(items or [], key=lambda b: (b.get("HostIp") or "", b.get("HostPort") or ""))
+            for cport, items in (port_bindings or {}).items()}
 
 
 def expected_candidate(baseline: dict, delta: dict) -> dict:
     exp = copy.deepcopy(baseline)
     for key, (_, new) in delta["env"].items():
         exp["env"][key] = digest(new)
-    port_bindings = exp["host_config"].get("PortBindings") or {}
+    port_bindings = exp["host_config"].setdefault("PortBindings", {})
     for port in delta["ports"]:
-        items = port_bindings.get(port["container_port"]) or []
-        old = {"HostIp": port["from"][0], "HostPort": port["from"][1]}
-        need(old in items, f"PORT_DELTA_NOT_IN_BASELINE {port}")
-        items[items.index(old)] = {"HostIp": port["to"][0], "HostPort": port["to"][1]}
+        items = port_bindings.setdefault(port["container_port"], [])
+        binding = {"HostIp": port["binding"][0], "HostPort": port["binding"][1]}
+        if port["action"] == "add":
+            need(binding not in items, f"PORT_DELTA_ALREADY_IN_BASELINE {port}")
+            items.append(binding)
+        else:
+            need(binding in items, f"PORT_DELTA_NOT_IN_BASELINE {port}")
+            items.remove(binding)
+    exp["host_config"]["PortBindings"] = sorted_bindings(port_bindings)
     return exp
 
 
@@ -874,20 +954,32 @@ def config_vs_container(config: dict, document: dict, container: dict, image: di
     return diffs
 
 
-def config_with_deltas(config: dict, spec: Spec, delta: dict) -> dict:
-    exp = copy.deepcopy(config)
+def config_ports(svc: dict) -> list[tuple[str, str, str, str]]:
+    return sorted((str(p.get("target")), p.get("protocol") or "tcp", p.get("host_ip") or "",
+                   str(p.get("published") or "")) for p in svc.get("ports") or [])
+
+
+def candidate_config_matches(rollback: dict, candidate: dict, spec: Spec, delta: dict) -> bool:
+    """The rendered candidate equals the rendered rollback plus exactly the intended deltas."""
+    exp, act = copy.deepcopy(rollback), copy.deepcopy(candidate)
     svc = exp["services"][spec.service]
     for key, (_, new) in delta["env"].items():
         svc["environment"][key] = new
+    ports = config_ports(svc)
     for port in delta["ports"]:
         target, _, proto = port["container_port"].partition("/")
-        hits = [p for p in svc.get("ports") or []
-                if (str(p.get("target")), p.get("protocol") or "tcp", p.get("host_ip") or "", str(p.get("published")))
-                == (target, proto or "tcp", port["from"][0], port["from"][1])]
-        need(len(hits) == 1, f"CONFIG_PORT_DELTA_NOT_APPLICABLE {spec.key} {port['container_port']}")
-        hits[0]["host_ip"] = port["to"][0]
-        hits[0]["published"] = port["to"][1] if isinstance(hits[0].get("published"), str) else int(port["to"][1])
-    return exp
+        entry = (target, proto or "tcp", port["binding"][0], port["binding"][1])
+        if port["action"] == "add":
+            need(entry not in ports, f"CONFIG_PORT_DELTA_NOT_APPLICABLE {spec.key} {entry}")
+            ports.append(entry)
+        else:
+            need(entry in ports, f"CONFIG_PORT_DELTA_NOT_APPLICABLE {spec.key} {entry}")
+            ports.remove(entry)
+    svc["ports"] = sorted(ports)
+    act_svc = (act.get("services") or {}).get(spec.service)
+    need(isinstance(act_svc, dict), f"COMPOSE_CONFIG_SERVICE_MISSING {spec.key}")
+    act_svc["ports"] = config_ports(act_svc)
+    return exp == act
 
 
 # ---------------------------------------------------------------- guards
@@ -991,7 +1083,8 @@ def live_state(args: argparse.Namespace) -> dict:
             views[name] = view_from_inspect(inspect(cid))
     plan = build_plan(views, args)
     models = {}
-    for spec, delta in zip(SERVICES, plan["services"]):
+    for delta in plan["services"]:
+        spec = BY_KEY[delta["key"]]
         rollback = service_model(containers[spec.key], images[spec.key], args.compat_ip)
         candidate = candidate_document(rollback, spec, delta)
         changes = sorted(model_changes(rollback, candidate, spec))
@@ -1003,11 +1096,23 @@ def live_state(args: argparse.Namespace) -> dict:
             "central_shared_ip": endpoint.get("IPAddress") or ""}
 
 
+def phase_inputs(args: argparse.Namespace) -> None:
+    validate_bridge_host(args.bridge_host)
+    if args.phase == "drop-compat":
+        validate_object_url(args.object_storage_public_url, args.compat_ip)
+    else:
+        need(not args.object_storage_public_url,
+             "OBJECT_STORAGE_PUBLIC_URL_IS_DROP_COMPAT_ONLY (the switch keeps the current value while dual-publishing)")
+
+
 def preflight(args: argparse.Namespace) -> dict:
     identity_checks(args)
     disk_check(args)
-    validate_bridge_host(args.bridge_host)
-    validate_object_url(args.object_storage_public_url, args.compat_ip)
+    phase_inputs(args)
+    if args.phase == "drop-compat":
+        need(args.consumers_retargeted,
+             "CONSUMERS_NOT_RETARGETED (retarget tailscale serve, the LAN gateway upstreams and the HTTPS private origin "
+             "to loopback, then pass --consumers-retargeted)")
     receipt = verify_backup_receipt(args)
     print(f"BACKUP_RECEIPT_OK status={receipt['status']} age_hours={receipt['age_hours']} sha256={receipt['sha256'][:16]}",
           flush=True)
@@ -1020,12 +1125,15 @@ def preflight(args: argparse.Namespace) -> dict:
     untouched = snapshots(args.untouched)
     for delta in state["plan"]["services"]:
         for port in delta["ports"]:
-            need(loopback_port_free(int(port["to"][1])), f"LOOPBACK_PORT_IN_USE {port['to'][1]} ({delta['key']})")
+            if port["action"] == "add":
+                need(loopback_port_free(int(port["binding"][1])), f"LOOPBACK_PORT_IN_USE {port['binding'][1]} ({delta['key']})")
     need(state["central_shared_ip"], "CENTRAL_MQTT_SHARED_NETWORK_IP_UNKNOWN")
     dns_probe(EDGE_MQTT.container, args.bridge_host, state["central_shared_ip"])
     print(f"BRIDGE_DNS_OK {args.bridge_host} -> {state['central_shared_ip']} from {EDGE_MQTT.container}", flush=True)
     ready = readiness()
     dash = dashboard_identity(state["containers"][DASHBOARD.key])
+    need(dash.get("build_id") and dash["build_id"] != args.pre_stage2_build,
+         f"STAGE2_NOT_ACTIVE dashboard build {dash.get('build_id')} (Stage 3 runs strictly after Stage 2 execute)")
     print(f"READINESS_OK last_persisted_at={ready.get('last_persisted_at')} dashboard={dash}", flush=True)
     state.update(receipt=receipt, untouched=untouched, readiness_before=ready, dashboard_identity=dash)
     return state
@@ -1158,21 +1266,23 @@ def prepare(args: argparse.Namespace, state: dict, ws: Path) -> tuple[Path, dict
     runs.mkdir(mode=0o700, exist_ok=True)
     run_dir = runs / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir.mkdir(mode=0o700)
-    manifest = {"work_package": WORK_PACKAGE, "created_at_utc": utc_now(), "compat_ip": args.compat_ip,
-                "bridge_host": args.bridge_host, "bridge_port": args.bridge_port, "order": [s.key for s in SERVICES],
+    manifest = {"work_package": WORK_PACKAGE, "phase": args.phase, "created_at_utc": utc_now(), "compat_ip": args.compat_ip,
+                "bridge_host": args.bridge_host, "bridge_port": args.bridge_port,
+                "order": [s.key for s in PHASE_SERVICES[args.phase]],
                 "readiness_before": {"last_persisted_at": state["readiness_before"].get("last_persisted_at")},
                 "dashboard_identity": state["dashboard_identity"], "central_shared_ip": state["central_shared_ip"],
                 "backup_receipt": state["receipt"], "services": {}}
-    for spec, delta in zip(SERVICES, state["plan"]["services"]):
+    for delta in state["plan"]["services"]:
+        spec = BY_KEY[delta["key"]]
         container, image, models = state["containers"][spec.key], state["images"][spec.key], state["models"][spec.key]
         rb_path, cd_path = run_dir / f"{spec.key}.rollback.compose.yaml", run_dir / f"{spec.key}.candidate.compose.yaml"
-        write_private(rb_path, render_compose(models["rollback"], spec, f"WP2c Stage 3 ROLLBACK {spec.key} = exact "
+        write_private(rb_path, render_compose(models["rollback"], spec, f"WP2c Stage 3 {args.phase} ROLLBACK {spec.key} = exact "
                                               f"current {container['Id'][:12]}"))
-        write_private(cd_path, render_compose(models["candidate"], spec, f"WP2c Stage 3 CANDIDATE {spec.key}"))
+        write_private(cd_path, render_compose(models["candidate"], spec, f"WP2c Stage 3 {args.phase} CANDIDATE {spec.key}"))
         rb_cfg, cd_cfg = compose_config(rb_path, spec), compose_config(cd_path, spec)
         diffs = config_vs_container(rb_cfg, models["rollback"], container, image, spec)
         need(not diffs, f"COMPOSE_FIDELITY_FAILED {spec.key} rollback differs from the running container: {diffs}")
-        need(config_with_deltas(rb_cfg, spec, delta) == cd_cfg,
+        need(candidate_config_matches(rb_cfg, cd_cfg, spec, delta),
              f"COMPOSE_FIDELITY_FAILED {spec.key} candidate differs from rollback beyond the intended deltas")
         baseline = effective(container)
         manifest["services"][spec.key] = {
@@ -1190,7 +1300,7 @@ def prepare(args: argparse.Namespace, state: dict, ws: Path) -> tuple[Path, dict
 
 
 def public_report(manifest: dict, state: dict) -> dict:
-    return {"work_package": WORK_PACKAGE, "mode": "backend_loopback", "started_at_utc": utc_now(),
+    return {"work_package": WORK_PACKAGE, "mode": manifest["phase"], "started_at_utc": utc_now(),
             "backup_receipt": state["receipt"], "untouched_before": state["untouched"],
             "services": {k: {"container_id": v["container_id"], "image_id": v["image_id"], "delta": v["delta"],
                              "compose_sha256": v["compose_sha256"]} for k, v in manifest["services"].items()}}
@@ -1198,14 +1308,13 @@ def public_report(manifest: dict, state: dict) -> dict:
 
 def mode_plan(args: argparse.Namespace) -> int:
     need(os.geteuid() != 0, "RUN_AS_OPERATOR_NONROOT")
-    validate_bridge_host(args.bridge_host)
-    validate_object_url(args.object_storage_public_url, args.compat_ip)
+    phase_inputs(args)
     if args.from_model:
         views, raw = load_model(Path(args.from_model))
         plan = build_plan(views, args)
         if raw:
-            for spec, delta in zip(SERVICES, plan["services"]):
-                image = {"Config": {}}
+            for delta in plan["services"]:
+                spec, image = BY_KEY[delta["key"]], {"Config": {}}
                 rollback = service_model(raw[spec.container], image, args.compat_ip)
                 changes = sorted(model_changes(rollback, candidate_document(rollback, spec, delta), spec))
                 need(changes == expected_model_changes(spec, delta), f"MODEL_DELTA_MISMATCH {spec.key} {changes}")
@@ -1231,24 +1340,25 @@ def mode_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def mode_execute(args: argparse.Namespace) -> int:
+def run_phase(args: argparse.Namespace) -> int:
     fd = hold_lock(Path(args.lock_path))
     try:
         ws = workspace(args)
         state = preflight(args)
         run_dir, manifest = prepare(args, state, ws)
-        print("STAGE3_PREFLIGHT_PASS run=" + str(run_dir), flush=True)
+        print(f"STAGE3_PREFLIGHT_PASS phase={args.phase} run={run_dir}", flush=True)
         ctx = {"dashboard_identity": state["dashboard_identity"], "central_shared_ip": state["central_shared_ip"],
                "untouched": state["untouched"]}
         report = public_report(manifest, state)
+        kind = "execute" if args.phase == "switch" else "drop-compat"
         attempted: list[str] = []
         floor: datetime | None = None
         try:
             # Switched from here on: even a partial Compose failure requires rollback.
-            for spec in SERVICES:
+            for spec in PHASE_SERVICES[args.phase]:
                 entry = manifest["services"][spec.key]
-                if spec.key == EDGE_MQTT.key:
-                    # Strict floor: the newest persisted row before the bridge moves (readiness must answer).
+                if spec.key == EDGE_MQTT.key or (args.phase == "drop-compat" and not attempted):
+                    # Strict floor: the newest persisted row before the bridge path changes (readiness must answer).
                     floor = parse_ts(readiness().get("last_persisted_at")) or parse_ts(
                         manifest["readiness_before"]["last_persisted_at"])
                 attempted.append(spec.key)
@@ -1262,14 +1372,20 @@ def mode_execute(args: argparse.Namespace) -> int:
         except BaseException as error:  # noqa: BLE001 - every failure (even Ctrl-C) after the first switch rolls back
             print("ACTIVATION_CHECK_FAILED " + str(error)[:400], flush=True)
             report.update(error=str(error)[:600], attempted=list(attempted))
-            rc = rollback_chain(args, manifest, run_dir, attempted, ctx, report, "execute")
+            rc = rollback_chain(args, manifest, run_dir, attempted, ctx, report, kind)
             return 3 if rc == 0 else 4
-        report.update(outcome="STAGE3_BACKEND_GREEN", switched=attempted, last_persisted_at=value, finished_at_utc=utc_now())
-        record(run_dir, report, "execute")
-        print("STAGE3_BACKEND_GREEN", flush=True)
-        print("NEXT (owner, not executed by this tool):", flush=True)
-        for line in state["plan"]["external_consumers"]:
-            print("  - " + line, flush=True)
+        marker = GREEN_MARKER[args.phase]
+        report.update(outcome=marker, switched=attempted, last_persisted_at=value, finished_at_utc=utc_now())
+        record(run_dir, report, kind)
+        print(marker, flush=True)
+        if args.phase == "switch":
+            print("NEXT (owner, not executed by this tool): retarget these consumers to loopback, verify them, "
+                  "then run drop-compat --consumers-retargeted (Phase 4):", flush=True)
+            for line in state["plan"]["external_consumers"]:
+                print("  - " + line, flush=True)
+        else:
+            print("NEXT (owner): retire nexolab-compat-address.service / nxcompat0 and repeat the acceptance matrix "
+                  "including a reboot.", flush=True)
         return 0
     finally:
         os.close(fd)
@@ -1282,7 +1398,9 @@ def load_run(args: argparse.Namespace) -> tuple[Path, dict]:
     need(name and RUN_NAME.match(name), "RUN_NOT_FOUND (no LATEST; pass --run <name>)")
     run_dir = ws / "runs" / name
     manifest = read_json(run_dir / "manifest.json", "RUN_MANIFEST_MISSING " + name)
-    need(isinstance(manifest, dict) and set(manifest.get("services") or {}) == set(BY_KEY), "RUN_MANIFEST_INCOMPLETE")
+    need(isinstance(manifest, dict) and manifest.get("phase") in PHASE_SERVICES, "RUN_MANIFEST_PHASE_UNKNOWN")
+    need(set(manifest.get("services") or {}) == {s.key for s in PHASE_SERVICES[manifest["phase"]]}
+         and manifest.get("order") == [s.key for s in PHASE_SERVICES[manifest["phase"]]], "RUN_MANIFEST_INCOMPLETE")
     for key, entry in manifest["services"].items():
         path = run_dir / entry["rollback_file"]
         need(path.is_file() and not path.is_symlink() and sha256_file(path) == entry["compose_sha256"][path.name],
@@ -1297,7 +1415,8 @@ def mode_rollback(args: argparse.Namespace) -> int:
         identity_checks(args)
         run_dir, manifest = load_run(args)
         keys = []
-        for spec in SERVICES:
+        print(f"ROLLBACK_RUN {run_dir.name} phase={manifest['phase']}", flush=True)
+        for spec in (BY_KEY[key] for key in manifest["order"]):
             container = inspect(spec.container)
             at_baseline = (not differences(manifest["services"][spec.key]["baseline_effective"], effective(container))
                            and health(container) == wanted_health(container))
@@ -1306,7 +1425,8 @@ def mode_rollback(args: argparse.Namespace) -> int:
                 keys.append(spec.key)
         ctx = {"dashboard_identity": manifest.get("dashboard_identity"), "central_shared_ip": manifest["central_shared_ip"],
                "untouched": snapshots(args.untouched)}
-        report = {"work_package": WORK_PACKAGE, "mode": "explicit_rollback", "run": run_dir.name, "started_at_utc": utc_now(),
+        report = {"work_package": WORK_PACKAGE, "mode": "explicit_rollback", "phase": manifest["phase"],
+                  "run": run_dir.name, "started_at_utc": utc_now(),
                   "services_to_roll_back": keys}
         return 0 if rollback_chain(args, manifest, run_dir, keys, ctx, report, "rollback") == 0 else 4
     finally:
@@ -1318,13 +1438,20 @@ def mode_rollback(args: argparse.Namespace) -> int:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("mode", choices=("plan", "check", "execute", "rollback"))
+    p.add_argument("mode", choices=("plan", "check", "execute", "drop-compat", "rollback"))
+    p.add_argument("--phase", choices=tuple(PHASE_SERVICES), default="switch",
+                   help="plan/check only: which phase to plan or preflight (execute = switch, drop-compat = drop-compat)")
     p.add_argument("--workspace", default=DEFAULT_WORKSPACE)
     p.add_argument("--from-model", help="plan only: offline JSON (broker docker.service-model or a docker inspect array)")
     p.add_argument("--json", action="store_true", help="plan only: print the change set as JSON")
     p.add_argument("--compat-ip", default=DEFAULT_COMPAT_IP, help="interim compatibility address to leave")
     p.add_argument("--dashboard-host-port", type=int, default=3000)
-    p.add_argument("--object-storage-public-url", help="required: new OBJECT_STORAGE_PUBLIC_ENDPOINT_URL (no default)")
+    p.add_argument("--object-storage-public-url",
+                   help="drop-compat only, required there: new OBJECT_STORAGE_PUBLIC_ENDPOINT_URL (no default)")
+    p.add_argument("--consumers-retargeted", action="store_true",
+                   help="drop-compat: owner statement that every listed external consumer already uses loopback")
+    p.add_argument("--pre-stage2-build", default=PRE_STAGE2_BUILD,
+                   help="dashboard build ID before Stage 2; check refuses while the LAN dashboard still runs it")
     p.add_argument("--bridge-host", default="central-mqtt")
     p.add_argument("--bridge-port", type=int, default=1883)
     p.add_argument("--shared-network", default=DEFAULT_SHARED_NETWORK)
@@ -1342,7 +1469,7 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
-MODES = {"plan": mode_plan, "check": mode_check, "execute": mode_execute, "rollback": mode_rollback}
+MODES = {"plan": mode_plan, "check": mode_check, "execute": run_phase, "drop-compat": run_phase, "rollback": mode_rollback}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1354,6 +1481,12 @@ def main(argv: list[str] | None = None) -> int:
     if os.geteuid() == 0:
         print("STOP RUN_AS_OPERATOR_NONROOT", file=sys.stderr, flush=True)
         return 2
+    if args.mode in ("execute", "drop-compat"):
+        wanted = "switch" if args.mode == "execute" else "drop-compat"
+        if "--phase" in (argv if argv is not None else sys.argv[1:]) and args.phase != wanted:
+            print(f"STOP PHASE_MISMATCH mode {args.mode} runs phase {wanted}", file=sys.stderr, flush=True)
+            return 2
+        args.phase = wanted
     if args.from_model and args.mode != "plan":
         print("STOP FROM_MODEL_IS_PLAN_ONLY (a sanitized model is never an execution input)", file=sys.stderr, flush=True)
         return 2

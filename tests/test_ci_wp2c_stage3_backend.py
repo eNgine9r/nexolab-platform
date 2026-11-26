@@ -276,7 +276,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             item = containers[DASH]
             if not (item["State"]["Running"] and self.published_here(item)):
                 return self.reply(502, b"down")
-            return self.reply(200, json.dumps({"source_commit": "a" * 40, "build_id": "Build1"}).encode())
+            body = {"source_commit": "a" * 40, "build_id": state.get("dashboard_build", "Build1")}
+            return self.reply(200, json.dumps(body).encode())
         return self.reply(200, b"ok")
 
 
@@ -414,9 +415,11 @@ class Site:
         base = [mode, "--workspace", str(self.ws), "--compat-ip", FAKE_COMPAT, "--expect-node", NODE,
                 "--lock-path", str(self.tmp / "launch.lock"), "--reserve-gib", "0", "--docker-root", "",
                 "--wait-seconds", "3", "--continuity-seconds", "2"]
-        if mode in ("plan", "check", "execute"):
-            base += ["--object-storage-public-url", OBJ_URL, "--dashboard-host-port", str(self.ports["dashboard"])]
-        if mode in ("check", "execute"):
+        if mode in ("plan", "check", "execute", "drop-compat"):
+            base += ["--dashboard-host-port", str(self.ports["dashboard"])]
+        if mode == "drop-compat":
+            base += ["--object-storage-public-url", OBJ_URL]
+        if mode in ("check", "execute", "drop-compat"):
             base += ["--backup-receipt", str(self.receipt)]
         return base + list(extra)
 
@@ -472,14 +475,14 @@ class SiteTestCase(unittest.TestCase):
         return [json.loads(p.read_text()) for p in paths]
 
 
-def model_fixture() -> dict:
-    """Broker docker.service-model shape (secrets redacted) of the live topology."""
+def model_fixture(switched: bool = False) -> dict:
+    """Broker docker.service-model shape (secrets redacted) of the live topology (or after the switch)."""
     def item(name, project, service, env, ports, networks, image="img", image_id="sha256:" + "9" * 64):
         return {"name": name, "image": image, "image_id": image_id, "env": env, "port_bindings": ports,
                 "labels": {"com.docker.compose.project": project, "com.docker.compose.service": service},
                 "networks": {n: {"aliases": a, "ip": "172.21.0.9"} for n, a in networks.items()},
                 "mounts": [], "restart_policy": "unless-stopped"}
-    return {"ok": True, "op": "docker.service-model", "result": {"containers": [
+    model = {"ok": True, "op": "docker.service-model", "result": {"containers": [
         item(CMQTT, "nexolab-central", "mqtt", ["PATH=<set>"], {"1883/tcp": [{"HostIp": SITE_IP, "HostPort": "1884"}]},
              {"nexolab-central": ["mqtt"], SHARED: ["mqtt", "central-mqtt"]}),
         item(TELEM, "nexolab-central", "telemetry-service",
@@ -496,7 +499,18 @@ def model_fixture() -> dict:
              {"nexolab-edge_default": [EMQTT, "mqtt"], SHARED: [EMQTT, "mqtt"]}),
         item(AGENT, "nexolab-edge", "device-agent", ["MQTT_HOST=mqtt"], {"8081/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8081"}]},
              {"nexolab-edge_default": ["device-agent"], SHARED: ["device-agent", "edge-device-agent"]}),
+        item(AGENT + "-pre-1490", "nexolab-edge", "device-agent", ["MQTT_HOST=mqtt"], {},
+             {SHARED: ["device-agent", "edge-device-agent"]}),
     ]}}
+    if switched:
+        for entry in model["result"]["containers"]:
+            for items in entry["port_bindings"].values():
+                if items[0]["HostIp"] == SITE_IP:
+                    items.append({"HostIp": "127.0.0.1", "HostPort": items[0]["HostPort"]})
+            if entry["name"] == EMQTT:
+                entry["env"] = [e.replace(f"HOST={SITE_IP}", "HOST=central-mqtt").replace("PORT=1884", "PORT=1883")
+                                for e in entry["env"]]
+    return model
 
 
 class PlanTests(unittest.TestCase):
@@ -515,7 +529,7 @@ class PlanTests(unittest.TestCase):
         return rc, out.getvalue()
 
     def plan_json(self, *extra: str) -> dict:
-        rc, output = self.plan("--json", "--object-storage-public-url", OBJ_URL, *extra)
+        rc, output = self.plan("--json", *extra)
         self.assertEqual(rc, 0, output)
         return json.loads(output[: output.rindex("STAGE3_PLAN_OK")])
 
@@ -524,13 +538,13 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(plan["order"], ["central-mqtt", "telemetry-service", "minio", "dashboard", "edge-mqtt"])
         got = {s["key"]: (s["ports"], s["env"]) for s in plan["services"]}
 
-        def port(cport, host_port, new_port=None):
-            return [{"container_port": cport, "from": [SITE_IP, host_port], "to": ["127.0.0.1", new_port or host_port]}]
+        def port(cport, host_port, new_port=None):  # ADD loopback, KEEP the compatibility publish
+            return [{"container_port": cport, "action": "add", "binding": ["127.0.0.1", new_port or host_port],
+                     "keep": [SITE_IP, host_port]}]
 
         self.assertEqual(got, {
             "central-mqtt": (port("1883/tcp", "1884"), {}),
-            "telemetry-service": (port("8082/tcp", "8082"),
-                                  {"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": [f"http://{SITE_IP}:9000", OBJ_URL]}),
+            "telemetry-service": (port("8082/tcp", "8082"), {}),  # object-storage URL changes only in drop-compat
             "minio": (port("9000/tcp", "9000"), {}),
             "dashboard": (port("3000/tcp", "3000"), {}),
             "edge-mqtt": ([], {"CENTRAL_MQTT_HOST": [SITE_IP, "central-mqtt"], "CENTRAL_MQTT_PORT": ["1884", "1883"]}),
@@ -545,15 +559,48 @@ class PlanTests(unittest.TestCase):
             self.assertIn(needle, consumers)
         self.assertEqual(plan["blockers"], [])
         self.assertTrue(plan["env_values_redacted"])
+        self.assertEqual(plan["phase"], "switch")
+        self.assertEqual(plan["aliases"]["exclusive_alias_unproven"], [f"edge-device-agent:{AGENT}-pre-1490"])
+
+    def test_drop_compat_plan_removes_only_compat_bindings(self) -> None:
+        self.model.write_text(json.dumps(model_fixture(switched=True)), encoding="utf-8")
+        plan = self.plan_json("--phase", "drop-compat", "--object-storage-public-url", OBJ_URL)
+        self.assertEqual(plan["order"], ["central-mqtt", "telemetry-service", "minio", "dashboard"])
+        got = {s["key"]: (s["ports"], s["env"]) for s in plan["services"]}
+
+        def port(cport, host_port):
+            return [{"container_port": cport, "action": "remove", "binding": [SITE_IP, host_port],
+                     "keep": ["127.0.0.1", host_port]}]
+
+        self.assertEqual(got, {
+            "central-mqtt": (port("1883/tcp", "1884"), {}),
+            "telemetry-service": (port("8082/tcp", "8082"),
+                                  {"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": [f"http://{SITE_IP}:9000", OBJ_URL]}),
+            "minio": (port("9000/tcp", "9000"), {}),
+            "dashboard": (port("3000/tcp", "3000"), {}),
+        })
+        self.assertEqual(plan["blockers"], [])
+
+    def test_drop_compat_refuses_before_the_switch(self) -> None:
+        rc, output = self.plan("--phase", "drop-compat", "--object-storage-public-url", OBJ_URL)
+        self.assertEqual(rc, 2)
+        self.assertIn("LOOPBACK_BINDING_MISSING", output)
+
+    def test_object_storage_url_belongs_to_drop_compat(self) -> None:
+        rc, output = self.plan("--object-storage-public-url", OBJ_URL)
+        self.assertEqual(rc, 2)
+        self.assertIn("OBJECT_STORAGE_PUBLIC_URL_IS_DROP_COMPAT_ONLY", output)
 
     def test_dashboard_host_port_is_configurable(self) -> None:
         plan = self.plan_json("--dashboard-host-port", "3010")
         dash = next(s for s in plan["services"] if s["key"] == "dashboard")
-        self.assertEqual(dash["ports"][0]["to"], ["127.0.0.1", "3010"])
+        self.assertEqual(dash["ports"][0]["binding"], ["127.0.0.1", "3010"])
+        self.assertEqual(dash["ports"][0]["keep"], [SITE_IP, "3000"])
 
     def test_text_plan_hides_unchanged_env_values(self) -> None:
-        rc, output = self.plan("--object-storage-public-url", OBJ_URL)
+        rc, output = self.plan()
         self.assertEqual(rc, 0, output)
+        self.assertIn("publish 1883/tcp: add 127.0.0.1:1884 (keep 172.18.48.66:1884)", output)
         self.assertIn("env CENTRAL_MQTT_HOST: 172.18.48.66 -> central-mqtt", output)
         self.assertIn(f"preserved CENTRAL_BRIDGE_CLIENT_ID={CLIENT_ID}", output)
         self.assertIn("HAZARD alias 'mqtt'", output)
@@ -562,20 +609,20 @@ class PlanTests(unittest.TestCase):
 
     def test_bridge_host_mqtt_and_ip_literals_are_refused(self) -> None:
         for host in ("mqtt", "MQTT", SITE_IP, "10.0.0.5", "::1", "[::1]", "localhost", "central_mqtt", "a.b"):
-            rc, output = self.plan("--object-storage-public-url", OBJ_URL, "--bridge-host", host)
+            rc, output = self.plan("--bridge-host", host)
             self.assertEqual(rc, 2, host)
             self.assertIn("BRIDGE_HOST_", output, host)
 
     def test_bridge_host_must_be_unique_to_central_mqtt(self) -> None:
-        rc, output = self.plan("--object-storage-public-url", OBJ_URL, "--bridge-host", "edge-device-agent")
+        rc, output = self.plan("--bridge-host", "edge-device-agent")
         self.assertEqual(rc, 2)
-        self.assertIn("BRIDGE_HOST_NOT_UNIQUE_TO_CENTRAL_MQTT", output)
+        self.assertIn("BRIDGE_HOST_NOT_ON_CENTRAL_MQTT", output)
 
     def test_object_storage_url_is_required_and_never_an_ip(self) -> None:
         for value, reason in ((None, "OBJECT_STORAGE_PUBLIC_URL_REQUIRED"), ("/objects", "NOT_ABSOLUTE"),
                               (f"http://{SITE_IP}:9000", "USES_COMPAT_ADDRESS"), ("http://10.1.2.3:9000", "IP_LITERAL")):
             extra = ["--object-storage-public-url", value] if value is not None else []
-            rc, output = self.plan(*extra)
+            rc, output = self.plan("--phase", "drop-compat", *extra)
             self.assertEqual(rc, 2, value)
             self.assertIn(reason, output)
 
@@ -603,9 +650,9 @@ class ComposeModelTests(SiteTestCase):
             cd = S3.to_yaml(candidate).splitlines()
             removed = sorted(line.strip() for line in rb if line not in cd)
             added = sorted(line.strip() for line in cd if line not in rb)
-            want_removed = [f'- "{p["from"][0]}:{p["from"][1]}:{p["container_port"]}"' for p in delta["ports"]]
-            want_removed += [f'- "{k}={old}"' for k, (old, _) in delta["env"].items()]
-            want_added = [f'- "{p["to"][0]}:{p["to"][1]}:{p["container_port"]}"' for p in delta["ports"]]
+            self.assertTrue(all(p["action"] == "add" for p in delta["ports"]))
+            want_removed = [f'- "{k}={old}"' for k, (old, _) in delta["env"].items()]  # no publish is removed
+            want_added = [f'- "{p["binding"][0]}:{p["binding"][1]}:{p["container_port"]}"' for p in delta["ports"]]
             want_added += [f'- "{k}={new}"' for k, (_, new) in delta["env"].items()]
             self.assertEqual(removed, sorted(want_removed), spec.key)
             self.assertEqual(added, sorted(want_added), spec.key)
@@ -710,7 +757,31 @@ class CheckTests(SiteTestCase):
         self.site.state_path.write_text(json.dumps(state))
         rc, output = self.site.main("check")
         self.assertEqual(rc, 2)
-        self.assertIn("BRIDGE_HOST_NOT_UNIQUE_TO_CENTRAL_MQTT", output)
+        self.assertIn(f"EXCLUSIVE_ALIAS_CARRIED_BY_OTHER_RUNNING_CONTAINER central-mqtt:{EMQTT}", output)
+
+    def test_check_refuses_while_pre_stage2_dashboard_runs(self) -> None:
+        self.site.update(dashboard_build="CWBsCWWebOZGHa5YyWp18")
+        rc, output = self.site.main("check")
+        self.assertEqual(rc, 2)
+        self.assertIn("STAGE2_NOT_ACTIVE", output)
+        rc, output = self.site.main("check", "--pre-stage2-build", "OtherBuild")
+        self.assertEqual(rc, 0, output)
+
+    def test_check_refuses_other_running_carrier_of_exclusive_alias(self) -> None:
+        state = self.site.load()
+        stale = copy.deepcopy(state["containers"][AGENT])
+        stale["Id"], stale["Name"] = "b" * 64, f"/{AGENT}-pre-1490"
+        stale["NetworkSettings"]["Networks"] = {SHARED: {"Aliases": ["device-agent", "edge-device-agent"],
+                                                         "IPAMConfig": None, "IPAddress": "172.21.0.9"}}
+        state["containers"][f"{AGENT}-pre-1490"] = stale
+        self.site.state_path.write_text(json.dumps(state))
+        rc, output = self.site.main("check")
+        self.assertEqual(rc, 2)
+        self.assertIn(f"EXCLUSIVE_ALIAS_CARRIED_BY_OTHER_RUNNING_CONTAINER edge-device-agent:{AGENT}-pre-1490", output)
+        stale["State"]["Running"] = False  # a stopped container never answers Docker DNS
+        self.site.state_path.write_text(json.dumps(state))
+        rc, output = self.site.main("check")
+        self.assertEqual(rc, 0, output)
 
     def test_check_refuses_bridge_host_mqtt(self) -> None:
         rc, output = self.site.main("check", "--bridge-host", "mqtt")
@@ -745,7 +816,7 @@ class CheckTests(SiteTestCase):
         self.assertIn("LOOPBACK_PORT_IN_USE", out.getvalue())
 
     def test_root_is_refused(self) -> None:
-        for mode in ("plan", "check", "execute", "rollback"):
+        for mode in ("plan", "check", "execute", "drop-compat", "rollback"):
             with mock.patch.object(S3.os, "geteuid", return_value=0):
                 rc, output = self.site.main(mode)
             self.assertEqual(rc, 2)
@@ -784,14 +855,16 @@ class ExecuteTests(SiteTestCase):
         self.assertEqual(self.site.compose_ups(), [f"{k}.candidate.compose.yaml" for k in ORDER])
         self.assertLess(output.index("COMPOSE_FIDELITY_PROVEN edge-mqtt"), output.index("STAGE3_SERVICE_SWITCHED central-mqtt"))
         state = self.site.load()["containers"]
-        for name in (CMQTT, TELEM, MINIO, DASH):
-            for items in state[name]["HostConfig"]["PortBindings"].values():
-                self.assertEqual({b["HostIp"] for b in items}, {"127.0.0.1"}, name)
+        for name in (CMQTT, TELEM, MINIO, DASH):  # dual publish: loopback ADDED, compatibility KEPT
+            for cport, items in state[name]["HostConfig"]["PortBindings"].items():
+                original = self.site.state["containers"][name]["HostConfig"]["PortBindings"][cport]
+                self.assertEqual(sorted((b["HostIp"], b["HostPort"]) for b in items),
+                                 sorted([(FAKE_COMPAT, original[0]["HostPort"]), ("127.0.0.1", original[0]["HostPort"])]))
         edge_env = state[EMQTT]["Config"]["Env"]
         self.assertIn(f"CENTRAL_BRIDGE_CLIENT_ID={CLIENT_ID}", edge_env)  # client ID preserved
         self.assertIn("CENTRAL_MQTT_HOST=central-mqtt", edge_env)
         self.assertIn("CENTRAL_MQTT_PORT=1883", edge_env)
-        self.assertIn(f"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL={OBJ_URL}", state[TELEM]["Config"]["Env"])
+        self.assertEqual(state[TELEM]["Config"]["Env"], self.site.state["containers"][TELEM]["Config"]["Env"])
         self.assertIn("DATABASE_URL=postgresql+psycopg://u:p$ss@postgres:5432/n", state[TELEM]["Config"]["Env"])
         self.assertEqual(state[EMQTT]["Config"]["Cmd"], [EDGE_SCRIPT])
         self.assertEqual(state[CMQTT]["Image"], MOSQ_ID)
@@ -918,6 +991,73 @@ class ExecuteTests(SiteTestCase):
         rc, output = self.site.main("rollback")
         self.assertEqual(rc, 2)
         self.assertIn("ROLLBACK_COMPOSE_CHANGED minio.rollback.compose.yaml", output)
+
+
+class DropCompatTests(SiteTestCase):
+    def switch(self) -> None:
+        rc, output = self.site.main("execute")
+        self.assertEqual(rc, 0, output)
+        self.after_switch = self.site.load()["containers"]
+        self.site.log_path.write_text("")
+
+    def test_refuses_without_consumers_retargeted(self) -> None:
+        self.switch()
+        rc, output = self.site.main("drop-compat")
+        self.assertEqual(rc, 2)
+        self.assertIn("CONSUMERS_NOT_RETARGETED", output)
+        self.assertEqual(self.site.calls(), [])
+
+    def test_refuses_before_the_switch(self) -> None:
+        rc, output = self.site.main("drop-compat", "--consumers-retargeted")
+        self.assertEqual(rc, 2)
+        self.assertIn("LOOPBACK_BINDING_MISSING", output)
+        self.assertEqual(self.site.compose_ups(), [])
+
+    def test_drop_compat_removes_only_compat_bindings_then_rollback_restores_them(self) -> None:
+        self.switch()
+        rc, output = self.site.main("drop-compat", "--consumers-retargeted")
+        self.assertEqual(rc, 0, output)
+        self.assertIn("STAGE3_DROP_COMPAT_GREEN", output)
+        self.assertNotIn("STAGE3_BACKEND_GREEN", output)
+        self.assertEqual(self.site.compose_ups(), [f"{k}.candidate.compose.yaml" for k in ORDER[:4]])
+        state = self.site.load()["containers"]
+        for name in (CMQTT, TELEM, MINIO, DASH):
+            before, after = self.after_switch[name], state[name]
+            for cport, items in after["HostConfig"]["PortBindings"].items():
+                self.assertEqual(items, [b for b in before["HostConfig"]["PortBindings"][cport] if b["HostIp"] != FAKE_COMPAT])
+            env_before = [e for e in before["Config"]["Env"] if not e.startswith("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=")]
+            env_after = [e for e in after["Config"]["Env"] if not e.startswith("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=")]
+            self.assertEqual(env_after, env_before, name)
+            self.assertEqual(after["Mounts"], before["Mounts"], name)
+        self.assertIn(f"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL={OBJ_URL}", state[TELEM]["Config"]["Env"])
+        self.assertEqual(state[EMQTT]["Id"], self.after_switch[EMQTT]["Id"])  # bridge untouched in this phase
+        self.assert_safe_calls()
+
+        self.site.log_path.write_text("")
+        rc, output = self.site.main("rollback")
+        self.assertEqual(rc, 0, output)
+        self.assertIn("ROLLBACK_RUN", output)
+        self.assertIn("phase=drop-compat", output)
+        self.assertEqual(self.site.compose_ups(), [f"{k}.rollback.compose.yaml" for k in reversed(ORDER[:4])])
+        state = self.site.load()["containers"]
+        for name in (CMQTT, TELEM, MINIO, DASH):
+            self.assertEqual(S3.sorted_bindings(state[name]["HostConfig"]["PortBindings"]), S3.sorted_bindings(self.after_switch[name]["HostConfig"]["PortBindings"]))
+            self.assertEqual(state[name]["Config"]["Env"], self.after_switch[name]["Config"]["Env"])
+        self.assert_safe_calls()
+
+    def test_drop_compat_failure_rolls_back_in_reverse(self) -> None:
+        self.switch()
+        self.site.update(on_up={"minio.candidate.compose.yaml": {"drop_env": "VGW_PORT"}})
+        state = self.site.load()
+        rc, output = self.site.main("drop-compat", "--consumers-retargeted")
+        self.assertEqual(rc, 3, output)
+        self.assertEqual(self.site.compose_ups(), ["central-mqtt.candidate.compose.yaml", "telemetry-service.candidate.compose.yaml",
+                                                   "minio.candidate.compose.yaml", "minio.rollback.compose.yaml",
+                                                   "telemetry-service.rollback.compose.yaml", "central-mqtt.rollback.compose.yaml"])
+        after = self.site.load()["containers"]
+        for name in (CMQTT, TELEM, MINIO):
+            self.assertEqual(S3.sorted_bindings(after[name]["HostConfig"]["PortBindings"]), S3.sorted_bindings(state["containers"][name]["HostConfig"]["PortBindings"]))
+        self.assertEqual(after[DASH]["Id"], state["containers"][DASH]["Id"])
 
 
 class StaticSafetyTests(unittest.TestCase):
