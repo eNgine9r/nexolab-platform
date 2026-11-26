@@ -12397,7 +12397,7 @@
     {
       "issue": 1784,
       "title": "Tailscale :8443 private inspection origin returns 502 (stale staging target 127.0.0.1:3102)",
-      "lifecycle": "ready",
+      "lifecycle": "needs_validation",
       "priority": "medium",
       "scope": "Prepared owner fix: route :8443 / and /api through the LAN gateway 127.0.0.1:80 after Stage 2; /inspection-login unchanged; backup/verify/rollback runbook.",
       "depends_on": [
@@ -12411,9 +12411,10 @@
       "evidence": {
         "hardware_verified": false,
         "site_cutover": false,
-        "site_acceptance": "after_stage2_execute",
+        "site_acceptance": "owner_workstation_inspection_login_pending",
         "root_cause": "/ -> 127.0.0.1:3102 (unused protected candidate port; accepted 3100 retired); live 3104/3105 bundles compile the Funnel origin, so they are incompatible with the :8443 origin; /api shadows dashboard /api routes and depends on the compatibility address",
-        "unblocked": "Stage 2 executed 2026-11-26; broker v1.7 network.tailscale-inspection-route apply/restore (#1797) awaits owner upgrade + approval"
+        "unblocked": "Stage 2 executed 2026-11-26; broker v1.7 network.tailscale-inspection-route apply/restore (#1797) awaits owner upgrade + approval",
+        "site_applied_2026_11_26": "Owner-approved broker v1.7 network.tailscale-inspection-route apply (c958c351): :8443 / and /api -> 127.0.0.1:80, /inspection-login unchanged; broker probe / 200, identity xRUAt2U9c3oug1ETWuLsT. Independent: :8443 / /login /live /refrigeration /api/runtime-identity 200, login API 401 (invalid creds), WebSocket 101; :443 302 unchanged (18790, Funnel only :443), :8444 200, :8445 302 unchanged; telemetry continuous. /inspection-login answers 403 to the node's own identity (approved-workstation policy). Backup serve-before-20261126T120325Z.json; undo action=restore. Owner: viewer login from an approved workstation."
       }
     },
     {
