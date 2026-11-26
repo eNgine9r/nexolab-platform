@@ -1,3 +1,13 @@
+## 2026-11-26 (close) — infrastructure sprint closeout; broker frozen at v1.7
+
+- **Stage 3 `prove`** (approval `85f89616`, with `retain_env`) found a real Compose defect before any switch: `user`. The container has `""` while the image omits the field (containerd store). Fixed in **#1799**. The broker is frozen at v1.7, and its pinned handler predates the fix, so Stage 3 runs from the owner package `~/recovery-p0/stage3-20261126T114923Z` (`b3176baf…`).
+- **Memory:** persistent `MemoryHigh=1024M` on the slice and the service, `MemoryMax` 1280M and `MemorySwapMax` 512M, all verified. `TMPDIR` on disk from the next session start. #1794 is completed.
+- **Closeout and the single owner action package:** `docs/operations/infrastructure-sprint-closeout.md` (#1800). It includes the gateway retarget correction: the base unit defaults to dashboard `:3010`, while Stage 3 publishes `:3000`.
+- **Production:**
+  - Stage 2 is live (`c5bb48a1`/`xRUAt2U9…`);
+  - telemetry is healthy;
+  - no Stage 3, network, image or secret change has been made by the agent.
+
 ## 2026-11-26 (night) — WP2c Stage 2 LIVE; Stage 3 prove finding; dev memory root cause; broker v1.7
 
 - **Stage 2 is live** (owner approval; broker v1.6 `deploy.lan-frontend execute`, `STAGE2_FRONTEND_GREEN`):
