@@ -101,7 +101,7 @@ function seriesName(sample: TelemetrySample, displayNames: Readonly<Record<strin
 
 function buildSeries(
   identitySample: TelemetrySample,
-  historySamples: readonly TelemetrySample[],
+  channelHistory: readonly TelemetrySample[],
   status: LiveTelemetryStatus,
   index: number,
   displayNames: Readonly<Record<string, string>>,
@@ -123,10 +123,7 @@ function buildSeries(
       )
     : liveStatusChartFreshness(status);
   const token = CHART_SERIES_TOKENS[index % CHART_SERIES_TOKENS.length];
-  const samples = historySamples.filter(
-    (sample) => liveChannelKey(sample) === liveChannelKey(identitySample),
-  );
-  const segments = liveHistorySegments(samples);
+  const segments = liveHistorySegments(channelHistory);
 
   return {
     identity,
@@ -187,10 +184,20 @@ function equipmentSceneGroups(series: readonly ChartSeries[]): Array<{
 export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartGroup[] {
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
+  // P0 charts: history grouped by channel once. Filtering the whole history per selected channel
+  // built a five-part key per sample per channel (~430 ms per build for 24 channels on a Pi 5),
+  // and the groups rebuild on every zoom commit, clock tick and live sample.
+  const byChannel = new Map<string, TelemetrySample[]>();
+  for (const sample of options.historySamples) {
+    const key = liveChannelKey(sample);
+    const list = byChannel.get(key);
+    if (list) list.push(sample);
+    else byChannel.set(key, [sample]);
+  }
   const allSeries = options.selectedIdentities.map((identity, index) =>
     buildSeries(
       identity,
-      options.historySamples,
+      byChannel.get(liveChannelKey(identity)) ?? [],
       options.status,
       index,
       options.displayNames ?? {},
