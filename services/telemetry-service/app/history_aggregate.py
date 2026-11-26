@@ -261,6 +261,16 @@ def _raw_rows(session: Any, key: SeriesKey, from_at: datetime, to_at: datetime, 
     return list(session.execute(statement))
 
 
+def _raw_tuple(row: Any) -> tuple[int, float | None, str, str | None, str]:
+    """Raw sample for the response. A non-finite value (NaN/inf, accepted at ingest) is not JSON
+    and was never a measurement; it is sent as null with its original quality, so it is shown as a
+    break and excluded from statistics exactly like other non-valid samples."""
+    value = row.value
+    if value is not None and not math.isfinite(value):
+        value = None
+    return (epoch_ms(row.captured_at), value, row.quality, row.alarm, row.event_id)
+
+
 def _summary_from_rows(key: SeriesKey, rows: list[Any]) -> SeriesAggregate:
     valid = [float(row.value) for row in rows if _is_valid(row.quality, row.value)]
     return SeriesAggregate(
@@ -290,7 +300,7 @@ def _aggregate_series_reference(
     summary = _summary_from_rows(key, rows)
     if len(rows) <= buckets * RAW_POINTS_PER_BUCKET:
         summary.raw = [
-            (epoch_ms(row.captured_at), row.value, row.quality, row.alarm, row.event_id) for row in rows
+            _raw_tuple(row) for row in rows
         ]
         return summary
     from_ms = epoch_ms(from_at)
@@ -371,7 +381,7 @@ def _aggregate_series_postgres(
         raw_rows = _raw_rows(session, key, from_at, to_at, snapshot_at)
         summary = _summary_from_rows(key, raw_rows)
         summary.raw = [
-            (epoch_ms(row.captured_at), row.value, row.quality, row.alarm, row.event_id) for row in raw_rows
+            _raw_tuple(row) for row in raw_rows
         ]
         return summary
     unit = session.execute(_POSTGRES_UNIT, parameters).scalar()

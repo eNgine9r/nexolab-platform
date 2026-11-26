@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -31,7 +32,7 @@ def _event(index: int, *, value: float | None, quality: str = "valid", seconds: 
         equipment_id="XJP60D-1",
         channel_id="temperature-1",
         alarm=None,
-        raw_value=None if value is None else int(value * 10),
+        raw_value=None if value is None or not math.isfinite(value) else int(value * 10),
         raw_status=0,
     )
 
@@ -170,3 +171,17 @@ def test_reference_aggregation_ties_and_bucket_edges() -> None:
 def test_epoch_ms_rounds_half_up_like_postgresql() -> None:
     assert epoch_ms(datetime(1970, 1, 1, 0, 0, 0, 2_500, tzinfo=UTC)) == 3
     assert epoch_ms(datetime(1970, 1, 1, 0, 0, 0, 1_499, tzinfo=UTC)) == 1
+
+
+def test_non_finite_raw_values_are_returned_as_null(tmp_path: Path) -> None:
+    client, database = _client(tmp_path)
+    for index, value in enumerate([4.0, float("nan"), 5.0, float("inf")]):
+        event = _event(index, value=value)
+        assert database.persist(event, event.normalized_payload())
+    response = client.get("/api/v1/telemetry/history/aggregate", params=_params(buckets=50))
+    assert response.status_code == 200, response.text
+    series = response.json()["series"][0]
+    assert series["mode"] == "raw"
+    assert [row[1] for row in series["raw"]] == [4.0, None, 5.0, None]
+    assert series["valid_count"] == 2
+    assert series["maximum"] == 5.0
