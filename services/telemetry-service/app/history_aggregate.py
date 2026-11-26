@@ -77,6 +77,138 @@ class SeriesAggregate:
     last_ms: int | None
     raw: list[tuple[int, float | None, str, str | None, str]] = field(default_factory=list)
     buckets: list[Bucket] = field(default_factory=list)
+    statistics: "IntervalStatistics | None" = None
+
+
+@dataclass(frozen=True)
+class IntervalStatistics:
+    """#1813: the same quantities the browser computes from raw columns (interval-statistics.ts):
+    distinct-millisecond valid/invalid samples (first occurrence wins), median spacing of valid
+    samples, and silent gaps longer than max(30 s, 3 x median spacing)."""
+
+    valid_count: int
+    invalid_count: int
+    minimum: float | None
+    maximum: float | None
+    valid_sum: float
+    first_valid_ms: int | None
+    last_valid_ms: int | None
+    median_spacing_ms: float | None
+    gap_count: int
+    gap_total_ms: int
+    gap_longest_ms: int
+    # Newest distinct valid sample times (ascending), real measurements: the browser seeds its
+    # acquisition-cadence freshness estimate from them without loading raw history.
+    recent_valid_ms: tuple[int, ...] = ()
+
+
+RECENT_VALID_SAMPLES = 6
+MINIMUM_SOURCE_GAP_MS = 30_000
+SOURCE_GAP_MULTIPLIER = 3
+
+
+def interval_statistics(rows: Iterable[tuple[int, float | None, str]]) -> IntervalStatistics:
+    """Reference implementation over (captured_ms, value, quality) rows in captured order."""
+    valid: dict[int, float] = {}
+    invalid: set[int] = set()
+    for captured_ms, value, quality in rows:
+        if _is_valid(quality, value):
+            valid.setdefault(captured_ms, float(value))  # type: ignore[arg-type]
+        else:
+            invalid.add(captured_ms)
+    stamps = sorted(valid)
+    spacings = sorted(b - a for a, b in zip(stamps, stamps[1:]) if b - a > 0)
+    median: float | None = None
+    if len(spacings) >= 2:
+        middle = len(spacings) // 2
+        median = (
+            (spacings[middle - 1] + spacings[middle]) / 2 if len(spacings) % 2 == 0 else float(spacings[middle])
+        )
+    tolerance = MINIMUM_SOURCE_GAP_MS if median is None else max(MINIMUM_SOURCE_GAP_MS, median * SOURCE_GAP_MULTIPLIER)
+    gaps = [delta for delta in spacings if delta > tolerance]
+    values = list(valid.values())
+    return IntervalStatistics(
+        valid_count=len(stamps),
+        invalid_count=len(invalid),
+        minimum=min(values) if values else None,
+        maximum=max(values) if values else None,
+        valid_sum=sum(values),
+        first_valid_ms=stamps[0] if stamps else None,
+        last_valid_ms=stamps[-1] if stamps else None,
+        median_spacing_ms=median,
+        gap_count=len(gaps),
+        gap_total_ms=sum(gaps),
+        gap_longest_ms=max(gaps) if gaps else 0,
+        recent_valid_ms=tuple(stamps[-RECENT_VALID_SAMPLES:]),
+    )
+
+
+_POSTGRES_STATISTICS = text(
+    """
+    WITH rows AS (
+        SELECT DISTINCT ON (ms, ok) ms, value, ok
+        FROM (
+            SELECT (floor((extract(epoch FROM captured_at) * 1000000 + 500) / 1000))::bigint AS ms,
+                   captured_at, event_id, value,
+                   (quality = 'valid' AND value IS NOT NULL AND value <> 'NaN'::float8
+                    AND value <> 'Infinity'::float8 AND value <> '-Infinity'::float8) AS ok
+            FROM telemetry_samples
+            WHERE node_id = :node_id AND equipment_id = :equipment_id AND channel_id = :channel_id
+              AND metric = :metric AND captured_at >= :from_at AND captured_at <= :to_at
+              AND received_at <= :snapshot_at
+        ) AS source
+        ORDER BY ms, ok, captured_at, event_id
+    ),
+    spacings AS (
+        SELECT ms - lag(ms) OVER (ORDER BY ms) AS delta FROM rows WHERE ok
+    ),
+    cadence AS (
+        SELECT CASE WHEN count(*) >= 2 THEN percentile_cont(0.5) WITHIN GROUP (ORDER BY delta) END AS median
+        FROM spacings WHERE delta > 0
+    )
+    SELECT
+        (SELECT count(*) FROM rows WHERE ok) AS valid_count,
+        (SELECT count(*) FROM rows WHERE NOT ok) AS invalid_count,
+        (SELECT min(value) FROM rows WHERE ok) AS minimum,
+        (SELECT max(value) FROM rows WHERE ok) AS maximum,
+        (SELECT coalesce(sum(value), 0) FROM rows WHERE ok) AS valid_sum,
+        (SELECT min(ms) FROM rows WHERE ok) AS first_valid_ms,
+        (SELECT max(ms) FROM rows WHERE ok) AS last_valid_ms,
+        cadence.median AS median_spacing_ms,
+        count(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)) AS gap_count,
+        coalesce(sum(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)), 0) AS gap_total_ms,
+        coalesce(max(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)), 0) AS gap_longest_ms,
+        (SELECT array_agg(ms ORDER BY ms) FROM (SELECT ms FROM rows WHERE ok ORDER BY ms DESC LIMIT :recent) AS recent) AS recent_valid_ms
+    FROM cadence LEFT JOIN spacings ON true
+    GROUP BY cadence.median
+    """
+)
+
+
+def _statistics_postgres(session: Any, parameters: dict[str, Any]) -> IntervalStatistics:
+    row = session.execute(
+        _POSTGRES_STATISTICS,
+        {
+            **parameters,
+            "min_gap": MINIMUM_SOURCE_GAP_MS,
+            "multiplier": SOURCE_GAP_MULTIPLIER,
+            "recent": RECENT_VALID_SAMPLES,
+        },
+    ).one()
+    return IntervalStatistics(
+        valid_count=int(row.valid_count),
+        invalid_count=int(row.invalid_count),
+        minimum=None if row.minimum is None else float(row.minimum),
+        maximum=None if row.maximum is None else float(row.maximum),
+        valid_sum=float(row.valid_sum),
+        first_valid_ms=None if row.first_valid_ms is None else int(row.first_valid_ms),
+        last_valid_ms=None if row.last_valid_ms is None else int(row.last_valid_ms),
+        median_spacing_ms=None if row.median_spacing_ms is None else float(row.median_spacing_ms),
+        gap_count=int(row.gap_count),
+        gap_total_ms=int(row.gap_total_ms),
+        gap_longest_ms=int(row.gap_longest_ms),
+        recent_valid_ms=tuple(int(value) for value in (row.recent_valid_ms or ())),
+    )
 
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -397,6 +529,7 @@ def aggregate_history(
     buckets: int,
     snapshot_at: datetime | None = None,
     reference: bool = False,
+    statistics: bool = False,
 ) -> tuple[list[SeriesAggregate], datetime]:
     """Aggregated history for each series under one ingestion snapshot watermark."""
     if not 1 <= buckets <= MAX_AGGREGATE_BUCKETS:
@@ -414,16 +547,25 @@ def aggregate_history(
                 database._limit_history_statement(session)
                 for key in series:
                     compute = _aggregate_series_postgres if postgres else _aggregate_series_reference
-                    results.append(
-                        compute(
-                            session,
-                            key,
-                            from_at=from_at,
-                            to_at=to_at,
-                            snapshot_at=resolved_snapshot_at,
-                            buckets=buckets,
-                        )
+                    item = compute(
+                        session,
+                        key,
+                        from_at=from_at,
+                        to_at=to_at,
+                        snapshot_at=resolved_snapshot_at,
+                        buckets=buckets,
                     )
+                    if statistics:
+                        parameters = _parameters(key, from_at, to_at, resolved_snapshot_at)
+                        item.statistics = (
+                            _statistics_postgres(session, parameters)
+                            if postgres
+                            else interval_statistics(
+                                (epoch_ms(row.captured_at), row.value, row.quality)
+                                for row in _raw_rows(session, key, from_at, to_at, resolved_snapshot_at)
+                            )
+                        )
+                    results.append(item)
     except SQLAlchemyTimeoutError as error:
         raise HistoryCapacityError("History read capacity is exhausted") from error
     except OperationalError as error:

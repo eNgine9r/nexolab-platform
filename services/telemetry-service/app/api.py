@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from datetime import datetime, timedelta
 from typing import Annotated, Callable, Literal
 
@@ -53,6 +54,23 @@ class TelemetryCollectionResponse(BaseModel):
     snapshot_at: datetime | None = None
 
 
+class HistoryIntervalStatisticsResponse(BaseModel):
+    """Exact interval statistics from original rows (#1813), same semantics as the browser."""
+
+    valid_count: int
+    invalid_count: int
+    minimum: float | None
+    maximum: float | None
+    valid_sum: float
+    first_valid_ms: int | None
+    last_valid_ms: int | None
+    median_spacing_ms: float | None
+    gap_count: int
+    gap_total_ms: int
+    gap_longest_ms: int
+    recent_valid_ms: list[int] = []
+
+
 class HistoryAggregateSeriesResponse(BaseModel):
     """One series of `GET /history/aggregate` (#1811).
 
@@ -77,6 +95,7 @@ class HistoryAggregateSeriesResponse(BaseModel):
     last_ms: int | None
     raw: list[tuple[int, float | None, str, str | None, str]] | None = None
     buckets: list[list[int | float | None]] | None = None
+    statistics: HistoryIntervalStatisticsResponse | None = None
 
 
 class HistoryAggregateResponse(BaseModel):
@@ -106,6 +125,11 @@ def _aggregate_series_response(item: SeriesAggregate) -> HistoryAggregateSeriesR
         average=item.average,
         first_ms=item.first_ms,
         last_ms=item.last_ms,
+        statistics=(
+            None
+            if item.statistics is None
+            else HistoryIntervalStatisticsResponse(**dataclasses.asdict(item.statistics))
+        ),
         raw=item.raw if item.mode == "raw" else None,
         buckets=(
             [
@@ -269,6 +293,7 @@ def create_api_router(
         _authorized: AuthorizedRequest = Depends(read_access),
         buckets: Annotated[int, Query(ge=1, le=MAX_AGGREGATE_BUCKETS)] = 240,
         snapshot_at: datetime | None = None,
+        statistics: bool = False,
     ) -> HistoryAggregateResponse:
         """Extremum-preserving history for up to 24 series in one request (#1811)."""
         if from_at.tzinfo is None or to_at.tzinfo is None:
@@ -294,6 +319,7 @@ def create_api_router(
                 to_at=to_at,
                 buckets=buckets,
                 snapshot_at=snapshot_at,
+                statistics=statistics,
             )
         except HistoryCapacityError as error:
             raise HTTPException(

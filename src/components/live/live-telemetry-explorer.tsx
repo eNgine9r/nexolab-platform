@@ -61,6 +61,7 @@ import {
 import type { LiveHistoryRange, LiveTelemetryModel, LiveTelemetryStatus } from "@/hooks/use-live-telemetry";
 import type { TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 import { describeHistoryLoadError } from "@/lib/telemetry/history";
+import { mergeViewportDetail } from "@/features/live/live-aggregate-history";
 
 const QUALITY_VALUES: TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARM_VALUES: LiveAlarmFilter[] = ["all", "active", "none", "low", "high"];
@@ -365,6 +366,17 @@ export function LiveTelemetryExplorer({
     [customFromMs, customToMs, historyToMs, range],
   );
   const effectiveDomain = liveFollow && range === "live" ? resetDomain : (viewportDomain ?? resetDomain);
+  // #1813: once a zoom/pan is committed, load detailed measurements for the visible window (raw
+  // columns: instant; aggregated backend: one cancellable request). Full range: coarse points.
+  const detailDomain = liveFollow && range === "live" ? null : viewportDomain;
+  const setDetailViewport = telemetry.setDetailViewport;
+  useEffect(() => {
+    setDetailViewport?.(detailDomain);
+  }, [detailDomain, setDetailViewport, telemetry.historySnapshotAt]);
+  const displayHistory = useMemo(
+    () => mergeViewportDetail(telemetry.historySamples, telemetry.viewportDetail ?? null),
+    [telemetry.historySamples, telemetry.viewportDetail],
+  );
   const latestByKey = useMemo(
     () => Object.fromEntries(telemetry.samples.map((sample) => [liveChannelKey(sample), sample])),
     [telemetry.samples],
@@ -373,7 +385,7 @@ export function LiveTelemetryExplorer({
     () =>
       buildLiveChartGroups({
         selectedIdentities: selected,
-        historySamples: telemetry.historySamples,
+        historySamples: displayHistory,
         status: telemetry.status,
         xDomain: effectiveDomain,
         hiddenSeriesKeys,
@@ -392,7 +404,7 @@ export function LiveTelemetryExplorer({
       soloSeriesKey,
       telemetry.cadenceObservations,
       telemetry.clock,
-      telemetry.historySamples,
+      displayHistory,
       telemetry.status,
     ],
   );
@@ -410,6 +422,12 @@ export function LiveTelemetryExplorer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [effectiveDomain, groups, selected, telemetry.intervalStatistics, telemetry.historySamples],
   );
+  // Exact statistics always state the exact range they were computed for (#1813: a sliding live
+  // window in aggregate mode is refreshed at most every 30 s).
+  const statisticsRange = useMemo(() => {
+    const computed = statisticsRows.find((row) => row.statistics !== null)?.statistics;
+    return computed ? { fromMs: computed.fromMs, toMs: computed.toMs } : effectiveDomain;
+  }, [effectiveDomain, statisticsRows]);
   const densityCounts = useMemo(() => {
     const fullRows = buildLiveStatisticsRows(groups, selected, resetDomain, telemetry.intervalStatistics);
     if (fullRows.length === 0 || fullRows.some((row) => row.statistics === null)) {
@@ -775,7 +793,14 @@ export function LiveTelemetryExplorer({
             </button>
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (
-          <div className="mt-5 min-w-0 space-y-4">
+          <div
+            className="mt-5 min-w-0 space-y-4"
+            data-testid="live-chart-workspace"
+            data-history-source={telemetry.historySource ?? "raw"}
+            data-viewport-detail={
+              telemetry.viewportDetail ? `${telemetry.viewportDetail.samples.length}` : "none"
+            }
+          >
             {density !== undefined && onDensityChange && telemetry.densityResolution ? (
               <ChartDensityControl
                 mode={density}
@@ -823,8 +848,8 @@ export function LiveTelemetryExplorer({
             />
             <DashboardIntervalStatistics
               rows={statisticsRows}
-              fromMs={effectiveDomain.fromMs}
-              toMs={effectiveDomain.toMs}
+              fromMs={statisticsRange.fromMs}
+              toMs={statisticsRange.toMs}
               isViewport={viewportDomain !== null && !(liveFollow && range === "live")}
               displayTimeZone={displayTimeZone}
             />

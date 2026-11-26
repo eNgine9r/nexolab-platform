@@ -1,3 +1,5 @@
+import type { HistoryAggregateQuery, HistoryAggregateResponse } from "./history-aggregate";
+
 export type TelemetryMode = "demo" | "live";
 
 export type TelemetryQuality = "valid" | "sensor_error" | "communication_error" | "unknown";
@@ -135,5 +137,10 @@ export interface TelemetryAdapter {
   readiness: (signal?: AbortSignal) => Promise<TelemetryReadinessResponse>;
   latest: (query?: TelemetryPageQuery, signal?: AbortSignal) => Promise<TelemetryCollectionResponse>;
   history: (query: TelemetryHistoryQuery, signal?: AbortSignal) => Promise<TelemetryCollectionResponse>;
+  /** #1813: extremum-preserving history; absent on adapters without a backend that serves it. */
+  historyAggregate?: (
+    query: HistoryAggregateQuery,
+    signal?: AbortSignal,
+  ) => Promise<HistoryAggregateResponse>;
   subscribe: (filters: TelemetryFilters, handlers: TelemetryLiveHandlers) => TelemetrySubscription;
 }

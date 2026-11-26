@@ -469,11 +469,18 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     expect(runtime.publicRequests).toEqual([]);
     expect(runtime.telemetry.some((request) => request.url.includes("/latest"))).toBe(true);
     expect(runtime.telemetry.some((request) => request.url.includes("/history"))).toBe(true);
+    // Every history request stays scoped to the selected fixture channels: raw pages by
+    // channel_id, aggregated history (#1813) by its node|equipment|channel|metric series.
     expect(
       runtime.telemetry
         .filter((request) => request.url.includes("/history"))
         .every((request) => {
-          const channelId = new URL(request.url).searchParams.get("channel_id");
+          const params = new URL(request.url).searchParams;
+          const series = params.getAll("series");
+          if (series.length > 0) {
+            return series.every((key) => fixture.channels.includes(key.split("|")[2] ?? ""));
+          }
+          const channelId = params.get("channel_id");
           return channelId !== null && fixture.channels.includes(channelId);
         }),
     ).toBe(true);

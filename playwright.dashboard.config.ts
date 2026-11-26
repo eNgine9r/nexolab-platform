@@ -69,8 +69,22 @@ export default defineConfig({
     },
     {
       name: "chromium-authenticated-dashboard",
-      testIgnore: "equipment-registry.production.e2e.ts",
+      testIgnore: ["equipment-registry.production.e2e.ts", "chart-performance.production.e2e.ts"],
       dependencies: ["equipment-registry-production"],
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserExecutablePath ? { launchOptions: { executablePath: browserExecutablePath } } : {}),
+      },
+    },
+    // #1813 performance evidence loads the shared stack for minutes; it runs after every other spec
+    // and only for full runs or focused chart/live runs.
+    {
+      name: "chart-performance",
+      testMatch:
+        !focusedTestMatch || /chart|live/.test(focusedTestMatch)
+          ? "chart-performance.production.e2e.ts"
+          : "__no-chart-performance-run__",
+      dependencies: ["chromium-authenticated-dashboard"],
       use: {
         ...devices["Desktop Chrome"],
         ...(browserExecutablePath ? { launchOptions: { executablePath: browserExecutablePath } } : {}),

@@ -76,11 +76,46 @@ function sourceEventId(eventId: string): string {
   return eventId.startsWith(SEGMENT_PREFIX) ? eventId.slice(SEGMENT_PREFIX.length) : eventId;
 }
 
+/**
+ * #1813: sorts by captured time with each timestamp parsed once (decorate-sort-undecorate) and
+ * returns the input order untouched when it is already ascending. Comparators calling Date.parse
+ * on every comparison cost millions of parses for a 24-channel day and blocked interaction.
+ */
+export function sortByCapturedAt<T extends Pick<TelemetrySample, "captured_at">>(samples: readonly T[]): T[] {
+  const times = samples.map((sample) => parsedTimestamp(sample.captured_at));
+  let ascending = true;
+  for (let index = 1; index < times.length; index += 1) {
+    if (times[index] < times[index - 1]) {
+      ascending = false;
+      break;
+    }
+  }
+  if (ascending) return [...samples];
+  return times
+    .map((time, index) => [time, index] as const)
+    .sort((left, right) => left[0] - right[0] || left[1] - right[1])
+    .map(([, index]) => samples[index]);
+}
+
+/** Orders samples by channel key (computed once per sample), stable within a channel. */
+export function groupByChannelKey(samples: readonly TelemetrySample[]): TelemetrySample[] {
+  const groups = new Map<string, TelemetrySample[]>();
+  for (const sample of samples) {
+    const key = liveChannelKey(sample);
+    const list = groups.get(key);
+    if (list) list.push(sample);
+    else groups.set(key, [sample]);
+  }
+  return [...groups.keys()]
+    .sort((left, right) => left.localeCompare(right, "uk-UA"))
+    .flatMap((key) => groups.get(key)!);
+}
+
 export function isLiveHistorySegmentStart(sample: TelemetrySample): boolean {
   return sample.event_id.startsWith(SEGMENT_PREFIX);
 }
 
-function markSegmentStart(sample: TelemetrySample): TelemetrySample {
+export function markSegmentStart(sample: TelemetrySample): TelemetrySample {
   if (isLiveHistorySegmentStart(sample)) return sample;
   return { ...sample, event_id: `${SEGMENT_PREFIX}${sample.event_id}` };
 }
@@ -147,9 +182,7 @@ function rawSourceGapMs(sorted: readonly TelemetrySample[]): number {
 }
 
 function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetrySample[] {
-  const sorted = [...samples].sort(
-    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-  );
+  const sorted = sortByCapturedAt(samples);
   // Only ever called on RAW samples (history load): the median spacing is the acquisition cadence.
   const sourceGapMs = rawSourceGapMs(sorted);
   const annotated: TelemetrySample[] = [];
@@ -212,7 +245,7 @@ function downsampleChannel(
  * Reduces one channel whose continuity is ALREADY decided (segment-start markers set from raw
  * data). It never re-derives gaps, so it is safe to apply to previously reduced points.
  */
-function reduceAnnotatedChannel(
+export function reduceAnnotatedChannel(
   annotated: readonly TelemetrySample[],
   window: LiveHistoryWindow,
   maximumPoints: number,
@@ -299,9 +332,7 @@ export function reconcileLiveHistoryEvents(
   const newestCapturedAtByChannel = new Map(currentState.newestCapturedAtByChannel);
   const pendingBreakChannels = new Set(currentState.pendingBreakChannels);
   const samples: TelemetrySample[] = [];
-  const sorted = [...incoming].sort(
-    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-  );
+  const sorted = sortByCapturedAt(incoming);
 
   for (const sample of sorted) {
     if (!acceptedSample(sample)) continue;
@@ -369,9 +400,7 @@ export async function loadCompleteLiveHistory(
     },
   );
   // Same channel order as a single downsampleLiveHistory call (stable sort keeps time order).
-  const samples = perChannel
-    .flatMap((channel) => channel.reduced)
-    .sort((left, right) => liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA"));
+  const samples = groupByChannelKey(perChannel.flatMap((channel) => channel.reduced));
   return {
     samples,
     intervalColumns,
@@ -398,10 +427,7 @@ export function deriveLiveSourceGapMsByChannel(rawSamples: readonly TelemetrySam
     // the 30 s minimum and breaking every on-time sample.
     const distinct = new Set(channelSamples.map((sample) => parsedTimestamp(sample.captured_at)));
     if (distinct.size < MIN_RAW_TIMESTAMPS_FOR_TOLERANCE) continue;
-    channelSamples.sort(
-      (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-    );
-    result.set(key, rawSourceGapMs(channelSamples));
+    result.set(key, rawSourceGapMs(sortByCapturedAt(channelSamples)));
   }
   return result;
 }
@@ -417,7 +443,10 @@ export function seedCadenceFromHistoryLoad(
   return seedCadenceFromSamples(observations, result.cadenceSamples, liveChannelKey);
 }
 
-function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: number): TelemetrySample[] {
+export function newestRawSamplesPerChannel(
+  samples: readonly TelemetrySample[],
+  limit: number,
+): TelemetrySample[] {
   const groups = new Map<string, TelemetrySample[]>();
   for (const sample of samples) {
     if (!acceptedSample(sample)) continue;
@@ -426,11 +455,7 @@ function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: 
     if (current) current.push(sample);
     else groups.set(key, [sample]);
   }
-  return [...groups.values()].flatMap((channelSamples) =>
-    channelSamples
-      .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at))
-      .slice(-limit),
-  );
+  return [...groups.values()].flatMap((channelSamples) => sortByCapturedAt(channelSamples).slice(-limit));
 }
 
 export interface LiveHistoryTailOptions {
@@ -490,16 +515,10 @@ export function appendLiveHistoryTail(
     if (parsedTimestamp(sample.captured_at) < parsedTimestamp(list.at(-1)!.captured_at)) unsorted.add(key);
     list.push(sample);
   }
-  for (const key of unsorted) {
-    byChannel
-      .get(key)!
-      .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at));
-  }
+  for (const key of unsorted) byChannel.set(key, sortByCapturedAt(byChannel.get(key)!));
 
   const pending = options.pendingBreakChannels ?? new Set<string>();
-  const ordered = [...incoming].sort(
-    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-  );
+  const ordered = sortByCapturedAt(incoming);
   for (const sample of ordered) {
     if (!inWindow(sample)) continue;
     const id = sourceEventId(sample.event_id);
@@ -576,9 +595,7 @@ export function mergeLiveHistoryTail(
 }
 
 export function liveHistorySegments(samples: readonly TelemetrySample[]): TelemetrySample[][] {
-  const sorted = [...samples].sort(
-    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-  );
+  const sorted = sortByCapturedAt(samples);
   const segments: TelemetrySample[][] = [];
 
   for (const sample of sorted) {

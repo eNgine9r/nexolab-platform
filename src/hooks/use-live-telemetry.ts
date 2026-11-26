@@ -1,6 +1,15 @@
 "use client";
 
 import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
+import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
+import {
+  aggregateViewportDetail,
+  columnsViewportDetail,
+  fetchAggregatedSeries,
+  loadAggregatedLiveHistory,
+  wireToIntervalStatistics,
+  type ViewportDetail,
+} from "@/features/live/live-aggregate-history";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -8,6 +17,7 @@ import {
   LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
+  type LiveHistoryResult,
   seedCadenceFromHistoryLoad,
   mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
@@ -122,6 +132,22 @@ export interface LiveTelemetryModel {
   error: Error | null;
   retry: () => void;
   retryHistory: () => void;
+  /** #1813: "aggregate" when the backend served extremum-preserving history, else "raw". */
+  historySource?: "aggregate" | "raw";
+  /** #1813: detailed measurements for the visible window (null at full range). */
+  viewportDetail?: ViewportDetail | null;
+  /** #1813: request detail for the committed viewport; null returns to the full-range view. */
+  setDetailViewport?: (domain: { fromMs: number; toMs: number } | null) => void;
+}
+
+/** #1813: in aggregate mode, sliding live-window statistics are refreshed at most this often. */
+const SERVER_STATISTICS_REFRESH_MS = 30_000;
+
+/** Two statistics intervals of a sliding window: same length and at most 30 s apart. */
+function compatible(left: [number, number], right: [number, number]): boolean {
+  return (
+    left[1] - left[0] === right[1] - right[0] && Math.abs(left[0] - right[0]) <= SERVER_STATISTICS_REFRESH_MS
+  );
 }
 
 function loadRuntimeConfig(): RuntimeConfigResult {
@@ -304,10 +330,151 @@ export function useLiveTelemetry({
     pointsPerChannelRef.current = pointsPerChannel;
   }, [pointsPerChannel]);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
+  // #1813: aggregate-mode channels have no raw columns in the browser; their exact statistics come
+  // from the server (same semantics). Requests are batched (a timer started by the first request,
+  // never postponed by later renders), deduplicated, retried after a failure, and a sliding live
+  // window reuses its exact result for up to 30 s so viewing history never loads ingestion.
+  const aggregatedChannelsRef = useRef<Set<string>>(new Set());
+  const loadedIdentitiesRef = useRef<readonly TelemetrySample[]>([]);
+  const historyAdapterRef = useRef<TelemetryAdapter | null>(null);
+  const serverStatsRef = useRef<Map<string, IntervalStatistics>>(new Map());
+  const fetchedRangesRef = useRef<Array<{ fromMs: number; toMs: number; at: number }>>([]);
+  const statsInFlightRef = useRef<Map<string, [number, number]>>(new Map());
+  const statsFailedAtRef = useRef<Map<string, number>>(new Map());
+  const pendingStatsRef = useRef<Map<string, [number, number]>>(new Map());
+  const statsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [statsVersion, setStatsVersion] = useState(0);
+  const rawStatsCacheRef = useRef<Map<string, IntervalStatistics | null>>(new Map());
+  const [historySource, setHistorySource] = useState<"aggregate" | "raw">("raw");
+  const fetchServerStatistics = useCallback((fromMs: number, toMs: number) => {
+    const adapter = historyAdapterRef.current;
+    if (!adapter?.historyAggregate) return;
+    const rangeKey = `${fromMs}|${toMs}`;
+    const identities = loadedIdentitiesRef.current.filter((identity) =>
+      aggregatedChannelsRef.current.has(liveChannelKey(identity)),
+    );
+    if (identities.length === 0) return;
+    statsInFlightRef.current.set(rangeKey, [fromMs, toMs]);
+    void fetchAggregatedSeries(
+      adapter,
+      identities.map((identity) => ({
+        node_id: identity.node_id,
+        equipment_id: identity.equipment_id,
+        channel_id: identity.channel_id,
+        metric: identity.metric,
+      })),
+      { from: new Date(fromMs), to: new Date(toMs) },
+      1,
+      { statistics: true },
+    )
+      .then((response) => {
+        for (const identity of identities) {
+          const series = response.series.find(
+            (item) =>
+              item.node_id === identity.node_id &&
+              item.equipment_id === identity.equipment_id &&
+              item.channel_id === identity.channel_id &&
+              item.metric === identity.metric,
+          );
+          if (!series?.statistics) continue;
+          serverStatsRef.current.set(
+            `${liveChannelKey(identity)}|${rangeKey}`,
+            wireToIntervalStatistics(series.statistics, fromMs, toMs),
+          );
+        }
+        fetchedRangesRef.current = [...fetchedRangesRef.current.slice(-31), { fromMs, toMs, at: Date.now() }];
+        statsFailedAtRef.current.delete(rangeKey);
+        setStatsVersion((value) => value + 1);
+      })
+      .catch(() => {
+        statsFailedAtRef.current.set(rangeKey, Date.now());
+      })
+      .finally(() => {
+        statsInFlightRef.current.delete(rangeKey);
+      });
+  }, []);
+  /** A cached exact range that a sliding live window may show instead of (from, to), if any. */
+  const recentCompatibleRange = useCallback((fromMs: number, toMs: number) => {
+    const now = Date.now();
+    return [...fetchedRangesRef.current]
+      .reverse()
+      .find(
+        (range) =>
+          range.toMs - range.fromMs === toMs - fromMs &&
+          Math.abs(range.fromMs - fromMs) <= SERVER_STATISTICS_REFRESH_MS &&
+          now - range.at < SERVER_STATISTICS_REFRESH_MS,
+      );
+  }, []);
+  const scheduleServerStatistics = useCallback(
+    (fromMs: number, toMs: number) => {
+      const rangeKey = `${fromMs}|${toMs}`;
+      // A sliding window must not queue one request per tick: an in-flight compatible interval
+      // (same length, <= 30 s apart) answers it.
+      if ([...statsInFlightRef.current.values()].some((range) => compatible(range, [fromMs, toMs]))) return;
+      const failedAt = statsFailedAtRef.current.get(rangeKey);
+      if (failedAt !== undefined && Date.now() - failedAt < 10_000) return;
+      if (recentCompatibleRange(fromMs, toMs)) return;
+      pendingStatsRef.current.set(rangeKey, [fromMs, toMs]);
+      if (statsTimerRef.current !== null) return;
+      statsTimerRef.current = setTimeout(() => {
+        statsTimerRef.current = null;
+        // Coalesce: of compatible sliding intervals keep only the newest.
+        const ranges: Array<[number, number]> = [];
+        for (const range of [...pendingStatsRef.current.values()].sort((left, right) => right[0] - left[0])) {
+          if (!ranges.some((kept) => compatible(kept, range))) ranges.push(range);
+        }
+        pendingStatsRef.current.clear();
+        for (const [from, to] of ranges) fetchServerStatistics(from, to);
+      }, 400);
+    },
+    [fetchServerStatistics, recentCompatibleRange],
+  );
   const intervalStatistics = useCallback(
-    (channelKey: string, fromMs: number, toMs: number) =>
-      liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs),
-    [],
+    (channelKey: string, fromMs: number, toMs: number) => {
+      // One effective range for every channel of a request, so all rows of a table describe the
+      // same interval: in aggregate mode a sliding window may show a cached exact range (<= 30 s
+      // older); raw channels then use that same range.
+      let effectiveFrom = fromMs;
+      let effectiveTo = toMs;
+      if (aggregatedChannelsRef.current.size > 0) {
+        const exactCached = [...aggregatedChannelsRef.current].some((key) =>
+          serverStatsRef.current.has(`${key}|${fromMs}|${toMs}`),
+        );
+        if (!exactCached) {
+          scheduleServerStatistics(fromMs, toMs);
+          const recent = recentCompatibleRange(fromMs, toMs);
+          if (recent) {
+            effectiveFrom = recent.fromMs;
+            effectiveTo = recent.toMs;
+          }
+        }
+      }
+      if (aggregatedChannelsRef.current.has(channelKey)) {
+        return serverStatsRef.current.get(`${channelKey}|${effectiveFrom}|${effectiveTo}`) ?? null;
+      }
+      // Exact, from raw columns; cached per range and column version because every viewport, clock
+      // tick and statistics row asks again (a 24-channel day sorts ~200 000 spacings).
+      const columns = intervalColumnsRef.current[channelKey];
+      const version = columns
+        ? `${columns.validTimestamps.length}:${columns.invalidTimestamps.length}:${columns.validTimestamps.at(-1) ?? ""}:${columns.validTimestamps[0] ?? ""}`
+        : "none";
+      const cacheKey = `${channelKey}|${effectiveFrom}|${effectiveTo}|${version}`;
+      const cache = rawStatsCacheRef.current;
+      const cached = cache.get(cacheKey);
+      if (cached !== undefined) return cached;
+      const computed = liveIntervalStatistics(
+        intervalColumnsRef.current,
+        channelKey,
+        effectiveFrom,
+        effectiveTo,
+      );
+      if (cache.size > 1_000) cache.clear();
+      cache.set(cacheKey, computed);
+      return computed;
+    },
+    // statsVersion: consumers recompute when new exact server statistics arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [recentCompatibleRange, scheduleServerStatistics, statsVersion],
   );
   const selectedKeysRef = useRef(selectedKeys);
   const historyWindowRef = useRef(historyWindow);
@@ -323,6 +490,61 @@ export function useLiveTelemetry({
     const cadenceMs = observedCadenceMs(storeRef.current.cadence[channelKey]);
     return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
   }, []);
+  // #1813: detail for the committed viewport. Raw channels: from the browser's raw columns, no
+  // request. Aggregated channels: one cancellable request; a newer viewport aborts the older one.
+  const [viewportDetail, setViewportDetail] = useState<ViewportDetail | null>(null);
+  const detailControllerRef = useRef<AbortController | null>(null);
+  const setDetailViewport = useCallback(
+    (domain: { fromMs: number; toMs: number } | null) => {
+      detailControllerRef.current?.abort();
+      detailControllerRef.current = null;
+      if (!domain || !(domain.toMs > domain.fromMs)) {
+        setViewportDetail(null);
+        return;
+      }
+      const identities = loadedIdentitiesRef.current;
+      const budget = pointsPerChannelRef.current;
+      const aggregated = aggregatedChannelsRef.current;
+      const rawDetail = columnsViewportDetail(
+        identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),
+        intervalColumnsRef.current,
+        domain,
+        budget,
+        sourceGapMsFor,
+      );
+      setViewportDetail(rawDetail.channels.size > 0 ? rawDetail : null);
+      const adapter = historyAdapterRef.current;
+      const aggregatedIdentities = identities.filter((identity) => aggregated.has(liveChannelKey(identity)));
+      if (!adapter?.historyAggregate || aggregatedIdentities.length === 0) return;
+      const controller = new AbortController();
+      detailControllerRef.current = controller;
+      void aggregateViewportDetail(
+        adapter,
+        aggregatedIdentities,
+        domain,
+        budget,
+        sourceGapMsFor,
+        controller.signal,
+      )
+        .then((detail) => {
+          if (controller.signal.aborted) return;
+          setViewportDetail((current) =>
+            current && current.channels.size > 0
+              ? {
+                  fromMs: Math.min(current.fromMs, detail.fromMs),
+                  toMs: Math.max(current.toMs, detail.toMs),
+                  coveredToMs: Math.max(current.coveredToMs, detail.coveredToMs),
+                  channels: new Set([...current.channels, ...detail.channels]),
+                  samples: current.samples.concat(detail.samples),
+                }
+              : detail,
+          );
+        })
+        // A failed or superseded detail request keeps the full-range points; nothing is invented.
+        .catch(() => undefined);
+    },
+    [sourceGapMsFor],
+  );
 
   const setSelectedKeys = useCallback((keys: string[]) => {
     setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));
@@ -446,7 +668,12 @@ export function useLiveTelemetry({
             setHistoryWindow(nextWindow);
           }
           recordLiveIntervalSamples(intervalColumnsRef.current, reconciliation.samples);
-          pruneLiveIntervalSamples(intervalColumnsRef.current, nextWindow.from.getTime());
+          // Keep raw evidence a little before the window: a sliding statistics interval may be up to
+          // 30 s older (#1813), and its raw rows must stay exact.
+          pruneLiveIntervalSamples(
+            intervalColumnsRef.current,
+            nextWindow.from.getTime() - SERVER_STATISTICS_REFRESH_MS - 5_000,
+          );
           setHistorySamples((current) => {
             const next = mergeLiveHistoryTail(
               current,
@@ -595,15 +822,57 @@ export function useLiveTelemetry({
       setHistoryError(null);
     });
 
-    void loadCompleteLiveHistory(
-      adapter,
-      historyIdentities,
-      requestedWindow,
-      controller.signal,
-      pointsPerChannelRef.current,
-    )
+    historyAdapterRef.current = adapter;
+    loadedIdentitiesRef.current = historyIdentities;
+    detailControllerRef.current?.abort();
+    const loadRaw = () =>
+      loadCompleteLiveHistory(
+        adapter,
+        historyIdentities,
+        requestedWindow,
+        controller.signal,
+        pointsPerChannelRef.current,
+      );
+    // #1813: extremum-preserving aggregated history when the backend serves it; otherwise (404 on
+    // backends without #1811, remembered for this page) the raw path, unchanged.
+    const load: Promise<
+      LiveHistoryResult & {
+        aggregatedChannels?: Set<string>;
+        windowStatistics?: Map<string, IntervalStatistics>;
+      }
+    > = adapter.historyAggregate
+      ? loadAggregatedLiveHistory(
+          adapter,
+          historyIdentities,
+          requestedWindow,
+          controller.signal,
+          pointsPerChannelRef.current,
+          sourceGapMsFor,
+        ).catch((nextError: unknown) => {
+          if (isAggregateUnsupported(nextError)) return loadRaw();
+          throw nextError;
+        })
+      : loadRaw();
+    void load
       .then((result) => {
         if (disposed) return;
+        aggregatedChannelsRef.current = result.aggregatedChannels ?? new Set();
+        serverStatsRef.current = new Map();
+        fetchedRangesRef.current = [];
+        statsFailedAtRef.current = new Map();
+        pendingStatsRef.current = new Map();
+        rawStatsCacheRef.current = new Map();
+        // Exact statistics of the loaded window come with the aggregated load (#1813).
+        const windowStatistics = result.windowStatistics;
+        if (windowStatistics && windowStatistics.size > 0) {
+          const fromMs = requestedWindow.from.getTime();
+          const toMs = requestedWindow.to.getTime();
+          for (const [key, statistics] of windowStatistics)
+            serverStatsRef.current.set(`${key}|${fromMs}|${toMs}`, statistics);
+          fetchedRangesRef.current = [{ fromMs, toMs, at: Date.now() }];
+        }
+        setHistorySource(aggregatedChannelsRef.current.size > 0 ? "aggregate" : "raw");
+        setViewportDetail(null);
         // #1522: seed per-channel cadence from the persisted history that was
         // already requested for the selected channels; no additional requests.
         // Use the raw tail, never the chart-reduced series (bucket spacing would
@@ -763,5 +1032,8 @@ export function useLiveTelemetry({
     error,
     retry,
     retryHistory,
+    historySource,
+    viewportDetail,
+    setDetailViewport,
   };
 }

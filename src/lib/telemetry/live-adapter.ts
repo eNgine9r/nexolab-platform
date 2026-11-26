@@ -1,3 +1,4 @@
+import type { HistoryAggregateQuery, HistoryAggregateResponse } from "./history-aggregate";
 import { TelemetryRestClient } from "./rest-client";
 import { RoutePersistentTelemetryClient } from "./route-persistent-client";
 import type {
@@ -79,6 +80,10 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
       );
     }
     return this.rest.history(query, signal);
+  }
+
+  historyAggregate(query: HistoryAggregateQuery, signal?: AbortSignal): Promise<HistoryAggregateResponse> {
+    return this.rest.historyAggregate(query, signal);
   }
 
   subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
