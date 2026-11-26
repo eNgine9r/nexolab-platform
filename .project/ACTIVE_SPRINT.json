@@ -12497,7 +12497,7 @@
       "priority": "high",
       "scope": "retain_env=CORS_ALLOWED_ORIGINS for prove; network.tailscale-inspection-route apply/restore with backup, verify, auto-restore.",
       "depends_on": [
-        1792,
+        1734,
         1784
       ],
       "branch": "feat/1796-broker-v1-7",
