@@ -296,6 +296,38 @@ class Execute(unittest.TestCase):
         self.assertTrue(self.module.phase_rollback(fake.as_host()))
         self.assertEqual(fake.live, OLD)
 
+    def test_a_systemctl_timeout_during_activation_rolls_back(self):
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        original = fake.run
+
+        def run(argv):
+            if "restart" in argv and Path(self.dropin).exists():
+                raise self.module.subprocess.TimeoutExpired(argv, 180)
+            return original(argv)
+
+        host = fake.as_host()
+        host.run = run
+        with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
+            self.module.phase_execute(self.zip, self.expectation(), OLD, host)
+        self.assertFalse(self.dropin.exists())
+        self.assertEqual(fake.live, OLD)
+        self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
+        # A failed attempt never becomes the recorded installed release.
+        self.assertFalse((self.module.STATE_DIR / "state.json").exists())
+
+    def test_refuses_another_release_while_one_is_installed(self):
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
+        other = self.dropin.with_name("999-https-release-cccccccccccc.conf")
+        with mock.patch.object(self.module, "dropin_path", lambda source: other):
+            with self.assertRaisesRegex(self.module.ReleaseError, "already installed"):
+                self.module.phase_execute(self.zip, self.expectation(), (SOURCE, BUILD), fake.as_host())
+        self.assertFalse(other.exists())
+        state = json.loads((self.module.STATE_DIR / "state.json").read_text())
+        self.assertEqual(state["dropin"], str(self.dropin))
+
     def test_rollback_command_uses_the_recorded_state(self):
         fake = FakeHost(self.module)
         fake.dropin = str(self.dropin)

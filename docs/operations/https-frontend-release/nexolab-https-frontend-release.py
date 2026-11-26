@@ -427,10 +427,16 @@ def phase_prepare(zip_path: Path, expected: Expectation, host: Host) -> dict:
     return {"release": str(release)}
 
 
-def write_state(state: dict) -> None:
+def write_journal(state: dict) -> None:
+    """A timestamped record of every attempt, written before anything changes."""
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     (STATE_DIR / f"journal-{stamp}.json").write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+
+
+def write_state(state: dict) -> None:
+    """The installed release; written only after it is verified GREEN (review)."""
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     (STATE_DIR / "state.json").write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
 
 
@@ -446,7 +452,7 @@ def restore(host: Host, dropin: Path, previous: tuple[str, str]) -> bool:
         dropin.unlink()
     try:
         restart(host)
-    except ReleaseError as error:
+    except Exception as error:  # noqa: BLE001 - report, never raise from recovery
         host.log(f"HTTPS_FRONTEND_FAILED restart during rollback: {error}")
         return False
     ok = wait_identity(host, LIVE_PORT, previous[0], previous[1])
@@ -468,12 +474,15 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
     unit = show(host, "WorkingDirectory", "ExecStart")
     dropin_text = render_dropin(execstart_argv(unit.get("ExecStart", "")), unit.get("WorkingDirectory", ""), release, LIVE_PORT)
     dropin = dropin_path(expected.source)
-    if dropin.exists():
-        # Overwriting it would lose the drop-in the recorded "previous" identity depends on, and a
-        # later rollback would activate an older underlying release instead (review).
-        raise ReleaseError(f"{dropin} is already installed; run rollback first; nothing changed")
+    # One release drop-in of this tool at a time: overwriting or stacking one would lose the drop-in
+    # the recorded previous identity depends on, and a later rollback would activate an older
+    # underlying release (review). Roll back first.
+    installed = sorted(dropin.parent.glob(f"{DROPIN_PREFIX}*.conf")) if dropin.parent.is_dir() else []
+    if installed:
+        raise ReleaseError(f"{installed[0]} is already installed; run rollback first; nothing changed")
     user = pwd.getpwnam(SERVICE_USER)
-    write_state({"dropin": str(dropin), "previous": list(current), "release": str(release), "target": [expected.source, expected.build]})
+    state = {"dropin": str(dropin), "previous": list(current), "release": str(release), "target": [expected.source, expected.build]}
+    write_journal(state)
     dropin.parent.mkdir(parents=True, exist_ok=True)
     os.chown(dropin.parent, user.pw_uid, user.pw_gid)
     dropin.write_text(dropin_text)
@@ -495,10 +504,13 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
         status, _ = host.http_get(f"{PUBLIC_URL}/", 15.0)
         if status not in (302, 401, 403):
             raise ReleaseError(f"anonymous public request answered {status}, expected the OAuth gate (302)")
-    except ReleaseError as error:
+    except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, rolls back
         host.log(f"HTTPS_FRONTEND_FAILED {error}; rolling back")
         restore(host, dropin, current)
-        raise
+        if isinstance(error, ReleaseError):
+            raise
+        raise ReleaseError(f"activation failed: {error}") from error
+    write_state(state)
     host.log(f"HTTPS_FRONTEND_GREEN source={expected.source} build={expected.build} dropin={dropin}")
     return {"dropin": str(dropin)}
 
