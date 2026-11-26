@@ -201,6 +201,46 @@ describe("parallel multi-series history (#1809)", () => {
     expect(queries.slice(1).every((query) => query.snapshot_at === SNAPSHOT)).toBe(true);
   });
 
+  it("completes series in order with at most `seriesConcurrency` series in flight (#1824)", async () => {
+    const inFlight = new Set<string>();
+    let peak = 0;
+    let requests = 0;
+    const pagesServed = new Map<string, number>();
+    const history = vi.fn<TelemetryAdapter["history"]>().mockImplementation(async (query) => {
+      const channel = String(query.channel_id);
+      requests += 1;
+      inFlight.add(channel);
+      peak = Math.max(peak, inFlight.size);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight.delete(channel);
+      // Three pages per series, paged backwards by the captured-time cursor.
+      const served = (pagesServed.get(channel) ?? 0) + 1;
+      pagesServed.set(channel, served);
+      const capturedAt = new Date(Date.parse("2026-11-26T12:00:00Z") - served * 600_000).toISOString();
+      return { ...page([sample(channel, capturedAt)]), next_offset: served < 3 ? 1 : null };
+    });
+    const completed: number[] = [];
+    const filters = Array.from({ length: 6 }, (_, index) => ({ channel_id: `ch-${index + 1}` }));
+
+    const results = await loadCompleteTelemetryHistoryForSeries(
+      adapter(history),
+      filters,
+      window,
+      { retryDelaysMs: [], pageSize: 2, seriesConcurrency: 3 },
+      (result, index) => {
+        completed.push(index);
+        return result;
+      },
+    );
+
+    expect(requests).toBe(18);
+    expect(peak).toBe(3);
+    expect(results.map((result) => result.samples.length)).toEqual([3, 3, 3, 3, 3, 3]);
+    // The first three finish before any of the last three: progressive, not all at the end.
+    expect(completed.slice(0, 3).sort()).toEqual([0, 1, 2]);
+    expect(completed.slice(3).sort()).toEqual([3, 4, 5]);
+  });
+
   it("aborts the remaining series after the first failure", async () => {
     const signals: AbortSignal[] = [];
     const history = vi.fn<TelemetryAdapter["history"]>().mockImplementation(async (query, signal) => {

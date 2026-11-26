@@ -346,6 +346,8 @@ ANALYZE telemetry_samples;
       })();
       const hosts = page.getByTestId("chart-renderer-host");
       await expect(hosts.first()).toBeVisible({ timeout: 240_000 });
+      // #1824: the first loaded channels are drawn while the rest still loads.
+      const firstSeriesMs = Date.now() - startedAt;
       // Charts render only after the whole history window is loaded (old and new frontends alike).
       await expect(page.getByText("Завантаження history window", { exact: false })).toHaveCount(0, {
         timeout: 240_000,
@@ -369,6 +371,7 @@ ANALYZE telemetry_samples;
         channels: channelCount,
         range: "24h",
         rowsPerChannel: 8_610,
+        firstSeriesMs,
         firstChartMs,
         historyRequests: traffic.history,
         aggregateRequests: traffic.aggregate,
