@@ -266,15 +266,15 @@ jobs:
             sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op "$1" \
               --ttl-minutes 10 --reason ci "${@:2}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["approval_id"])'
           }
-          docker tag alpine:3.22 nexolab/ci-rollback:issue-9-arm64
+          docker tag alpine:3.22 nexolab/ci-previous-ui:issue-9-arm64
           docker tag alpine:3.22 nexolab/ci-stale:issue-8-arm64
-          rid=$(docker image inspect --format '{{.Id}}' nexolab/ci-rollback:issue-9-arm64)
+          rid=$(docker image inspect --format '{{.Id}}' nexolab/ci-previous-ui:issue-9-arm64)
           # a root-only release record (owner workspace) names it as the rollback release
           sudo install -d -o nexolab -g nexolab -m 0700 /home/nexolab/commander-workspaces/ci-release
-          echo '{"frontend_rollback_release": "docker:nexolab/ci-rollback:issue-9-arm64"}' \
+          echo '{"frontend_rollback_release": "docker:nexolab/ci-previous-ui:issue-9-arm64"}' \
             | sudo -u nexolab tee /home/nexolab/commander-workspaces/ci-release/site-activation-report.json >/dev/null
           if sudo -u runner test -r /home/nexolab/commander-workspaces/ci-release/site-activation-report.json; then exit 1; fi
-          printf '{"images": [{"ref": "nexolab/ci-rollback:issue-9-arm64", "id": "%s"}, {"ref": "nexolab/ci-stale:issue-8-arm64", "id": "%s"}]}' "$rid" "$rid" > /tmp/m4.json
+          printf '{"images": [{"ref": "nexolab/ci-previous-ui:issue-9-arm64", "id": "%s"}, {"ref": "nexolab/ci-stale:issue-8-arm64", "id": "%s"}]}' "$rid" "$rid" > /tmp/m4.json
           sha=$(sha256sum /tmp/m4.json | cut -d' ' -f1); cp /tmp/m4.json "$HOME/operator-inbox/$sha.json"
           evidence=$(call storage.image-references manifest_sha256=$sha) || { echo "$evidence"; exit 1; }
           echo "$evidence" | head -c 3000
@@ -282,7 +282,7 @@ jobs:
           import json, sys
           r = json.loads(sys.argv[1]); res = r["result"]; by = {i["ref"]: i for i in res["images"]}
           assert r["ok"] and res["complete"], r
-          rb = by["nexolab/ci-rollback:issue-9-arm64"]
+          rb = by["nexolab/ci-previous-ui:issue-9-arm64"]
           assert rb["rollback_references"] >= 1 and any("ci-release" in e["path"] for e in rb["evidence"]), rb
           ' "$evidence"
           id=$(approve storage.remove-images --arg manifest_sha256=$sha)
@@ -291,10 +291,10 @@ jobs:
           python3 -c '
           import json, sys
           r = json.loads(sys.argv[1]); st = {x["ref"]: x["status"] for x in r["result"]["results"]}
-          assert st["nexolab/ci-rollback:issue-9-arm64"] == "skipped_protected_or_rollback_record", st
+          assert st["nexolab/ci-previous-ui:issue-9-arm64"] == "skipped_protected_or_rollback_record", st
           assert st["nexolab/ci-stale:issue-8-arm64"] in ("untagged", "deleted"), st
           ' "$out"
-          docker image inspect nexolab/ci-rollback:issue-9-arm64 >/dev/null
+          docker image inspect nexolab/ci-previous-ui:issue-9-arm64 >/dev/null
 
       - name: Stage 2 offline build pattern on real BuildKit (#1782)
         run: |
