@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -1060,6 +1060,179 @@ def op_deploy_lan_frontend(broker: "Broker", args: dict) -> dict:
                      "rollback": "verify the previous dashboard identity"}[phase]}
 
 
+# ----------------------------------------------------------------------------- v1.3 (#1778)
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
+IMAGE_REF = re.compile(r"^nexolab[a-z0-9_.-]*/?[a-z0-9_./-]*:[A-Za-z0-9_.-]{1,128}$")
+PROTECTED_IMAGE = re.compile(r"protected|recovery|rollback|disaster-recovery|baseline|-base:", re.I)
+MAX_MANIFEST_IMAGES = 60
+
+
+def read_inbox_json(broker: "Broker", sha256: str, max_bytes: int = 256 * 1024) -> Any:
+    """Read <inbox>/<sha256>.json without following links and prove the bytes match the approved hash."""
+    if not SHA256.fullmatch(sha256):
+        raise Rejected("invalid_argument", "manifest_sha256 must be a SHA-256")
+    path = inbox_dir(broker) / f"{sha256}.json"
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    except OSError:
+        raise Rejected("precondition_failed", f"manifest {path.name} not found in the operator inbox") from None
+    with os.fdopen(fd, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise Rejected("precondition_failed", "manifest is not a regular file")
+        data = handle.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise Rejected("precondition_failed", "manifest too large")
+    if hashlib.sha256(data).hexdigest() != sha256:
+        raise Rejected("approval_mismatch", "manifest bytes do not match the approved SHA-256")
+    try:
+        return json.loads(data)
+    except ValueError:
+        raise Rejected("precondition_failed", "manifest is not valid JSON") from None
+
+
+def used_image_ids(broker: "Broker") -> set[str]:
+    used = set()
+    for cid in docker_lines(broker, ["docker", "ps", "-aq", "--no-trunc"]):
+        used.update(docker_lines(broker, ["docker", "inspect", "--type", "container", "--format", "{{.Image}}",
+                                          "--", cid], 20))
+    return used
+
+
+def op_storage_remove_images(broker: "Broker", args: dict) -> dict:
+    """Owner-approved removal of the exact NEXOLAB images listed in a hash-bound manifest (never -f)."""
+    manifest = read_inbox_json(broker, args["manifest_sha256"])
+    images = manifest.get("images") if isinstance(manifest, dict) else None
+    if not isinstance(images, list) or not 0 < len(images) <= MAX_MANIFEST_IMAGES:
+        raise Rejected("precondition_failed", f"manifest needs 1..{MAX_MANIFEST_IMAGES} images")
+    entries = []
+    for item in images:
+        ref, image_id = (item.get("ref"), item.get("id")) if isinstance(item, dict) else (None, None)
+        if not (isinstance(ref, str) and IMAGE_REF.fullmatch(ref) and isinstance(image_id, str)
+                and IMAGE_ID.fullmatch(image_id)):
+            raise Rejected("precondition_failed", "manifest entry needs a NEXOLAB image ref and a sha256 id")
+        if PROTECTED_IMAGE.search(ref):
+            raise Rejected("precondition_failed", f"protected image refused: {ref}")
+        entries.append((ref, image_id))
+    before_free = free_bytes()
+    volumes_before = docker_lines(broker, ["docker", "volume", "ls", "-q"])
+    used = used_image_ids(broker)
+    results = []
+    for ref, image_id in entries:
+        current = broker.runner(["docker", "image", "inspect", "--format", "{{.Id}}", "--", ref], 20)
+        if current.exit != 0:
+            results.append({"ref": ref, "status": "absent"})
+            continue
+        if current.output.strip() != image_id:
+            results.append({"ref": ref, "status": "skipped_tag_moved", "now": current.output.strip()[:80]})
+            continue
+        if image_id in used:
+            results.append({"ref": ref, "status": "skipped_in_use"})
+            continue
+        removed = broker.runner(["docker", "image", "rm", "--", ref], 120)  # never -f
+        status = "error"
+        if removed.exit == 0:
+            status = "deleted" if "Deleted:" in removed.output else "untagged"
+        results.append({"ref": ref, "status": status, "exit": removed.exit})
+    if sorted(docker_lines(broker, ["docker", "volume", "ls", "-q"])) != sorted(volumes_before):
+        raise Rejected("internal_error", "volume set changed during image removal")  # must never happen
+    return {"results": results, "volumes_unchanged": True, "in_use_images_kept": len(used),
+            "free_before_gib": round(before_free / 1024**3, 2), "free_after_gib": round(free_bytes() / 1024**3, 2)}
+
+
+NMCLI_FIELD_SPLIT = re.compile(r"(?<!\\):")
+
+
+def nm_connections(broker: "Broker") -> list[dict]:
+    out = broker.runner(["nmcli", "-t", "-f", "NAME,UUID,TYPE,ACTIVE,DEVICE", "connection", "show"], 10).output
+    rows = []
+    for line in out.splitlines():
+        parts = NMCLI_FIELD_SPLIT.split(line)
+        if len(parts) == 5:
+            rows.append({"name": parts[0].replace("\\:", ":"), "uuid": parts[1], "type": parts[2],
+                         "active": parts[3] == "yes", "device": parts[4]})
+    return rows
+
+
+def wifi_profile(broker: "Broker", name: str) -> dict:
+    matches = [c for c in nm_connections(broker) if c["name"] == name]
+    if len(matches) != 1:
+        raise Rejected("precondition_failed", f"expected exactly one profile named {name}, found {len(matches)}")
+    if matches[0]["type"] != "802-11-wireless":
+        raise Rejected("precondition_failed", "only Wi-Fi profiles are handled")
+    return matches[0]
+
+
+def default_route_device(broker: "Broker") -> str:
+    out = broker.runner(["ip", "-4", "route", "show", "default"], 10).output
+    best = None
+    for line in out.splitlines():
+        dev = re.search(r"\bdev (\S+)", line)
+        metric = re.search(r"\bmetric (\d+)", line)
+        if dev:
+            value = int(metric.group(1)) if metric else 0
+            if best is None or value < best[0]:
+                best = (value, dev.group(1))
+    return best[1] if best else ""
+
+
+def op_wifi_connect_test(broker: "Broker", args: dict) -> dict:
+    """One bounded association attempt; the MAC setting is in-memory only and restored; Ethernet stays primary."""
+    profile = wifi_profile(broker, args["profile"])
+    if default_route_device(broker) != "eth0":
+        raise Rejected("precondition_failed", "Ethernet must hold the default route before a Wi-Fi test")
+    state = unit_state_props(broker, "NetworkManager.service", "ActiveState")
+    if state.get("ActiveState") != "active":
+        raise Rejected("precondition_failed", "NetworkManager is not active")
+    device = broker.runner(["nmcli", "-g", "GENERAL.STATE", "device", "show", "wlan0"], 10).output.strip()
+    if device.startswith("100"):
+        raise Rejected("precondition_failed", "wlan0 is already connected")
+    uuid = profile["uuid"]
+    previous = broker.runner(["nmcli", "-g", "802-11-wireless.cloned-mac-address", "connection", "show", "uuid",
+                              uuid], 10).output.strip()
+    actions = []
+    if args["mac"] == "random":
+        r = broker.runner(["nmcli", "connection", "modify", "--temporary", "uuid", uuid,
+                           "802-11-wireless.cloned-mac-address", "random"], 15)
+        actions.append({"step": "temporary random MAC", "exit": r.exit})
+    started = time.time()
+    up = broker.runner(["nmcli", "--wait", "45", "connection", "up", "uuid", uuid, "ifname", "wlan0"], 60)
+    time.sleep(3)
+    evidence = steps(broker, [
+        ("device", ["nmcli", "-f", "GENERAL.STATE,GENERAL.REASON,GENERAL.HWADDR,IP4.ADDRESS,IP4.GATEWAY", "device",
+                    "show", "wlan0"]),
+        ("link", ["iw", "dev", "wlan0", "link"]),
+        ("routes", ["ip", "-4", "route", "show", "default"]),
+    ], 20)
+    supplicant = filtered(broker, ["journalctl", "-u", "wpa_supplicant", "--since", f"@{int(started) - 2}",
+                                   "--no-pager", "-o", "short-iso", "-q"],
+                          r"reason|status_code|ASSOC|WRONG_KEY|TEMP-DISABLED|CONNECTED|DISCONNECTED|auth", 40, 15)
+    connected = up.exit == 0
+    if args["mac"] == "random":
+        if connected:  # diagnosis only: never leave the profile up on a random MAC
+            down = broker.runner(["nmcli", "connection", "down", "uuid", uuid], 30)
+            actions.append({"step": "down after random-MAC test", "exit": down.exit})
+        r = broker.runner(["nmcli", "connection", "modify", "--temporary", "uuid", uuid,
+                           "802-11-wireless.cloned-mac-address", previous if previous not in ("--",) else ""], 15)
+        actions.append({"step": "restore MAC setting", "exit": r.exit, "value": previous or "(default)"})
+    after_route = default_route_device(broker)
+    return {"profile": profile["name"], "mac": args["mac"], "connected": connected, "nmcli_exit": up.exit,
+            "nmcli_output": up.output[-1500:], "actions": actions, "evidence": evidence["steps"],
+            "supplicant": supplicant["steps"][0]["output"], "ethernet_primary_after": after_route == "eth0",
+            "kept_up": connected and args["mac"] == "permanent"}
+
+
+def op_wifi_profile_remove(broker: "Broker", args: dict) -> dict:
+    """Owner-approved deletion of one inactive Wi-Fi profile (irreversible: the owner re-creates it if needed)."""
+    profile = wifi_profile(broker, args["profile"])
+    if profile["active"]:
+        raise Rejected("precondition_failed", "refusing to delete the active connection")
+    result = broker.runner(["nmcli", "connection", "delete", "uuid", profile["uuid"]], 30)
+    remaining = [c["name"] for c in nm_connections(broker) if c["type"] == "802-11-wireless"]
+    return {"deleted": profile["name"], "exit": result.exit, "remaining_wifi_profiles": remaining,
+            "gone": profile["name"] not in remaining}
+
+
 # ----------------------------------------------------------------------------- DR backup (#1775, #1428)
 DR_UNIT = "nexolab-dr-backup.service"
 DR_TIMER = "nexolab-dr-backup.timer"
@@ -1170,6 +1343,15 @@ def production_ops() -> dict[str, Operation]:
                    "artifact_sha256": Name(SHA256_OR_NONE, "none"),
                    "expect_current_source": Name(SOURCE_SHA),
                    "expect_current_build": Name(BUILD_ID)}, timeout=3100),
+        Operation("storage.remove-images", "approved",
+                  "Owner-approved: remove the exact unused NEXOLAB images of a hash-bound inbox manifest (never -f)",
+                  op_storage_remove_images, {"manifest_sha256": Name(SHA256)}, timeout=1800, heavy=True),
+        Operation("wifi.connect-test", "approved",
+                  "Owner-approved: one bounded Wi-Fi association attempt (in-memory MAC mode, Ethernet stays primary)",
+                  op_wifi_connect_test, {"profile": Name(WIFI_PROFILE_NAME), "mac": Enum(("permanent", "random"))},
+                  timeout=150),
+        Operation("wifi.profile-remove", "approved", "Owner-approved: remove one inactive Wi-Fi profile",
+                  op_wifi_profile_remove, {"profile": Name(WIFI_PROFILE_NAME)}, timeout=60),
         Operation("backup.health", "read", "DR backup units, config presence, bundle list, free space vs reserve",
                   op_backup_health),
         Operation("backup.start", "approved", "Owner-approved: start the installed DR backup unit once (#1630)",
