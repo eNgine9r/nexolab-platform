@@ -295,6 +295,20 @@ jobs:
           assert st["nexolab/ci-stale:issue-8-arm64"] in ("untagged", "deleted"), st
           ' "$out"
           docker image inspect nexolab/ci-previous-ui:issue-9-arm64 >/dev/null
+          # #1789: a recovery-catalog compose naming an image, without any rollback word, protects it too
+          docker tag alpine:3.22 nexolab/ci-catalog:issue-10-arm64
+          sudo install -d -m 0755 /var/lib/nexolab/version-management/catalog/recovery-ci/deploy
+          echo "    image: nexolab/ci-catalog:issue-10-arm64" | sudo tee /var/lib/nexolab/version-management/catalog/recovery-ci/deploy/compose.central.yaml >/dev/null
+          printf '{"images": [{"ref": "nexolab/ci-catalog:issue-10-arm64", "id": "%s"}]}' "$rid" > /tmp/m5.json
+          csha=$(sha256sum /tmp/m5.json | cut -d' ' -f1); cp /tmp/m5.json "$HOME/operator-inbox/$csha.json"
+          id=$(approve storage.remove-images --arg manifest_sha256=$csha)
+          out=$(call storage.remove-images manifest_sha256=$csha --approval "$id") || { echo "$out"; exit 1; }
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); st = {x["ref"]: x["status"] for x in r["result"]["results"]}
+          assert st == {"nexolab/ci-catalog:issue-10-arm64": "skipped_protected_or_rollback_record"}, st
+          ' "$out"
+          docker image inspect nexolab/ci-catalog:issue-10-arm64 >/dev/null
 
       - name: Stage 2 offline build pattern on real BuildKit (#1782)
         run: |
@@ -368,23 +382,23 @@ jobs:
 
           # 2. clean upgrade keeps v1.1 as the retained previous version
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/payload 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.4.0" <<<"$out"
-          test "$(version)" = 1.4.0
+          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.5.0" <<<"$out"
+          test "$(version)" = 1.5.0
           test "$(sudo stat -c '%U:%G %a' /var/lib/nexolab-operator/previous)" = "root:root 700"
 
           # 3. explicit rollback to v1.1, then roll forward again
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.4.0 to=1.1.0" <<<"$out"
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.5.0 to=1.1.0" <<<"$out"
           test "$(version)" = 1.1.0
           test "$(broker_sha)" = "$v11"
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.4.0" <<<"$out"
-          test "$(version)" = 1.4.0
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.5.0" <<<"$out"
+          test "$(version)" = 1.5.0
 
           # 4. a tampered payload changes nothing
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/tampered 2>&1) && exit 1 || true
           grep -q "installed broker left unchanged" <<<"$out"
-          test "$(version)" = 1.4.0
+          test "$(version)" = 1.5.0
           sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit | grep -q '"ok": true'
 
       - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence

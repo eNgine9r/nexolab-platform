@@ -87,6 +87,8 @@ Scan rules: links are never followed; `node_modules`, `.git`, `.next`, archives 
 
 The pinned Stage 2 tool builds `FROM` a local `node:` tag of the proven base, never `FROM sha256:<id>`: BuildKit resolves a bare ID as the Docker Hub repository `library/sha256` (site `prepare` on 2026-11-26). The tag is re-proven against the base ID before the build, and the image's base layers are proven after it. CI builds the pattern on a real BuildKit.
 
+**v1.5 (#1789):** a reference located under `/var/lib/nexolab/version-management/`, `/var/backups/`, any `recovery*` directory or `/etc/nexolab-storage/` counts as recovery context, whatever the line says (`recovery_path` in the evidence). On site, the recovery catalog `recovery-cc27b609eea2` names the `minio`/`minio-mc` `RELEASE` images on lines without a rollback word; v1.4 would not have protected them.
+
 Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)
