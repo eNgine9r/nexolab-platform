@@ -1007,6 +1007,23 @@ class BrokerV14Tests(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertTrue(all("node_modules" not in e["path"] for i in result["images"] for e in i["evidence"]))
 
+    def test_recovery_catalog_and_backup_paths_are_recovery_context(self) -> None:
+        # #1789: the site recovery catalog referenced minio images on lines without any rollback word
+        self.write("catalog/recovery-cc27b609eea2/deploy/compose/compose.central.yaml",
+                   "    image: nexolab/dashboard:issue-1609-27b27386-arm64\n")
+        self.write("catalog/plain/compose.yaml", f"image: {self.rollback_id[7:19]}\n")
+        result = broker_module.image_references(self.entries, roots=(self.root / "records",))
+        by_ref = {i["ref"]: i for i in result["images"]}
+        stale = by_ref["nexolab/dashboard:issue-1609-27b27386-arm64"]
+        self.assertEqual(stale["rollback_references"], 1)
+        self.assertTrue(stale["evidence"][0]["recovery_path"])
+        plain = by_ref["nexolab/dashboard:issue-1522-469485b0-arm64"]
+        self.assertEqual((plain["references"], plain["rollback_references"]), (1, 0))
+        for path in ("/var/lib/nexolab/version-management/catalog/x/manifest.json", "/var/backups/nexolab/a/b.txt",
+                     "/home/nexolab/nexolab-platform/runtime/recovery/r.json", "/etc/nexolab-storage/protected-images"):
+            self.assertTrue(broker_module.RECOVERY_PATH.search(path), path)
+        self.assertFalse(broker_module.RECOVERY_PATH.search("/home/nexolab/commander-workspaces/nexolab-1518-test/x.py"))
+
     def test_snippets_are_redacted(self) -> None:
         self.write("ws/env.txt", f"ROLLBACK_IMAGE={self.stale_id} password=hunter2\n")
         result = broker_module.image_references(self.entries, roots=(self.root / "records",))
