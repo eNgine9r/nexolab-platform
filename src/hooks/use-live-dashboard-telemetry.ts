@@ -140,6 +140,8 @@ export interface LiveDashboardTelemetryModel {
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
+  /** #1824: series loaded so far while the window is still loading (null when complete). */
+  historyProgress?: { loaded: number; total: number } | null;
   historyError: Error | null;
   exportStatus: LiveDashboardExportStatus;
   exportError: Error | null;
@@ -305,6 +307,7 @@ export function useLiveDashboardTelemetry({
   );
   const [historyWindow, setHistoryWindow] = useState<LiveDashboardHistoryRange>(historyRange);
   const [historyStatus, setHistoryStatus] = useState<LiveDashboardHistoryStatus>("idle");
+  const [historyProgress, setHistoryProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [exportStatus, setExportStatus] = useState<LiveDashboardExportStatus>("idle");
   const [exportError, setExportError] = useState<Error | null>(null);
@@ -657,6 +660,7 @@ export function useLiveDashboardTelemetry({
       if (disposed) return;
       setHistory({});
       setViewportDetail({});
+      setHistoryProgress(null);
       setHistoryStatus("loading");
       setHistoryError(null);
       setHistoryWindow(requestedRange);
@@ -666,6 +670,7 @@ export function useLiveDashboardTelemetry({
     void (async () => {
       const sourceTails: TelemetrySample[] = [];
       const reducedBySeries: Record<string, TelemetrySample[]> = {};
+      let loadedSeries = 0;
       // #1809: every series loads in parallel under one snapshot, bounded by the shared limiter.
       // Each series is reduced as soon as it has loaded, so its raw samples can be released
       // instead of holding every channel's complete raw history until the slowest finishes.
@@ -695,6 +700,14 @@ export function useLiveDashboardTelemetry({
           if (tail) {
             sourceTails.push(tail);
             latestRef.current[key] = newestSample(latestRef.current[key], tail);
+          }
+          // #1824: show each series as soon as it has loaded. Live samples that arrive meanwhile
+          // stay pending and are reconciled once the whole window is complete.
+          historyRef.current[key] = reducedBySeries[key];
+          loadedSeries += 1;
+          if (loadedSeries < dashboard.items.length) {
+            setHistory({ ...historyRef.current });
+            setHistoryProgress({ loaded: loadedSeries, total: dashboard.items.length });
           }
         },
       );
@@ -742,6 +755,7 @@ export function useLiveDashboardTelemetry({
       // A viewport committed while loading (e.g. a restored saved view) gets its detail now.
       setViewportDetail(computeViewportDetail(dashboard.items));
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
+      setHistoryProgress(null);
       setHistoryStatus("ready");
       setHistoryError(null);
     })().catch((nextError: unknown) => {
@@ -751,6 +765,7 @@ export function useLiveDashboardTelemetry({
       historyRef.current = {};
       statsRef.current = {};
       setHistory({});
+      setHistoryProgress(null);
       setHistoryStatus("error");
       setHistoryError(
         nextError instanceof Error ? nextError : new Error("Saved Dashboard history failed to load."),
@@ -846,6 +861,7 @@ export function useLiveDashboardTelemetry({
     historyRange,
     historyWindow,
     historyStatus,
+    historyProgress: historyStatus === "loading" ? historyProgress : null,
     historyError,
     exportStatus,
     exportError,
