@@ -73,6 +73,59 @@ interface DataZoomEvent {
 }
 
 export const CHART_GRID_INSETS = { left: 64, right: 40 } as const;
+/** Series with at most this many points draw a symbol on every measured point. */
+const SYMBOL_POINT_LIMIT = 24;
+/**
+ * #1810: wheel zoom and keyboard/inside zoom render natively in ECharts at once; the React
+ * viewport (statistics, shared domain, other charts) follows once the gesture pauses instead of
+ * rebuilding every chart on every wheel tick.
+ */
+export const ZOOM_COMMIT_IDLE_MS = 120;
+
+const signatureFloat = new Float64Array(1);
+const signatureWords = new Uint32Array(signatureFloat.buffer);
+
+/**
+ * Exact fingerprint of everything a scene renders EXCEPT the visible x window. When only the
+ * window changes (zoom, pan, shared domain), the adapter moves the view without rebuilding and
+ * re-uploading every series.
+ */
+export function sceneDataSignature(scene: ChartRendererScene): string {
+  let hash = 0x811c9dc5;
+  const mix = (word: number) => {
+    hash = Math.imul(hash ^ word, 0x01000193);
+  };
+  const mixNumber = (value: number) => {
+    signatureFloat[0] = value;
+    mix(signatureWords[0]);
+    mix(signatureWords[1]);
+  };
+  let points = 0;
+  for (const series of scene.series) {
+    for (const segment of series.segments) {
+      mix(segment.points.length);
+      for (const point of segment.points) {
+        mixNumber(point.timestampMs);
+        mixNumber(point.value);
+        mix(point.pinReasons?.length ?? 0);
+        points += 1;
+      }
+    }
+  }
+  const { xDomain: _xDomain, interactionDomain: _interactionDomain, series, ...rest } = scene;
+  const metadata = JSON.stringify({
+    rest,
+    series: series.map(({ segments, ...meta }) => ({
+      ...meta,
+      segments: segments.map((segment) => [
+        segment.id,
+        segment.points.length,
+        segment.precedingBreak?.reason,
+      ]),
+    })),
+  });
+  return `${points}:${hash >>> 0}:${metadata}`;
+}
 
 function axisPointerTimestamp(event: unknown): number | null {
   if (!event || typeof event !== "object") return null;
@@ -115,8 +168,27 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
   };
 }
 
-function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
+/** The parts of the option that depend on the visible window only (#1810 fast path). */
+function xWindowOption(scene: ChartRendererScene) {
   const interactionDomain = scene.interactionDomain ?? scene.xDomain;
+  return {
+    xAxis: {
+      min: interactionDomain.fromMs,
+      max: interactionDomain.toMs,
+      axisLabel: {
+        color: "#94A3B8",
+        hideOverlap: true,
+        formatter: (value: number | string) =>
+          formatChartAxisTimestamp(Number(value), scene.xDomain, { timeZone: scene.displayTimeZone }),
+      },
+    },
+    dataZoom: [
+      { rangeMode: ["value", "value"], startValue: scene.xDomain.fromMs, endValue: scene.xDomain.toMs },
+    ],
+  };
+}
+
+function rendererOption(scene: ChartRendererScene): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
   const axisModel = buildChartYAxisModel(scene.series);
   const legendNames = visibleSeries.map((series) => series.name);
@@ -124,33 +196,49 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
   const lineSeries = visibleSeries.flatMap((series, visibleSeriesIndex) => {
     const seriesKey = chartSeriesKey(series.identity);
     const thresholds = scene.thresholds?.filter((threshold) => threshold.seriesKey === seriesKey) ?? [];
-    return series.segments.map((segment, segmentIndex) => ({
-      id: `${seriesKey}:${segment.id}`,
+    // #1810: ONE line series per channel. Continuity breaks are explicit null points between
+    // segments (connectNulls: false), so a gap still breaks the line, but the renderer no longer
+    // creates one ECharts series per segment (hundreds per channel when a history has many
+    // gaps). Plain [time, value] tuples keep ECharts on its fast data path.
+    const lineData: Array<[number, number | null]> = [];
+    const markerData: Array<{ value: [number, number]; symbolSize: number; itemStyle?: object }> = [];
+    const totalPoints = series.segments.reduce((sum, segment) => sum + segment.points.length, 0);
+    series.segments.forEach((segment, segmentIndex) => {
+      const first = segment.points[0];
+      const previousLast = lineData.at(-1);
+      if (segmentIndex > 0 && first && previousLast) {
+        lineData.push([(previousLast[0] + first.timestampMs) / 2, null]);
+      }
+      for (const point of segment.points) {
+        lineData.push([point.timestampMs, point.value]);
+        if (point.pinReasons?.length) {
+          markerData.push({
+            value: [point.timestampMs, point.value],
+            symbolSize: 9,
+            itemStyle: {
+              color: point.pinReasons.includes("alarm") ? "#FF4D4F" : "#F5B301",
+              borderColor: "#E6ECF2",
+              borderWidth: 1,
+            },
+          });
+        } else if (segment.points.length === 1 && totalPoints > SYMBOL_POINT_LIMIT) {
+          // An isolated measurement between two breaks has no line; keep it visible.
+          markerData.push({ value: [point.timestampMs, point.value], symbolSize: 6 });
+        }
+      }
+    });
+    const line = {
+      id: seriesKey,
       name: series.name,
       type: "line" as const,
       yAxisId: axisModel.axisIdBySeriesKey.get(seriesKey),
-      data: segment.points.map((point) => ({
-        value: [point.timestampMs, point.value],
-        pointId: point.id,
-        quality: point.quality,
-        sourceEventId: point.sourceEventId,
-        symbolSize: point.pinReasons?.length ? 9 : segment.points.length <= 24 ? 6 : 0,
-        ...(point.pinReasons?.length
-          ? {
-              itemStyle: {
-                color: point.pinReasons.includes("alarm") ? "#FF4D4F" : "#F5B301",
-                borderColor: "#E6ECF2",
-                borderWidth: 1,
-              },
-            }
-          : {}),
-      })),
-      showSymbol: true,
+      data: lineData,
+      showSymbol: totalPoints <= SYMBOL_POINT_LIMIT,
       symbol: series.markerShape,
       symbolSize: 6,
       smooth: false,
       connectNulls: false,
-      animation: !reducedMotion,
+      animation: false,
       lineStyle: {
         color: series.colorToken,
         width: 2.25,
@@ -166,7 +254,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         : {}),
       itemStyle: { color: series.colorToken },
       emphasis: { focus: "series" as const, lineStyle: { width: 3 } },
-      ...(segmentIndex === 0 && (thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0))
+      ...(thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0)
         ? {
             markLine: {
               silent: true,
@@ -200,9 +288,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
             },
           }
         : {}),
-      ...(visibleSeriesIndex === 0 &&
-      segmentIndex === 0 &&
-      (scene.rangeSelection || scene.alarmRegions?.length)
+      ...(visibleSeriesIndex === 0 && (scene.rangeSelection || scene.alarmRegions?.length)
         ? {
             markArea: {
               silent: true,
@@ -244,11 +330,29 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
             },
           }
         : {}),
-    }));
+    };
+    if (markerData.length === 0) return [line];
+    return [
+      line,
+      {
+        id: `${seriesKey}:markers`,
+        name: series.name,
+        type: "scatter" as const,
+        yAxisId: line.yAxisId,
+        data: markerData,
+        symbol: series.markerShape,
+        itemStyle: { color: series.colorToken },
+        silent: true,
+        animation: false,
+        z: 3,
+      },
+    ];
   });
 
   return {
-    animation: !reducedMotion,
+    // #1810: telemetry updates and zoom/pan must not tween. Animated transitions on every
+    // setOption were the visible flicker and lag of zoom, pan and live updates.
+    animation: false,
     backgroundColor: "transparent",
     aria: {
       enabled: true,
@@ -283,15 +387,8 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     },
     xAxis: {
       type: "time",
-      min: interactionDomain.fromMs,
-      max: interactionDomain.toMs,
+      ...xWindowOption(scene).xAxis,
       axisLine: { lineStyle: { color: "rgba(148,163,184,.34)" } },
-      axisLabel: {
-        color: "#94A3B8",
-        hideOverlap: true,
-        formatter: (value: number | string) =>
-          formatChartAxisTimestamp(Number(value), scene.xDomain, { timeZone: scene.displayTimeZone }),
-      },
       splitLine: { show: true, lineStyle: { color: "rgba(148,163,184,.10)" } },
     },
     yAxis:
@@ -358,6 +455,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private cursorAnimationFrame: number | null = null;
   private pendingCursorTimestampMs: number | null | undefined;
   private lastCommittedCursorTimestampMs: number | null | undefined;
+  private renderedSignature: string | null = null;
+  private zoomCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingZoomDomain: ChartRendererScene["xDomain"] | null = null;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
@@ -600,7 +700,16 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.pendingPrimaryDragDomain = domain;
       return;
     }
-    this.options?.onXDomainChange(domain);
+    // #1810: ECharts already shows the zoomed window. Commit it to the React viewport once the
+    // wheel gesture pauses, not on every tick.
+    this.pendingZoomDomain = domain;
+    if (this.zoomCommitTimer !== null) clearTimeout(this.zoomCommitTimer);
+    this.zoomCommitTimer = setTimeout(() => {
+      this.zoomCommitTimer = null;
+      const pending = this.pendingZoomDomain;
+      this.pendingZoomDomain = null;
+      if (pending) this.options?.onXDomainChange(pending);
+    }, ZOOM_COMMIT_IDLE_MS);
   };
 
   initialize(options: ChartRendererInitOptions): void {
@@ -636,9 +745,18 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   setScene(scene: ChartRendererScene): void {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
+    const signature = sceneDataSignature(scene);
+    const unchangedData = this.scene !== null && signature === this.renderedSignature;
     this.scene = scene;
     this.lastCommittedCursorTimestampMs = undefined;
-    this.instance.setOption(rendererOption(scene, this.options?.reducedMotion ?? false), {
+    if (unchangedData) {
+      // #1810: only the visible window moved (zoom, pan, shared domain, live-follow tick without
+      // new data). Merge the window into the existing chart; series data is not rebuilt.
+      this.instance.setOption(xWindowOption(scene), { notMerge: false, lazyUpdate: false });
+      return;
+    }
+    this.renderedSignature = signature;
+    this.instance.setOption(rendererOption(scene), {
       notMerge: false,
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],
@@ -751,6 +869,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
     this.cancelPendingCursor();
+    if (this.zoomCommitTimer !== null) clearTimeout(this.zoomCommitTimer);
+    this.zoomCommitTimer = null;
+    this.pendingZoomDomain = null;
+    this.renderedSignature = null;
     this.lastCommittedCursorTimestampMs = undefined;
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;

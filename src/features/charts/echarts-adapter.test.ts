@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { chartSeriesKey, type ChartPoint } from "./domain";
-import { EChartsRendererAdapter, type EChartsRuntimePort } from "./echarts-adapter";
+import {
+  EChartsRendererAdapter,
+  ZOOM_COMMIT_IDLE_MS,
+  sceneDataSignature,
+  type EChartsRuntimePort,
+} from "./echarts-adapter";
 import { BENCHMARK_INTERVAL_MS, BENCHMARK_START_MS, createBenchmarkScene } from "./fixtures";
 
 class FakeEChartsInstance {
@@ -51,6 +56,10 @@ class FakeEChartsInstance {
   isDisposed() {
     return this.disposeCount > 0;
   }
+}
+
+function waitForZoomCommit(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ZOOM_COMMIT_IDLE_MS + 10));
 }
 
 function optionSeries(instance: FakeEChartsInstance): Array<Record<string, unknown>> {
@@ -115,10 +124,14 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     expect(init).toHaveBeenCalledTimes(1);
-    expect(optionSeries(instance)).toHaveLength(2);
+    // #1810: one line series per channel; the continuity break is an explicit null point.
+    expect(optionSeries(instance)).toHaveLength(1);
     expect(
       optionSeries(instance).every((series) => series.connectNulls === false && series.smooth === false),
     ).toBe(true);
+    const lineData = optionSeries(instance)[0].data as Array<[number, number | null]>;
+    expect(lineData.filter(([, value]) => value === null)).toHaveLength(1);
+    expect(instance.options.at(-1)).toMatchObject({ animation: false });
     expect(instance.options.at(-1)).toMatchObject({
       tooltip: {
         trigger: "axis",
@@ -320,6 +333,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: BENCHMARK_START_MS });
 
     instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    await waitForZoomCommit();
     expect(onXDomainChange).toHaveBeenCalledWith({
       fromMs: scene.xDomain.fromMs + (scene.xDomain.toMs - scene.xDomain.fromMs) * 0.25,
       toMs: scene.xDomain.fromMs + (scene.xDomain.toMs - scene.xDomain.fromMs) * 0.75,
@@ -460,7 +474,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 
-  it("keeps a constant pan span against the stable interaction domain after zoom", () => {
+  it("keeps a constant pan span against the stable interaction domain after zoom", async () => {
     const instance = new FakeEChartsInstance();
     const onXDomainChange = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
@@ -488,6 +502,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene({ ...scene, interactionDomain });
 
     instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    await waitForZoomCommit();
     const zoomedDomain = onXDomainChange.mock.calls.at(-1)?.[0];
     expect(zoomedDomain).toEqual({
       fromMs: interactionDomain.fromMs + (interactionDomain.toMs - interactionDomain.fromMs) * 0.25,
@@ -655,7 +670,16 @@ describe("ECharts renderer adapter lifecycle", () => {
     ]);
 
     expect(init).toHaveBeenCalledTimes(1);
-    expect(optionSeries(instance)).toHaveLength(2);
+    const lines = optionSeries(instance).filter((series) => series.type === "line");
+    expect(lines).toHaveLength(1);
+    const data = lines[0].data as Array<[number, number | null]>;
+    expect(data.some(([, value]) => value === null)).toBe(true);
+    expect(data.at(-1)).toEqual([scene.xDomain.toMs + BENCHMARK_INTERVAL_MS, -9]);
+    // The isolated post-reconnect measurement has no line yet, so it is drawn as a marker.
+    const markers = optionSeries(instance).find((series) => series.type === "scatter");
+    expect(markers?.data).toEqual([
+      { value: [scene.xDomain.toMs + BENCHMARK_INTERVAL_MS, -9], symbolSize: 6 },
+    ]);
   });
 
   it("renders only canonical deduplicated event evidence and hides collision-prone labels", () => {
@@ -711,5 +735,63 @@ describe("ECharts renderer adapter lifecycle", () => {
       series: scene.series.map((series) => ({ ...series, visible: false })),
     });
     expect(optionSeries(instance)).toHaveLength(0);
+  });
+
+  it("coalesces a wheel-zoom burst into one viewport commit (#1810)", async () => {
+    const instance = new FakeEChartsInstance();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: false,
+      onCursor: vi.fn(),
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+    for (let step = 0; step < 10; step += 1) {
+      instance.handlers.get("dataZoom")?.({ start: step, end: 100 - step });
+    }
+    expect(onXDomainChange).not.toHaveBeenCalled();
+    await waitForZoomCommit();
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.09,
+      toMs: scene.xDomain.fromMs + duration * 0.91,
+    });
+    adapter.dispose();
+  });
+
+  it("moves only the window when the data is unchanged (#1810)", () => {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(4, { withGap: true });
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+    const zoomed = { fromMs: scene.xDomain.fromMs + 1_000, toMs: scene.xDomain.toMs - 1_000 };
+    // A rebuilt but identical scene object (as React produces on every viewport change).
+    const rebuilt = structuredClone({ ...scene, xDomain: zoomed, interactionDomain: scene.xDomain });
+    adapter.setScene(rebuilt);
+    const windowOnly = instance.options.at(-1) as Record<string, unknown>;
+    expect(windowOnly.series).toBeUndefined();
+    expect(windowOnly).toMatchObject({
+      xAxis: { min: scene.xDomain.fromMs, max: scene.xDomain.toMs },
+      dataZoom: [{ startValue: zoomed.fromMs, endValue: zoomed.toMs }],
+    });
+
+    const changedPoint = structuredClone(rebuilt);
+    changedPoint.series[0].segments[0].points[3].value += 0.001;
+    expect(sceneDataSignature(changedPoint)).not.toBe(sceneDataSignature(rebuilt));
+    adapter.setScene(changedPoint);
+    expect((instance.options.at(-1) as Record<string, unknown>).series).toBeDefined();
+    adapter.dispose();
   });
 });
