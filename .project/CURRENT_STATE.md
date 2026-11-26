@@ -1,3 +1,24 @@
+## 2026-11-26 (night) — WP2c Stage 2 LIVE; Stage 3 prove finding; dev memory root cause; broker v1.7
+
+- **Stage 2 is live** (owner approval; broker v1.6 `deploy.lan-frontend execute`, `STAGE2_FRONTEND_GREEN`):
+  - the LAN dashboard, the gateway (`127.0.0.1`, `192.168.1.220`) and Tailscale `:8444` serve the same-origin build `c5bb48a1`/`xRUAt2U9c3oug1ETWuLsT`;
+  - the main routes return 200, the WebSocket upgrade through the gateway returns 101, and local login answers 401 for invalid credentials;
+  - telemetry is continuous and 12 containers are healthy.
+
+  Authenticated browser acceptance (login, Live Data, charts, photos) is **owner pending**. Rollback: `phase=rollback` → `7db6e1a8`/`CWBs…`.
+
+- **Stage 3 `prove`** (owner approval): the live plan matches. It stopped before the Compose proof because the telemetry `CORS_ALLOWED_ORIGINS` still lists the compatibility origin. Retaining it is correct during dual publish; **broker v1.7** (#1797) adds the approval-bound `retain_env`. Production unchanged.
+- **Dev memory freezes (#1794, PR #1795):**
+  - a 448 MB venv on the tmpfs scratchpad filled the dev slice's 512 MiB swap quota (2.28 M `memory.high` events);
+  - moved to disk: swap 536 → 87 MB, memory 905 → 748 MB;
+  - new read-only `scripts/dev-resource-guard.py` and agent rules;
+  - persistent `TMPDIR` on disk and consistent limits are **proposed for owner approval**. The runtime 1152M is temporary.
+- **Broker v1.7:**
+  - approved `network.tailscale-inspection-route` for the `:8443` fix (backup, verify, automatic restore);
+  - Stage 3 `retain_env`.
+
+  Payload `~/recovery-p0/broker-v1.7-20261126T110444Z` (`41a49d3b…`).
+
 ## 2026-11-26 (evening) — Stage 2 prepared GREEN; manifest evidence; broker v1.5 guard fix; Stage 3 prove
 
 - **Broker v1.4.0 installed by the owner.** The approved `deploy.lan-frontend phase=prepare` (receipt 67) is **GREEN**:
