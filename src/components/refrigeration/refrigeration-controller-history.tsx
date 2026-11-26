@@ -264,10 +264,6 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       ].sort((left, right) => left.fromMs - right.fromMs),
     [fullStateTimeline, controller.history, controller.range],
   );
-  const stateTimeline = useMemo(
-    () => clipTimeline(fullStateTimeline, viewportRange),
-    [fullStateTimeline, viewportRange],
-  );
   const stateTimelineWithUnknown = useMemo(
     () => clipTimeline(fullStateTimelineWithUnknown, viewportRange),
     [fullStateTimelineWithUnknown, viewportRange],
