@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T06:44:14Z",
+  "timestamp": "2026-11-26T07:15:50Z",
   "actor": "claude",
-  "event": "2026-11-26 approved broker runs verified; broker v1.2 merged (#1776) and staged; Stage 2 artifact in operator inbox",
+  "event": "broker v1.3 merged (#1780) and staged; SSD manifest A in inbox; Stage 3 tool merged (#1779), offline plan OK",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: broker v1.2 upgrade + approvals (build_cache all-unused, deploy.lan-frontend prepare). Agent: Stage 3 tool PR (#1734), broker v1.3 (manifest-bound image removal, Wi-Fi connect test)",
+  "next_action": "Owner: broker v1.3 upgrade + approvals (cleanup all-unused, remove-images manifest A, deploy.lan-frontend prepare, wifi.connect-test random). Agent: execute approved ops via broker and verify; Stage 2 execute after prepare evidence",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

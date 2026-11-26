@@ -12221,7 +12221,9 @@
         "merged_2026_11_25": "#1738 same-origin, #1740 LAN gateway, #1748 boot-repair, #1749 plan, #1750 gateway auto-bind :80 (never tailnet), #1741 WP2e clock status, #1752 flaky test fix, #1754 clock offset saturation. Stage 1 owner command v2 (sha 8bb6eda3) prepared, not executed.",
         "unplanned_reboot_2026_11_25": "~13:54Z reboot recovered without manual steps: nxcompat0 restored, boot-repair success, telemetry ready lag 0.13-0.16 s within ~4 min (partial A6 evidence)",
         "wp2c_stage1": "2026-11-25 16:13Z owner ran Stage 1 v3 (8a48f62b...): NEXOLAB_STAGE1_GATEWAY_GREEN, real systemd sandbox SANDBOX_OK, gateway enabled+active on 127.0.0.1:80 and 192.168.1.220:80, login 200/API 400/WS 101 parity, OAuth gate 302, tailnet listener untouched, telemetry ready. Evidence p0-evidence/owner-stage1-20261125T161322Z.log. Stage 2/3 not approved.",
-        "wp2c_stage2": "Source complete: #1761 same-origin artifact profile, #1764 actionable contract check (Supabase GOTRUE localhost default allowed; IP literals and 8082/1884/3000 forbidden), #1766 guarded tool docs/operations/network/wp2c-stage2-frontend.py (stage/build/preview/check/execute/rollback, compose fidelity proof, gateway verification, auto rollback). ARM64 artifact run 45682123670 from main c5bb48a1, zip sha256 f916352c..., build xRUAt2U9c3oug1ETWuLsT, same_origin_browser_bundle=no-absolute-host-origin. Owner: owner-2026-11-25-stage2.sh (19c0085c...) prepare, then execute only after Stage 2 approval. Not run on site."
+        "wp2c_stage2": "Source complete: #1761 same-origin artifact profile, #1764 actionable contract check (Supabase GOTRUE localhost default allowed; IP literals and 8082/1884/3000 forbidden), #1766 guarded tool docs/operations/network/wp2c-stage2-frontend.py (stage/build/preview/check/execute/rollback, compose fidelity proof, gateway verification, auto rollback). ARM64 artifact run 45682123670 from main c5bb48a1, zip sha256 f916352c..., build xRUAt2U9c3oug1ETWuLsT, same_origin_browser_bundle=no-absolute-host-origin. Owner: owner-2026-11-25-stage2.sh (19c0085c...) prepare, then execute only after Stage 2 approval. Not run on site.",
+        "stage3_tool": "PR #1779 merge 95204dc9 (exact-head GREEN, 42 tests): wp2c-stage3-backend.py plan/check/execute/rollback/drop-compat. Switch = dual publish (add 127.0.0.1, keep compat) + Edge bridge to central-mqtt:1883 with client ID preserved; drop-compat (Phase 4) after external consumers retargeted. check needs a fresh #1428 backup receipt and Stage 2 active. plan --from-model on the 2026-11-26 export: STAGE3_PLAN_OK (p0-evidence/stage3-plan-from-model-20261126.txt). Real Compose behaviour unverified until owner plan/check on host.",
+        "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18)."
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12324,7 +12326,34 @@
         "site_acceptance": "owner_upgrade_pending",
         "merged": "PR #1776 merge 79b40c36 (head d54f94a1, exact-head GREEN incl. Merge Gate and real systemd install: v1.1->v1.2 injected failure restored v1.1 byte-identical, upgrade/rollback/roll-forward, deploy plumbing as owner account)",
         "local_checks": "57 broker + 37 Stage 2 tests passed",
-        "payload": "~/recovery-p0/broker-v1.2-20261126T064249Z, installer sha256 fcfeaea985ac574409f492fb87740226838241f02014401bd2884de3543c74e2, all pins verified, byte-identical to main@79b40c36"
+        "payload": "~/recovery-p0/broker-v1.2-20261126T064249Z, installer sha256 fcfeaea985ac574409f492fb87740226838241f02014401bd2884de3543c74e2, all pins verified, byte-identical to main@79b40c36",
+        "superseded_for_site": "v1.2 was never applied on site; the owner goes straight to v1.3 (#1780), which contains v1.2"
+      }
+    },
+    {
+      "issue": 1778,
+      "title": "Operator Broker v1.3: manifest-bound image removal, bounded Wi-Fi connect test, Wi-Fi profile removal",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Approved storage.remove-images (hash-bound inbox manifest, protected refs refused, in-use skipped, never -f, volumes unchanged), wifi.connect-test (temporary MAC, Ethernet stays primary), wifi.profile-remove (inactive Wi-Fi only).",
+      "depends_on": [
+        1775
+      ],
+      "branch": "feat/1778-broker-v1-3",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "tests/test_ci_operator_broker.py",
+        ".github/workflows/operator-broker-install-acceptance.yml",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_upgrade_pending",
+        "merged": "PR #1780 merge d25599f7 (head 8aa321d4, exact-head GREEN incl. Merge Gate and real systemd: image removal untag/in-use/protected/volumes, Wi-Fi fail closed, v1.1->v1.3 upgrade with injected-failure rollback)",
+        "local_checks": "63 broker tests passed",
+        "payload": "~/recovery-p0/broker-v1.3-20261126T070346Z, installer sha256 3262da047d7aab96a01cabe535b2b82e46c2e9560ad5e4c16a9c9f8f48e07bd0, pins verified, byte-identical to main@d25599f7",
+        "ssd_manifest_a": "~/operator-inbox/fb84ea64e305f72e9931339252cc9a1ac6cb2a34df8c9e2b9f46d32fd0eff623.json: 26 stale candidate/experiment images (issue-1522/1625/1609/1603 dashboards, 1615 candidate, 1518 non-rollback set, issue1146 set, issue1142/1147 object-storage experiments); excluded for owner decision: issue-1638 (previous release), issue-1615-1e5537cb, staged-*, quick-central:1490, versitygw-v1.8.0-arm64"
       }
     }
   ],
