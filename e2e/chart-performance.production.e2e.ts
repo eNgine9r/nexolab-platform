@@ -1,7 +1,8 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { expect, test, type Browser, type BrowserContext } from "@playwright/test";
 
@@ -69,6 +70,38 @@ function postgres(sql: string): string {
     "-tAc",
     sql,
   ]);
+}
+
+const execFileAsync = promisify(execFile);
+
+/** Non-blocking psql query: polling must not stall the browser driver while a chart loads. */
+async function postgresAsync(sql: string): Promise<string> {
+  const { stdout } = await execFileAsync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      "postgres",
+      "psql",
+      "-U",
+      postgresUser,
+      "-d",
+      postgresDatabase,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-tAc",
+      sql,
+    ],
+    { encoding: "utf8" },
+  );
+  return stdout;
 }
 
 function sqlString(value: string): string {
@@ -209,6 +242,18 @@ ANALYZE telemetry_samples;
       const probeChannel = `perf-probe-${mode}`;
       const probeStartedAt = Date.now();
       publishExplorerSample(equipmentId, probeChannel, 7.5);
+      // Poll persistence concurrently with the chart load, so the result is the ingestion latency
+      // while history loads, not the load time itself.
+      const ingest = (async (): Promise<number | null> => {
+        for (let attempt = 0; attempt < 240; attempt += 1) {
+          const persisted = await postgresAsync(
+            `SELECT 'PROBE=' || count(*) FROM telemetry_samples WHERE equipment_id = ${sqlString(equipmentId)} AND channel_id = ${sqlString(probeChannel)};`,
+          );
+          if (persisted.includes("PROBE=1")) return Date.now() - probeStartedAt;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return null;
+      })();
       const hosts = page.getByTestId("chart-renderer-host");
       await expect(hosts.first()).toBeVisible({ timeout: 240_000 });
       // Charts render only after the whole history window is loaded (old and new frontends alike).
@@ -216,17 +261,7 @@ ANALYZE telemetry_samples;
         timeout: 240_000,
       });
       const firstChartMs = Date.now() - startedAt;
-      let ingestMs: number | null = null;
-      for (let attempt = 0; attempt < 120; attempt += 1) {
-        const persisted = postgres(
-          `SELECT 'PROBE=' || count(*) FROM telemetry_samples WHERE equipment_id = ${sqlString(equipmentId)} AND channel_id = ${sqlString(probeChannel)};`,
-        );
-        if (persisted.includes("PROBE=1")) {
-          ingestMs = Date.now() - probeStartedAt;
-          break;
-        }
-        await page.waitForTimeout(250);
-      }
+      const ingestMs = await ingest;
 
       const surface = page.getByTestId("chart-renderer-surface").first();
       await surface.scrollIntoViewIfNeeded();

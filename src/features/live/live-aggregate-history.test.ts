@@ -299,3 +299,76 @@ describe("aggregated load and raw fallback (#1813)", () => {
     expect(isAggregateUnsupported(new TelemetryClientError("http", "busy", { status: 503 }))).toBe(false);
   });
 });
+
+describe("continuity at aggregate and detail boundaries (#1813 review)", () => {
+  it("breaks across one skipped bucket when the points are further apart than the tolerance", () => {
+    const buckets = [
+      bucket(0, {
+        first: [T0 + 10_000, 4],
+        min: [T0 + 10_000, 4],
+        max: [T0 + 590_000, 4.2],
+        last: [T0 + 590_000, 4.2],
+      }),
+      bucket(2, {
+        first: [T0 + 1_200_000, 4.1],
+        min: [T0 + 1_200_000, 4.1],
+        max: [T0 + 1_210_000, 4.3],
+        last: [T0 + 1_210_000, 4.3],
+      }),
+    ];
+    expect(
+      liveHistorySegments(aggregateSeriesToSamples(identity(), series(buckets), 600_000, 30_000)),
+    ).toHaveLength(2);
+  });
+
+  it("keeps a break that lies just before the detail window (raw columns)", () => {
+    const columns: LiveIntervalColumns = {};
+    recordLiveIntervalSamples(columns, [
+      { ...identity(), event_id: "a", captured_at: new Date(T0).toISOString(), value: 4 },
+      {
+        ...identity(),
+        event_id: "bad",
+        captured_at: new Date(T0 + 100_000).toISOString(),
+        value: null,
+        quality: "communication_error",
+      },
+      { ...identity(), event_id: "b", captured_at: new Date(T0 + 250_000).toISOString(), value: 5 },
+      { ...identity(), event_id: "c", captured_at: new Date(T0 + 260_000).toISOString(), value: 5.1 },
+    ]);
+    // Detail (with its 50 % margin) starts at 150 s: after the invalid sample, before b.
+    const detail = columnsViewportDetail(
+      [identity()],
+      columns,
+      { fromMs: T0 + 200_000, toMs: T0 + 300_000 },
+      240,
+      () => 30_000,
+    );
+    expect(isLiveHistorySegmentStart(detail.samples[0])).toBe(true);
+    const coarse = [
+      { ...identity(), event_id: "a", captured_at: new Date(T0).toISOString(), value: 4 },
+      ...detail.samples,
+    ];
+    expect(liveHistorySegments(mergeViewportDetail(coarse, detail))).toHaveLength(2);
+  });
+
+  it("keeps a coarse break when an aggregated detail does not show where it lies", () => {
+    const before = { ...identity(), event_id: "before", captured_at: new Date(T0).toISOString(), value: 4 };
+    const brokenCoarse = {
+      ...identity(),
+      event_id: "nexolab-live-segment:after-outage",
+      captured_at: new Date(T0 + 600_000).toISOString(),
+      value: 5,
+    };
+    const detail = {
+      fromMs: T0 + 300_000,
+      toMs: T0 + 900_000,
+      coveredToMs: T0 + 900_000,
+      channels: new Set([liveChannelKey(identity())]),
+      samples: [
+        { ...identity(), event_id: "d1", captured_at: new Date(T0 + 590_000).toISOString(), value: 5 },
+        { ...identity(), event_id: "d2", captured_at: new Date(T0 + 620_000).toISOString(), value: 5.1 },
+      ],
+    };
+    expect(liveHistorySegments(mergeViewportDetail([before, brokenCoarse], detail))).toHaveLength(2);
+  });
+});

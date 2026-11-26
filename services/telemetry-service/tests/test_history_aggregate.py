@@ -206,5 +206,6 @@ def test_interval_statistics_match_browser_semantics(tmp_path: Path) -> None:
     assert stats["gap_count"] == 1
     assert stats["gap_longest_ms"] == stats["gap_total_ms"] == 310_000
     assert stats["first_valid_ms"] == epoch_ms(BASE)
+    assert stats["recent_valid_ms"] == [epoch_ms(BASE + timedelta(seconds=10 * index)) for index in range(594, 600)]
     plain = client.get("/api/v1/telemetry/history/aggregate", params=_params()).json()["series"][0]
     assert plain["statistics"] is None

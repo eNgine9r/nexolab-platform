@@ -50,6 +50,8 @@ export interface HistoryIntervalStatisticsWire {
   gap_count: number;
   gap_total_ms: number;
   gap_longest_ms: number;
+  /** Newest distinct valid sample times (real measurements), ascending. */
+  recent_valid_ms: number[];
 }
 
 export interface HistoryAggregateSeries extends HistorySeriesKey {
@@ -115,6 +117,9 @@ function parseStatistics(value: unknown, path: string): HistoryIntervalStatistic
     gap_count: finite(item.gap_count, `${path}.gap_count`),
     gap_total_ms: finite(item.gap_total_ms, `${path}.gap_total_ms`),
     gap_longest_ms: finite(item.gap_longest_ms, `${path}.gap_longest_ms`),
+    recent_valid_ms: Array.isArray(item.recent_valid_ms)
+      ? item.recent_valid_ms.map((value, index) => finite(value, `${path}.recent_valid_ms[${index}]`))
+      : [],
   };
 }
 

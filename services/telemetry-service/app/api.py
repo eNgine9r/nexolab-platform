@@ -68,6 +68,7 @@ class HistoryIntervalStatisticsResponse(BaseModel):
     gap_count: int
     gap_total_ms: int
     gap_longest_ms: int
+    recent_valid_ms: list[int] = []
 
 
 class HistoryAggregateSeriesResponse(BaseModel):

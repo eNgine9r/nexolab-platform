@@ -177,6 +177,7 @@ def test_sql_interval_statistics_equal_reference(database) -> None:
         assert (a.valid_count, a.invalid_count, a.minimum, a.maximum) == (b.valid_count, b.invalid_count, b.minimum, b.maximum)
         assert (a.first_valid_ms, a.last_valid_ms, a.median_spacing_ms) == (b.first_valid_ms, b.last_valid_ms, b.median_spacing_ms)
         assert (a.gap_count, a.gap_total_ms, a.gap_longest_ms) == (b.gap_count, b.gap_total_ms, b.gap_longest_ms)
+        assert a.recent_valid_ms == b.recent_valid_ms and len(a.recent_valid_ms) == 6
         assert a.valid_sum == pytest.approx(b.valid_sum, rel=1e-9)
         assert a.gap_count >= 1  # the seeded 1 000 s gap
     warnings.warn(f"#1813 timing statistics 4 ch x 24 h @10 s: SQL {sql_ms:.0f} ms", UserWarning, stacklevel=1)

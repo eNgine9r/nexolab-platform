@@ -97,8 +97,12 @@ class IntervalStatistics:
     gap_count: int
     gap_total_ms: int
     gap_longest_ms: int
+    # Newest distinct valid sample times (ascending), real measurements: the browser seeds its
+    # acquisition-cadence freshness estimate from them without loading raw history.
+    recent_valid_ms: tuple[int, ...] = ()
 
 
+RECENT_VALID_SAMPLES = 6
 MINIMUM_SOURCE_GAP_MS = 30_000
 SOURCE_GAP_MULTIPLIER = 3
 
@@ -135,6 +139,7 @@ def interval_statistics(rows: Iterable[tuple[int, float | None, str]]) -> Interv
         gap_count=len(gaps),
         gap_total_ms=sum(gaps),
         gap_longest_ms=max(gaps) if gaps else 0,
+        recent_valid_ms=tuple(stamps[-RECENT_VALID_SAMPLES:]),
     )
 
 
@@ -172,7 +177,8 @@ _POSTGRES_STATISTICS = text(
         cadence.median AS median_spacing_ms,
         count(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)) AS gap_count,
         coalesce(sum(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)), 0) AS gap_total_ms,
-        coalesce(max(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)), 0) AS gap_longest_ms
+        coalesce(max(spacings.delta) FILTER (WHERE spacings.delta > greatest(:min_gap, coalesce(cadence.median, 0) * :multiplier)), 0) AS gap_longest_ms,
+        (SELECT array_agg(ms ORDER BY ms) FROM (SELECT ms FROM rows WHERE ok ORDER BY ms DESC LIMIT :recent) AS recent) AS recent_valid_ms
     FROM cadence LEFT JOIN spacings ON true
     GROUP BY cadence.median
     """
@@ -182,7 +188,12 @@ _POSTGRES_STATISTICS = text(
 def _statistics_postgres(session: Any, parameters: dict[str, Any]) -> IntervalStatistics:
     row = session.execute(
         _POSTGRES_STATISTICS,
-        {**parameters, "min_gap": MINIMUM_SOURCE_GAP_MS, "multiplier": SOURCE_GAP_MULTIPLIER},
+        {
+            **parameters,
+            "min_gap": MINIMUM_SOURCE_GAP_MS,
+            "multiplier": SOURCE_GAP_MULTIPLIER,
+            "recent": RECENT_VALID_SAMPLES,
+        },
     ).one()
     return IntervalStatistics(
         valid_count=int(row.valid_count),
@@ -196,6 +207,7 @@ def _statistics_postgres(session: Any, parameters: dict[str, Any]) -> IntervalSt
         gap_count=int(row.gap_count),
         gap_total_ms=int(row.gap_total_ms),
         gap_longest_ms=int(row.gap_longest_ms),
+        recent_valid_ms=tuple(int(value) for value in (row.recent_valid_ms or ())),
     )
 
 

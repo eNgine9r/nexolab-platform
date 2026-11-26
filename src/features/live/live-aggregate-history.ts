@@ -6,9 +6,11 @@ import {
 import { CADENCE_OBSERVATION_LIMIT } from "@/features/live/freshness";
 import {
   LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS,
+  LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   deriveLiveSourceGapMsByChannel,
   downsampleLiveHistory,
   groupByChannelKey,
+  isLiveHistorySegmentStart,
   markSegmentStart,
   newestRawSamplesPerChannel,
   sortByCapturedAt,
@@ -35,6 +37,8 @@ export const DETAIL_MARGIN_RATIO = 0.5;
 export interface AggregatedLiveHistoryResult extends LiveHistoryResult {
   /** Channels whose display came from server buckets (no raw columns in the browser). */
   aggregatedChannels: Set<string>;
+  /** Exact statistics of the loaded window for aggregated channels (from original rows). */
+  windowStatistics: Map<string, IntervalStatistics>;
 }
 
 export interface ViewportDetail {
@@ -123,7 +127,8 @@ export function aggregateSeriesToSamples(
     .filter((bucket) => bucket.firstInvalidMs !== null && bucket.lastInvalidMs !== null)
     .map((bucket) => [bucket.firstInvalidMs!, bucket.lastInvalidMs!] as const);
   const key = liveChannelKey(identity);
-  const points: Array<[number, number]> = [];
+  // [time, value, bucket index]
+  const points: Array<[number, number, number]> = [];
   for (const bucket of series.buckets) {
     const seen = new Set<string>();
     const candidates = [bucket.first, bucket.minimum, bucket.maximum, bucket.last]
@@ -133,11 +138,11 @@ export function aggregateSeriesToSamples(
       const id = `${point[0]}:${point[1]}`;
       if (seen.has(id)) continue;
       seen.add(id);
-      points.push(point);
+      points.push([point[0], point[1], bucket.index]);
     }
   }
   const result: TelemetrySample[] = [];
-  let previous: [number, number] | null = null;
+  let previous: [number, number, number] | null = null;
   for (const point of points) {
     const sample = sampleFrom(
       identity,
@@ -148,7 +153,11 @@ export function aggregateSeriesToSamples(
     );
     const invalidBetween =
       previous !== null && invalidSpans.some(([from, to]) => to > previous![0] && from < point[0]);
-    const silent = previous !== null && point[0] - previous[0] > breakAfterMs;
+    // An empty bucket between two points is a span without any sample: an outage once the points
+    // are further apart than the source tolerance (as the raw path decides).
+    const skippedBucket =
+      previous !== null && point[2] > previous[2] + 1 && point[0] - previous[0] > sourceGapMs;
+    const silent = previous !== null && (skippedBucket || point[0] - previous[0] > breakAfterMs);
     result.push(invalidBetween || silent ? markSegmentStart(sample) : sample);
     previous = point;
   }
@@ -309,10 +318,14 @@ export async function loadAggregatedLiveHistory(
   sourceGapMsFor: (channelKey: string) => number | undefined = () => undefined,
 ): Promise<AggregatedLiveHistoryResult> {
   const buckets = Math.max(1, Math.ceil(maximumPointsPerChannel / POINTS_PER_BUCKET));
-  const response = await fetchAggregatedSeries(adapter, identities.map(keyOf), window, buckets, { signal });
+  const response = await fetchAggregatedSeries(adapter, identities.map(keyOf), window, buckets, {
+    signal,
+    statistics: true,
+  });
   const intervalColumns: LiveIntervalColumns = {};
   const sourceGapMsByChannel = new Map<string, number>();
   const aggregatedChannels = new Set<string>();
+  const windowStatistics = new Map<string, IntervalStatistics>();
   let samples: TelemetrySample[] = [];
   let cadenceSamples: TelemetrySample[] = [];
   for (const identity of identities) {
@@ -328,9 +341,24 @@ export async function loadAggregatedLiveHistory(
       cadenceSamples = cadenceSamples.concat(newestRawSamplesPerChannel(raw, CADENCE_OBSERVATION_LIMIT));
     } else {
       aggregatedChannels.add(key);
-      samples = samples.concat(
-        aggregateSeriesToSamples(identity, series, response.bucketMs, sourceGapMsFor(key) ?? undefined),
+      // Same continuity tolerance and cadence as the raw path, from the server's exact median
+      // spacing and its newest real sample times (no raw history needed in the browser).
+      const median = series.statistics?.median_spacing_ms ?? null;
+      const tolerance =
+        median !== null ? Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, median * 3) : sourceGapMsFor(key);
+      if (median !== null && tolerance !== undefined) sourceGapMsByChannel.set(key, tolerance);
+      cadenceSamples = cadenceSamples.concat(
+        (series.statistics?.recent_valid_ms ?? []).map((timestampMs) =>
+          sampleFrom(identity, `cadence:${key}:${timestampMs}`, timestampMs, null, "unknown"),
+        ),
       );
+      if (series.statistics) {
+        windowStatistics.set(
+          key,
+          wireToIntervalStatistics(series.statistics, window.from.getTime(), window.to.getTime()),
+        );
+      }
+      samples = samples.concat(aggregateSeriesToSamples(identity, series, response.bucketMs, tolerance));
     }
   }
   return {
@@ -340,6 +368,7 @@ export async function loadAggregatedLiveHistory(
     intervalColumns,
     sourceGapMsByChannel,
     aggregatedChannels,
+    windowStatistics,
   };
 }
 
@@ -387,7 +416,9 @@ export function columnsViewportDetail(
     if (end <= start) continue;
     // A break precedes index i when an invalid sample or a silent gap lies between i-1 and i.
     const breakBefore = new Uint8Array(end - start);
-    for (let index = start + 1; index < end; index += 1) {
+    // From the first in-range sample: its preceding raw sample may lie before the detail range,
+    // and a break there must survive the merge with the coarse points outside it.
+    for (let index = Math.max(start, 1); index < end; index += 1) {
       const silent = stamps[index] - stamps[index - 1] > tolerance;
       const invalidBetween = lowerBound(invalid, stamps[index - 1] + 1) < lowerBound(invalid, stamps[index]);
       if (silent || invalidBetween) breakBefore[index - start] = 1;
@@ -442,7 +473,7 @@ export function columnsViewportDetail(
         values[index],
         "valid",
       );
-      samples.push(index > start && breakBefore[index - start] === 1 ? markSegmentStart(sample) : sample);
+      samples.push(breakBefore[index - start] === 1 ? markSegmentStart(sample) : sample);
     }
     coveredToMs = Math.max(coveredToMs, stamps[end - 1]);
   }
@@ -492,21 +523,42 @@ export function mergeViewportDetail(
   if (!detail || detail.channels.size === 0) return history;
   // Per channel: keys and timestamps computed once; no global comparator sort (#1813 perf).
   const byChannel = new Map<string, TelemetrySample[]>();
+  // First replaced coarse point per channel: a break it carried lies between the last coarse point
+  // before the detail and itself, so it must survive when the detail does not show it.
+  const firstReplaced = new Map<string, TelemetrySample>();
   for (const sample of history) {
     const key = liveChannelKey(sample);
     if (detail.channels.has(key)) {
       const timestampMs = Date.parse(sample.captured_at);
-      if (timestampMs >= detail.fromMs && timestampMs <= detail.coveredToMs) continue;
+      if (timestampMs >= detail.fromMs && timestampMs <= detail.coveredToMs) {
+        if (!firstReplaced.has(key)) firstReplaced.set(key, sample);
+        continue;
+      }
     }
     const list = byChannel.get(key);
     if (list) list.push(sample);
     else byChannel.set(key, [sample]);
   }
+  const detailByChannel = new Map<string, TelemetrySample[]>();
   for (const sample of detail.samples) {
     const key = liveChannelKey(sample);
-    const list = byChannel.get(key);
+    const list = detailByChannel.get(key);
     if (list) list.push(sample);
-    else byChannel.set(key, [sample]);
+    else detailByChannel.set(key, [sample]);
+  }
+  for (const [key, points] of detailByChannel) {
+    const ordered = sortByCapturedAt(points);
+    const replaced = firstReplaced.get(key);
+    if (replaced && isLiveHistorySegmentStart(replaced) && ordered[0]) {
+      const boundaryMs = Date.parse(replaced.captured_at);
+      const shown = ordered.some(
+        (point) => isLiveHistorySegmentStart(point) && Date.parse(point.captured_at) <= boundaryMs,
+      );
+      if (!shown) ordered[0] = markSegmentStart(ordered[0]);
+    }
+    const list = byChannel.get(key);
+    if (list) list.push(...ordered);
+    else byChannel.set(key, ordered);
   }
   return [...byChannel.keys()]
     .sort((left, right) => left.localeCompare(right, "uk-UA"))
