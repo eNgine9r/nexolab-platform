@@ -46,3 +46,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python bytecode (never committed; the broker and scripts run with -B)
+__pycache__/
+*.pyc
