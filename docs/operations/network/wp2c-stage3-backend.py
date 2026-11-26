@@ -616,14 +616,18 @@ def service_model(container: dict, image: dict, compat_ip: str) -> dict:
     need(compat_ip not in scan, f"UNHANDLED_COMPAT_IP_REFERENCE {name} command/entrypoint/healthcheck/extra_hosts")
 
     svc: dict = {"image": cfg["Image"], "pull_policy": "never"}
-    if cfg.get("User") != img.get("User"):
-        svc["user"] = cfg.get("User") or ""
-    if cfg.get("Entrypoint") != img.get("Entrypoint"):
+    # An empty value and an absent key mean the same thing: the containerd image store omits empty image fields
+    # (site prove 2026-11-26: container User "" vs image User missing -> a spurious `user: ""` that Compose drops).
+    if (cfg.get("User") or "") != (img.get("User") or ""):
+        need(cfg.get("User"), f"USER_RESET_TO_EMPTY_UNSUPPORTED {name} (image user {img.get('User')!r})")
+        svc["user"] = cfg["User"]
+    if (cfg.get("Entrypoint") or []) != (img.get("Entrypoint") or []):
         svc["entrypoint"] = cfg.get("Entrypoint") or []
-    if cfg.get("Cmd") != img.get("Cmd"):
+    if (cfg.get("Cmd") or []) != (img.get("Cmd") or []):
         svc["command"] = cfg.get("Cmd") or []
-    if cfg.get("WorkingDir") != img.get("WorkingDir"):
-        svc["working_dir"] = cfg.get("WorkingDir") or ""
+    if (cfg.get("WorkingDir") or "") != (img.get("WorkingDir") or ""):
+        need(cfg.get("WorkingDir"), f"WORKING_DIR_RESET_TO_EMPTY_UNSUPPORTED {name}")
+        svc["working_dir"] = cfg["WorkingDir"]
     if cfg.get("StopSignal") and cfg.get("StopSignal") != img.get("StopSignal"):
         svc["stop_signal"] = cfg["StopSignal"]
     if cfg.get("StopTimeout") is not None:
@@ -943,8 +947,8 @@ def config_vs_container(config: dict, document: dict, container: dict, image: di
         diffs.append("restart")
     if _unescape(svc.get("labels") or {}) != user_labels(container, image):
         diffs.append("labels")
-    for key in ("user", "entrypoint", "command", "working_dir"):
-        if key in model and _unescape(svc.get(key)) != model[key]:
+    for key, empty in (("user", ""), ("entrypoint", []), ("command", []), ("working_dir", "")):
+        if key in model and (_unescape(svc.get(key)) or empty) != (model[key] or empty):
             diffs.append(key)
     if "healthcheck" in model and "test" in model["healthcheck"]:
         if _unescape((svc.get("healthcheck") or {}).get("test")) != model["healthcheck"]["test"]:

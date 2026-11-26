@@ -684,6 +684,33 @@ class ComposeModelTests(SiteTestCase):
             self.assertIn(call[:2], (["inspect", "--type"], ["image", "inspect"], ["network", "inspect"]), call)
         self.assertFalse(self.site.ws.exists())
 
+    def test_empty_and_absent_image_fields_are_equal(self) -> None:
+        # Site prove 2026-11-26: container Config.User "" while the containerd image store omits an empty image
+        # User -> v1 rendered `user: ""`, which Compose drops -> COMPOSE_FIDELITY_FAILED ['user'].
+        base = copy.deepcopy(self.site.state["containers"][CMQTT])
+        image = copy.deepcopy(self.site.state["images"][base["Image"]])
+        image["Config"].pop("User", None)
+        base["Config"].update(User="", WorkingDir="", Entrypoint=None, Cmd=None)
+        model = S3.service_model(base, image, FAKE_COMPAT)["services"]["mqtt"]
+        for key in ("user", "working_dir", "entrypoint", "command"):
+            self.assertNotIn(key, model, key)
+        base["Config"]["User"] = "1883:1883"
+        self.assertEqual(S3.service_model(base, image, FAKE_COMPAT)["services"]["mqtt"]["user"], "1883:1883")
+        image["Config"]["User"] = "mosquitto"
+        base["Config"]["User"] = ""
+        with self.assertRaises(S3.Stop):  # Compose cannot express "reset the image user to empty"
+            S3.service_model(base, image, FAKE_COMPAT)
+
+    def test_prove_passes_with_empty_container_user(self) -> None:
+        state = self.site.load()
+        for item in state["containers"].values():
+            item["Config"]["User"] = ""
+            item["Config"]["WorkingDir"] = ""
+        self.site.state_path.write_text(json.dumps(state))
+        rc, output = self.site.main("prove")
+        self.assertEqual(rc, 0, output)
+        self.assertIn("STAGE3_PROVE_GREEN", output)
+
     def test_unsupported_settings_fail_closed(self) -> None:
         base = self.site.state["containers"][CMQTT]
         image = self.site.state["images"][base["Image"]]
