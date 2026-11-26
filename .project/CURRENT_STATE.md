@@ -1,3 +1,24 @@
+## 2026-11-26 (later) — broker v1.3 merged and staged; Stage 3 tool merged
+
+- **#1780 broker v1.3** (`d25599f7`, includes v1.2). Approved operations:
+  - `storage.remove-images`: hash-bound manifest, protected references refused, images in use skipped, never `-f`, volumes unchanged;
+  - `wifi.connect-test`: in-memory MAC mode; Ethernet must hold the default route;
+  - `wifi.profile-remove`: inactive Wi-Fi profiles only.
+
+  CI covers a real image removal and the upgrade from v1.1, including an injected failure that triggers rollback. Payload: `~/recovery-p0/broker-v1.3-20261126T070346Z` (installer `3262da04…`). v1.2 was not applied on site and is superseded by v1.3.
+
+- **SSD manifest A** (`fb84ea64…`, in `~/operator-inbox`): 26 stale candidate and experiment images. The images below are left for the owner, outside manifest A:
+  - previous release `issue-1638`;
+  - `issue-1615-1e5537cb`;
+  - `staged-*`;
+  - `quick-central:1490`;
+  - versitygw arm64.
+- **#1779 Stage 3 tool merged** (`95204dc9`). The switch phase:
+  - dual-publishes on loopback and keeps the compatibility address, so Tailscale serve and the LAN gateway keep working;
+  - moves the Edge bridge to `central-mqtt:1883` with the same client ID.
+
+  `drop-compat` (Phase 4) follows once the consumers are retargeted. `check` requires a fresh #1428 backup receipt and an active Stage 2. Ordering: Stage 2 execute → #1428 backup → Stage 3 switch → retarget → drop-compat. Offline `plan` on today's export: `STAGE3_PLAN_OK`. Real Compose behaviour is **UNVERIFIED** until an owner `plan`/`check` on the host.
+
 ## 2026-11-26 — first owner-approved broker runs; broker v1.2 merged (#1776)
 
 - **Approved runs via broker v1.1** (owner approvals, executed by the agent):
