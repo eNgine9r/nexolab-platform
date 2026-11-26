@@ -9,7 +9,7 @@ import {
 } from "@/features/live/freshness";
 import { recordLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
-import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
+import { loadCompleteTelemetryHistoryForSeries, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
@@ -338,38 +338,46 @@ export async function loadCompleteLiveHistory(
     throw new Error("At least one channel identity is required for history loading");
   }
 
-  let allSamples: TelemetrySample[] = [];
-  let snapshotAt: string | undefined;
-
-  for (const identity of identities) {
-    const result = await loadCompleteTelemetryHistory(
-      adapter,
-      {
-        node_id: identity.node_id,
-        equipment_id: identity.equipment_id,
-        channel_id: identity.channel_id,
-        metric: identity.metric,
-      },
-      window,
-      { signal, snapshotAt },
-    );
-    snapshotAt = result.snapshotAt;
-    // concat, not push(...spread): a 30-day channel has >250 000 samples and spreading them as
-    // call arguments overflows the stack ("Maximum call stack size exceeded").
-    allSamples = allSamples.concat(result.samples);
-  }
-
+  // #1809: channels load in parallel under one snapshot (bounded by the shared history limiter).
+  // Each channel is reduced as soon as it has loaded; only compact raw columns (for exact
+  // statistics) and the reduced series are kept, not every channel's raw sample objects.
   const intervalColumns: LiveIntervalColumns = {};
-  recordLiveIntervalSamples(
-    intervalColumns,
-    allSamples.filter((sample) => acceptedSample(sample)),
+  const sourceGapMsByChannel = new Map<string, number>();
+  const perChannel = await loadCompleteTelemetryHistoryForSeries(
+    adapter,
+    identities.map((identity) => ({
+      node_id: identity.node_id,
+      equipment_id: identity.equipment_id,
+      channel_id: identity.channel_id,
+      metric: identity.metric,
+    })),
+    window,
+    { signal },
+    (result) => {
+      recordLiveIntervalSamples(
+        intervalColumns,
+        result.samples.filter((sample) => acceptedSample(sample)),
+      );
+      for (const [key, gapMs] of deriveLiveSourceGapMsByChannel(result.samples)) {
+        sourceGapMsByChannel.set(key, gapMs);
+      }
+      return {
+        snapshotAt: result.snapshotAt,
+        reduced: downsampleLiveHistory(result.samples, window, maximumPointsPerChannel),
+        cadence: newestRawSamplesPerChannel(result.samples, CADENCE_OBSERVATION_LIMIT),
+      };
+    },
   );
+  // Same channel order as a single downsampleLiveHistory call (stable sort keeps time order).
+  const samples = perChannel
+    .flatMap((channel) => channel.reduced)
+    .sort((left, right) => liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA"));
   return {
-    samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
+    samples,
     intervalColumns,
-    snapshotAt: snapshotAt!,
-    cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
-    sourceGapMsByChannel: deriveLiveSourceGapMsByChannel(allSamples),
+    snapshotAt: perChannel[0].snapshotAt,
+    cadenceSamples: perChannel.flatMap((channel) => channel.cadence),
+    sourceGapMsByChannel,
   };
 }
 

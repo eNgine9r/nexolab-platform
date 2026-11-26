@@ -65,6 +65,7 @@ import {
 import { liveTelemetryState } from "@/features/live/live-telemetry";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
+import { describeHistoryLoadError } from "@/lib/telemetry/history";
 
 function formatValue(series: LiveDashboardTelemetryModel["series"][number]): string {
   const displayed = savedDashboardDisplaySample(series.item, series.latest);
@@ -752,9 +753,7 @@ export function DashboardLiveView({
           {telemetry.historyStatus === "loading" ? (
             <p className="mt-3 text-xs text-cyan-200">Завантаження повної persisted history…</p>
           ) : telemetry.historyStatus === "error" ? (
-            <p className="mt-3 text-xs text-red-200">
-              {telemetry.historyError?.message ?? "Не вдалося завантажити persisted history."}
-            </p>
+            <p className="mt-3 text-xs text-red-200">{describeHistoryLoadError(telemetry.historyError)}</p>
           ) : null}
           {telemetry.exportError ? (
             <p className="mt-3 text-xs text-red-200">{telemetry.exportError.message}</p>

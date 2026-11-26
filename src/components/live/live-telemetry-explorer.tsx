@@ -60,6 +60,7 @@ import {
 } from "@/features/live/live-telemetry";
 import type { LiveHistoryRange, LiveTelemetryModel, LiveTelemetryStatus } from "@/hooks/use-live-telemetry";
 import type { TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
+import { describeHistoryLoadError } from "@/lib/telemetry/history";
 
 const QUALITY_VALUES: TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARM_VALUES: LiveAlarmFilter[] = ["all", "active", "none", "low", "high"];
@@ -763,7 +764,7 @@ export function LiveTelemetryExplorer({
             <AlertTriangle className="h-8 w-8 text-red-300" aria-hidden="true" />
             <p className="mt-3 text-sm font-medium text-red-100">Не вдалося завантажити історію</p>
             <p className="mt-1 max-w-xl text-xs text-red-200/60">
-              {telemetry.historyError?.message ?? "Unknown history error"}
+              {describeHistoryLoadError(telemetry.historyError)}
             </p>
             <button
               type="button"
