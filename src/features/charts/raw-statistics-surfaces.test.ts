@@ -165,6 +165,40 @@ describe("EnergyRawStatistics", () => {
     ).toBe(2); // samples at +110 s and +120 s remain after pruning the one at +100 s
   });
 
+  it("#1825: a newest-first page load gives the same exact statistics as time order, in bounded time", () => {
+    // One meter at 10 s for 7 days, delivered newest first as the history API pages it.
+    const count = 60_480;
+    const ascending = Array.from({ length: count }, (_, index) =>
+      power(
+        index,
+        index % 997 === 13 ? null : 500 + (index % 50),
+        index % 997 === 13 ? "communication_error" : "valid",
+      ),
+    );
+    const newestFirst = [...ascending].reverse();
+    const reference = new EnergyRawStatistics();
+    reference.replace("7d", T0, ascending, ["electrical.power.active"]);
+    const store = new EnergyRawStatistics();
+    const startedAt = performance.now();
+    store.replace("7d", T0, newestFirst, ["electrical.power.active"]);
+    const elapsedMs = performance.now() - startedAt;
+    const toMs = T0 + count * 10_000;
+    expect(store.statistics("7d", key, "electrical.power.active", T0, toMs)).toEqual(
+      reference.statistics("7d", key, "electrical.power.active", T0, toMs),
+    );
+    // The O(n²) insert took seconds here; sorted appends take milliseconds.
+    expect(elapsedMs).toBeLessThan(1_500);
+  });
+
+  it("#1825: keeps the first-seen sample of a duplicated timestamp", () => {
+    const store = new EnergyRawStatistics();
+    store.replace("24h", T0, [power(1, 700), power(1, 900), power(0, 500)], ["electrical.power.active"]);
+    expect(store.statistics("24h", key, "electrical.power.active", T0, T0 + 20_000)).toMatchObject({
+      max: 700,
+      validCount: 2,
+    });
+  });
+
   it("ignores samples of metrics that were not part of the base load", () => {
     const store = new EnergyRawStatistics();
     store.replace("24h", T0, [power(0, 1)], ["electrical.voltage"]);
