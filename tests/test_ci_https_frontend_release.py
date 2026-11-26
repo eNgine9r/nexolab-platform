@@ -325,6 +325,16 @@ class Execute(unittest.TestCase):
         # A failed attempt never becomes the recorded installed release.
         self.assertFalse((self.module.STATE_DIR / "state.json").exists())
 
+    def test_a_failed_state_write_rolls_back_instead_of_stranding_the_release(self):
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        with mock.patch.object(self.module, "write_state", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
+                self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
+        self.assertFalse(self.dropin.exists())
+        self.assertEqual(fake.live, OLD)
+        self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
+
     def test_refuses_another_release_while_one_is_installed(self):
         fake = FakeHost(self.module)
         fake.dropin = str(self.dropin)

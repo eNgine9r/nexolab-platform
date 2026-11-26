@@ -457,9 +457,14 @@ def write_journal(state: dict) -> None:
 
 
 def write_state(state: dict) -> None:
-    """The installed release; written only after it is verified GREEN (review)."""
+    """The installed release, written atomically and only after it is verified GREEN (review)."""
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-    (STATE_DIR / "state.json").write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    temporary = STATE_DIR / "state.json.tmp"
+    with temporary.open("w") as handle:
+        handle.write(json.dumps(state, indent=2, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, STATE_DIR / "state.json")
 
 
 def restart(host: Host) -> None:
@@ -526,13 +531,14 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
         status, _ = host.http_get(f"{PUBLIC_URL}/", 15.0)
         if status not in (302, 401, 403):
             raise ReleaseError(f"anonymous public request answered {status}, expected the OAuth gate (302)")
+        # Inside the recovery boundary: without a rollback record the release is not kept (review).
+        write_state(state)
     except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, rolls back
         host.log(f"HTTPS_FRONTEND_FAILED {error}; rolling back")
         restore(host, dropin, current)
         if isinstance(error, ReleaseError):
             raise
         raise ReleaseError(f"activation failed: {error}") from error
-    write_state(state)
     host.log(f"HTTPS_FRONTEND_GREEN source={expected.source} build={expected.build} dropin={dropin}")
     return {"dropin": str(dropin)}
 
