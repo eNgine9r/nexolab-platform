@@ -441,11 +441,11 @@ FROM generate_series(1, ${channelCount}) AS channel;
       const loadingText = page.getByText("Завантаження повної persisted history…");
       let firstSeriesMs: number | null = null;
       for (let attempt = 0; attempt < 2_400 && firstSeriesMs === null; attempt += 1) {
-        const progress = await page
-          .getByTestId("saved-dashboard-history-progress")
-          .textContent()
-          .catch(() => null);
-        if ((progress ?? "").includes("Завантажено серій") || (await loadingText.count()) === 0) {
+        // allTextContents() never waits: the element is absent on older frontends and after loading.
+        const progress = (await page.getByTestId("saved-dashboard-history-progress").allTextContents()).join(
+          " ",
+        );
+        if (progress.includes("Завантажено серій") || (await loadingText.count()) === 0) {
           firstSeriesMs = Date.now() - startedAt;
         } else {
           await page.waitForTimeout(100);
