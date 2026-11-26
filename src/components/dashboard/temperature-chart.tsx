@@ -13,7 +13,11 @@ import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-ale
 import { annotateChartGroups } from "@/features/charts/alert-events";
 import { useDashboardAlertEvents } from "@/features/live-dashboards/use-dashboard-alert-events";
 import { applyFreshnessClock } from "@/features/charts/series-freshness";
-import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
+import {
+  buildOverviewChartBase,
+  overviewChartGroupsForDomain,
+  overviewResetDomain,
+} from "@/features/dashboard/overview-chart";
 import { CustomHistoryRangeForm } from "@/components/charts/custom-history-range-form";
 import {
   CUSTOM_HISTORY_FIXED_NOTICE,
@@ -102,17 +106,22 @@ function HistoryChart({
     const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
     return () => globalThis.clearInterval(timer);
   }, []);
-  const builtGroups = useMemo(
+  // #1827: series are built once per history change; a zoom/pan only applies its domain and the
+  // original measurements of the visible window (no rebuild of every series from raw).
+  const chartBase = useMemo(
     () =>
-      buildOverviewChartGroups({
+      buildOverviewChartBase({
         samples,
         status: telemetryStatus,
-        xDomain: effectiveDomain,
         hiddenSeriesKeys,
         soloSeriesKey,
         historical,
       }),
-    [effectiveDomain, hiddenSeriesKeys, historical, samples, soloSeriesKey, telemetryStatus],
+    [hiddenSeriesKeys, historical, samples, soloSeriesKey, telemetryStatus],
+  );
+  const builtGroups = useMemo(
+    () => overviewChartGroupsForDomain(chartBase, effectiveDomain, viewportDomain),
+    [chartBase, effectiveDomain, viewportDomain],
   );
   // The clock only flips silent series to stale; it never rebuilds scenes.
   const alertEvents = useDashboardAlertEvents({
