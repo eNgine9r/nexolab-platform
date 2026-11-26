@@ -1,19 +1,14 @@
-## 2026-11-26 — Pending owner actions (resume point after any reboot; updated night)
+## 2026-11-26 — Owner action package (sprint closeout; full detail in docs/operations/infrastructure-sprint-closeout.md)
 
-1. **Stage 2 browser acceptance (owner):** at `http://<Pi LAN address>/` and Tailscale `:8444`, check login, Live Data, charts and equipment photos, then log out. Undo if needed: `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=rollback …`.
-2. **Upgrade the Operator Broker to v1.7** (#1797). If any step fails, the installer restores v1.6 automatically:
-   ```
-   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.7-20261126T110444Z/install-operator-broker.sh > $T/i.sh && echo "41a49d3b62263e2de7b7280012e5ead8c494d748394dadb2053ef847031bcfcc  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.7-20261126T110444Z
-   ```
-   Then two approvals:
-   - `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op network.tailscale-inspection-route --arg action=apply --ttl-minutes 120 --reason "#1784 :8443 fix"`: a network change; it is verified and restores automatically on failure;
-   - `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.backend-loopback --arg phase=prove --arg retain_env=CORS_ALLOWED_ORIGINS --ttl-minutes 120 --reason "Stage 3 Compose proof"`.
-3. **Dev session memory (#1794):** approve or adjust the proposed drop-ins in `docs/operations/dev-session-memory.md`: `TMPDIR` on disk, and `MemoryHigh=1024M` on the slice and service (`MemoryMax`/`MemorySwapMax` unchanged). Today's 1152M runtime value is lost on reboot.
-4. **SSD manifest C** (`3c928c51…`, 20 images): removal only with specific authorization.
-5. **#1428 DR:** `docs/operations/dr-1428-owner-checklist.md` with the package `~/recovery-p0/dr-a-20261126T102935Z` (`aec18fc9…`). Key and custody are owner only. The first backup needs a `backup.start` approval.
-6. **Wi-Fi (#1735):** router check for `2C:CF:67:A6:09:3A`. Autoconnect retries and removing the open profiles need approval.
-7. **Reboot cause (#1399):** still undetermined. The heartbeat is running.
-8. **Stage 3 (#1734):** `prove` → #1428 receipt → `check` → exact approval for `execute`.
+1. **Stage 2 browser acceptance:** at the LAN address and Tailscale `:8444`, check login, Live Data, a chart and a photo, then log out. Problem → `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=rollback …`.
+2. **Tailscale `:8443` fix (approval):** `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op network.tailscale-inspection-route --arg action=apply --ttl-minutes 120 --reason "#1784"`.
+3. **#1428 DR (critical path):** `docs/operations/dr-1428-owner-checklist.md` with the package `~/recovery-p0/dr-a-20261126T102935Z` (`SHA256SUMS` `aec18fc941538eb9165a2acd8ad5d806f33b1d5e96bf0ad7304ff88c12147e84`). The first backup needs `backup.start` (approval).
+4. **Stage 3 (after 3 A2, exact approval):** owner-run from `~/recovery-p0/stage3-20261126T114923Z/wp2c-stage3-backend.py` (`b3176baff391b104dd71c876d9b2aef97bf871954aa3fbf4bb082f45fe5acac4`) with `--retain-env CORS_ALLOWED_ORIGINS`:
+   - `prove` may run now (read-only);
+   - `check`/`execute` need the A2 receipt;
+   - then retarget the consumers as in the closeout document (gateway drop-in with dashboard `:3000`), and `drop-compat` (approval).
+5. **Optional:** SSD manifect C (`3c928c51…`, specific authorization); Wi-Fi router check and profile decisions.
+6. **Monitoring:** reboot cause (#1399), with the heartbeat running.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 
