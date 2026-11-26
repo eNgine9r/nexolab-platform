@@ -557,6 +557,8 @@ export function TemperatureChart({
   status = "demo",
   samples = [],
   historySamples = [],
+  historyStore = null,
+  historyVersion = 0,
   historyRange = "24h",
   historyStatus = "idle",
   historyWindow = null,
@@ -571,6 +573,8 @@ export function TemperatureChart({
   status?: DashboardTelemetryStatus;
   samples?: TelemetrySample[];
   historySamples?: TelemetrySample[];
+  historyStore?: OverviewHistoryStore | null;
+  historyVersion?: number;
   historyRange?: DashboardHistoryRange;
   historyStatus?: DashboardHistoryStatus;
   historyWindow?: { from: string; to: string } | null;
@@ -587,6 +591,8 @@ export function TemperatureChart({
         status={status}
         samples={samples}
         historySamples={historySamples}
+        historyStore={historyStore}
+        historyVersion={historyVersion}
         historyRange={historyRange}
         historyStatus={historyStatus}
         historyWindow={historyWindow}

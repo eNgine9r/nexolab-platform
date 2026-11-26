@@ -25,6 +25,9 @@ import {
 import { loadTelemetryHistorySlices } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
+/** History slice of Energy loads: up to a day stays one paged stream, 7 d loads 7 slices in parallel. */
+const ENERGY_HISTORY_SLICE_MS = 24 * 60 * 60 * 1_000;
+
 const HISTORY_PAGE_SIZE = 1_000;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
 const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
@@ -558,7 +561,8 @@ export async function loadCompleteEnergyHistory(
     adapter,
     { node_id: window.nodeId, metric: window.metric },
     { from: window.from, to: window.to },
-    { signal, snapshotAt: initialSnapshotAt, pageSize: HISTORY_PAGE_SIZE },
+    // 24 h slices: up to a day stays one paged stream as before; 7 d becomes 7 parallel slices.
+    { signal, snapshotAt: initialSnapshotAt, pageSize: HISTORY_PAGE_SIZE, sliceMs: ENERGY_HISTORY_SLICE_MS },
     (slice) => {
       for (const sample of slice) {
         if (
