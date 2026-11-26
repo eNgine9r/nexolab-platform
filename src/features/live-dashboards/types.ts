@@ -174,4 +174,9 @@ export interface LiveDashboardSeries {
   item: LiveDashboardItem;
   latest: TelemetrySample | null;
   history: TelemetrySample[];
+  /**
+   * #1805: true when `history` is reduced and its source gaps are already marked from RAW data.
+   * The chart must then not re-derive a gap tolerance from the (minutes apart) reduced points.
+   */
+  continuityAnnotated?: boolean;
 }

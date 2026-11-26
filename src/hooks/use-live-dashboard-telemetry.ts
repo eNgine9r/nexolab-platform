@@ -8,6 +8,7 @@ import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
+  observedCadenceMs,
   recordCadenceObservation,
   seedCadenceObservations,
   type CadenceObservations,
@@ -37,6 +38,7 @@ import { getDisplayTimeZone } from "@/features/display-time/store";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import { resolveViewSettings } from "@/features/live-dashboards/view-settings";
 import {
+  appendSavedDashboardTail,
   operatorHistoryPreview,
   reduceSavedDashboardHistory,
   restoreOperatorEvidence,
@@ -47,7 +49,12 @@ import type {
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
-import { advanceLiveHistoryWindow, advanceWindowToClock } from "@/features/live/live-history";
+import {
+  LIVE_HISTORY_MIN_SOURCE_GAP_MS,
+  advanceLiveHistoryWindow,
+  advanceWindowToClock,
+  deriveLiveSourceGapMsByChannel,
+} from "@/features/live/live-history";
 import { createRuntimeCredentialProvider } from "@/features/security/auth-runtime";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -292,6 +299,18 @@ export function useLiveDashboardTelemetry({
   const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
   const statsRef = useRef<Record<string, IntervalSampleColumns>>({});
+  // #1805: continuity tolerance per series, derived once from the RAW history load, and channels
+  // whose last live sample was not renderable (the next point starts a new segment).
+  const sourceGapRef = useRef<Record<string, number>>({});
+  const pendingBreaksRef = useRef<Set<string>>(new Set());
+  // Raw history tolerance first; without enough history, the observed live cadence (x3, >= 30 s);
+  // undefined lets the append path use its fallback until a cadence is observed.
+  const tailSourceGapMs = useCallback((key: string): number | undefined => {
+    const fromHistory = sourceGapRef.current[key];
+    if (fromHistory !== undefined) return fromHistory;
+    const cadenceMs = observedCadenceMs(cadenceRef.current[key]);
+    return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
+  }, []);
   const pointsPerSeriesRef = useRef(pointsPerSeries);
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
@@ -466,11 +485,14 @@ export function useLiveDashboardTelemetry({
         const columns = statsRef.current[key];
         if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime());
       }
-      historyRef.current[key] = reduceHistory(
+      historyRef.current[key] = appendSavedDashboardTail(
         item,
-        [...(historyRef.current[key] ?? []), ...sourceSamples],
+        historyRef.current[key] ?? [],
+        sourceSamples,
         nextWindow,
         pointsPerSeriesRef.current,
+        tailSourceGapMs(key),
+        pendingBreaksRef.current,
       );
       setHistoryWindow(serializedWindow(nextWindow, selection.kind, selection.label));
       scheduleFlush(dashboard.refresh_seconds);
@@ -544,7 +566,17 @@ export function useLiveDashboardTelemetry({
       if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
       renderTimerRef.current = null;
     };
-  }, [active, dashboard, generation, organizationId, runtime.config, runtime.error, scheduleFlush, scopeKey]);
+  }, [
+    active,
+    dashboard,
+    generation,
+    organizationId,
+    runtime.config,
+    runtime.error,
+    scheduleFlush,
+    scopeKey,
+    tailSourceGapMs,
+  ]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -570,6 +602,8 @@ export function useLiveDashboardTelemetry({
     historyWindowRef.current = requestedWindow;
     historyRef.current = {};
     statsRef.current = {};
+    sourceGapRef.current = {};
+    pendingBreaksRef.current = new Set();
     historyOrderingRef.current = null;
     historyPendingLiveRef.current = [];
 
@@ -598,6 +632,8 @@ export function useLiveDashboardTelemetry({
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
         recordIntervalSamples(statsRef.current, key, item, samples);
+        const rawGap = deriveLiveSourceGapMsByChannel(samples).values().next().value;
+        if (rawGap !== undefined) sourceGapRef.current[key] = rawGap;
         reducedBySeries[key] = reduceHistory(item, samples, requestedWindow, pointsPerSeriesRef.current);
         if (requestedRange.kind !== "custom") {
           // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
@@ -634,11 +670,14 @@ export function useLiveDashboardTelemetry({
           if (!dashboardSeriesMatches(item, sample)) continue;
           const key = dashboardItemIdentity(item);
           recordIntervalSamples(statsRef.current, key, item, [sample]);
-          reducedBySeries[key] = reduceHistory(
+          reducedBySeries[key] = appendSavedDashboardTail(
             item,
-            [...reducedBySeries[key], sample],
+            reducedBySeries[key],
+            [sample],
             finalWindow,
             pointsPerSeriesRef.current,
+            tailSourceGapMs(key),
+            pendingBreaksRef.current,
           );
           latestRef.current[key] = newestSample(latestRef.current[key], sample);
         }
@@ -681,13 +720,14 @@ export function useLiveDashboardTelemetry({
     pointsPerSeries,
     runtime.config,
     scopeKey,
+    tailSourceGapMs,
   ]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
     if (!dashboard) return [];
     return dashboard.items.map((item) => {
       const key = dashboardItemIdentity(item);
-      return { item, latest: latest[key] ?? null, history: history[key] ?? [] };
+      return { item, latest: latest[key] ?? null, history: history[key] ?? [], continuityAnnotated: true };
     });
   }, [dashboard, history, latest]);
 
