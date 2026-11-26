@@ -25,7 +25,7 @@ set -Eeuo pipefail
 umask 022
 
 declare -A PIN=(
-  [nexolab-operator-broker.py]=42ef050d88f62b8f1dd6087864cd1dc505b0376ac756c19d24ce5ea8e67b03d9
+  [nexolab-operator-broker.py]=152b75334dc52a79e676ffd20a13f021b5b340c289194b21a58a832e784988fe
   [nexolab-operator-broker.service]=9dd3659153a46a5f1c8877bb21a9ceffc22f8e0e0f0bb3ae29b48e93a9a601bd
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
   [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b

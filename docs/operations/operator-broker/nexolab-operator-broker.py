@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -1175,6 +1175,9 @@ REFERENCE_MAX_FILE = 4 * 1024 * 1024
 REFERENCE_MAX_FILES = 150_000
 REFERENCE_DEADLINE = 900.0
 ROLLBACK_WORDS = re.compile(r"rollback|roll_back|previous|protected|recovery|restore|baseline|retain|keep", re.I)
+# A reference inside a recovery package, backup or protection record is recovery context whatever the line says
+# (#1789: the recovery catalog's compose referenced minio images on lines without any rollback word).
+RECOVERY_PATH = re.compile(r"^/var/lib/nexolab/version-management/|^/var/backups/|/recovery[^/]*/|^/etc/nexolab-storage/")
 
 
 def protected_image_ids() -> set[str]:
@@ -1237,8 +1240,9 @@ def image_references(entries: list[tuple[str, str]], roots: tuple[Path, ...] = R
                     for i in hits:
                         if len(found[i]) < 40:
                             snippet, _ = redact(line.strip()[:240])
-                            found[i].append({"path": str(path), "line": snippet,
-                                             "rollback_context": bool(ROLLBACK_WORDS.search(line))})
+                            recovery_path = bool(RECOVERY_PATH.search(str(path)))
+                            found[i].append({"path": str(path), "line": snippet, "recovery_path": recovery_path,
+                                             "rollback_context": recovery_path or bool(ROLLBACK_WORDS.search(line))})
             else:
                 continue
             break
