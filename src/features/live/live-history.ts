@@ -9,7 +9,7 @@ import {
 } from "@/features/live/freshness";
 import { recordLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
-import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
+import { loadCompleteTelemetryHistoryForSeries, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
@@ -336,26 +336,23 @@ export async function loadCompleteLiveHistory(
     throw new Error("At least one channel identity is required for history loading");
   }
 
+  // #1809: channels load in parallel under one snapshot (bounded by the shared history limiter).
+  const results = await loadCompleteTelemetryHistoryForSeries(
+    adapter,
+    identities.map((identity) => ({
+      node_id: identity.node_id,
+      equipment_id: identity.equipment_id,
+      channel_id: identity.channel_id,
+      metric: identity.metric,
+    })),
+    window,
+    { signal },
+  );
+  const snapshotAt = results[0].snapshotAt;
+  // concat, not push(...spread): a 30-day channel has >250 000 samples and spreading them as
+  // call arguments overflows the stack ("Maximum call stack size exceeded").
   let allSamples: TelemetrySample[] = [];
-  let snapshotAt: string | undefined;
-
-  for (const identity of identities) {
-    const result = await loadCompleteTelemetryHistory(
-      adapter,
-      {
-        node_id: identity.node_id,
-        equipment_id: identity.equipment_id,
-        channel_id: identity.channel_id,
-        metric: identity.metric,
-      },
-      window,
-      { signal, snapshotAt },
-    );
-    snapshotAt = result.snapshotAt;
-    // concat, not push(...spread): a 30-day channel has >250 000 samples and spreading them as
-    // call arguments overflows the stack ("Maximum call stack size exceeded").
-    allSamples = allSamples.concat(result.samples);
-  }
+  for (const result of results) allSamples = allSamples.concat(result.samples);
 
   const intervalColumns: LiveIntervalColumns = {};
   recordLiveIntervalSamples(
@@ -365,7 +362,7 @@ export async function loadCompleteLiveHistory(
   return {
     samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
     intervalColumns,
-    snapshotAt: snapshotAt!,
+    snapshotAt,
     cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
     sourceGapMsByChannel: deriveLiveSourceGapMsByChannel(allSamples),
   };

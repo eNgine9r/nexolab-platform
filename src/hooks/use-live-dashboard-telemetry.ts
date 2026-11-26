@@ -57,7 +57,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/auth-runtim
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
 import {
-  loadCompleteTelemetryHistory,
+  loadCompleteTelemetryHistoryForSeries,
   reconcileTelemetryHistoryEvents,
   seedTelemetryHistoryOrderingState,
   type TelemetryHistoryOrderingState,
@@ -597,18 +597,18 @@ export function useLiveDashboardTelemetry({
 
     const adapter = securedAdapter(config, organizationId);
     void (async () => {
-      let snapshotAt: string | undefined;
       const sourceTails: TelemetrySample[] = [];
       const reducedBySeries: Record<string, TelemetrySample[]> = {};
+      // #1809: every series loads in parallel under one snapshot, bounded by the shared limiter.
+      const results = await loadCompleteTelemetryHistoryForSeries(
+        adapter,
+        dashboard.items.map(dashboardSeriesQuery),
+        requestedWindow,
+        { signal: controller.signal },
+      );
 
-      for (const item of dashboard.items) {
-        const result = await loadCompleteTelemetryHistory(
-          adapter,
-          dashboardSeriesQuery(item),
-          requestedWindow,
-          { signal: controller.signal, snapshotAt },
-        );
-        snapshotAt = result.snapshotAt;
+      for (const [index, item] of dashboard.items.entries()) {
+        const result = results[index];
         const key = dashboardItemIdentity(item);
         const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
         recordIntervalSamples(statsRef.current, key, item, samples);

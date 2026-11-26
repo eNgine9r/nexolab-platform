@@ -1,9 +1,23 @@
-import type { TelemetryAdapter, TelemetryFilters, TelemetrySample } from "./types";
+import { TelemetryClientError } from "./errors";
+import type {
+  TelemetryAdapter,
+  TelemetryCollectionResponse,
+  TelemetryFilters,
+  TelemetryHistoryQuery,
+  TelemetrySample,
+} from "./types";
 
 const DEFAULT_PAGE_SIZE = 1_000;
 const DEFAULT_MAX_PAGES = 500;
 const MAX_FUTURE_SKEW_MS = 30_000;
 const MAX_SEEN_EVENT_IDS = 10_000;
+/**
+ * #1809: one timed-out or overloaded page (503 from the bounded history pool, #1807) is retried
+ * under the same ingestion snapshot instead of failing the whole chart. The request timeout itself
+ * is not raised.
+ */
+export const HISTORY_PAGE_RETRY_DELAYS_MS: readonly number[] = [500, 1_500];
+const RETRYABLE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
 
 export interface TelemetryHistoryWindow {
   from: Date;
@@ -20,6 +34,64 @@ export interface TelemetryHistoryLoadOptions {
   snapshotAt?: string;
   pageSize?: number;
   maxPages?: number;
+  /** Delays before each retry of a retryable page failure; `[]` disables retries. */
+  retryDelaysMs?: readonly number[];
+  /** Called once, as soon as the first page has fixed the ingestion snapshot watermark. */
+  onSnapshot?: (snapshotAt: string) => void;
+}
+
+export function isRetryableHistoryError(error: unknown): boolean {
+  if (!(error instanceof TelemetryClientError)) return false;
+  if (error.code === "timeout" || error.code === "network") return true;
+  return error.code === "http" && RETRYABLE_HTTP_STATUSES.has(error.status ?? 0);
+}
+
+/**
+ * Operator-facing explanation of a failed history load (#1809). Timeouts and overload keep the
+ * technical detail for diagnosis but say what happened and that retrying is safe.
+ */
+export function describeHistoryLoadError(error: Error | null | undefined): string {
+  if (!error) return "Невідома помилка завантаження історії.";
+  if (isRetryableHistoryError(error)) {
+    return `Сервер історії не відповів вчасно або перевантажений; повтори не допомогли. Дані не втрачено — повторіть завантаження. (${error.message})`;
+  }
+  return error.message;
+}
+
+function abortError(): TelemetryClientError {
+  return new TelemetryClientError("aborted", "Telemetry request was aborted");
+}
+
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(abortError());
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/** One history page with bounded retries for timeouts, network errors and overload statuses. */
+export async function fetchHistoryPageWithRetry(
+  adapter: TelemetryAdapter,
+  query: TelemetryHistoryQuery,
+  signal?: AbortSignal,
+  retryDelaysMs: readonly number[] = HISTORY_PAGE_RETRY_DELAYS_MS,
+): Promise<TelemetryCollectionResponse> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await adapter.history(query, signal);
+    } catch (error) {
+      if (signal?.aborted || attempt >= retryDelaysMs.length || !isRetryableHistoryError(error)) throw error;
+      await wait(retryDelaysMs[attempt], signal);
+    }
+  }
 }
 
 export interface TelemetryHistoryOrderingState {
@@ -88,7 +160,8 @@ export async function loadCompleteTelemetryHistory(
   let snapshotAt = options.snapshotAt;
 
   for (let page = 0; page < maxPages; page += 1) {
-    const response = await adapter.history(
+    const response = await fetchHistoryPageWithRetry(
+      adapter,
       {
         ...filters,
         from: window.from,
@@ -98,13 +171,17 @@ export async function loadCompleteTelemetryHistory(
         offset: 0,
       },
       options.signal,
+      options.retryDelaysMs,
     );
 
     const responseSnapshotAt = response.snapshot_at;
     if (!responseSnapshotAt || Number.isNaN(Date.parse(responseSnapshotAt))) {
       throw new Error("Telemetry history page did not provide an ingestion snapshot watermark");
     }
-    if (snapshotAt === undefined) snapshotAt = responseSnapshotAt;
+    if (snapshotAt === undefined) {
+      snapshotAt = responseSnapshotAt;
+      options.onSnapshot?.(snapshotAt);
+    }
     if (responseSnapshotAt !== snapshotAt) {
       throw new Error("Telemetry history ingestion snapshot changed during pagination");
     }
@@ -196,4 +273,64 @@ export function reconcileTelemetryHistoryEvents(
     samples,
     state: { newestCapturedAtByIdentity, seenEventIds },
   };
+}
+
+/**
+ * #1809: complete history for several series under ONE ingestion snapshot, loaded in parallel.
+ *
+ * The first series' first page fixes the snapshot; every other series starts as soon as it is
+ * known (no extra request). Actual concurrency is bounded by the shared history request limiter.
+ * The first failure aborts the remaining pages so an unusable load stops consuming the server.
+ * Results keep the order of `filtersList`.
+ */
+export async function loadCompleteTelemetryHistoryForSeries(
+  adapter: TelemetryAdapter,
+  filtersList: readonly TelemetryFilters[],
+  window: TelemetryHistoryWindow,
+  options: Pick<
+    TelemetryHistoryLoadOptions,
+    "signal" | "snapshotAt" | "pageSize" | "maxPages" | "retryDelaysMs"
+  > = {},
+): Promise<CompleteTelemetryHistoryResult[]> {
+  if (filtersList.length === 0) return [];
+  const linked = new AbortController();
+  const forwardAbort = () => linked.abort(options.signal?.reason);
+  if (options.signal?.aborted) linked.abort(options.signal.reason);
+  else options.signal?.addEventListener("abort", forwardAbort, { once: true });
+
+  const failFast = <T>(promise: Promise<T>): Promise<T> =>
+    promise.catch((error: unknown) => {
+      linked.abort();
+      throw error;
+    });
+
+  try {
+    let announce: (snapshotAt: string) => void = () => undefined;
+    const announced = new Promise<string>((resolve) => {
+      announce = resolve;
+    });
+    const first = failFast(
+      loadCompleteTelemetryHistory(adapter, filtersList[0], window, {
+        ...options,
+        signal: linked.signal,
+        onSnapshot: announce,
+      }),
+    );
+    const snapshotFor = async (): Promise<string> =>
+      options.snapshotAt ?? Promise.race([announced, first.then((result) => result.snapshotAt)]);
+    const rest = filtersList.slice(1).map((filters) =>
+      failFast(
+        snapshotFor().then((snapshotAt) =>
+          loadCompleteTelemetryHistory(adapter, filters, window, {
+            ...options,
+            signal: linked.signal,
+            snapshotAt,
+          }),
+        ),
+      ),
+    );
+    return await Promise.all([first, ...rest]);
+  } finally {
+    options.signal?.removeEventListener("abort", forwardAbort);
+  }
 }
