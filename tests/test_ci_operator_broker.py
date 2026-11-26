@@ -817,6 +817,150 @@ class BrokerV12Tests(unittest.TestCase):
         self.assertIn('"$STAGE/wp2c-stage2-frontend.py" "$LIB/handlers/wp2c-stage2-frontend.py"', installer)
 
 
+class BrokerV13Tests(unittest.TestCase):
+    """#1778 v1.3: manifest-bound image removal, bounded Wi-Fi test, Wi-Fi profile removal."""
+
+    def setUp(self) -> None:
+        from unittest import mock
+        self.mock = mock
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.inbox = Path(self.temp.name)
+        patch = mock.patch.object(broker_module, "inbox_dir", lambda _b: self.inbox)
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.calls: list[list[str]] = []
+
+    def manifest(self, images: list[dict]) -> str:
+        data = json.dumps({"images": images}).encode()
+        sha = hashlib.sha256(data).hexdigest()
+        (self.inbox / f"{sha}.json").write_bytes(data)
+        return sha
+
+    def docker(self, tags: dict[str, str], used: str = "") -> object:
+        def runner(argv, _timeout, **_kw):
+            self.calls.append(argv)
+            out, code = "", 0
+            if argv[:3] == ["docker", "volume", "ls"]:
+                out = "pgdata\nmqtt"
+            elif argv[:2] == ["docker", "ps"]:
+                out = "c1" if used else ""
+            elif argv[:2] == ["docker", "inspect"]:
+                out = used
+            elif argv[:3] == ["docker", "image", "inspect"]:
+                if argv[-1] in tags:
+                    out = tags[argv[-1]]
+                else:
+                    code = 1
+            elif argv[:3] == ["docker", "image", "rm"]:
+                out = f"Untagged: {argv[-1]}\nDeleted: sha256:x"
+            return broker_module.RunResult(code, out, False, False)
+        return type("B", (), {"runner": staticmethod(runner)})()
+
+    def test_only_listed_unused_images_whose_tag_still_matches_are_removed(self) -> None:
+        a, b, c = ("sha256:" + ch * 64 for ch in "abc")
+        sha = self.manifest([{"ref": "nexolab/dashboard:issue-1522-469485b0-arm64", "id": a},
+                             {"ref": "nexolab/telemetry-service:staged-2552b7ef77f7-arm64", "id": b},
+                             {"ref": "nexolab/dashboard:issue-1603-edd04b4a-arm64", "id": c},
+                             {"ref": "nexolab/dashboard:issue-1609-gone-arm64", "id": a}])
+        broker = self.docker({"nexolab/dashboard:issue-1522-469485b0-arm64": a,
+                              "nexolab/telemetry-service:staged-2552b7ef77f7-arm64": "sha256:" + "f" * 64,
+                              "nexolab/dashboard:issue-1603-edd04b4a-arm64": c}, used=c)
+        result = broker_module.op_storage_remove_images(broker, {"manifest_sha256": sha})
+        status = {r["ref"]: r["status"] for r in result["results"]}
+        self.assertEqual(status, {"nexolab/dashboard:issue-1522-469485b0-arm64": "deleted",
+                                  "nexolab/telemetry-service:staged-2552b7ef77f7-arm64": "skipped_tag_moved",
+                                  "nexolab/dashboard:issue-1603-edd04b4a-arm64": "skipped_in_use",
+                                  "nexolab/dashboard:issue-1609-gone-arm64": "absent"})
+        removals = [c for c in self.calls if c[:3] == ["docker", "image", "rm"]]
+        self.assertEqual(removals, [["docker", "image", "rm", "--", "nexolab/dashboard:issue-1522-469485b0-arm64"]])
+        self.assertTrue(result["volumes_unchanged"])
+
+    def test_manifest_must_match_the_approved_hash_and_refuses_protected_or_foreign_images(self) -> None:
+        good = "sha256:" + "a" * 64
+        sha = hashlib.sha256(b"approved").hexdigest()
+        (self.inbox / f"{sha}.json").write_text(json.dumps({"images": [{"ref": "nexolab/x:issue-1", "id": good}]}))
+        with self.assertRaises(broker_module.Rejected) as ctx:
+            broker_module.op_storage_remove_images(self.docker({}), {"manifest_sha256": sha})
+        self.assertEqual(ctx.exception.code, "approval_mismatch")
+        for ref in ("nexolab/telemetry-service:recovery-75ceb4654afb-tooling-75ceb4654afb-protected-arm64",
+                    "nexolab/1518-telemetry-rollback:pre-3aaec39a", "nexolab/quick-central-base:1490",
+                    "postgres:16-alpine", "sellora/backend:latest", "nexolab/x:issue-1 --force"):
+            sha = self.manifest([{"ref": ref, "id": good}])
+            with self.assertRaises(broker_module.Rejected, msg=ref):
+                broker_module.op_storage_remove_images(self.docker({ref: good}), {"manifest_sha256": sha})
+        self.assertFalse([c for c in self.calls if c[:3] == ["docker", "image", "rm"]])
+
+    def nm(self, connections: str, route: str = "default via 192.168.1.1 dev eth0 proto dhcp metric 100",
+           device_state: str = "30 (disconnected)", up_exit: int = 0) -> object:
+        def runner(argv, _timeout, **_kw):
+            self.calls.append(argv)
+            out, code = "", 0
+            if argv[:5] == ["nmcli", "-t", "-f", "NAME,UUID,TYPE,ACTIVE,DEVICE", "connection"]:
+                out = connections
+            elif argv[:3] == ["ip", "-4", "route"]:
+                out = route
+            elif argv[:2] == ["systemctl", "show"]:
+                out = "ActiveState=active"
+            elif argv[:3] == ["nmcli", "-g", "GENERAL.STATE"]:
+                out = device_state
+            elif argv[:3] == ["nmcli", "-g", "802-11-wireless.cloned-mac-address"]:
+                out = ""
+            elif argv[:4] == ["nmcli", "--wait", "45", "connection"]:
+                code = up_exit
+            return broker_module.RunResult(code, out, False, False)
+        return type("B", (), {"runner": staticmethod(runner)})()
+
+    CONNECTIONS = ("Wired connection 1:u-eth:802-3-ethernet:yes:eth0\n"
+                   "LAB KK1:u-lab:802-11-wireless:no:\n"
+                   "me_mac:u-me:802-11-wireless:no:\n"
+                   "odd\\:name:u-odd:802-11-wireless:no:\n")
+
+    def test_random_mac_test_is_temporary_restored_and_never_left_up(self) -> None:
+        with self.mock.patch.object(broker_module.time, "sleep"):
+            result = broker_module.op_wifi_connect_test(self.nm(self.CONNECTIONS), {"profile": "LAB KK1",
+                                                                                    "mac": "random"})
+        modifies = [c for c in self.calls if c[:3] == ["nmcli", "connection", "modify"]]
+        self.assertEqual(len(modifies), 2)
+        self.assertTrue(all("--temporary" in c for c in modifies))
+        self.assertEqual(modifies[0][-1], "random")
+        self.assertEqual(modifies[1][-1], "")
+        self.assertIn(["nmcli", "connection", "down", "uuid", "u-lab"], self.calls)
+        self.assertTrue(result["connected"])
+        self.assertFalse(result["kept_up"])
+        self.assertTrue(result["ethernet_primary_after"])
+        self.assertFalse([c for c in self.calls if "eth0" in c and c[0] == "nmcli"])
+
+    def test_permanent_mac_test_changes_nothing_persistent(self) -> None:
+        with self.mock.patch.object(broker_module.time, "sleep"):
+            result = broker_module.op_wifi_connect_test(self.nm(self.CONNECTIONS, up_exit=4),
+                                                        {"profile": "LAB KK1", "mac": "permanent"})
+        self.assertFalse([c for c in self.calls if c[:3] == ["nmcli", "connection", "modify"]])
+        self.assertFalse(result["connected"])
+
+    def test_connect_test_preconditions(self) -> None:
+        for kwargs in ({"route": "default via 10.0.0.1 dev wlan0 metric 600"}, {"device_state": "100 (connected)"},
+                       {"connections": "LAB KK1:a:802-11-wireless:no:\nLAB KK1:b:802-11-wireless:no:\n"},
+                       {"connections": "LAB KK1:a:802-3-ethernet:no:\n"}):
+            params = {"connections": self.CONNECTIONS, **kwargs}
+            with self.assertRaises(broker_module.Rejected, msg=str(kwargs)):
+                broker_module.op_wifi_connect_test(self.nm(**params), {"profile": "LAB KK1", "mac": "random"})
+        self.assertFalse([c for c in self.calls if c[:2] == ["nmcli", "--wait"]])
+
+    def test_profile_remove_only_inactive_wifi(self) -> None:
+        result = broker_module.op_wifi_profile_remove(self.nm(self.CONNECTIONS), {"profile": "odd:name"})
+        self.assertIn(["nmcli", "connection", "delete", "uuid", "u-odd"], self.calls)
+        self.assertEqual(result["deleted"], "odd:name")
+        for name in ("Wired connection 1", "missing"):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.op_wifi_profile_remove(self.nm(self.CONNECTIONS), {"profile": name})
+        active = self.CONNECTIONS.replace("me_mac:u-me:802-11-wireless:no:", "me_mac:u-me:802-11-wireless:yes:wlan0")
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_wifi_profile_remove(self.nm(active), {"profile": "me_mac"})
+        self.assertEqual([c for c in self.calls if c[:3] == ["nmcli", "connection", "delete"]],
+                         [["nmcli", "connection", "delete", "uuid", "u-odd"]])
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
@@ -833,8 +977,9 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
         self.assertEqual(approved, ["backup.start", "deploy.lan-frontend", "service.restore-legacy-https",
-                                    "service.retire-legacy-https",
-                                    "storage.cleanup-regenerable"])  # each one reviewed explicitly
+                                    "service.retire-legacy-https", "storage.cleanup-regenerable",
+                                    "storage.remove-images", "wifi.connect-test",
+                                    "wifi.profile-remove"])  # each one reviewed explicitly
         recover = [op for op in ops.values() if op.kind == "recover"]
         self.assertEqual([op.name for op in recover], ["service.recover"])
         self.assertEqual(set(broker_module.RECOVERABLE_UNITS),
