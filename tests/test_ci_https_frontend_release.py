@@ -198,6 +198,15 @@ class ExtractionAndUnit(unittest.TestCase):
         with self.assertRaisesRegex(self.module.ReleaseError, "never overwritten"):
             self.module.extract_runtime(self.zip, release, host)
 
+    def test_existing_release_is_verified_file_by_file(self):
+        host = FakeHost(self.module).as_host()
+        release = self.module.release_directory(SOURCE, BUILD)
+        self.module.extract_runtime(self.zip, release, host)
+        self.assertGreater(self.module.verify_release_files(self.zip, release), 0)
+        (release / ".next" / "server" / "app.js").write_bytes(b"modified")
+        with self.assertRaisesRegex(self.module.ReleaseError, "does not match the artifact"):
+            self.module.verify_release_files(self.zip, release)
+
     def test_refuses_extraction_below_the_protected_free_space(self):
         host = FakeHost(self.module).as_host()
         host.free_bytes = lambda path: 20 * 1024**3 + 10

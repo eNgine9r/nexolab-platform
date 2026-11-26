@@ -260,6 +260,24 @@ def extract_runtime(zip_path: Path, destination: Path, host: Host) -> int:
     return total
 
 
+def verify_release_files(zip_path: Path, release: Path) -> int:
+    """Every runtime file of the artifact manifest exists in `release` with its exact hash."""
+    with zipfile.ZipFile(zip_path) as archive:
+        manifest = archive.read("frontend-runtime-files-sha256.txt").decode().splitlines()
+    checked = 0
+    for line in manifest:
+        if not line.strip():
+            continue
+        digest, name = line.split(None, 1)
+        path = release / name.strip().removeprefix("./")
+        if path.is_symlink() or not path.is_file() or sha256_file(path) != digest:
+            raise ReleaseError(f"{release} does not match the artifact at {name.strip()}; nothing marked prepared")
+        checked += 1
+    if checked == 0:
+        raise ReleaseError("the artifact runtime manifest is empty")
+    return checked
+
+
 def write_identity(release: Path, source: str, build: str) -> Path:
     if (release / ".next" / "BUILD_ID").read_text().strip() != build:
         raise ReleaseError(".next/BUILD_ID does not match the expected build")
@@ -381,6 +399,10 @@ def phase_prepare(zip_path: Path, expected: Expectation, host: Host) -> dict:
     release = release_directory(expected.source, expected.build)
     if not release.exists():
         extract_runtime(zip_path, release, host)
+    else:
+        # A retry re-proves an existing directory file by file; a modified or corrupted runtime is
+        # never certified as this artifact (review).
+        verify_release_files(zip_path, release)
     write_identity(release, expected.source, expected.build)
     cache = release / ".next" / "cache"
     cache.mkdir(exist_ok=True)
