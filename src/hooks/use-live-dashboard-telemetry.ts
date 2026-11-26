@@ -27,7 +27,6 @@ import {
 } from "@/features/live-dashboards/history-range";
 import {
   appendIntervalSample,
-  computeIntervalStatistics,
   createIntervalSampleColumns,
   pruneIntervalSamplesBefore,
   type IntervalSampleColumns,
@@ -37,6 +36,13 @@ import { savedDashboardDisplaySample } from "@/features/live-dashboards/embraco-
 import { getDisplayTimeZone } from "@/features/display-time/store";
 import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import { resolveViewSettings } from "@/features/live-dashboards/view-settings";
+import {
+  cachedIntervalStatistics,
+  mergeSavedDashboardDetail,
+  savedDashboardViewportDetail,
+  type SavedDashboardDetailSource,
+} from "@/features/live-dashboards/viewport-detail";
+import type { ViewportDetail } from "@/features/live/live-aggregate-history";
 import {
   appendSavedDashboardTail,
   operatorHistoryPreview,
@@ -124,6 +130,13 @@ export interface LiveDashboardTelemetryModel {
   intervalStatistics?: LiveDashboardIntervalStatistics;
   /** Raw measurement columns of one item (for exact digital state lanes, #1679); recompute when `series` changes. */
   intervalColumns?: (itemIdentity: string) => IntervalSampleColumns | undefined;
+  /**
+   * #1821: the committed zoom/pan viewport (null: full range). Its original measurements replace
+   * the coarse points of every series inside it; no request is made.
+   */
+  setDetailViewport?: (domain: { fromMs: number; toMs: number } | null) => void;
+  /** Number of detail points currently merged into `series` (0: full-range points only). */
+  viewportDetailPoints?: number;
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -299,6 +312,9 @@ export function useLiveDashboardTelemetry({
   const cadenceRef = useRef<CadenceObservations>(EMPTY_CADENCE_OBSERVATIONS);
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
   const statsRef = useRef<Record<string, IntervalSampleColumns>>({});
+  const statsCacheRef = useRef<Map<string, IntervalStatistics | null>>(new Map());
+  const detailDomainRef = useRef<{ fromMs: number; toMs: number } | null>(null);
+  const [viewportDetail, setViewportDetail] = useState<Record<string, ViewportDetail>>({});
   // #1805: continuity tolerance per series, derived once from the RAW history load, and channels
   // whose last live sample was not renderable (the next point starts a new segment).
   const sourceGapRef = useRef<Record<string, number>>({});
@@ -312,6 +328,30 @@ export function useLiveDashboardTelemetry({
     return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
   }, []);
   const pointsPerSeriesRef = useRef(pointsPerSeries);
+  const computeViewportDetail = useCallback(
+    (items: readonly LiveDashboardItem[]): Record<string, ViewportDetail> => {
+      const domain = detailDomainRef.current;
+      if (!domain || !(domain.toMs > domain.fromMs)) return {};
+      const sources: SavedDashboardDetailSource[] = [];
+      for (const item of items) {
+        const key = dashboardItemIdentity(item);
+        const columns = statsRef.current[key];
+        const identity = latestRef.current[key] ?? historyRef.current[key]?.[0];
+        if (!columns || !identity) continue;
+        sources.push({ key, identity, columns, sourceGapMs: tailSourceGapMs(key) });
+      }
+      return savedDashboardViewportDetail(sources, domain, pointsPerSeriesRef.current);
+    },
+    [tailSourceGapMs],
+  );
+  const dashboardItemsRef = useRef<readonly LiveDashboardItem[]>([]);
+  const setDetailViewport = useCallback(
+    (domain: { fromMs: number; toMs: number } | null) => {
+      detailDomainRef.current = domain && domain.toMs > domain.fromMs ? domain : null;
+      setViewportDetail(computeViewportDetail(dashboardItemsRef.current));
+    },
+    [computeViewportDetail],
+  );
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
   const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
@@ -319,6 +359,10 @@ export function useLiveDashboardTelemetry({
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeScopeRef = useRef<string | null>(scopeKey);
   const historyKey = liveDashboardHistoryRangeKey(historyRange);
+
+  useEffect(() => {
+    dashboardItemsRef.current = active && dashboard ? dashboard.items : [];
+  }, [active, dashboard]);
 
   // Declared before the history effect so a density change is visible to its reload.
   useEffect(() => {
@@ -583,6 +627,7 @@ export function useLiveDashboardTelemetry({
     if (!active || !dashboard || scopeKey === null || !config || config.mode !== "live") {
       historyRef.current = {};
       statsRef.current = {};
+      statsCacheRef.current = new Map();
       historyOrderingRef.current = null;
       historyPendingLiveRef.current = [];
       let disposed = false;
@@ -602,6 +647,7 @@ export function useLiveDashboardTelemetry({
     historyWindowRef.current = requestedWindow;
     historyRef.current = {};
     statsRef.current = {};
+    statsCacheRef.current = new Map();
     sourceGapRef.current = {};
     pendingBreaksRef.current = new Set();
     historyOrderingRef.current = null;
@@ -610,6 +656,7 @@ export function useLiveDashboardTelemetry({
     void Promise.resolve().then(() => {
       if (disposed) return;
       setHistory({});
+      setViewportDetail({});
       setHistoryStatus("loading");
       setHistoryError(null);
       setHistoryWindow(requestedRange);
@@ -692,6 +739,8 @@ export function useLiveDashboardTelemetry({
       setLatest({ ...latestRef.current });
       setCadence(cadenceRef.current);
       setHistory({ ...reducedBySeries });
+      // A viewport committed while loading (e.g. a restored saved view) gets its detail now.
+      setViewportDetail(computeViewportDetail(dashboard.items));
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
       setHistoryStatus("ready");
       setHistoryError(null);
@@ -723,20 +772,37 @@ export function useLiveDashboardTelemetry({
     runtime.config,
     scopeKey,
     tailSourceGapMs,
+    computeViewportDetail,
   ]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
     if (!dashboard) return [];
     return dashboard.items.map((item) => {
       const key = dashboardItemIdentity(item);
-      return { item, latest: latest[key] ?? null, history: history[key] ?? [], continuityAnnotated: true };
+      const itemHistory = history[key] ?? [];
+      return {
+        item,
+        latest: latest[key] ?? null,
+        history: mergeSavedDashboardDetail(itemHistory, viewportDetail[key]),
+        continuityAnnotated: true,
+        ...(viewportDetail[key] ? { viewportDetail: true } : {}),
+      };
     });
-  }, [dashboard, history, latest]);
+  }, [dashboard, history, latest, viewportDetail]);
+  const viewportDetailPoints = useMemo(
+    () => Object.values(viewportDetail).reduce((total, detail) => total + detail.samples.length, 0),
+    [viewportDetail],
+  );
 
   // Reads the raw column store; consumers recompute when `series` changes (every flush).
   const intervalStatistics = useCallback<LiveDashboardIntervalStatistics>((itemIdentity, fromMs, toMs) => {
-    const columns = statsRef.current[itemIdentity];
-    return columns ? computeIntervalStatistics(columns, fromMs, toMs) : null;
+    return cachedIntervalStatistics(
+      statsCacheRef.current,
+      itemIdentity,
+      statsRef.current[itemIdentity],
+      fromMs,
+      toMs,
+    );
   }, []);
 
   const intervalColumns = useCallback(
@@ -775,6 +841,8 @@ export function useLiveDashboardTelemetry({
     now: clock,
     intervalStatistics,
     intervalColumns,
+    setDetailViewport,
+    viewportDetailPoints: visible ? viewportDetailPoints : 0,
     historyRange,
     historyWindow,
     historyStatus,
