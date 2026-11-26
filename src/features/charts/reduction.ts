@@ -81,7 +81,10 @@ function reduceSegment(segment: ChartSegment, budget: number, bucketOriginMs?: n
   const buckets = new Map<number, ChartPoint[]>();
   for (const point of candidatePoints) {
     const index = Math.max(0, Math.min(bucketCount - 1, Math.floor((point.timestampMs - from) / bucketMs)));
-    buckets.set(index, [...(buckets.get(index) ?? []), point]);
+    // Push, not copy: copying the bucket per point was quadratic in the bucket size.
+    const bucket = buckets.get(index);
+    if (bucket) bucket.push(point);
+    else buckets.set(index, [point]);
   }
 
   const selected = deduplicate([
