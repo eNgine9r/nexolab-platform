@@ -1,4 +1,4 @@
-import { LineChart } from "echarts/charts";
+import { LineChart, ScatterChart } from "echarts/charts";
 import {
   AriaComponent,
   AxisPointerComponent,
@@ -21,6 +21,8 @@ import { buildChartYAxisModel, displayUnit } from "./units";
 
 registerEChartsModules([
   LineChart,
+  // #1810: pinned evidence and isolated single measurements are drawn as a marker scatter.
+  ScatterChart,
   AriaComponent,
   AxisPointerComponent,
   DataZoomComponent,
