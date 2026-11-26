@@ -21,6 +21,7 @@ export default defineConfig({
         "live.production.e2e.ts",
         "live-terminal-offline-retry.production.e2e.ts",
         "live-chart-system.production.e2e.ts",
+        "chart-performance.production.e2e.ts",
         "equipment-multi-axis-chart.production.e2e.ts",
         "equipment-layouts.production.e2e.ts",
         "equipment-registry.production.e2e.ts",

@@ -15,6 +15,7 @@ on:
       - "e2e/live.production.e2e.ts"
       - "e2e/live-terminal-offline-retry.production.e2e.ts"
       - "e2e/live-chart-system.production.e2e.ts"
+      - "e2e/chart-performance.production.e2e.ts"
       - "e2e/settings.production.e2e.ts"
       - "e2e/telegram-miniapp.production.e2e.ts"
       - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
