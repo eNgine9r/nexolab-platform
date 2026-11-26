@@ -254,6 +254,81 @@ jobs:
           wifi=$(call wifi.profile-remove profile=LAB-CI --approval "$id" || true)
           grep -q '"error": "precondition_failed"' <<<"$wifi"
 
+      - name: v1.4 root-side image reference evidence and removal guard
+        run: |
+          set -euo pipefail
+          call() {
+            sudo systemd-run --quiet --wait --pipe --collect --uid=runner -p NoNewPrivileges=yes \
+              -p PrivateDevices=yes -p ProtectSystem=strict -p InaccessiblePaths=-/run/docker.sock \
+              /usr/bin/python3 -I "$GITHUB_WORKSPACE/docs/operations/operator-broker/nexolab-operator.py" --json "$@"
+          }
+          approve() {
+            sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op "$1" \
+              --ttl-minutes 10 --reason ci "${@:2}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["approval_id"])'
+          }
+          docker tag alpine:3.22 nexolab/ci-rollback:issue-9-arm64
+          docker tag alpine:3.22 nexolab/ci-stale:issue-8-arm64
+          rid=$(docker image inspect --format '{{.Id}}' nexolab/ci-rollback:issue-9-arm64)
+          # a root-only release record (owner workspace) names it as the rollback release
+          sudo install -d -o nexolab -g nexolab -m 0700 /home/nexolab/commander-workspaces/ci-release
+          echo '{"frontend_rollback_release": "docker:nexolab/ci-rollback:issue-9-arm64"}' \
+            | sudo -u nexolab tee /home/nexolab/commander-workspaces/ci-release/site-activation-report.json >/dev/null
+          if sudo -u runner test -r /home/nexolab/commander-workspaces/ci-release/site-activation-report.json; then exit 1; fi
+          printf '{"images": [{"ref": "nexolab/ci-rollback:issue-9-arm64", "id": "%s"}, {"ref": "nexolab/ci-stale:issue-8-arm64", "id": "%s"}]}' "$rid" "$rid" > /tmp/m4.json
+          sha=$(sha256sum /tmp/m4.json | cut -d' ' -f1); cp /tmp/m4.json "$HOME/operator-inbox/$sha.json"
+          evidence=$(call storage.image-references manifest_sha256=$sha)
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); res = r["result"]; by = {i["ref"]: i for i in res["images"]}
+          assert r["ok"] and res["complete"], r
+          rb = by["nexolab/ci-rollback:issue-9-arm64"]
+          assert rb["rollback_references"] >= 1 and any("ci-release" in e["path"] for e in rb["evidence"]), rb
+          ' "$evidence"
+          id=$(approve storage.remove-images --arg manifest_sha256=$sha)
+          out=$(call storage.remove-images manifest_sha256=$sha --approval "$id")
+          echo "$out" | head -c 2000
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); st = {x["ref"]: x["status"] for x in r["result"]["results"]}
+          assert st["nexolab/ci-rollback:issue-9-arm64"] == "skipped_protected_or_rollback_record", st
+          assert st["nexolab/ci-stale:issue-8-arm64"] in ("untagged", "deleted"), st
+          ' "$out"
+          docker image inspect nexolab/ci-rollback:issue-9-arm64 >/dev/null
+
+      - name: Stage 2 offline build pattern on real BuildKit (#1782)
+        run: |
+          set -euo pipefail
+          docker tag busybox:1.37 node:ci-stage2-base
+          python3 - <<'PY'
+          import importlib.util, json, subprocess, sys, tempfile
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("s2", "docs/operations/network/wp2c-stage2-frontend.py")
+          s2 = importlib.util.module_from_spec(spec); sys.modules["s2"] = s2; spec.loader.exec_module(s2)
+          base = json.loads(subprocess.check_output(["docker", "image", "inspect", "node:ci-stage2-base"]))[0]
+          ref = s2.base_reference(base)
+          assert ref == "node:ci-stage2-base", ref
+          old = {"Config": {"Env": base["Config"].get("Env") or [], "WorkingDir": "/app", "Cmd": ["sh"], "Labels": {}}}
+          def build(dockerfile: str, tag: str) -> subprocess.CompletedProcess:
+              with tempfile.TemporaryDirectory() as ctx:
+                  (Path(ctx) / "app").mkdir()
+                  (Path(ctx) / "app" / "index.txt").write_text("ok\n")
+                  (Path(ctx) / "Dockerfile").write_text(dockerfile)
+                  tar = subprocess.Popen(["tar", "-C", ctx, "-cf", "-", "."], stdout=subprocess.PIPE)
+                  res = subprocess.run(["docker", "build", "--no-cache", "--pull=false", "--network", "none", "--tag", tag, "-"],
+                                       stdin=tar.stdout, capture_output=True)
+                  tar.wait()
+                  return res
+          good = build(s2.dockerfile_for(old, ref, "0:0", "a" * 40), "nexolab/ci-stage2:fixed")
+          assert good.returncode == 0, good.stderr.decode()[-2000:]
+          new = json.loads(subprocess.check_output(["docker", "image", "inspect", "nexolab/ci-stage2:fixed"]))[0]
+          layers = base["RootFS"]["Layers"]
+          assert new["RootFS"]["Layers"][: len(layers)] == layers, "not on the proven base"
+          # the 2026-11-26 site failure: BuildKit cannot build FROM a bare image ID
+          bad = build("FROM " + base["Id"] + "\nCOPY app/ /app/\n", "nexolab/ci-stage2:by-id")
+          assert bad.returncode != 0, "FROM <image id> unexpectedly worked"
+          print("STAGE2_BUILD_PATTERN_OK", ref, new["Id"])
+          PY
+
       - name: Upgrade from the merged v1.1 (failure restores v1.1), rollback and roll forward
         run: |
           set -euo pipefail
@@ -292,23 +367,23 @@ jobs:
 
           # 2. clean upgrade keeps v1.1 as the retained previous version
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/payload 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.3.0" <<<"$out"
-          test "$(version)" = 1.3.0
+          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.4.0" <<<"$out"
+          test "$(version)" = 1.4.0
           test "$(sudo stat -c '%U:%G %a' /var/lib/nexolab-operator/previous)" = "root:root 700"
 
           # 3. explicit rollback to v1.1, then roll forward again
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.3.0 to=1.1.0" <<<"$out"
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.4.0 to=1.1.0" <<<"$out"
           test "$(version)" = 1.1.0
           test "$(broker_sha)" = "$v11"
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.3.0" <<<"$out"
-          test "$(version)" = 1.3.0
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.4.0" <<<"$out"
+          test "$(version)" = 1.4.0
 
           # 4. a tampered payload changes nothing
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/tampered 2>&1) && exit 1 || true
           grep -q "installed broker left unchanged" <<<"$out"
-          test "$(version)" = 1.3.0
+          test "$(version)" = 1.4.0
           sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit | grep -q '"ok": true'
 
       - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence

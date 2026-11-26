@@ -829,6 +829,11 @@ class BrokerV13Tests(unittest.TestCase):
         patch = mock.patch.object(broker_module, "inbox_dir", lambda _b: self.inbox)
         patch.start()
         self.addCleanup(patch.stop)
+        clean = mock.patch.object(broker_module, "image_references", lambda entries: {
+            "complete": True, "images": [{"ref": r, "id": i, "rollback_references": 0,
+                                          "in_protected_images_file": False} for r, i in entries]})
+        clean.start()
+        self.addCleanup(clean.stop)
         self.calls: list[list[str]] = []
 
     def manifest(self, images: list[dict]) -> str:
@@ -959,6 +964,109 @@ class BrokerV13Tests(unittest.TestCase):
             broker_module.op_wifi_profile_remove(self.nm(active), {"profile": "me_mac"})
         self.assertEqual([c for c in self.calls if c[:3] == ["nmcli", "connection", "delete"]],
                          [["nmcli", "connection", "delete", "uuid", "u-odd"]])
+
+
+class BrokerV14Tests(unittest.TestCase):
+    """#1782 v1.4: root-side image reference evidence and the removal guard."""
+
+    def setUp(self) -> None:
+        from unittest import mock
+        self.mock = mock
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        patch = mock.patch.object(broker_module, "PROTECTED_IMAGES_FILE", self.root / "absent")
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.rollback_id = "sha256:" + "ec4d14d34a41" + "1" * 52
+        self.stale_id = "sha256:" + "0a01e99f497a" + "2" * 52
+        self.entries = [("nexolab/dashboard:issue-1522-469485b0-arm64", self.rollback_id),
+                        ("nexolab/dashboard:issue-1609-27b27386-arm64", self.stale_id)]
+
+    def write(self, rel: str, text: str | bytes) -> Path:
+        path = self.root / "records" / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text if isinstance(text, bytes) else text.encode())
+        return path
+
+    def test_scan_finds_ids_refs_and_tags_and_flags_rollback_context(self) -> None:
+        self.write("ws/site-activation-report.json",
+                   '{"frontend_rollback_release": "docker:nexolab/dashboard:issue-1522-469485b0-arm64"}\n')
+        self.write("catalog/compose.yaml", f"image: {self.stale_id[7:19]}\n")
+        self.write("ws/node_modules/x.json", f"{self.stale_id} rollback\n")      # skipped directory
+        self.write("ws/bundle.tar", f"{self.rollback_id}\n")                     # not a text record
+        self.write("ws/binary.json", b"\0" + self.stale_id.encode())            # binary
+        (self.root / "records" / "ws" / "link.json").symlink_to(self.root / "records" / "ws" / "site-activation-report.json")
+        result = broker_module.image_references(self.entries, roots=(self.root / "records",))
+        by_ref = {i["ref"]: i for i in result["images"]}
+        rollback = by_ref["nexolab/dashboard:issue-1522-469485b0-arm64"]
+        self.assertEqual(rollback["references"], 1)
+        self.assertEqual(rollback["rollback_references"], 1)
+        stale = by_ref["nexolab/dashboard:issue-1609-27b27386-arm64"]
+        self.assertEqual((stale["references"], stale["rollback_references"]), (1, 0))
+        self.assertTrue(result["complete"])
+        self.assertTrue(all("node_modules" not in e["path"] for i in result["images"] for e in i["evidence"]))
+
+    def test_snippets_are_redacted(self) -> None:
+        self.write("ws/env.txt", f"ROLLBACK_IMAGE={self.stale_id} password=hunter2\n")
+        result = broker_module.image_references(self.entries, roots=(self.root / "records",))
+        lines = [e["line"] for i in result["images"] for e in i["evidence"]]
+        self.assertTrue(lines)
+        self.assertFalse([line for line in lines if "hunter2" in line])
+
+    def test_protected_images_file_must_be_root_owned(self) -> None:
+        path = self.root / "protected-images"
+        path.write_text(f"# comment\n{self.stale_id}\n")
+        with self.mock.patch.object(broker_module, "PROTECTED_IMAGES_FILE", path):
+            if os.geteuid() == 0:
+                self.assertEqual(broker_module.protected_image_ids(), {self.stale_id})
+            else:
+                with self.assertRaises(broker_module.Rejected):
+                    broker_module.protected_image_ids()
+
+    def test_removal_skips_rollback_referenced_and_protected_images(self) -> None:
+        evidence = {"complete": True, "images": [
+            {"ref": self.entries[0][0], "id": self.rollback_id, "rollback_references": 2, "in_protected_images_file": False},
+            {"ref": self.entries[1][0], "id": self.stale_id, "rollback_references": 0, "in_protected_images_file": False}]}
+        data = json.dumps({"images": [{"ref": r, "id": i} for r, i in self.entries]}).encode()
+        sha = hashlib.sha256(data).hexdigest()
+        (self.root / f"{sha}.json").write_bytes(data)
+        calls: list[list[str]] = []
+
+        def runner(argv, _timeout, **_kw):
+            calls.append(argv)
+            out = {("docker", "volume", "ls"): "pg"}.get(tuple(argv[:3]), "")
+            if argv[:3] == ["docker", "image", "inspect"]:
+                out = dict(self.entries)[argv[-1]]
+            if argv[:3] == ["docker", "image", "rm"]:
+                out = "Untagged: x\nDeleted: y"
+            return broker_module.RunResult(0, out, False, False)
+
+        with self.mock.patch.object(broker_module, "inbox_dir", lambda _b: self.root), \
+                self.mock.patch.object(broker_module, "image_references", lambda _e: evidence):
+            result = broker_module.op_storage_remove_images(type("B", (), {"runner": staticmethod(runner)})(),
+                                                            {"manifest_sha256": sha})
+        status = {r["ref"]: r["status"] for r in result["results"]}
+        self.assertEqual(status[self.entries[0][0]], "skipped_protected_or_rollback_record")
+        self.assertEqual(status[self.entries[1][0]], "deleted")
+        self.assertEqual([c for c in calls if c[:3] == ["docker", "image", "rm"]],
+                         [["docker", "image", "rm", "--", self.entries[1][0]]])
+        evidence["complete"] = False
+        with self.mock.patch.object(broker_module, "inbox_dir", lambda _b: self.root), \
+                self.mock.patch.object(broker_module, "image_references", lambda _e: evidence):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.op_storage_remove_images(type("B", (), {"runner": staticmethod(runner)})(),
+                                                       {"manifest_sha256": sha})
+
+    def test_reference_scan_is_a_bounded_read_operation(self) -> None:
+        op = broker_module.production_ops()["storage.image-references"]
+        self.assertEqual((op.kind, op.heavy), ("read", True))
+        source = BROKER.read_text()
+        scan = source[source.index("def image_references"):source.index("def op_storage_image_references")]
+        self.assertIn("followlinks=False", scan)
+        self.assertIn("O_NOFOLLOW", scan)
+        for forbidden in ("unlink", "rmtree", "write_", "chmod", "rename"):
+            self.assertNotIn(forbidden, scan)
 
 
 class BrokerStaticContractTests(unittest.TestCase):

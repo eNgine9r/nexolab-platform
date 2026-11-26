@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -1114,11 +1114,22 @@ def op_storage_remove_images(broker: "Broker", args: dict) -> dict:
         if PROTECTED_IMAGE.search(ref):
             raise Rejected("precondition_failed", f"protected image refused: {ref}")
         entries.append((ref, image_id))
+    # Every removal re-runs the root-side reference scan (#1782): images named in the owner's protected-images
+    # file or referenced as rollback/previous/recovery/restore are never removed, whatever the manifest says.
+    evidence = image_references(entries)
+    if not evidence["complete"]:
+        raise Rejected("precondition_failed", "reference scan incomplete; nothing removed")
+    guarded = {e["ref"]: e for e in evidence["images"] if e["in_protected_images_file"] or e["rollback_references"]}
     before_free = free_bytes()
     volumes_before = docker_lines(broker, ["docker", "volume", "ls", "-q"])
     used = used_image_ids(broker)
     results = []
     for ref, image_id in entries:
+        if ref in guarded:
+            results.append({"ref": ref, "status": "skipped_protected_or_rollback_record",
+                            "rollback_references": guarded[ref]["rollback_references"],
+                            "in_protected_images_file": guarded[ref]["in_protected_images_file"]})
+            continue
         current = broker.runner(["docker", "image", "inspect", "--format", "{{.Id}}", "--", ref], 20)
         if current.exit != 0:
             results.append({"ref": ref, "status": "absent"})
@@ -1138,6 +1149,125 @@ def op_storage_remove_images(broker: "Broker", args: dict) -> dict:
         raise Rejected("internal_error", "volume set changed during image removal")  # must never happen
     return {"results": results, "volumes_unchanged": True, "in_use_images_kept": len(used),
             "free_before_gib": round(before_free / 1024**3, 2), "free_after_gib": round(free_bytes() / 1024**3, 2)}
+
+
+# ----------------------------------------------------------------------------- image reference evidence (#1782)
+# Root-side search of the NEXOLAB release, recovery and backup records for each image of a manifest, so a
+# removal list is reconciled against records the development account cannot read. Read-only and bounded.
+REFERENCE_ROOTS = (
+    Path("/etc/nexolab-storage"),
+    Path("/etc/systemd/system"),
+    Path("/home/nexolab/.config/systemd/user"),
+    Path("/home/nexolab/nexolab-platform/.project"),
+    Path("/home/nexolab/nexolab-platform/runtime/deployments"),
+    Path("/home/nexolab/nexolab-platform/runtime/recovery"),
+    Path("/home/nexolab/commander-workspaces"),
+    Path("/var/lib/nexolab/version-management"),
+    Path("/var/backups/nexolab"),
+    Path("/opt/nexolab"),
+)
+PROTECTED_IMAGES_FILE = Path("/etc/nexolab-storage/protected-images")
+REFERENCE_SKIP_DIRS = {"node_modules", ".git", ".next", "__pycache__", ".venv", "venv", ".cache", ".pytest_cache",
+                       "image-context", "artifact", ".artifact.staging"}
+REFERENCE_SUFFIXES = {".json", ".yaml", ".yml", ".env", ".txt", ".md", ".sh", ".conf", ".service", ".timer",
+                      ".toml", ".ini", ".log", ".jsonl", ".py", ""}
+REFERENCE_MAX_FILE = 4 * 1024 * 1024
+REFERENCE_MAX_FILES = 150_000
+REFERENCE_DEADLINE = 900.0
+ROLLBACK_WORDS = re.compile(r"rollback|roll_back|previous|protected|recovery|restore|baseline|retain|keep", re.I)
+
+
+def protected_image_ids() -> set[str]:
+    try:
+        st = PROTECTED_IMAGES_FILE.lstat()
+    except FileNotFoundError:
+        return set()
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or st.st_mode & 0o022:
+        raise Rejected("precondition_failed", f"{PROTECTED_IMAGES_FILE} is not a root-owned regular file")
+    ids = set()
+    for line in PROTECTED_IMAGES_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if IMAGE_ID.fullmatch(line):
+            ids.add(line)
+    return ids
+
+
+def image_references(entries: list[tuple[str, str]], roots: tuple[Path, ...] = REFERENCE_ROOTS) -> dict:
+    """Search bounded text records for full ID, 12-char ID, ref and tag of each image (never follows links)."""
+    needles: dict[str, set[int]] = {}
+    for index, (ref, image_id) in enumerate(entries):
+        hex_id = image_id.split(":", 1)[1]
+        for needle in (hex_id, hex_id[:12], ref, ref.rsplit(":", 1)[1]):
+            if len(needle) >= 12:
+                needles.setdefault(needle, set()).add(index)
+    pattern = re.compile("|".join(re.escape(n) for n in sorted(needles, key=len, reverse=True)))
+    found: list[list[dict]] = [[] for _ in entries]
+    scanned, skipped_large, deadline = 0, 0, time.monotonic() + REFERENCE_DEADLINE
+    complete = True
+    for root in roots:
+        if not root.is_dir() or root.is_symlink():
+            continue
+        for current, dirs, files in os.walk(root, followlinks=False):
+            dirs[:] = sorted(d for d in dirs if d not in REFERENCE_SKIP_DIRS)
+            for name in sorted(files):
+                if scanned >= REFERENCE_MAX_FILES or time.monotonic() > deadline:
+                    complete = False
+                    break
+                path = Path(current) / name
+                if path.suffix.lower() not in REFERENCE_SUFFIXES:
+                    continue
+                try:
+                    st = path.lstat()
+                    if not stat.S_ISREG(st.st_mode):
+                        continue
+                    if st.st_size > REFERENCE_MAX_FILE:
+                        skipped_large += 1
+                        continue
+                    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+                    with os.fdopen(fd, "rb") as handle:
+                        data = handle.read(REFERENCE_MAX_FILE)
+                except OSError:
+                    continue
+                scanned += 1
+                if b"\0" in data[:4096]:
+                    continue
+                text = data.decode("utf-8", "replace")
+                for line in text.splitlines():
+                    hits = {i for match in pattern.finditer(line) for i in needles[match.group(0)]}
+                    for i in hits:
+                        if len(found[i]) < 40:
+                            snippet, _ = redact(line.strip()[:240])
+                            found[i].append({"path": str(path), "line": snippet,
+                                             "rollback_context": bool(ROLLBACK_WORDS.search(line))})
+            else:
+                continue
+            break
+    protected = protected_image_ids()
+    report = []
+    for (ref, image_id), refs in zip(entries, found):
+        report.append({"ref": ref, "id": image_id, "references": len(refs),
+                       "rollback_references": sum(r["rollback_context"] for r in refs),
+                       "in_protected_images_file": image_id in protected, "evidence": refs})
+    return {"images": report, "files_scanned": scanned, "skipped_large_files": skipped_large,
+            "complete": complete, "roots": [str(r) for r in roots if r.is_dir()]}
+
+
+def op_storage_image_references(broker: "Broker", args: dict) -> dict:
+    """Read-only: reconcile a manifest against root-only release, recovery, backup and protection records."""
+    manifest = read_inbox_json(broker, args["manifest_sha256"])
+    images = manifest.get("images") if isinstance(manifest, dict) else None
+    if not isinstance(images, list) or not 0 < len(images) <= MAX_MANIFEST_IMAGES:
+        raise Rejected("precondition_failed", f"manifest needs 1..{MAX_MANIFEST_IMAGES} images")
+    entries = []
+    for item in images:
+        ref, image_id = (item.get("ref"), item.get("id")) if isinstance(item, dict) else (None, None)
+        if not (isinstance(ref, str) and IMAGE_REF.fullmatch(ref) and isinstance(image_id, str)
+                and IMAGE_ID.fullmatch(image_id)):
+            raise Rejected("precondition_failed", "manifest entry needs a NEXOLAB image ref and a sha256 id")
+        entries.append((ref, image_id))
+    result = image_references(entries)
+    result["used_by_containers"] = sorted(set(i for _, i in entries) & used_image_ids(broker))
+    return result
 
 
 NMCLI_FIELD_SPLIT = re.compile(r"(?<!\\):")
@@ -1346,6 +1476,9 @@ def production_ops() -> dict[str, Operation]:
         Operation("storage.remove-images", "approved",
                   "Owner-approved: remove the exact unused NEXOLAB images of a hash-bound inbox manifest (never -f)",
                   op_storage_remove_images, {"manifest_sha256": Name(SHA256)}, timeout=1800, heavy=True),
+        Operation("storage.image-references", "read",
+                  "Reconcile an inbox image manifest against root-only release/rollback/recovery/backup records",
+                  op_storage_image_references, {"manifest_sha256": Name(SHA256)}, timeout=1000, heavy=True),
         Operation("wifi.connect-test", "approved",
                   "Owner-approved: one bounded Wi-Fi association attempt (in-memory MAC mode, Ethernet stays primary)",
                   op_wifi_connect_test, {"profile": Name(WIFI_PROFILE_NAME), "mac": Enum(("permanent", "random"))},
