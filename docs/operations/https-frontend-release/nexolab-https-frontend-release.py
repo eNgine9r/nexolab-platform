@@ -397,6 +397,9 @@ def phase_plan(zip_path: Path, expected: Expectation, host: Host) -> dict:
 def phase_prepare(zip_path: Path, expected: Expectation, host: Host) -> dict:
     verify_artifact(zip_path, expected)
     release = release_directory(expected.source, expected.build)
+    # A previous "prepared" marker never outlives a new preparation: it is recreated only after every
+    # check below passes, so a rejected release can never be executed on an old marker (review).
+    (release / ".nexolab-https-prepared").unlink(missing_ok=True)
     if not release.exists():
         extract_runtime(zip_path, release, host)
     else:
@@ -495,6 +498,8 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
     marker = release / ".nexolab-https-prepared"
     if not marker.is_file() or marker.read_text().strip() != expected.zip_sha256:
         raise ReleaseError("release is not prepared from this artifact: run prepare first")
+    # The installed files are re-proven at activation too, not only trusted through the marker.
+    verify_release_files(zip_path, release)
     live = identity_at(host, LIVE_PORT)
     if live != current:
         raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
@@ -510,12 +515,14 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
     user = pwd.getpwnam(SERVICE_USER)
     state = {"dropin": str(dropin), "previous": list(current), "release": str(release), "target": [expected.source, expected.build]}
     write_journal(state)
-    dropin.parent.mkdir(parents=True, exist_ok=True)
-    os.chown(dropin.parent, user.pw_uid, user.pw_gid)
-    dropin.write_text(dropin_text)
-    os.chown(dropin, user.pw_uid, user.pw_gid)
-    dropin.chmod(0o644)
     try:
+        # Installing the drop-in is inside the recovery boundary: a partial write or a failed
+        # chown/chmod removes it again instead of leaving it for a later restart (review).
+        dropin.parent.mkdir(parents=True, exist_ok=True)
+        os.chown(dropin.parent, user.pw_uid, user.pw_gid)
+        dropin.write_text(dropin_text)
+        os.chown(dropin, user.pw_uid, user.pw_gid)
+        dropin.chmod(0o644)
         reload = user_systemctl(host, "daemon-reload")
         if reload.returncode != 0:
             raise ReleaseError(f"systemctl --user daemon-reload failed: {reload.stderr.strip()}")

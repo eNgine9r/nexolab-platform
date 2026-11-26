@@ -335,6 +335,32 @@ class Execute(unittest.TestCase):
         self.assertEqual(fake.live, OLD)
         self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
 
+    def test_a_failed_dropin_installation_is_removed_and_verified(self):
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        calls = {"n": 0}
+
+        def chown(path, uid, gid):
+            calls["n"] += 1
+            if calls["n"] == 2:  # the drop-in file itself
+                raise OSError("I/O error")
+
+        with mock.patch.object(self.module.os, "chown", chown):
+            with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
+                self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
+        self.assertFalse(self.dropin.exists())
+        self.assertEqual(fake.live, OLD)
+
+    def test_execute_refuses_modified_release_files_despite_a_prepared_marker(self):
+        release = self.module.release_directory(SOURCE, BUILD)
+        (release / ".next" / "server" / "app.js").write_bytes(b"modified")
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        with self.assertRaisesRegex(self.module.ReleaseError, "does not match the artifact"):
+            self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
+        self.assertFalse(self.dropin.exists())
+        self.assertFalse(any("restart" in call for call in fake.calls))
+
     def test_refuses_another_release_while_one_is_installed(self):
         fake = FakeHost(self.module)
         fake.dropin = str(self.dropin)
