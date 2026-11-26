@@ -1,3 +1,23 @@
+## 2026-11-27 — P0 charts: final consolidated frontend release for all interfaces built and staged, not deployed
+
+- **Merged** (exact-head GREEN, every review thread resolved):
+  - #1833 (PR #1834): 7 d / 30 d history — time slices, a 500 000-row budget with an explicit message, compact Overview RAW columns; Energy and Refrigeration on the sliced loader;
+  - #1835 (PR #1836): Saved Dashboards on aggregated history with raw fallback; exact server statistics share one range;
+  - #1839 (PR #1840): Live Data chart build ~430 → ~17 ms on the Pi CPU (CI: 51 fps and 1 long task on the raw path);
+  - #1837 (PR #1838): owner-run guarded release tool for the protected HTTPS frontend (`:443` → `127.0.0.1:3105`).
+- **Browser correctness** (CI): for all 24 series in Live Data and Saved Dashboards, on both the aggregate and the raw path, the statistics show the exact PostgreSQL peaks, the failed polls and the silent gap.
+- **Release** (source `210b478b`, run 45900869530):
+  - LAN/`:8443`/`:8444` ZIP `9df9592e…`, build `nCkLRk-U9EkiJ3PmhdBuA`;
+  - HTTPS `:443` ZIP `b26a73c7…`, build `EyZllf1uoZnxieohz2NxC`, verified with the tool's own gates;
+  - both are in `~/operator-inbox`; free disk 22.4 GiB.
+- **Owner package:** `docs/operations/chart-p0-release-candidate.md`.
+  - Archive the Stage 2 workspace.
+  - Issue three broker approvals.
+  - Install the HTTPS tool, then run plan, prepare and execute.
+- **Not deployed.** The backend stays gated by DR #1428.
+- **Not verified:** a Pi browser, an operator PC and 60 fps on real hardware.
+- **Pi restart 2026-11-27 00:11:** the HTTPS download had already completed. The artifact was re-verified and staged. No production change.
+
 ## 2026-11-26 (P0 charts, continued) — every chart surface optimized; consolidated frontend RC built, not deployed
 
 - **Merged (exact-head GREEN, no open review threads):**

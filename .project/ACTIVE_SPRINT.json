@@ -12805,6 +12805,110 @@
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
+    },
+    {
+      "issue": 1833,
+      "title": "Long-range chart history (7 d / 30 d)",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 charts; see docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "feat/1833-long-range-history",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/operations/",
+        ".project/",
+        "tests/"
+      ],
+      "evidence": {
+        "merged": "PR #1834 merge 0ebc5d61 (exact-head GREEN)",
+        "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1835,
+      "title": "Saved Dashboards aggregated history with raw fallback",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 charts; see docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "feat/1835-saved-dashboard-aggregate",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/operations/",
+        ".project/",
+        "tests/"
+      ],
+      "evidence": {
+        "merged": "PR #1836 merge 210b478b (exact-head GREEN)",
+        "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1837,
+      "title": "Guarded owner-run HTTPS frontend release tool",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 charts; see docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "feat/1837-https-frontend-release",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/operations/",
+        ".project/",
+        "tests/"
+      ],
+      "evidence": {
+        "merged": "PR #1838 merge 14fd15fc (exact-head GREEN)",
+        "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1839,
+      "title": "Live Data chart build O(channels x samples)",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 charts; see docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "perf/1839-live-chart-build",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/operations/",
+        ".project/",
+        "tests/"
+      ],
+      "evidence": {
+        "merged": "PR #1840 merge 28c148ac (exact-head GREEN)",
+        "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
     }
   ],
   "maintenance_actions": [
