@@ -12669,6 +12669,142 @@
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
+    },
+    {
+      "issue": 1821,
+      "title": "Saved Dashboards: viewport detail and cached exact statistics on zoom",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 chart performance (frontend only); see the Issue and docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "feat/1821-saved-dashboard-viewport-detail",
+      "permitted_paths": [
+        "src/features/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/",
+        "e2e/chart-performance.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1822 merge a52b3c03 (exact-head GREEN; review P1 fixed)",
+        "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1825,
+      "title": "Energy charts: O(n^2) raw statistics insert and argument spread on history load",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 chart performance (frontend only); see the Issue and docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "fix/1825-energy-raw-statistics",
+      "permitted_paths": [
+        "src/features/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/",
+        "e2e/chart-performance.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1826 merge d2f56222 (exact-head GREEN)",
+        "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1827,
+      "title": "Overview chart: full raw re-sort and rebuild on every live sample and zoom",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 chart performance (frontend only); see the Issue and docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "fix/1827-overview-chart-performance",
+      "permitted_paths": [
+        "src/features/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/",
+        "e2e/chart-performance.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1828 merge c1762b2b (exact-head GREEN; review P2 fixed)",
+        "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1829,
+      "title": "Refrigeration history: timelines rebuilt from raw on every zoom",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 chart performance (frontend only); see the Issue and docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1813
+      ],
+      "branch": "fix/1829-refrigeration-timelines",
+      "permitted_paths": [
+        "src/features/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/",
+        "e2e/chart-performance.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1830 merge da676dd9 (exact-head GREEN)",
+        "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1824,
+      "title": "Progressive chart history: series complete in order and appear as they load",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "P0 chart performance (frontend only); see the Issue and docs/operations/chart-p0-release-candidate.md.",
+      "depends_on": [
+        1809,
+        1821
+      ],
+      "branch": "feat/1824-progressive-history",
+      "permitted_paths": [
+        "src/features/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/",
+        "e2e/chart-performance.production.e2e.ts",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1831 merge f3c12ac4 (exact-head GREEN; review P2 x2 fixed)",
+        "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
     }
   ],
   "maintenance_actions": [
