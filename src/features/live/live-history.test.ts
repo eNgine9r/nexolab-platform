@@ -104,6 +104,39 @@ describe("live history loading", () => {
     expect(result.samples).toHaveLength(2);
   });
 
+  it("#1824: reports each loaded channel before the whole window is complete", async () => {
+    const channels = ["106-01", "106-02", "106-03"].map((channelId) =>
+      sample({ event_id: `e-${channelId}`, channel_id: channelId }),
+    );
+    const history = vi.fn(async (query: TelemetryHistoryQuery) =>
+      response(channels.filter((candidate) => candidate.channel_id === query.channel_id)),
+    );
+    const progress: Array<{ loaded: number; total: number; channels: string[] }> = [];
+
+    const result = await loadCompleteLiveHistory(
+      adapter(history),
+      channels,
+      window,
+      undefined,
+      240,
+      (update) =>
+        progress.push({
+          loaded: update.loaded,
+          total: update.total,
+          channels: update.samples.map((item) => item.channel_id),
+        }),
+    );
+
+    // Partial updates only; the complete window is the result itself.
+    expect(progress.map((update) => [update.loaded, update.total])).toEqual([
+      [1, 3],
+      [2, 3],
+    ]);
+    expect(progress[0].channels).toHaveLength(1);
+    expect(progress[1].channels).toHaveLength(2);
+    expect(result.samples.map((item) => item.channel_id).sort()).toEqual(["106-01", "106-02", "106-03"]);
+  });
+
   it("#1522: exposes raw newest samples so downsampled history cannot inflate the observed cadence", async () => {
     const dayWindow = {
       from: new Date("2026-08-02T21:10:00.000Z"),

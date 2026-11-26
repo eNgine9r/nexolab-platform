@@ -17,6 +17,7 @@ import {
   LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
+  type LiveHistoryProgress,
   type LiveHistoryResult,
   seedCadenceFromHistoryLoad,
   mergeLiveHistoryTail,
@@ -126,6 +127,11 @@ export interface LiveTelemetryModel {
   historyWindow: LiveHistoryWindow | null;
   historySamples: TelemetrySample[];
   historyStatus: LiveHistoryStatus;
+  /**
+   * #1824: while a raw window is still loading, the channels loaded so far. `historySamples` then
+   * holds their reduced points (statistics and viewport detail wait for the complete window).
+   */
+  historyProgress?: { loaded: number; total: number } | null;
   historySnapshotAt: string | null;
   historyError: Error | null;
   rejectedFutureSamples: number;
@@ -315,6 +321,7 @@ export function useLiveTelemetry({
   const [historyWindow, setHistoryWindow] = useState<LiveHistoryWindow | null>(null);
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
   const [historyStatus, setHistoryStatus] = useState<LiveHistoryStatus>("idle");
+  const [historyProgress, setHistoryProgress] = useState<LiveHistoryProgress | null>(null);
   const [historySnapshotAt, setHistorySnapshotAt] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
@@ -817,6 +824,7 @@ export function useLiveTelemetry({
       setHistoryWindow(requestedWindow);
       setHistorySamples([]);
       historySamplesRef.current = [];
+      setHistoryProgress(null);
       setHistoryStatus("loading");
       setHistorySnapshotAt(null);
       setHistoryError(null);
@@ -832,6 +840,9 @@ export function useLiveTelemetry({
         requestedWindow,
         controller.signal,
         pointsPerChannelRef.current,
+        (progress) => {
+          if (!disposed) setHistoryProgress(progress);
+        },
       );
     // #1813: extremum-preserving aggregated history when the backend serves it; otherwise (404 on
     // backends without #1811, remembered for this page) the raw path, unchanged.
@@ -901,11 +912,13 @@ export function useLiveTelemetry({
           return next;
         });
         setHistorySnapshotAt(result.snapshotAt);
+        setHistoryProgress(null);
         setHistoryStatus("ready");
         setHistoryError(null);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
+        setHistoryProgress(null);
         setHistoryStatus("error");
         setHistoryError(
           nextError instanceof Error ? nextError : new Error("Failed to load telemetry history"),
@@ -1024,7 +1037,12 @@ export function useLiveTelemetry({
     historyRange,
     setHistoryRange,
     historyWindow,
-    historySamples,
+    // #1824: progressive display of the channels loaded so far; the live tail joins at completion.
+    historySamples: historyStatus === "loading" && historyProgress ? historyProgress.samples : historySamples,
+    historyProgress:
+      historyStatus === "loading" && historyProgress
+        ? { loaded: historyProgress.loaded, total: historyProgress.total }
+        : null,
     historyStatus: selectedKeys.length === 0 ? "idle" : historyStatus,
     historySnapshotAt,
     historyError,

@@ -358,12 +358,25 @@ export function reconcileLiveHistoryEvents(
   };
 }
 
+/** #1824: channels loaded so far while a history window is still loading. */
+export interface LiveHistoryProgress {
+  loaded: number;
+  total: number;
+  /** Reduced display points of the loaded channels (grouped by channel, time-ordered). */
+  samples: TelemetrySample[];
+}
+
 export async function loadCompleteLiveHistory(
   adapter: TelemetryAdapter,
   identities: readonly TelemetrySample[],
   window: LiveHistoryWindow,
   signal?: AbortSignal,
   maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
+  /**
+   * #1824: called after each channel has loaded with the reduced points of every channel loaded
+   * so far, so the chart can show them before the whole window is complete.
+   */
+  onProgress?: (progress: LiveHistoryProgress) => void,
 ): Promise<LiveHistoryResult> {
   if (identities.length === 0) {
     throw new Error("At least one channel identity is required for history loading");
@@ -374,6 +387,8 @@ export async function loadCompleteLiveHistory(
   // statistics) and the reduced series are kept, not every channel's raw sample objects.
   const intervalColumns: LiveIntervalColumns = {};
   const sourceGapMsByChannel = new Map<string, number>();
+  const loadedReduced: TelemetrySample[][] = [];
+  let loadedCount = 0;
   const perChannel = await loadCompleteTelemetryHistoryForSeries(
     adapter,
     identities.map((identity) => ({
@@ -384,7 +399,7 @@ export async function loadCompleteLiveHistory(
     })),
     window,
     { signal },
-    (result) => {
+    (result, index) => {
       recordLiveIntervalSamples(
         intervalColumns,
         result.samples.filter((sample) => acceptedSample(sample)),
@@ -392,9 +407,19 @@ export async function loadCompleteLiveHistory(
       for (const [key, gapMs] of deriveLiveSourceGapMsByChannel(result.samples)) {
         sourceGapMsByChannel.set(key, gapMs);
       }
+      const reduced = downsampleLiveHistory(result.samples, window, maximumPointsPerChannel);
+      loadedReduced[index] = reduced;
+      loadedCount += 1;
+      if (onProgress && loadedCount < identities.length) {
+        onProgress({
+          loaded: loadedCount,
+          total: identities.length,
+          samples: groupByChannelKey(loadedReduced.flat()),
+        });
+      }
       return {
         snapshotAt: result.snapshotAt,
-        reduced: downsampleLiveHistory(result.samples, window, maximumPointsPerChannel),
+        reduced,
         cadence: newestRawSamplesPerChannel(result.samples, CADENCE_OBSERVATION_LIMIT),
       };
     },

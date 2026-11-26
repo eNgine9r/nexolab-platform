@@ -1,4 +1,5 @@
 import { TelemetryClientError } from "./errors";
+import { HISTORY_MAX_CONCURRENT_REQUESTS, RequestLimiter } from "./request-limiter";
 import type {
   TelemetryAdapter,
   TelemetryCollectionResponse,
@@ -290,7 +291,14 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
   options: Pick<
     TelemetryHistoryLoadOptions,
     "signal" | "snapshotAt" | "pageSize" | "maxPages" | "retryDelaysMs"
-  > = {},
+  > & {
+    /**
+     * #1824: series loading at the same time (default: the history request slots of the tab).
+     * Each series pages sequentially, so this keeps every slot busy while series complete in
+     * order instead of all at the end, and callers can show them progressively.
+     */
+    seriesConcurrency?: number;
+  } = {},
   /**
    * Runs as soon as ONE series has loaded, so callers can reduce it and let its raw samples be
    * released instead of holding every series' complete raw history until the slowest finishes.
@@ -322,16 +330,26 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
     });
     const snapshotFor = async (): Promise<string> =>
       options.snapshotAt ?? Promise.race([announced, firstLoad.then((result) => result.snapshotAt)]);
-    const first = failFast(firstLoad.then((result) => onSeriesLoaded(result, 0)));
+    // #1824: the first series holds one series slot from the start; the others take slots in their
+    // order once the snapshot is fixed. A FIFO page queue across all series made every series
+    // finish at nearly the same moment.
+    const seriesSlots = new RequestLimiter(
+      Math.max(1, Math.floor(options.seriesConcurrency ?? HISTORY_MAX_CONCURRENT_REQUESTS)),
+    );
+    const first = failFast(
+      seriesSlots.run(linked.signal, () => firstLoad).then((result) => onSeriesLoaded(result, 0)),
+    );
     const rest = filtersList.slice(1).map((filters, offset) =>
       failFast(
         snapshotFor()
           .then((snapshotAt) =>
-            loadCompleteTelemetryHistory(adapter, filters, window, {
-              ...options,
-              signal: linked.signal,
-              snapshotAt,
-            }),
+            seriesSlots.run(linked.signal, () =>
+              loadCompleteTelemetryHistory(adapter, filters, window, {
+                ...options,
+                signal: linked.signal,
+                snapshotAt,
+              }),
+            ),
           )
           .then((result) => onSeriesLoaded(result, offset + 1)),
       ),

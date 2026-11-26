@@ -757,7 +757,17 @@ export function DashboardLiveView({
           ) : null}
 
           {telemetry.historyStatus === "loading" ? (
-            <p className="mt-3 text-xs text-cyan-200">Завантаження повної persisted history…</p>
+            <p
+              className="mt-3 text-xs text-cyan-200"
+              role="status"
+              aria-live="polite"
+              data-testid="saved-dashboard-history-progress"
+            >
+              Завантаження повної persisted history…
+              {telemetry.historyProgress
+                ? ` Завантажено серій: ${telemetry.historyProgress.loaded} з ${telemetry.historyProgress.total}.`
+                : null}
+            </p>
           ) : telemetry.historyStatus === "error" ? (
             <p className="mt-3 text-xs text-red-200">{describeHistoryLoadError(telemetry.historyError)}</p>
           ) : null}

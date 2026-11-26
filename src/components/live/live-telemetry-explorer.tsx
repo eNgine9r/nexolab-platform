@@ -368,7 +368,10 @@ export function LiveTelemetryExplorer({
   const effectiveDomain = liveFollow && range === "live" ? resetDomain : (viewportDomain ?? resetDomain);
   // #1813: once a zoom/pan is committed, load detailed measurements for the visible window (raw
   // columns: instant; aggregated backend: one cancellable request). Full range: coarse points.
-  const detailDomain = liveFollow && range === "live" ? null : viewportDomain;
+  // #1824: detail and statistics wait for the complete window (raw columns are filled at the end).
+  const historyComplete = telemetry.historyStatus === "ready";
+  const historyProgress = telemetry.historyStatus === "loading" ? (telemetry.historyProgress ?? null) : null;
+  const detailDomain = !historyComplete || (liveFollow && range === "live") ? null : viewportDomain;
   const setDetailViewport = telemetry.setDetailViewport;
   useEffect(() => {
     setDetailViewport?.(detailDomain);
@@ -417,10 +420,20 @@ export function LiveTelemetryExplorer({
     [alertEvents.alerts, groups, telemetry.clock],
   );
   const statisticsRows = useMemo(
-    () => buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
+    () =>
+      historyComplete
+        ? buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics)
+        : [],
     // historySamples changes whenever raw history or live tail is recorded, so stats stay current.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effectiveDomain, groups, selected, telemetry.intervalStatistics, telemetry.historySamples],
+    [
+      effectiveDomain,
+      groups,
+      historyComplete,
+      selected,
+      telemetry.intervalStatistics,
+      telemetry.historySamples,
+    ],
   );
   // Exact statistics always state the exact range they were computed for (#1813: a sliding live
   // window in aggregate mode is refreshed at most every 30 s).
@@ -429,6 +442,7 @@ export function LiveTelemetryExplorer({
     return computed ? { fromMs: computed.fromMs, toMs: computed.toMs } : effectiveDomain;
   }, [effectiveDomain, statisticsRows]);
   const densityCounts = useMemo(() => {
+    if (!historyComplete) return { displayed: null, available: null };
     const fullRows = buildLiveStatisticsRows(groups, selected, resetDomain, telemetry.intervalStatistics);
     if (fullRows.length === 0 || fullRows.some((row) => row.statistics === null)) {
       return { displayed: null, available: null };
@@ -451,7 +465,14 @@ export function LiveTelemetryExplorer({
     };
     // historySamples changes whenever raw history or live tail is recorded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, resetDomain, selected, telemetry.intervalStatistics, telemetry.historySamples]);
+  }, [
+    groups,
+    historyComplete,
+    resetDomain,
+    selected,
+    telemetry.intervalStatistics,
+    telemetry.historySamples,
+  ]);
   const rangeLabel = CANONICAL_CHART_TIME_RANGES.find((item) => item.id === range)?.label ?? range;
 
   const syncUrl = (
@@ -773,9 +794,21 @@ export function LiveTelemetryExplorer({
               </p>
             </div>
           </div>
-        ) : telemetry.historyStatus === "loading" ? (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">
-            Завантаження history window за одним ingestion watermark…
+        ) : telemetry.historyStatus === "loading" &&
+          // #1824: stay on the placeholder until a loaded channel has drawable points; an empty first
+          // channel must not report the whole selection as empty while others still load.
+          !(historyProgress && historyProgress.loaded > 0 && telemetry.historySamples.length > 0) ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400"
+          >
+            <span>
+              Завантаження history window за одним ingestion watermark…
+              {historyProgress
+                ? ` Завантажено каналів: ${historyProgress.loaded} з ${historyProgress.total}.`
+                : null}
+            </span>
           </div>
         ) : telemetry.historyStatus === "error" ? (
           <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-8 text-center">
@@ -797,11 +830,26 @@ export function LiveTelemetryExplorer({
             className="mt-5 min-w-0 space-y-4"
             data-testid="live-chart-workspace"
             data-history-source={telemetry.historySource ?? "raw"}
+            data-history-progress={
+              historyProgress ? `${historyProgress.loaded}/${historyProgress.total}` : "complete"
+            }
             data-viewport-detail={
               telemetry.viewportDetail ? `${telemetry.viewportDetail.samples.length}` : "none"
             }
           >
-            {density !== undefined && onDensityChange && telemetry.densityResolution ? (
+            {historyProgress ? (
+              <p
+                role="status"
+                aria-live="polite"
+                data-testid="live-history-progress"
+                className="rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2 text-xs text-cyan-100"
+              >
+                Завантаження history window за одним ingestion watermark… Завантажено каналів:{" "}
+                {historyProgress.loaded} з {historyProgress.total}. Статистика з&apos;явиться після
+                завантаження всіх каналів.
+              </p>
+            ) : null}
+            {historyComplete && density !== undefined && onDensityChange && telemetry.densityResolution ? (
               <ChartDensityControl
                 mode={density}
                 resolution={telemetry.densityResolution}
@@ -846,13 +894,15 @@ export function LiveTelemetryExplorer({
               message={alertEvents.message}
               displayTimeZone={displayTimeZone}
             />
-            <DashboardIntervalStatistics
-              rows={statisticsRows}
-              fromMs={statisticsRange.fromMs}
-              toMs={statisticsRange.toMs}
-              isViewport={viewportDomain !== null && !(liveFollow && range === "live")}
-              displayTimeZone={displayTimeZone}
-            />
+            {historyComplete ? (
+              <DashboardIntervalStatistics
+                rows={statisticsRows}
+                fromMs={statisticsRange.fromMs}
+                toMs={statisticsRange.toMs}
+                isViewport={viewportDomain !== null && !(liveFollow && range === "live")}
+                displayTimeZone={displayTimeZone}
+              />
+            ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
               <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>

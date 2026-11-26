@@ -346,6 +346,8 @@ ANALYZE telemetry_samples;
       })();
       const hosts = page.getByTestId("chart-renderer-host");
       await expect(hosts.first()).toBeVisible({ timeout: 240_000 });
+      // #1824: the first loaded channels are drawn while the rest still loads.
+      const firstSeriesMs = Date.now() - startedAt;
       // Charts render only after the whole history window is loaded (old and new frontends alike).
       await expect(page.getByText("Завантаження history window", { exact: false })).toHaveCount(0, {
         timeout: 240_000,
@@ -369,6 +371,7 @@ ANALYZE telemetry_samples;
         channels: channelCount,
         range: "24h",
         rowsPerChannel: 8_610,
+        firstSeriesMs,
         firstChartMs,
         historyRequests: traffic.history,
         aggregateRequests: traffic.aggregate,
@@ -434,9 +437,21 @@ FROM generate_series(1, ${channelCount}) AS channel;
         .getByRole("button", { name: "Відкрити" })
         .click();
       await expect(page.getByTestId("saved-dashboard-chart-panel").first()).toBeVisible({ timeout: 240_000 });
-      await expect(page.getByText("Завантаження повної persisted history…")).toHaveCount(0, {
-        timeout: 240_000,
-      });
+      // #1824: first loaded series drawn ("N з M" progress) or, on older frontends, the whole load.
+      const loadingText = page.getByText("Завантаження повної persisted history…");
+      let firstSeriesMs: number | null = null;
+      for (let attempt = 0; attempt < 2_400 && firstSeriesMs === null; attempt += 1) {
+        // allTextContents() never waits: the element is absent on older frontends and after loading.
+        const progress = (await page.getByTestId("saved-dashboard-history-progress").allTextContents()).join(
+          " ",
+        );
+        if (progress.includes("Завантажено серій") || (await loadingText.count()) === 0) {
+          firstSeriesMs = Date.now() - startedAt;
+        } else {
+          await page.waitForTimeout(100);
+        }
+      }
+      await expect(loadingText).toHaveCount(0, { timeout: 240_000 });
       await expect(page.getByTestId("chart-renderer-host").first()).toBeVisible({ timeout: 60_000 });
       const firstChartMs = Date.now() - startedAt;
       const { interaction, lastInteractionAt } = await measureZoomPan(page);
@@ -446,6 +461,7 @@ FROM generate_series(1, ${channelCount}) AS channel;
         channels: channelCount,
         range: "24h",
         rowsPerChannel: 8_610,
+        firstSeriesMs,
         firstChartMs,
         historyRequests: traffic.history,
         historyMegabytes: Math.round((traffic.historyBytes / 1_048_576) * 10) / 10,
