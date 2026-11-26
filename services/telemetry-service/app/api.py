@@ -8,6 +8,15 @@ from pydantic import BaseModel
 
 from app.contracts import Alarm, Quality
 from app.db import Database, HistoryCapacityError, TelemetryQuery
+from app.history_aggregate import (
+    MAX_AGGREGATE_BUCKETS,
+    MAX_AGGREGATE_SERIES,
+    SeriesAggregate,
+    SeriesKey,
+    aggregate_history,
+    bucket_width_ms,
+    epoch_ms,
+)
 from app.delivery import PersistedTelemetryReadModel, StalenessState
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
@@ -42,6 +51,83 @@ class TelemetryCollectionResponse(BaseModel):
     offset: int
     next_offset: int | None
     snapshot_at: datetime | None = None
+
+
+class HistoryAggregateSeriesResponse(BaseModel):
+    """One series of `GET /history/aggregate` (#1811).
+
+    `raw` rows: [captured_ms, value, quality, alarm, event_id].
+    `buckets` rows: [index, count, valid_count, invalid_count, first_invalid_ms, last_invalid_ms,
+    first_ms, first_value, last_ms, last_value, min_ms, min_value, max_ms, max_value, valid_sum].
+    Whole-window statistics come from the original rows, never from display points.
+    """
+
+    node_id: str
+    equipment_id: str
+    channel_id: str
+    metric: str
+    unit: str | None
+    mode: Literal["raw", "aggregate"]
+    count: int
+    valid_count: int
+    minimum: float | None
+    maximum: float | None
+    average: float | None
+    first_ms: int | None
+    last_ms: int | None
+    raw: list[tuple[int, float | None, str, str | None, str]] | None = None
+    buckets: list[list[int | float | None]] | None = None
+
+
+class HistoryAggregateResponse(BaseModel):
+    from_ms: int
+    to_ms: int
+    bucket_ms: int
+    bucket_count: int
+    snapshot_at: datetime
+    series: list[HistoryAggregateSeriesResponse]
+
+
+def _aggregate_series_response(item: SeriesAggregate) -> HistoryAggregateSeriesResponse:
+    def pair(value: tuple[int, float] | None) -> list[int | float | None]:
+        return [None, None] if value is None else [value[0], value[1]]
+
+    return HistoryAggregateSeriesResponse(
+        node_id=item.key.node_id,
+        equipment_id=item.key.equipment_id,
+        channel_id=item.key.channel_id,
+        metric=item.key.metric,
+        unit=item.unit,
+        mode=item.mode,  # type: ignore[arg-type]
+        count=item.count,
+        valid_count=item.valid_count,
+        minimum=item.minimum,
+        maximum=item.maximum,
+        average=item.average,
+        first_ms=item.first_ms,
+        last_ms=item.last_ms,
+        raw=item.raw if item.mode == "raw" else None,
+        buckets=(
+            [
+                [
+                    bucket.index,
+                    bucket.count,
+                    bucket.valid_count,
+                    bucket.invalid_count,
+                    bucket.first_invalid_ms,
+                    bucket.last_invalid_ms,
+                    *pair(bucket.first),
+                    *pair(bucket.last),
+                    *pair(bucket.minimum),
+                    *pair(bucket.maximum),
+                    bucket.total if bucket.valid_count else None,
+                ]
+                for bucket in item.buckets
+            ]
+            if item.mode == "aggregate"
+            else None
+        ),
+    )
 
 
 def _collection(
@@ -173,6 +259,57 @@ def create_api_router(
             limit=limit,
             offset=offset,
             snapshot_at=resolved_snapshot_at,
+        )
+
+    @router.get("/history/aggregate", response_model=HistoryAggregateResponse)
+    def history_aggregate(
+        from_at: Annotated[datetime, Query(alias="from")],
+        to_at: Annotated[datetime, Query(alias="to")],
+        series: Annotated[list[str], Query(min_length=1, max_length=MAX_AGGREGATE_SERIES)],
+        _authorized: AuthorizedRequest = Depends(read_access),
+        buckets: Annotated[int, Query(ge=1, le=MAX_AGGREGATE_BUCKETS)] = 240,
+        snapshot_at: datetime | None = None,
+    ) -> HistoryAggregateResponse:
+        """Extremum-preserving history for up to 24 series in one request (#1811)."""
+        if from_at.tzinfo is None or to_at.tzinfo is None:
+            raise HTTPException(status_code=422, detail="from and to must be timezone-aware timestamps")
+        if snapshot_at is not None and snapshot_at.tzinfo is None:
+            raise HTTPException(status_code=422, detail="snapshot_at must be a timezone-aware timestamp")
+        if from_at >= to_at:
+            raise HTTPException(status_code=422, detail="from must be earlier than to")
+        if to_at - from_at > timedelta(days=max_history_days):
+            raise HTTPException(
+                status_code=422,
+                detail=f"history range must not exceed {max_history_days} days",
+            )
+        try:
+            keys = list(dict.fromkeys(SeriesKey.parse(value) for value in series))
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        try:
+            results, resolved_snapshot_at = aggregate_history(
+                database,
+                keys,
+                from_at=from_at,
+                to_at=to_at,
+                buckets=buckets,
+                snapshot_at=snapshot_at,
+            )
+        except HistoryCapacityError as error:
+            raise HTTPException(
+                status_code=503,
+                detail=str(error),
+                headers={"Retry-After": "1"},
+            ) from error
+        from_ms = epoch_ms(from_at)
+        to_ms = epoch_ms(to_at)
+        return HistoryAggregateResponse(
+            from_ms=from_ms,
+            to_ms=to_ms,
+            bucket_ms=bucket_width_ms(from_ms, to_ms, buckets),
+            bucket_count=buckets,
+            snapshot_at=resolved_snapshot_at,
+            series=[_aggregate_series_response(item) for item in results],
         )
 
     return router
