@@ -798,7 +798,7 @@ INSERT INTO telemetry_samples (
 )
 SELECT gen_random_uuid()::text, ${sqlString(nodeId)},
        to_timestamp(${Math.floor(now / 1000)} - step * 10),
-       'temperature.probe',
+       'temperature',
        CASE WHEN step % 997 = 13 THEN NULL
             WHEN step % 1201 = 600 THEN 25 + channel
             ELSE round((4 + sin(step / 360.0) + ((step * 7919) % 10) / 20.0)::numeric, 2)::float8 END,
@@ -821,7 +821,7 @@ ORDER BY node_id, equipment_id, channel_id, metric, captured_at DESC, id DESC;
 ANALYZE telemetry_samples;
 `);
   const keys = Array.from({ length: channelCount }, (_, index) =>
-    [nodeId, equipmentId, `perf-${index + 1}`, "temperature.probe", "degC"].map(encodeURIComponent).join("|"),
+    [nodeId, equipmentId, `perf-${index + 1}`, "temperature", "degC"].map(encodeURIComponent).join("|"),
   );
   const query = `${keys.map((key) => `compare=${encodeURIComponent(key)}`).join("&")}&range=24h`;
   const results: Record<string, unknown>[] = [];
@@ -846,7 +846,7 @@ ANALYZE telemetry_samples;
           route.fulfill({ status: 404, contentType: "application/json", body: '{"detail":"Not Found"}' }),
         );
       }
-      const traffic = { history: 0, aggregate: 0, historyBytes: 0, failed: 0 };
+      const traffic = { history: 0, aggregate: 0, historyBytes: 0, failed: 0, cancelled: 0 };
       page.on("requestfinished", async (request) => {
         const pathname = new URL(request.url()).pathname;
         if (!pathname.includes("/api/v1/telemetry/history")) return;
@@ -856,7 +856,10 @@ ANALYZE telemetry_samples;
         traffic.historyBytes += sizes?.responseBodySize ?? 0;
       });
       page.on("requestfailed", (request) => {
-        if (new URL(request.url()).pathname.includes("/api/v1/telemetry/history")) traffic.failed += 1;
+        if (!new URL(request.url()).pathname.includes("/api/v1/telemetry/history")) return;
+        // A superseded viewport/statistics request is aborted on purpose (#1813).
+        if (/ERR_ABORTED|aborted/i.test(request.failure()?.errorText ?? "")) traffic.cancelled += 1;
+        else traffic.failed += 1;
       });
 
       const startedAt = Date.now();
@@ -955,6 +958,7 @@ ANALYZE telemetry_samples;
         aggregateRequests: traffic.aggregate,
         historyMegabytes: Math.round((traffic.historyBytes / 1_048_576) * 10) / 10,
         failedHistoryRequests: traffic.failed,
+        cancelledHistoryRequests: traffic.cancelled,
         ingestDuringLoadMs: ingestMs,
         heapMegabytes: heap,
         historySource: source,
@@ -976,7 +980,7 @@ ANALYZE telemetry_samples;
     postgres(`
 DELETE FROM telemetry_latest WHERE equipment_id = ${sqlString(equipmentId)};
 DELETE FROM telemetry_samples WHERE equipment_id = ${sqlString(equipmentId)};
-VACUUM ANALYZE telemetry_samples;
+ANALYZE telemetry_samples;
 `);
     // Leave the shared stack settled for the next specs: readiness must answer quickly again.
     for (let attempt = 0; attempt < 120; attempt += 1) {
