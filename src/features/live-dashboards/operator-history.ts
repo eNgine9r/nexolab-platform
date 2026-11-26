@@ -1,4 +1,4 @@
-import { downsampleLiveHistory } from "@/features/live/live-history";
+import { appendLiveHistoryTail, downsampleLiveHistory } from "@/features/live/live-history";
 import type { TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -85,4 +85,29 @@ export function reduceSavedDashboardHistory(
     const hadBadSample = hasTimestampBetween(badByIdentity.get(identityKey(sample)), from, to);
     return hadBadSample ? { ...sample, event_id: SEGMENT_PREFIX + unmarkedId(sample.event_id) } : sample;
   });
+}
+
+/**
+ * #1805: appends raw live samples of ONE dashboard series to its already reduced history without
+ * re-deriving continuity from reduced points. `sourceGapMs` is the tolerance derived from the raw
+ * history load (undefined: fallback tolerance). `pendingBreakChannels` keeps the break after a
+ * non-renderable live sample across single-sample calls.
+ */
+export function appendSavedDashboardTail(
+  item: LiveDashboardItem,
+  current: readonly TelemetrySample[],
+  incoming: readonly TelemetrySample[],
+  window: TelemetryHistoryWindow,
+  maxPoints: number,
+  sourceGapMs: number | undefined,
+  pendingBreakChannels: Set<string>,
+): TelemetrySample[] {
+  const appended = appendLiveHistoryTail(
+    current.map((sample) => operatorHistoryPreview(item, sample)),
+    incoming.map((sample) => operatorHistoryPreview(item, sample)),
+    window,
+    maxPoints,
+    { sourceGapMsFor: () => sourceGapMs, pendingBreakChannels },
+  );
+  return restoreOperatorEvidence(appended, [...current, ...incoming]);
 }

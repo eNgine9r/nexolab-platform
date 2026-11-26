@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
+  LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
   seedCadenceFromHistoryLoad,
@@ -18,6 +19,7 @@ import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
+  observedCadenceMs,
   recordCadenceObservation,
   type CadenceObservations,
 } from "@/features/live/freshness";
@@ -312,6 +314,15 @@ export function useLiveTelemetry({
   const historySamplesRef = useRef(historySamples);
   const historyRangeRef = useRef(historyRange);
   const orderingStateRef = useRef<LiveHistoryOrderingState>(seedLiveHistoryOrderingState([]));
+  // #1805: continuity tolerance per channel, derived once from RAW history. Channels without
+  // history fall back to their observed live cadence; never to the spacing of reduced points.
+  const sourceGapByChannelRef = useRef<Map<string, number>>(new Map());
+  const sourceGapMsFor = useCallback((channelKey: string): number | undefined => {
+    const fromHistory = sourceGapByChannelRef.current.get(channelKey);
+    if (fromHistory !== undefined) return fromHistory;
+    const cadenceMs = observedCadenceMs(storeRef.current.cadence[channelKey]);
+    return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
+  }, []);
 
   const setSelectedKeys = useCallback((keys: string[]) => {
     setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));
@@ -367,13 +378,14 @@ export function useLiveTelemetry({
           new Set(selectedKeysRef.current),
           nextWindow,
           pointsPerChannelRef.current,
+          sourceGapMsFor,
         );
         historySamplesRef.current = next;
         return next;
       });
     }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [sourceGapMsFor]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -442,6 +454,7 @@ export function useLiveTelemetry({
               selected,
               nextWindow,
               pointsPerChannelRef.current,
+              sourceGapMsFor,
             );
             historySamplesRef.current = next;
             return next;
@@ -517,7 +530,7 @@ export function useLiveTelemetry({
       bufferedLiveSamples = [];
       subscription?.close();
     };
-  }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
+  }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId, sourceGapMsFor]);
 
   const view = useMemo(
     () => deriveStatus(store, connectionState, hasLoadedSnapshot, error, clock),
@@ -601,6 +614,7 @@ export function useLiveTelemetry({
           storeRef.current = nextStore;
           setStore(nextStore);
         }
+        sourceGapByChannelRef.current = result.sourceGapMsByChannel;
         setHistorySamples((current) => {
           const next = mergeLiveHistoryTail(
             result.samples,
@@ -608,6 +622,7 @@ export function useLiveTelemetry({
             selected,
             requestedWindow,
             pointsPerChannelRef.current,
+            sourceGapMsFor,
           );
           historySamplesRef.current = next;
           // Raw columns from the load, plus live samples that arrived while it was loading.
@@ -642,6 +657,7 @@ export function useLiveTelemetry({
     scopeKey,
     selectedKey,
     selectedOrganizationId,
+    sourceGapMsFor,
   ]);
 
   useEffect(() => {

@@ -203,6 +203,9 @@ function buildSeries(
           sourceEventId: sample.event_id,
         };
       }),
+      // #1805: source gaps were decided on RAW history (segment markers). Re-deriving a tolerance
+      // from reduced points would break continuous data; invalid samples still break below.
+      { maximumSourceGapMs: Number.MAX_SAFE_INTEGER },
     ).map((segment, index) =>
       segmentIndex > 0 && index === 0 && segment.points[0]
         ? {
