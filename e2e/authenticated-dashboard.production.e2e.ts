@@ -307,14 +307,15 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       expect(sockets.sentKeys[0]).toEqual(["access_token", "organization_id", "type"]);
 
       await expect.poll(() => requests.filter((item) => item.url.includes("/latest")).length).toBe(1);
-      await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(1);
+      // P0 charts (#1833): the 24 h Overview window loads as four 6 h time slices.
+      await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(4);
       expect(requests.every((item) => item.authorization)).toBe(true);
       expect(requests.every((item) => item.organization === organizationId)).toBe(true);
       expect(requests.every((item) => !item.url.includes("Bearer"))).toBe(true);
       expect(requests.every((item) => !item.url.includes("access_token"))).toBe(true);
 
       await page.getByRole("button", { name: "1 година", exact: true }).click();
-      await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(2);
+      await expect.poll(() => requests.filter((item) => item.url.includes("/history")).length).toBe(5);
       const oneHourRequest = requests.filter((item) => item.url.includes("/history")).at(-1);
       expect(oneHourRequest).toBeDefined();
       expect(rangeMilliseconds(oneHourRequest?.url ?? "")).toBe(60 * 60 * 1000);

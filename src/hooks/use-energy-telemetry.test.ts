@@ -650,16 +650,25 @@ describe("useEnergyTelemetry startup coverage", () => {
     act(() => {
       result.current.setHistoryRange("7d");
     });
+    // P0 charts: seven disjoint 24 h slices loaded in parallel instead of one paged stream.
     await waitFor(() => {
-      expect(adapterState.history).toHaveBeenCalledTimes(2);
+      expect(adapterState.history).toHaveBeenCalledTimes(8);
       expect(result.current.historyRange).toBe("7d");
       expect(result.current.historyStatus).toBe("ready");
     });
-    const query = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
-    const from = queryTime(query.from);
-    const to = queryTime(query.to);
-    expect(to - from).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
-    expect(to - from).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
+    const slices = adapterState.history.mock.calls
+      .slice(1)
+      .map(([query]) => [
+        queryTime((query as TelemetryHistoryQuery).from),
+        queryTime((query as TelemetryHistoryQuery).to),
+      ])
+      .sort((left, right) => left[0] - right[0]);
+    for (let index = 1; index < slices.length; index += 1)
+      expect(slices[index][0]).toBe(slices[index - 1][1]);
+    expect(slices.every(([from, to]) => to - from <= 24 * 60 * 60 * 1000)).toBe(true);
+    const span = slices.at(-1)![1] - slices[0][0];
+    expect(span).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
+    expect(span).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
   });
   it("loads a custom period as a fixed window with exact raw statistics and no live tail (#1683)", async () => {
     const toMs = Date.now() - 3 * 60 * 60 * 1000;

@@ -1,5 +1,8 @@
 import { chartSeriesKey } from "@/features/charts/domain";
+import type { IntervalStatistics } from "@/features/charts/interval-statistics";
 import { buildRawStatisticsRows, type RawStatisticsRow } from "@/features/charts/raw-sample-statistics";
+import { displayUnit } from "@/features/charts/units";
+import { overviewColumnsKey } from "@/features/dashboard/overview-history";
 import { overviewChartIdentity, type OverviewChartGroup } from "@/features/dashboard/overview-chart";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -24,5 +27,27 @@ export function overviewStatisticsRows(
       (identity) => bySeries.get(chartSeriesKey(identity)) ?? [],
       domain,
     ),
+  );
+}
+
+/**
+ * Exact statistics rows from the RAW history columns (P0 charts): the same numbers as
+ * `overviewStatisticsRows`, without raw sample objects or a rebuild per render.
+ */
+export function overviewColumnStatisticsRows(
+  groups: readonly OverviewChartGroup[],
+  statisticsFor: (columnsKey: string, fromMs: number, toMs: number) => IntervalStatistics | null,
+  domain: { fromMs: number; toMs: number },
+): RawStatisticsRow[] {
+  return groups.flatMap((group) =>
+    group.scene.series
+      .filter((entry) => entry.visible)
+      .map((entry) => ({
+        seriesKey: chartSeriesKey(entry.identity),
+        color: entry.colorToken,
+        name: entry.name,
+        unit: displayUnit(entry.identity.nativeUnit),
+        statistics: statisticsFor(overviewColumnsKey(entry.identity), domain.fromMs, domain.toMs),
+      })),
   );
 }

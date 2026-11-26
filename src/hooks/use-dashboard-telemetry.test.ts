@@ -65,6 +65,11 @@ function historyResponse(
   };
 }
 
+/** Display history is reduced and re-identified; compare what is drawn: time and value. */
+function drawn(samples: readonly TelemetrySample[]): Array<[string, number | null]> {
+  return samples.map((item) => [item.captured_at, item.value]);
+}
+
 describe("useDashboardTelemetry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -134,28 +139,36 @@ describe("useDashboardTelemetry", () => {
 
     await waitFor(() => {
       expect(result.current.historyStatus).toBe("ready");
-      expect(result.current.historySamples).toEqual([sample]);
+      expect(drawn(result.current.historySamples)).toEqual([[sample.captured_at, 4.2]]);
     });
 
-    const firstQuery = adapterState.history.mock.calls[0][0] as TelemetryHistoryQuery;
-    expect(firstQuery.node_id).toBeUndefined();
-    expect(firstQuery.metric).toBe("temperature.probe");
-    expect(firstQuery.limit).toBe(1000);
-    expect(firstQuery.offset).toBe(0);
-    expect(firstQuery.snapshot_at).toBeUndefined();
-    expect(new Date(firstQuery.to).getTime() - new Date(firstQuery.from).getTime()).toBe(24 * 60 * 60 * 1000);
+    // The 24 h window loads as four 6 h time slices under one snapshot (P0 charts).
+    const queries = adapterState.history.mock.calls.map((call) => call[0] as TelemetryHistoryQuery);
+    expect(queries).toHaveLength(4);
+    expect(queries[0].snapshot_at).toBeUndefined();
+    for (const query of queries) {
+      expect(query.node_id).toBeUndefined();
+      expect(query.metric).toBe("temperature.probe");
+      expect(query.limit).toBe(1000);
+      expect(query.offset).toBe(0);
+      expect(new Date(query.to).getTime() - new Date(query.from).getTime()).toBe(6 * 60 * 60 * 1000);
+    }
+    const spanFrom = Math.min(...queries.map((query) => new Date(query.from).getTime()));
+    const spanTo = Math.max(...queries.map((query) => new Date(query.to).getTime()));
+    expect(spanTo - spanFrom).toBe(24 * 60 * 60 * 1000);
+    expect(result.current.historyStore?.columns).toBeDefined();
 
     act(() => {
       result.current.setHistoryRange("1h");
     });
 
     await waitFor(() => {
-      expect(adapterState.history).toHaveBeenCalledTimes(2);
+      expect(adapterState.history).toHaveBeenCalledTimes(5);
       expect(result.current.historyRange).toBe("1h");
       expect(result.current.historyStatus).toBe("ready");
     });
-    const secondQuery = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
-    expect(new Date(secondQuery.to).getTime() - new Date(secondQuery.from).getTime()).toBe(60 * 60 * 1000);
+    const lastQuery = adapterState.history.mock.calls[4][0] as TelemetryHistoryQuery;
+    expect(new Date(lastQuery.to).getTime() - new Date(lastQuery.from).getTime()).toBe(60 * 60 * 1000);
   });
 
   it("loads every persisted page against one snapshot instead of treating 1000 as complete", async () => {
@@ -170,23 +183,40 @@ describe("useDashboardTelemetry", () => {
       captured_at: new Date(Date.now() - 2 * 60_000).toISOString(),
     };
     const queries: TelemetryHistoryQuery[] = [];
+    // A range-aware API: [from, to), newest first, one row per page while more remain.
     adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => {
       queries.push(query);
-      return queries.length === 1 ? historyResponse([newer], 1000) : historyResponse([older], null);
+      const from = new Date(query.from).getTime();
+      const to = new Date(query.to).getTime();
+      const inRange = [newer, older].filter((item) => {
+        const at = Date.parse(item.captured_at);
+        return at >= from && at < to;
+      });
+      return inRange.length === 0
+        ? historyResponse([])
+        : historyResponse([inRange[0]], inRange.length > 1 ? 1000 : null);
     });
 
     const { result } = renderHook(() => useDashboardTelemetry());
 
     await waitFor(() => {
       expect(result.current.historyStatus).toBe("ready");
-      expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["older", "newer"]);
+      expect(drawn(result.current.historySamples).map(([capturedAt]) => capturedAt)).toEqual([
+        older.captured_at,
+        newer.captured_at,
+      ]);
     });
 
-    expect(queries).toHaveLength(2);
+    // The newest slice needed a second page (next_offset 1000 is not "complete"); every later
+    // request reuses the first snapshot and pages by the captured-time cursor, never by offset.
+    const newestSlice = queries.filter(
+      (query) => query.to === queries[0].to || new Date(query.to).getTime() > Date.parse(older.captured_at),
+    );
+    expect(newestSlice.length).toBeGreaterThan(1);
     expect(queries[0].snapshot_at).toBeUndefined();
-    expect(queries[1].snapshot_at).toBe("2026-08-18T19:30:00.000Z");
-    expect(queries[1].offset).toBe(0);
-    expect(new Date(queries[1].to).getTime()).toBeLessThan(new Date(queries[0].to).getTime());
+    expect(queries.slice(1).every((query) => query.snapshot_at === "2026-08-18T19:30:00.000Z")).toBe(true);
+    expect(queries.every((query) => query.offset === 0)).toBe(true);
+    expect(new Date(newestSlice[1].to).getTime()).toBeLessThan(new Date(queries[0].to).getTime());
   });
 
   it("reconciles persisted history with live tail without duplicates or backward replay", async () => {
@@ -231,17 +261,24 @@ describe("useDashboardTelemetry", () => {
       handlers.onSample(failure);
     });
 
-    // #1827: live history is coalesced (one update per 5 s for the default 24 h window).
+    // #1827: live history is coalesced (one update per 5 s for the default 24 h window). The
+    // repeated and the delayed events are not replayed; the communication failure is a break in
+    // the drawing and a non-valid poll in the RAW columns.
     await waitFor(
       () => {
-        expect(result.current.historySamples.map((item) => item.event_id)).toEqual([
-          "persisted",
-          "newer-tail",
-          "communication-failure",
+        expect(drawn(result.current.historySamples)).toEqual([
+          [persisted.captured_at, persisted.value],
+          [newer.captured_at, 4.4],
         ]);
       },
       { timeout: 8_000 },
     );
+    const columns = Object.values(result.current.historyStore?.columns ?? {})[0];
+    expect(columns?.invalidTimestamps).toEqual([Date.parse(failure.captured_at)]);
+    expect(columns?.validTimestamps).toEqual([
+      Date.parse(persisted.captured_at),
+      Date.parse(newer.captured_at),
+    ]);
   }, 15_000);
 
   it("filters only chart temperature series while keeping the full dashboard view", async () => {
@@ -282,7 +319,7 @@ describe("useDashboardTelemetry", () => {
     await waitFor(() => {
       expect(result.current.historyRange).toBe("custom");
       expect(result.current.historyStatus).toBe("ready");
-      expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["inside-custom"]);
+      expect(drawn(result.current.historySamples)).toEqual([[inside.captured_at, inside.value]]);
     });
     const customQuery = adapterState.history.mock.calls.at(-1)?.[0] as TelemetryHistoryQuery;
     expect(new Date(customQuery.from).getTime()).toBe(fromMs);
@@ -295,7 +332,7 @@ describe("useDashboardTelemetry", () => {
       handlers.onSample({ ...sample, event_id: "live-after-window", captured_at: new Date().toISOString() });
     });
     await waitFor(() => expect(result.current.status).toBe("live"));
-    expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["inside-custom"]);
+    expect(drawn(result.current.historySamples)).toEqual([[inside.captured_at, inside.value]]);
     expect(result.current.historyWindow).toEqual(expectedWindow);
   });
 
