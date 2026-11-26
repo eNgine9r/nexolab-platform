@@ -7,7 +7,21 @@ import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel"
 import { chartSeries } from "@/data/dashboard";
 import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain";
 import { DashboardIntervalStatistics } from "@/components/live-dashboards/dashboard-interval-statistics";
-import { overviewStatisticsRows } from "@/features/dashboard/overview-statistics";
+import {
+  overviewColumnStatisticsRows,
+  overviewStatisticsRows,
+} from "@/features/dashboard/overview-statistics";
+import {
+  overviewRecentTimestamps,
+  overviewSeriesStatistics,
+  overviewViewportDetail,
+  type OverviewHistoryStore,
+} from "@/features/dashboard/overview-history";
+import { chartPointBudget } from "@/features/charts/point-budget";
+import type { IntervalStatistics } from "@/features/charts/interval-statistics";
+import { CADENCE_OBSERVATION_LIMIT } from "@/features/live/freshness";
+import { mergeViewportDetail } from "@/features/live/live-aggregate-history";
+import { liveChannelKey } from "@/features/live/live-telemetry";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { DashboardAlertEvents } from "@/components/live-dashboards/dashboard-alert-events";
 import { annotateChartGroups } from "@/features/charts/alert-events";
@@ -69,6 +83,8 @@ function formatValue(sample: TelemetrySample): string {
 
 function HistoryChart({
   samples,
+  historyStore = null,
+  historyVersion = 0,
   range,
   status,
   telemetryStatus,
@@ -79,6 +95,9 @@ function HistoryChart({
   onRetry,
 }: {
   samples: TelemetrySample[];
+  /** RAW history columns (P0 charts); without them `samples` are RAW samples (session views, tests). */
+  historyStore?: OverviewHistoryStore | null;
+  historyVersion?: number;
   range: DashboardHistoryRange;
   status: DashboardHistoryStatus;
   telemetryStatus: DashboardTelemetryStatus;
@@ -106,22 +125,50 @@ function HistoryChart({
     const timer = globalThis.setInterval(() => setClockMs(Date.now()), 5_000);
     return () => globalThis.clearInterval(timer);
   }, []);
-  // #1827: series are built once per history change; a zoom/pan only applies its domain and the
-  // original measurements of the visible window (no rebuild of every series from raw).
+  // P0 charts: with RAW history columns, a committed zoom/pan shows the original measurements of the
+  // visible window (±50 %) merged into the display history; only channels shown on the chart.
+  const rawSource = useMemo(
+    () =>
+      historyStore
+        ? {
+            latestFor: (key: string) => historyStore.latest.get(key),
+            recentTimestampsFor: (key: string) =>
+              overviewRecentTimestamps(historyStore.columns[key], CADENCE_OBSERVATION_LIMIT),
+          }
+        : undefined,
+    // historyVersion: the store is mutated in place by live samples.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [historyStore, historyVersion],
+  );
+  const displayedSamples = useMemo(() => {
+    if (!historyStore || !viewportDomain) return samples;
+    const shown = new Set(samples.map(liveChannelKey));
+    const detail = overviewViewportDetail(historyStore, viewportDomain, chartPointBudget("overview"));
+    return [
+      ...mergeViewportDetail(samples, {
+        ...detail,
+        channels: new Set([...detail.channels].filter((key) => shown.has(key))),
+        samples: detail.samples.filter((sample) => shown.has(liveChannelKey(sample))),
+      }),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyStore, historyVersion, samples, viewportDomain]);
+  // #1827: series are built once per display change; a zoom/pan only rebuilds the reduced points.
   const chartBase = useMemo(
     () =>
       buildOverviewChartBase({
-        samples,
+        samples: displayedSamples,
         status: telemetryStatus,
         hiddenSeriesKeys,
         soloSeriesKey,
         historical,
+        rawSource,
       }),
-    [hiddenSeriesKeys, historical, samples, soloSeriesKey, telemetryStatus],
+    [displayedSamples, hiddenSeriesKeys, historical, rawSource, soloSeriesKey, telemetryStatus],
   );
   const builtGroups = useMemo(
-    () => overviewChartGroupsForDomain(chartBase, effectiveDomain, viewportDomain),
-    [chartBase, effectiveDomain, viewportDomain],
+    () => overviewChartGroupsForDomain(chartBase, effectiveDomain),
+    [chartBase, effectiveDomain],
   );
   // The clock only flips silent series to stale; it never rebuilds scenes.
   const alertEvents = useDashboardAlertEvents({
@@ -137,6 +184,21 @@ function HistoryChart({
     [alertEvents.alerts, builtGroups, annotationNowMs],
   );
   const groups = useMemo(() => applyFreshnessClock(annotatedGroups, clockMs), [annotatedGroups, clockMs]);
+  // Exact statistics: from the RAW columns (cached per range and content) or the RAW samples; never
+  // recomputed per render or cursor move.
+  const [statisticsCache] = useState(() => new Map<string, IntervalStatistics | null>());
+  const statisticsRows = useMemo(
+    () =>
+      historyStore
+        ? overviewColumnStatisticsRows(
+            groups,
+            (key, fromMs, toMs) => overviewSeriesStatistics(historyStore, statisticsCache, key, fromMs, toMs),
+            effectiveDomain,
+          )
+        : overviewStatisticsRows(groups, samples, effectiveDomain),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveDomain, groups, historyStore, historyVersion, samples, statisticsCache],
+  );
   const seriesCount = groups.reduce((count, group) => count + group.scene.series.length, 0);
   const renderedPointCount = groups.reduce(
     (count, group) =>
@@ -276,7 +338,7 @@ function HistoryChart({
             displayTimeZone={displayTimeZone}
           />
           <DashboardIntervalStatistics
-            rows={overviewStatisticsRows(groups, samples, effectiveDomain)}
+            rows={statisticsRows}
             fromMs={effectiveDomain.fromMs}
             toMs={effectiveDomain.toMs}
             isViewport={viewportDomain !== null}
@@ -292,6 +354,8 @@ function LiveTemperatureGrid({
   status,
   samples,
   historySamples,
+  historyStore = null,
+  historyVersion = 0,
   historyRange,
   historyStatus,
   historyWindow,
@@ -305,6 +369,8 @@ function LiveTemperatureGrid({
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
   historySamples: TelemetrySample[];
+  historyStore?: OverviewHistoryStore | null;
+  historyVersion?: number;
   historyRange: DashboardHistoryRange;
   historyStatus: DashboardHistoryStatus;
   historyWindow: { from: string; to: string } | null;
@@ -470,6 +536,8 @@ function LiveTemperatureGrid({
       {!allMonitoredChannelsHidden ? (
         <HistoryChart
           samples={historySamples}
+          historyStore={historyStore}
+          historyVersion={historyVersion}
           range={historyRange}
           status={historyStatus}
           telemetryStatus={status}

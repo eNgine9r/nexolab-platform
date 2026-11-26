@@ -1,4 +1,4 @@
-import { loadCompleteTelemetryHistory } from "@/lib/telemetry/history";
+import { HISTORY_MAX_RAW_ROWS, loadTelemetryHistorySlices } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 import type { RefrigerationControllerBinding } from "./controller-binding-repository";
@@ -148,18 +148,39 @@ export async function loadEmbracoHistory(
     return new Map<string, TelemetrySample[]>(EMBRACO_HISTORY_METRICS.map((metric) => [metric, []]));
   }
   const boundRange = { from: new Date(fromMs), to: range.to };
-  const entries = await Promise.all(
-    EMBRACO_HISTORY_METRICS.map(async (metric) => {
-      const result = await loadCompleteTelemetryHistory(
-        adapter,
-        { node_id: binding.nodeId, equipment_id: binding.controllerEquipmentId, metric },
-        boundRange,
-        { signal },
-      );
-      return [metric, result.samples] as const;
-    }),
-  );
-  return new Map(entries);
+  // P0 charts: each metric loads as time slices (bounded parallelism shared through the tab's
+  // history slots, page retry, a page limit per slice). The raw row budget is shared by the eight
+  // metrics; the first failure (or an over-budget window) cancels every other request.
+  const linked = new AbortController();
+  const forwardAbort = () => linked.abort(signal?.reason);
+  if (signal?.aborted) linked.abort(signal.reason);
+  else signal?.addEventListener("abort", forwardAbort, { once: true });
+  const maxRowsPerMetric = Math.floor(HISTORY_MAX_RAW_ROWS / EMBRACO_HISTORY_METRICS.length);
+  try {
+    const entries = await Promise.all(
+      EMBRACO_HISTORY_METRICS.map(async (metric) => {
+        const slices: Array<{ fromMs: number; samples: TelemetrySample[] }> = [];
+        await loadTelemetryHistorySlices(
+          adapter,
+          { node_id: binding.nodeId, equipment_id: binding.controllerEquipmentId, metric },
+          boundRange,
+          { signal: linked.signal, maxRows: maxRowsPerMetric },
+          (samples, slice) => slices.push({ fromMs: slice.from.getTime(), samples }),
+        ).catch((error: unknown) => {
+          linked.abort();
+          throw error;
+        });
+        // Slices are disjoint and individually ordered: concatenate them in time order.
+        const ordered = slices
+          .sort((left, right) => left.fromMs - right.fromMs)
+          .flatMap((slice) => slice.samples);
+        return [metric, ordered] as const;
+      }),
+    );
+    return new Map(entries);
+  } finally {
+    signal?.removeEventListener("abort", forwardAbort);
+  }
 }
 
 export function decodeRelayBits(value: number): readonly boolean[] {
