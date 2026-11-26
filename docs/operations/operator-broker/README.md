@@ -89,6 +89,8 @@ The pinned Stage 2 tool builds `FROM` a local `node:` tag of the proven base, ne
 
 **v1.5 (#1789):** a reference located under `/var/lib/nexolab/version-management/`, `/var/backups/`, any `recovery*` directory or `/etc/nexolab-storage/` counts as recovery context, whatever the line says (`recovery_path` in the evidence). On site, the recovery catalog `recovery-cc27b609eea2` names the `minio`/`minio-mc` `RELEASE` images on lines without a rollback word; v1.4 would not have protected them.
 
+**v1.6 (#1734):** approved `deploy.backend-loopback phase=prove` runs the pinned WP2c Stage 3 tool (`wp2c-stage3-backend.py prove --phase switch`) as the owner account in a bounded transient unit (900 s). It renders and proves every candidate and rollback Compose file against the live containers using only `docker inspect`, `docker network inspect` and `docker compose config`. It runs no `up`, no `exec` and no DNS probe, needs no backup receipt, and changes nothing in production. The proof files (0600, they hold runtime environment values) stay in the owner's workspace under `proofs/`. They are never the rollback source. The switch, drop-compat and rollback phases are not accepted by the schema; they come as a separate reviewed release bound to a #1428 receipt.
+
 Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)

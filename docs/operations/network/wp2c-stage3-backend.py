@@ -39,6 +39,10 @@ Modes:
                fresh backup receipt (#1428), Stage 2 active (dashboard build is
                not --pre-stage2-build), every container healthy, readiness,
                exclusive aliases, Docker DNS of the bridge host from the Edge broker.
+  prove        render and prove the candidate + rollback Compose of every service
+               of --phase against the live containers (inspect + ``docker compose
+               config`` only; no up, no exec, no backup receipt); files under
+               <workspace>/proofs, never the rollback source. STAGE3_PROVE_GREEN.
   execute      the switch phase; drop-compat: the Phase 4 phase. Both run check,
                write candidate + rollback Compose per service (0600 in a 0700 run
                directory), prove both with a daemon-free ``docker compose config``
@@ -1260,9 +1264,10 @@ def rollback_chain(args: argparse.Namespace, manifest: dict, run_dir: Path, keys
     return 0
 
 
-def prepare(args: argparse.Namespace, state: dict, ws: Path) -> tuple[Path, dict]:
+def prepare(args: argparse.Namespace, state: dict, ws: Path, runs_name: str = "runs",
+            update_latest: bool = True) -> tuple[Path, dict]:
     """Write and prove the candidate + rollback Compose files of every service (no production change)."""
-    runs = ws / "runs"
+    runs = ws / runs_name
     runs.mkdir(mode=0o700, exist_ok=True)
     run_dir = runs / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir.mkdir(mode=0o700)
@@ -1295,7 +1300,8 @@ def prepare(args: argparse.Namespace, state: dict, ws: Path) -> tuple[Path, dict
         }
         print(f"COMPOSE_FIDELITY_PROVEN {spec.key} (rollback = running container; candidate = rollback + deltas)", flush=True)
     write_json(run_dir / "manifest.json", manifest)
-    write_private(ws / "LATEST", run_dir.name + "\n")
+    if update_latest:  # a `prove` run is never the rollback source
+        write_private(ws / "LATEST", run_dir.name + "\n")
     return run_dir, manifest
 
 
@@ -1338,6 +1344,32 @@ def mode_check(args: argparse.Namespace) -> int:
         os.close(fd)
     print("STAGE3_CHECK_PASS NO_WRITES", flush=True)
     return 0
+
+
+def mode_prove(args: argparse.Namespace) -> int:
+    """Render and prove every candidate and rollback Compose file against the live containers; switch nothing.
+
+    Uses only docker inspect, docker network inspect and `docker compose config` (a pure render): no up, no exec,
+    no DNS probe, no backup receipt. Files go to <workspace>/proofs (0700/0600, they hold runtime env values) and
+    never become the LATEST run used by rollback. Gives real Compose evidence long before execution day."""
+    fd = hold_lock(Path(args.lock_path))
+    try:
+        identity_checks(args)
+        disk_check(args)
+        phase_inputs(args)
+        ws = workspace(args)
+        state = live_state(args)
+        print_plan(state["plan"])
+        need(not state["plan"]["blockers"], "PLAN_BLOCKERS " + "; ".join(state["plan"]["blockers"]))
+        need(state["central_shared_ip"], "CENTRAL_MQTT_SHARED_NETWORK_IP_UNKNOWN")
+        state.update(receipt={"status": "NOT_USED_BY_PROVE"}, readiness_before=readiness(),
+                     dashboard_identity=dashboard_identity(state["containers"][DASHBOARD.key]))
+        run_dir, manifest = prepare(args, state, ws, runs_name="proofs", update_latest=False)
+        print(f"STAGE3_PROVE_GREEN phase={args.phase} services={len(manifest['services'])} proof={run_dir} "
+              "(Compose fidelity proven; nothing switched)", flush=True)
+        return 0
+    finally:
+        os.close(fd)
 
 
 def run_phase(args: argparse.Namespace) -> int:
@@ -1438,9 +1470,9 @@ def mode_rollback(args: argparse.Namespace) -> int:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("mode", choices=("plan", "check", "execute", "drop-compat", "rollback"))
+    p.add_argument("mode", choices=("plan", "check", "prove", "execute", "drop-compat", "rollback"))
     p.add_argument("--phase", choices=tuple(PHASE_SERVICES), default="switch",
-                   help="plan/check only: which phase to plan or preflight (execute = switch, drop-compat = drop-compat)")
+                   help="plan/check/prove only: which phase (execute = switch, drop-compat = drop-compat)")
     p.add_argument("--workspace", default=DEFAULT_WORKSPACE)
     p.add_argument("--from-model", help="plan only: offline JSON (broker docker.service-model or a docker inspect array)")
     p.add_argument("--json", action="store_true", help="plan only: print the change set as JSON")
@@ -1469,7 +1501,8 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
-MODES = {"plan": mode_plan, "check": mode_check, "execute": run_phase, "drop-compat": run_phase, "rollback": mode_rollback}
+MODES = {"plan": mode_plan, "check": mode_check, "prove": mode_prove, "execute": run_phase, "drop-compat": run_phase,
+         "rollback": mode_rollback}
 
 
 def main(argv: list[str] | None = None) -> int:
