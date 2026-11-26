@@ -153,6 +153,30 @@ describe("Live history continuity on 24 h windows (#1805)", () => {
     expect(gap).toBe(30_000);
   });
 
+  it("keeps the newest captured_at when a retained event is repeated with a newer timestamp", () => {
+    const original = sample(1, T0 - 60_000, { event_id: "repeat", value: 1 });
+    const corrected = sample(1, T0 - 50_000, { event_id: "repeat", value: 2 });
+    const before = [sample(0, T0 - 70_000), original];
+    const merged = appendLiveHistoryTail(before, [corrected], dayWindow(T0), 240);
+    const repeated = merged.filter((entry) => entry.event_id.endsWith("repeat"));
+    expect(repeated).toHaveLength(1);
+    expect(repeated[0].value).toBe(2);
+    expect(repeated[0].captured_at).toBe(corrected.captured_at);
+    // An older replay of the same event never replaces the newer point.
+    const replayed = appendLiveHistoryTail(merged, [original], dayWindow(T0), 240);
+    expect(replayed.filter((entry) => entry.event_id.endsWith("repeat"))[0].value).toBe(2);
+  });
+
+  it("does not freeze a tolerance when history has too few samples to establish cadence", () => {
+    const sparse = [sample(0, T0 - 120_000), sample(1, T0 - 60_000)];
+    expect(deriveLiveSourceGapMsByChannel(sparse).size).toBe(0);
+    // Without a frozen 30 s minimum, on-time 60 s samples use the fallback and stay continuous.
+    const merged = appendLiveHistoryTail(sparse, [sample(2, T0)], dayWindow(T0), 240, {
+      sourceGapMsFor: (key) => deriveLiveSourceGapMsByChannel(sparse).get(key),
+    });
+    expect(liveHistorySegments(merged)).toHaveLength(1);
+  });
+
   it("does not re-segment reduced continuous history when building chart segments", () => {
     for (const cadenceMs of [10_000, 30_000, 60_000]) {
       for (const hours of [6, 24, 168]) {

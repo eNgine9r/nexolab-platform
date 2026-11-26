@@ -27,6 +27,8 @@ export const LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS = 180_000;
  */
 const LIVE_TAIL_REDUCTION_HYSTERESIS_RATIO = 0.25;
 const LIVE_TAIL_REDUCTION_HYSTERESIS_MINIMUM = 16;
+/** Three distinct timestamps give the two spacings `deriveChartSourceGapMs` needs. */
+const MIN_RAW_TIMESTAMPS_FOR_TOLERANCE = 3;
 
 export type LiveHistoryWindow = TelemetryHistoryWindow;
 
@@ -380,6 +382,11 @@ export function deriveLiveSourceGapMsByChannel(rawSamples: readonly TelemetrySam
   }
   const result = new Map<string, number>();
   for (const [key, channelSamples] of groups) {
+    // Fewer than two spacings cannot establish a cadence (e.g. a new 60 s channel). Leave the
+    // channel out so the live cadence observation or the fallback decides, instead of freezing
+    // the 30 s minimum and breaking every on-time sample.
+    const distinct = new Set(channelSamples.map((sample) => parsedTimestamp(sample.captured_at)));
+    if (distinct.size < MIN_RAW_TIMESTAMPS_FOR_TOLERANCE) continue;
     channelSamples.sort(
       (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
     );
@@ -451,13 +458,18 @@ export function appendLiveHistoryTail(
   };
   const byChannel = new Map<string, TelemetrySample[]>();
   const unsorted = new Set<string>();
-  const seen = new Set<string>();
+  // Source event id -> the sample object currently retained in its channel list. A repeated
+  // event keeps the newest captured_at (repository invariant).
+  const retained = new Map<string, TelemetrySample>();
 
   for (const sample of current) {
     if (!inWindow(sample)) continue;
     const id = sourceEventId(sample.event_id);
-    if (seen.has(id)) continue;
-    seen.add(id);
+    const existing = retained.get(id);
+    if (existing && parsedTimestamp(sample.captured_at) <= parsedTimestamp(existing.captured_at)) continue;
+    retained.set(id, sample);
+  }
+  for (const sample of retained.values()) {
     const key = liveChannelKey(sample);
     const list = byChannel.get(key);
     if (!list) {
@@ -480,30 +492,44 @@ export function appendLiveHistoryTail(
   for (const sample of ordered) {
     if (!inWindow(sample)) continue;
     const id = sourceEventId(sample.event_id);
-    if (seen.has(id)) continue;
-    seen.add(id);
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    const existing = retained.get(id);
+    let inheritedBreak = false;
+    if (existing) {
+      if (capturedAt <= parsedTimestamp(existing.captured_at)) continue;
+      // A newer occurrence of a retained event replaces it and keeps its continuity marker.
+      const existingList = byChannel.get(liveChannelKey(existing));
+      const index = existingList?.indexOf(existing) ?? -1;
+      if (existingList && index >= 0) existingList.splice(index, 1);
+      retained.delete(id);
+      inheritedBreak = isLiveHistorySegmentStart(existing);
+    }
     const key = liveChannelKey(sample);
     if (!isRenderable(clearSegmentStart(sample))) {
       pending.add(key);
       continue;
     }
-    const capturedAt = parsedTimestamp(sample.captured_at);
     const list = byChannel.get(key) ?? [];
     byChannel.set(key, list);
     const previous = list.at(-1);
     const previousAt = previous ? parsedTimestamp(previous.captured_at) : null;
     if (previousAt !== null && capturedAt <= previousAt) {
       // Late sample inside already covered history: keep it in time order, continuity unchanged.
+      const stored = inheritedBreak ? markSegmentStart(clearSegmentStart(sample)) : clearSegmentStart(sample);
       const index = list.findIndex((item) => parsedTimestamp(item.captured_at) > capturedAt);
-      list.splice(index < 0 ? list.length : index, 0, clearSegmentStart(sample));
+      list.splice(index < 0 ? list.length : index, 0, stored);
+      retained.set(id, stored);
       continue;
     }
     const toleranceMs = options.sourceGapMsFor?.(key) ?? LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS;
     const startsSegment =
+      inheritedBreak ||
       isLiveHistorySegmentStart(sample) ||
       pending.has(key) ||
       (previousAt !== null && capturedAt - previousAt > toleranceMs);
-    list.push(startsSegment ? markSegmentStart(clearSegmentStart(sample)) : clearSegmentStart(sample));
+    const stored = startsSegment ? markSegmentStart(clearSegmentStart(sample)) : clearSegmentStart(sample);
+    list.push(stored);
+    retained.set(id, stored);
     pending.delete(key);
   }
 
