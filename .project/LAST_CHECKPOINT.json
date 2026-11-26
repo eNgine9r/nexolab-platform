@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T11:49:56Z",
+  "timestamp": "2026-11-26T12:04:29Z",
   "actor": "claude",
-  "event": "Infrastructure sprint closeout: Stage 2 live, Stage 3 prove defect fixed (#1799) with owner-run package, persistent memory limits verified (#1794 completed), consolidated owner action package (#1800); broker frozen at v1.7",
+  "event": "Tailscale :8443 fixed via owner-approved broker v1.7 inspection route (verified; :443/:8444/:8445 unchanged; telemetry healthy)",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: action package in docs/operations/infrastructure-sprint-closeout.md (Stage 2 acceptance, :8443 approval, #1428, Stage 3). Agent: return to product development; execute owner approvals on request",
+  "next_action": "Owner: Stage 2 browser acceptance, approved-workstation viewer login on :8443, #1428 checklist, Stage 3 owner package. Agent: product development",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

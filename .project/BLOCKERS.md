@@ -1,7 +1,7 @@
 ## 2026-11-26 — Owner action package (sprint closeout; full detail in docs/operations/infrastructure-sprint-closeout.md)
 
 1. **Stage 2 browser acceptance:** at the LAN address and Tailscale `:8444`, check login, Live Data, a chart and a photo, then log out. Problem → `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=rollback …`.
-2. **Tailscale `:8443` fix (approval):** `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op network.tailscale-inspection-route --arg action=apply --ttl-minutes 120 --reason "#1784"`.
+2. **Tailscale `:8443`:** fixed on 2026-11-26. Remaining: a viewer login from an approved workstation at `https://<node>:8443/inspection-login`.
 3. **#1428 DR (critical path):** `docs/operations/dr-1428-owner-checklist.md` with the package `~/recovery-p0/dr-a-20261126T102935Z` (`SHA256SUMS` `aec18fc941538eb9165a2acd8ad5d806f33b1d5e96bf0ad7304ff88c12147e84`). The first backup needs `backup.start` (approval).
 4. **Stage 3 (after 3 A2, exact approval):** owner-run from `~/recovery-p0/stage3-20261126T114923Z/wp2c-stage3-backend.py` (`b3176baff391b104dd71c876d9b2aef97bf871954aa3fbf4bb082f45fe5acac4`) with `--retain-env CORS_ALLOWED_ORIGINS`:
    - `prove` may run now (read-only);

@@ -1,3 +1,13 @@
+## 2026-11-26 (close+) — Tailscale `:8443` fixed (#1784)
+
+- **Owner-approved** broker v1.7 `network.tailscale-inspection-route apply`: `:8443 /` and `/api` now go to the LAN gateway, and `/inspection-login` is unchanged.
+- **Results:**
+  - `:8443 /` 502 → **200**; the routes, the Stage 2 identity, the login API (401 for invalid credentials) and the WebSocket (101) work;
+  - `:443` (OAuth 302, Funnel), `:8444` and `:8445` are unchanged;
+  - telemetry is continuous.
+- **Undo:** `action=restore` from the saved configuration.
+- **Pending:** the owner viewer login from an approved workstation. The helper answers 403 to the node's own identity, which is policy.
+
 ## 2026-11-26 (close) — infrastructure sprint closeout; broker frozen at v1.7
 
 - **Stage 3 `prove`** (approval `85f89616`, with `retain_env`) found a real Compose defect before any switch: `user`. The container has `""` while the image omits the field (containerd store). Fixed in **#1799**. The broker is frozen at v1.7, and its pinned handler predates the fix, so Stage 3 runs from the owner package `~/recovery-p0/stage3-20261126T114923Z` (`b3176baf…`).
