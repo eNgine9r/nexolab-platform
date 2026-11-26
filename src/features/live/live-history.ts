@@ -9,13 +9,26 @@ import {
 } from "@/features/live/freshness";
 import { recordLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
-import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
+import { loadCompleteTelemetryHistoryForSeries, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
 export const LIVE_HISTORY_MAX_POINTS_PER_CHANNEL = chartPointBudget("live-history");
 export const LIVE_HISTORY_MIN_SOURCE_GAP_MS = 30_000;
 export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
+/**
+ * Continuity tolerance for a live-tail channel whose raw cadence is unknown (no persisted history
+ * and no cadence observation yet): 3 × the slowest standard acquisition preset (60 s).
+ */
+export const LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS = 180_000;
+/**
+ * A channel may exceed its point budget by this share (at least 16 points) before the live tail is
+ * re-reduced. Without hysteresis every new sample would re-reduce the whole series.
+ */
+const LIVE_TAIL_REDUCTION_HYSTERESIS_RATIO = 0.25;
+const LIVE_TAIL_REDUCTION_HYSTERESIS_MINIMUM = 16;
+/** Three distinct timestamps give the two spacings `deriveChartSourceGapMs` needs. */
+const MIN_RAW_TIMESTAMPS_FOR_TOLERANCE = 3;
 
 export type LiveHistoryWindow = TelemetryHistoryWindow;
 
@@ -34,7 +47,15 @@ export interface LiveHistoryResult {
    * Compact numbers only (timestamp + value), never the reduced chart series.
    */
   intervalColumns: LiveIntervalColumns;
+  /**
+   * #1805: per-channel continuity tolerance derived once from the RAW samples. The live tail is
+   * appended with this tolerance; it is never re-derived from reduced chart points.
+   */
+  sourceGapMsByChannel: Map<string, number>;
 }
+
+/** Resolves the raw-derived continuity tolerance for a live channel key, if known. */
+export type LiveSourceGapLookup = (channelKey: string) => number | undefined;
 
 export interface LiveHistoryOrderingState {
   newestCapturedAtByChannel: Map<string, number>;
@@ -115,17 +136,22 @@ export function advanceLiveHistoryWindow(
   };
 }
 
-function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetrySample[] {
-  const sorted = [...samples].sort(
-    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-  );
-  const sourceGapMs = deriveChartSourceGapMs(
+function rawSourceGapMs(sorted: readonly TelemetrySample[]): number {
+  return deriveChartSourceGapMs(
     sorted.map((sample) => ({
       id: sourceEventId(sample.event_id),
       timestampMs: parsedTimestamp(sample.captured_at),
     })),
     LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   );
+}
+
+function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetrySample[] {
+  const sorted = [...samples].sort(
+    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
+  );
+  // Only ever called on RAW samples (history load): the median spacing is the acquisition cadence.
+  const sourceGapMs = rawSourceGapMs(sorted);
   const annotated: TelemetrySample[] = [];
   let previousRenderableAt: number | null = null;
   let breakPending = false;
@@ -179,8 +205,19 @@ function downsampleChannel(
   window: LiveHistoryWindow,
   maximumPoints: number,
 ): TelemetrySample[] {
-  const annotated = annotateSourceSegments(samples);
-  if (annotated.length <= maximumPoints) return annotated;
+  return reduceAnnotatedChannel(annotateSourceSegments(samples), window, maximumPoints);
+}
+
+/**
+ * Reduces one channel whose continuity is ALREADY decided (segment-start markers set from raw
+ * data). It never re-derives gaps, so it is safe to apply to previously reduced points.
+ */
+function reduceAnnotatedChannel(
+  annotated: readonly TelemetrySample[],
+  window: LiveHistoryWindow,
+  maximumPoints: number,
+): TelemetrySample[] {
+  if (annotated.length <= maximumPoints) return [...annotated];
 
   const seriesKey = annotated[0] ? liveChannelKey(annotated[0]) : "unknown";
   const pins = alarmTransitionPins(annotated);
@@ -301,36 +338,72 @@ export async function loadCompleteLiveHistory(
     throw new Error("At least one channel identity is required for history loading");
   }
 
-  const allSamples: TelemetrySample[] = [];
-  let snapshotAt: string | undefined;
-
-  for (const identity of identities) {
-    const result = await loadCompleteTelemetryHistory(
-      adapter,
-      {
-        node_id: identity.node_id,
-        equipment_id: identity.equipment_id,
-        channel_id: identity.channel_id,
-        metric: identity.metric,
-      },
-      window,
-      { signal, snapshotAt },
-    );
-    snapshotAt = result.snapshotAt;
-    allSamples.push(...result.samples);
-  }
-
+  // #1809: channels load in parallel under one snapshot (bounded by the shared history limiter).
+  // Each channel is reduced as soon as it has loaded; only compact raw columns (for exact
+  // statistics) and the reduced series are kept, not every channel's raw sample objects.
   const intervalColumns: LiveIntervalColumns = {};
-  recordLiveIntervalSamples(
-    intervalColumns,
-    allSamples.filter((sample) => acceptedSample(sample)),
+  const sourceGapMsByChannel = new Map<string, number>();
+  const perChannel = await loadCompleteTelemetryHistoryForSeries(
+    adapter,
+    identities.map((identity) => ({
+      node_id: identity.node_id,
+      equipment_id: identity.equipment_id,
+      channel_id: identity.channel_id,
+      metric: identity.metric,
+    })),
+    window,
+    { signal },
+    (result) => {
+      recordLiveIntervalSamples(
+        intervalColumns,
+        result.samples.filter((sample) => acceptedSample(sample)),
+      );
+      for (const [key, gapMs] of deriveLiveSourceGapMsByChannel(result.samples)) {
+        sourceGapMsByChannel.set(key, gapMs);
+      }
+      return {
+        snapshotAt: result.snapshotAt,
+        reduced: downsampleLiveHistory(result.samples, window, maximumPointsPerChannel),
+        cadence: newestRawSamplesPerChannel(result.samples, CADENCE_OBSERVATION_LIMIT),
+      };
+    },
   );
+  // Same channel order as a single downsampleLiveHistory call (stable sort keeps time order).
+  const samples = perChannel
+    .flatMap((channel) => channel.reduced)
+    .sort((left, right) => liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA"));
   return {
-    samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
+    samples,
     intervalColumns,
-    snapshotAt: snapshotAt!,
-    cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
+    snapshotAt: perChannel[0].snapshotAt,
+    cadenceSamples: perChannel.flatMap((channel) => channel.cadence),
+    sourceGapMsByChannel,
   };
+}
+
+/** #1805: per-channel continuity tolerance from RAW samples (the acquisition cadence × 3, ≥ 30 s). */
+export function deriveLiveSourceGapMsByChannel(rawSamples: readonly TelemetrySample[]): Map<string, number> {
+  const groups = new Map<string, TelemetrySample[]>();
+  for (const sample of rawSamples) {
+    if (!acceptedSample(sample)) continue;
+    const key = liveChannelKey(sample);
+    const current = groups.get(key);
+    if (current) current.push(sample);
+    else groups.set(key, [sample]);
+  }
+  const result = new Map<string, number>();
+  for (const [key, channelSamples] of groups) {
+    // Fewer than two spacings cannot establish a cadence (e.g. a new 60 s channel). Leave the
+    // channel out so the live cadence observation or the fallback decides, instead of freezing
+    // the 30 s minimum and breaking every on-time sample.
+    const distinct = new Set(channelSamples.map((sample) => parsedTimestamp(sample.captured_at)));
+    if (distinct.size < MIN_RAW_TIMESTAMPS_FOR_TOLERANCE) continue;
+    channelSamples.sort(
+      (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
+    );
+    result.set(key, rawSourceGapMs(channelSamples));
+  }
+  return result;
 }
 
 /**
@@ -360,35 +433,146 @@ function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: 
   );
 }
 
+export interface LiveHistoryTailOptions {
+  /** Raw-derived continuity tolerance per channel; unknown channels use the fallback tolerance. */
+  sourceGapMsFor?: LiveSourceGapLookup;
+  /**
+   * Channels whose last live sample was not renderable (invalid quality or missing value). The next
+   * renderable sample of such a channel starts a new segment. Mutated in place so the state
+   * survives between single-sample calls.
+   */
+  pendingBreakChannels?: Set<string>;
+}
+
+/**
+ * #1805: appends raw live samples to an already reduced, continuity-annotated history.
+ *
+ * Continuity of `current` was decided on raw data and is kept as is. Each new sample is compared
+ * with the previous retained point of its channel using the raw-derived tolerance, never with a
+ * tolerance re-derived from reduced points (which turned minute-spaced reduced points into false
+ * "source gaps" and broke continuous 24 h charts into dozens of pieces). Points that left the
+ * window are dropped. A channel is re-reduced only when it exceeds its budget by the hysteresis
+ * margin, and the re-reduction respects the existing segment markers.
+ */
+export function appendLiveHistoryTail(
+  current: readonly TelemetrySample[],
+  incoming: readonly TelemetrySample[],
+  window: LiveHistoryWindow,
+  maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
+  options: LiveHistoryTailOptions = {},
+): TelemetrySample[] {
+  const from = window.from.getTime();
+  const to = window.to.getTime();
+  const inWindow = (sample: TelemetrySample) => {
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    return acceptedSample(sample) && capturedAt >= from && capturedAt <= to;
+  };
+  const byChannel = new Map<string, TelemetrySample[]>();
+  const unsorted = new Set<string>();
+  // Source event id -> the sample object currently retained in its channel list. A repeated
+  // event keeps the newest captured_at (repository invariant).
+  const retained = new Map<string, TelemetrySample>();
+
+  for (const sample of current) {
+    if (!inWindow(sample)) continue;
+    const id = sourceEventId(sample.event_id);
+    const existing = retained.get(id);
+    if (existing && parsedTimestamp(sample.captured_at) <= parsedTimestamp(existing.captured_at)) continue;
+    retained.set(id, sample);
+  }
+  for (const sample of retained.values()) {
+    const key = liveChannelKey(sample);
+    const list = byChannel.get(key);
+    if (!list) {
+      byChannel.set(key, [sample]);
+      continue;
+    }
+    if (parsedTimestamp(sample.captured_at) < parsedTimestamp(list.at(-1)!.captured_at)) unsorted.add(key);
+    list.push(sample);
+  }
+  for (const key of unsorted) {
+    byChannel
+      .get(key)!
+      .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at));
+  }
+
+  const pending = options.pendingBreakChannels ?? new Set<string>();
+  const ordered = [...incoming].sort(
+    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
+  );
+  for (const sample of ordered) {
+    if (!inWindow(sample)) continue;
+    const id = sourceEventId(sample.event_id);
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    const existing = retained.get(id);
+    let inheritedBreak = false;
+    if (existing) {
+      if (capturedAt <= parsedTimestamp(existing.captured_at)) continue;
+      // A newer occurrence of a retained event replaces it and keeps its continuity marker.
+      const existingList = byChannel.get(liveChannelKey(existing));
+      const index = existingList?.indexOf(existing) ?? -1;
+      if (existingList && index >= 0) existingList.splice(index, 1);
+      retained.delete(id);
+      inheritedBreak = isLiveHistorySegmentStart(existing);
+    }
+    const key = liveChannelKey(sample);
+    if (!isRenderable(clearSegmentStart(sample))) {
+      pending.add(key);
+      continue;
+    }
+    const list = byChannel.get(key) ?? [];
+    byChannel.set(key, list);
+    const previous = list.at(-1);
+    const previousAt = previous ? parsedTimestamp(previous.captured_at) : null;
+    if (previousAt !== null && capturedAt <= previousAt) {
+      // Late sample inside already covered history: keep it in time order, continuity unchanged.
+      const stored = inheritedBreak ? markSegmentStart(clearSegmentStart(sample)) : clearSegmentStart(sample);
+      const index = list.findIndex((item) => parsedTimestamp(item.captured_at) > capturedAt);
+      list.splice(index < 0 ? list.length : index, 0, stored);
+      retained.set(id, stored);
+      continue;
+    }
+    const toleranceMs = options.sourceGapMsFor?.(key) ?? LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS;
+    const startsSegment =
+      inheritedBreak ||
+      isLiveHistorySegmentStart(sample) ||
+      pending.has(key) ||
+      (previousAt !== null && capturedAt - previousAt > toleranceMs);
+    const stored = startsSegment ? markSegmentStart(clearSegmentStart(sample)) : clearSegmentStart(sample);
+    list.push(stored);
+    retained.set(id, stored);
+    pending.delete(key);
+  }
+
+  const hysteresis = Math.max(
+    LIVE_TAIL_REDUCTION_HYSTERESIS_MINIMUM,
+    Math.ceil(maximumPointsPerChannel * LIVE_TAIL_REDUCTION_HYSTERESIS_RATIO),
+  );
+  return [...byChannel.entries()]
+    .sort(([left], [right]) => left.localeCompare(right, "uk-UA"))
+    .flatMap(([, channelSamples]) =>
+      channelSamples.length > maximumPointsPerChannel + hysteresis
+        ? reduceAnnotatedChannel(channelSamples, window, maximumPointsPerChannel)
+        : channelSamples,
+    );
+}
+
 export function mergeLiveHistoryTail(
   current: readonly TelemetrySample[],
   incoming: readonly TelemetrySample[],
   selectedKeys: ReadonlySet<string>,
   window: LiveHistoryWindow,
   maximumPointsPerChannel = LIVE_HISTORY_MAX_POINTS_PER_CHANNEL,
+  sourceGapMsFor?: LiveSourceGapLookup,
 ): TelemetrySample[] {
-  const from = window.from.getTime();
-  const to = window.to.getTime();
-  const byEventId = new Map<string, TelemetrySample>();
-
-  for (const sample of [...current, ...incoming]) {
-    const capturedAt = parsedTimestamp(sample.captured_at);
-    if (
-      !selectedKeys.has(liveChannelKey(sample)) ||
-      !acceptedSample(sample) ||
-      capturedAt < from ||
-      capturedAt > to
-    ) {
-      continue;
-    }
-    const key = sourceEventId(sample.event_id);
-    const existing = byEventId.get(key);
-    if (!existing || parsedTimestamp(sample.captured_at) >= parsedTimestamp(existing.captured_at)) {
-      byEventId.set(key, sample);
-    }
-  }
-
-  return downsampleLiveHistory([...byEventId.values()], window, maximumPointsPerChannel);
+  const selected = (sample: TelemetrySample) => selectedKeys.has(liveChannelKey(sample));
+  return appendLiveHistoryTail(
+    current.filter(selected),
+    incoming.filter(selected),
+    window,
+    maximumPointsPerChannel,
+    { sourceGapMsFor },
+  );
 }
 
 export function liveHistorySegments(samples: readonly TelemetrySample[]): TelemetrySample[][] {

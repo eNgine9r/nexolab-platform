@@ -1,5 +1,6 @@
 import { parseTelemetryCollection, parseTelemetryReadiness } from "./contract";
 import { TelemetryClientError, asTelemetryError } from "./errors";
+import { historyRequestLimiter, type RequestLimiter } from "./request-limiter";
 import type {
   TelemetryCollectionResponse,
   TelemetryFilters,
@@ -13,6 +14,8 @@ export type TelemetryFetch = (input: RequestInfo | URL, init?: RequestInit) => P
 export interface TelemetryRestClientOptions {
   fetch?: TelemetryFetch;
   timeoutMs?: number;
+  /** Bounds concurrent history pages; defaults to the tab-wide shared limiter (#1809). */
+  historyLimiter?: RequestLimiter;
 }
 
 interface ManagedSignal {
@@ -90,6 +93,7 @@ function pathWithQuery(path: string, params: URLSearchParams): string {
 export class TelemetryRestClient {
   private readonly fetchImpl: TelemetryFetch;
   private readonly timeoutMs: number;
+  private readonly historyLimiter: RequestLimiter;
 
   constructor(
     private readonly apiBaseUrl: string,
@@ -97,6 +101,7 @@ export class TelemetryRestClient {
   ) {
     this.fetchImpl = options.fetch ?? fetch.bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? 8_000;
+    this.historyLimiter = options.historyLimiter ?? historyRequestLimiter;
   }
 
   readiness(signal?: AbortSignal): Promise<TelemetryReadinessResponse> {
@@ -117,7 +122,9 @@ export class TelemetryRestClient {
     if (query.snapshot_at !== undefined) {
       params.set("snapshot_at", timestamp(query.snapshot_at));
     }
-    return this.request(pathWithQuery("/api/v1/telemetry/history", params), parseTelemetryCollection, signal);
+    const path = pathWithQuery("/api/v1/telemetry/history", params);
+    // The request timeout starts inside the limiter slot, never while the page is still queued.
+    return this.historyLimiter.run(signal, () => this.request(path, parseTelemetryCollection, signal));
   }
 
   private async request<T>(
