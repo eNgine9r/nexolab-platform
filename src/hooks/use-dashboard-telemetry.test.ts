@@ -231,14 +231,18 @@ describe("useDashboardTelemetry", () => {
       handlers.onSample(failure);
     });
 
-    await waitFor(() => {
-      expect(result.current.historySamples.map((item) => item.event_id)).toEqual([
-        "persisted",
-        "newer-tail",
-        "communication-failure",
-      ]);
-    });
-  });
+    // #1827: live history is coalesced (one update per 5 s for the default 24 h window).
+    await waitFor(
+      () => {
+        expect(result.current.historySamples.map((item) => item.event_id)).toEqual([
+          "persisted",
+          "newer-tail",
+          "communication-failure",
+        ]);
+      },
+      { timeout: 8_000 },
+    );
+  }, 15_000);
 
   it("filters only chart temperature series while keeping the full dashboard view", async () => {
     adapterState.latest.mockResolvedValue({
