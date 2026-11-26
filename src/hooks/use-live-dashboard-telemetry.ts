@@ -59,7 +59,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/auth-runtim
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
 import {
-  loadCompleteTelemetryHistory,
+  loadCompleteTelemetryHistoryForSeries,
   reconcileTelemetryHistoryEvents,
   seedTelemetryHistoryOrderingState,
   type TelemetryHistoryOrderingState,
@@ -617,38 +617,40 @@ export function useLiveDashboardTelemetry({
 
     const adapter = securedAdapter(config, organizationId);
     void (async () => {
-      let snapshotAt: string | undefined;
       const sourceTails: TelemetrySample[] = [];
       const reducedBySeries: Record<string, TelemetrySample[]> = {};
-
-      for (const item of dashboard.items) {
-        const result = await loadCompleteTelemetryHistory(
-          adapter,
-          dashboardSeriesQuery(item),
-          requestedWindow,
-          { signal: controller.signal, snapshotAt },
-        );
-        snapshotAt = result.snapshotAt;
-        const key = dashboardItemIdentity(item);
-        const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
-        recordIntervalSamples(statsRef.current, key, item, samples);
-        const rawGap = deriveLiveSourceGapMsByChannel(samples).values().next().value;
-        if (rawGap !== undefined) sourceGapRef.current[key] = rawGap;
-        reducedBySeries[key] = reduceHistory(item, samples, requestedWindow, pointsPerSeriesRef.current);
-        if (requestedRange.kind !== "custom") {
-          // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
-          cadenceRef.current = seedCadenceObservations(
-            cadenceRef.current,
-            key,
-            samples.slice(-CADENCE_OBSERVATION_LIMIT).map(sampleTimestamp),
-          );
-        }
-        const tail = samples.at(-1);
-        if (tail) {
-          sourceTails.push(tail);
-          latestRef.current[key] = newestSample(latestRef.current[key], tail);
-        }
-      }
+      // #1809: every series loads in parallel under one snapshot, bounded by the shared limiter.
+      // Each series is reduced as soon as it has loaded, so its raw samples can be released
+      // instead of holding every channel's complete raw history until the slowest finishes.
+      await loadCompleteTelemetryHistoryForSeries(
+        adapter,
+        dashboard.items.map(dashboardSeriesQuery),
+        requestedWindow,
+        { signal: controller.signal },
+        (result, index) => {
+          if (disposed) return;
+          const item = dashboard.items[index];
+          const key = dashboardItemIdentity(item);
+          const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
+          recordIntervalSamples(statsRef.current, key, item, samples);
+          const rawGap = deriveLiveSourceGapMsByChannel(samples).values().next().value;
+          if (rawGap !== undefined) sourceGapRef.current[key] = rawGap;
+          reducedBySeries[key] = reduceHistory(item, samples, requestedWindow, pointsPerSeriesRef.current);
+          if (requestedRange.kind !== "custom") {
+            // #1522: raw (pre-reduction) persisted spacing bootstraps freshness.
+            cadenceRef.current = seedCadenceObservations(
+              cadenceRef.current,
+              key,
+              samples.slice(-CADENCE_OBSERVATION_LIMIT).map(sampleTimestamp),
+            );
+          }
+          const tail = samples.at(-1);
+          if (tail) {
+            sourceTails.push(tail);
+            latestRef.current[key] = newestSample(latestRef.current[key], tail);
+          }
+        },
+      );
 
       if (disposed) return;
       let ordering = seedTelemetryHistoryOrderingState(sourceTails);
