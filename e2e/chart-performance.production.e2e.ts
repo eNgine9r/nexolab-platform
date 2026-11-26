@@ -315,6 +315,19 @@ ANALYZE telemetry_samples;
         };
       }, interactionStartedAt);
       const workspace = page.getByTestId("live-chart-workspace");
+      // Scale-dependent detail: time from the end of the last pan until detailed measurements of the
+      // visible window are shown (raw columns: immediate; aggregated backend: one request).
+      let detailLatencyMs: number | null = null;
+      if ((await workspace.count()) > 0) {
+        const waitStartedAt = Date.now();
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          if ((await workspace.getAttribute("data-viewport-detail")) !== "none") {
+            detailLatencyMs = Date.now() - waitStartedAt;
+            break;
+          }
+          await page.waitForTimeout(100);
+        }
+      }
       const detail =
         (await workspace.count()) > 0 ? await workspace.getAttribute("data-viewport-detail") : null;
       const source =
@@ -338,6 +351,7 @@ ANALYZE telemetry_samples;
         heapMegabytes: heap,
         historySource: source,
         viewportDetailPoints: detail,
+        viewportDetailAfterInteractionMs: detailLatencyMs,
         interaction,
       };
       results.push(result);
