@@ -93,6 +93,7 @@ export class DashboardServerStatistics {
   private fetched: Array<{ fromMs: number; toMs: number; at: number }> = [];
   private readonly failedAt = new Map<string, number>();
   private pending: [number, number] | null = null;
+  private inFlight: [number, number] | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private controller: AbortController | null = null;
 
@@ -125,30 +126,48 @@ export class DashboardServerStatistics {
     return this.identities.has(itemIdentity);
   }
 
-  get(itemIdentity: string, fromMs: number, toMs: number): IntervalStatistics | null {
-    const hit = this.exact.get(this.key(itemIdentity, fromMs, toMs));
-    if (hit) return hit;
+  /**
+   * The one range every statistics row of a request uses, so a table never mixes intervals: the
+   * requested range when its server statistics exist (or there are no aggregated series), else
+   * the newest compatible fetched range (same length, at most 30 s older) while a fresh one loads.
+   */
+  effectiveRange(fromMs: number, toMs: number): [number, number] {
+    if (this.identities.size === 0) return [fromMs, toMs];
+    const fetchedExact = this.fetched.some((range) => range.fromMs === fromMs && range.toMs === toMs);
+    if (fetchedExact) return [fromMs, toMs];
     const reusable = [...this.fetched]
       .reverse()
-      .find(
-        (range) =>
-          range.toMs - range.fromMs === toMs - fromMs &&
-          Math.abs(range.fromMs - fromMs) <= SERVER_STATISTICS_REUSE_MS &&
-          this.exact.has(this.key(itemIdentity, range.fromMs, range.toMs)),
-      );
+      .find((range) => this.compatible([range.fromMs, range.toMs], [fromMs, toMs]));
     if (reusable) {
       // Refreshed halfway through the reuse period, so a moving window never runs out of numbers.
       if (this.now() - reusable.at > SERVER_STATISTICS_REUSE_MS / 2) this.schedule(fromMs, toMs);
-      return this.exact.get(this.key(itemIdentity, reusable.fromMs, reusable.toMs)) ?? null;
+      return [reusable.fromMs, reusable.toMs];
     }
     this.schedule(fromMs, toMs);
-    return null;
+    return [fromMs, toMs];
+  }
+
+  /** Exact server statistics of an aggregated series for a range from `effectiveRange`. */
+  exactFor(itemIdentity: string, fromMs: number, toMs: number): IntervalStatistics | null {
+    return this.exact.get(this.key(itemIdentity, fromMs, toMs)) ?? null;
+  }
+
+  get(itemIdentity: string, fromMs: number, toMs: number): IntervalStatistics | null {
+    const [effectiveFrom, effectiveTo] = this.effectiveRange(fromMs, toMs);
+    return this.exactFor(itemIdentity, effectiveFrom, effectiveTo);
+  }
+
+  private compatible(left: [number, number], right: [number, number]): boolean {
+    return (
+      left[1] - left[0] === right[1] - right[0] && Math.abs(left[0] - right[0]) <= SERVER_STATISTICS_REUSE_MS
+    );
   }
 
   dispose(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
     this.pending = null;
+    this.inFlight = null;
     this.controller?.abort();
     this.controller = null;
   }
@@ -161,6 +180,8 @@ export class DashboardServerStatistics {
     if (!this.adapter || this.identities.size === 0) return;
     const failed = this.failedAt.get(`${fromMs}|${toMs}`);
     if (failed !== undefined && this.now() - failed < SERVER_STATISTICS_RETRY_MS) return;
+    // A compatible request already in flight answers this one; repeated reads never cancel it.
+    if (this.inFlight && this.compatible(this.inFlight, [fromMs, toMs])) return;
     this.pending = [fromMs, toMs];
     if (this.timer !== null) return;
     this.timer = setTimeout(() => void this.flush(), SERVER_STATISTICS_BATCH_MS);
@@ -173,9 +194,12 @@ export class DashboardServerStatistics {
     const adapter = this.adapter;
     if (!range || !adapter || !(range[1] > range[0])) return;
     const [fromMs, toMs] = range;
+    if (this.inFlight && this.compatible(this.inFlight, range)) return;
+    // Only a genuinely different range (a new zoom) supersedes the request in flight.
     this.controller?.abort();
     const controller = new AbortController();
     this.controller = controller;
+    this.inFlight = range;
     const identities = [...this.identities];
     try {
       const response = await fetchAggregatedSeries(
@@ -210,7 +234,10 @@ export class DashboardServerStatistics {
       if (controller.signal.aborted) return;
       this.failedAt.set(`${fromMs}|${toMs}`, this.now());
     } finally {
-      if (this.controller === controller) this.controller = null;
+      if (this.controller === controller) {
+        this.controller = null;
+        this.inFlight = null;
+      }
     }
   }
 }

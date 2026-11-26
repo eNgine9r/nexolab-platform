@@ -373,49 +373,53 @@ export function useLiveDashboardTelemetry({
     [tailSourceGapMs],
   );
   const dashboardItemsRef = useRef<readonly LiveDashboardItem[]>([]);
+  // Aggregated series (P0 charts): one cancellable request for the committed viewport; a newer
+  // viewport or history reload aborts it.
+  const requestAggregateDetail = useCallback(() => {
+    detailControllerRef.current?.abort();
+    detailControllerRef.current = null;
+    const committed = detailDomainRef.current;
+    const adapter = historyAdapterRef.current;
+    const aggregated = [...aggregatedRef.current];
+    if (!committed || !adapter?.historyAggregate || aggregated.length === 0) return;
+    const controller = new AbortController();
+    detailControllerRef.current = controller;
+    void aggregateViewportDetail(
+      adapter,
+      aggregated.map(([, identity]) => identity),
+      committed,
+      pointsPerSeriesRef.current,
+      (channelKey) => {
+        const entry = aggregated.find(([, identity]) => liveChannelKey(identity) === channelKey);
+        return entry ? tailSourceGapMs(entry[0]) : undefined;
+      },
+      controller.signal,
+    )
+      .then((detail) => {
+        if (controller.signal.aborted) return;
+        const byItem: Record<string, ViewportDetail> = {};
+        for (const [item, identity] of aggregated) {
+          const channelKey = liveChannelKey(identity);
+          if (!detail.channels.has(channelKey)) continue;
+          byItem[item] = {
+            ...detail,
+            channels: new Set([channelKey]),
+            samples: detail.samples.filter((sample) => liveChannelKey(sample) === channelKey),
+          };
+        }
+        setViewportDetail((current) => ({ ...current, ...byItem }));
+      })
+      // A failed or superseded detail request keeps the full-range points; nothing is invented.
+      .catch(() => undefined);
+  }, [tailSourceGapMs]);
   const setDetailViewport = useCallback(
     (domain: { fromMs: number; toMs: number } | null) => {
       detailDomainRef.current = domain && domain.toMs > domain.fromMs ? domain : null;
-      detailControllerRef.current?.abort();
-      detailControllerRef.current = null;
       // Raw series: from the browser's raw columns, no request.
       setViewportDetail(computeViewportDetail(dashboardItemsRef.current));
-      // Aggregated series (P0 charts): one cancellable request; a newer viewport aborts it.
-      const committed = detailDomainRef.current;
-      const adapter = historyAdapterRef.current;
-      const aggregated = [...aggregatedRef.current];
-      if (!committed || !adapter?.historyAggregate || aggregated.length === 0) return;
-      const controller = new AbortController();
-      detailControllerRef.current = controller;
-      void aggregateViewportDetail(
-        adapter,
-        aggregated.map(([, identity]) => identity),
-        committed,
-        pointsPerSeriesRef.current,
-        (channelKey) => {
-          const entry = aggregated.find(([, identity]) => liveChannelKey(identity) === channelKey);
-          return entry ? tailSourceGapMs(entry[0]) : undefined;
-        },
-        controller.signal,
-      )
-        .then((detail) => {
-          if (controller.signal.aborted) return;
-          const byItem: Record<string, ViewportDetail> = {};
-          for (const [item, identity] of aggregated) {
-            const channelKey = liveChannelKey(identity);
-            if (!detail.channels.has(channelKey)) continue;
-            byItem[item] = {
-              ...detail,
-              channels: new Set([channelKey]),
-              samples: detail.samples.filter((sample) => liveChannelKey(sample) === channelKey),
-            };
-          }
-          setViewportDetail((current) => ({ ...current, ...byItem }));
-        })
-        // A failed or superseded detail request keeps the full-range points; nothing is invented.
-        .catch(() => undefined);
+      requestAggregateDetail();
     },
-    [computeViewportDetail, tailSourceGapMs],
+    [computeViewportDetail, requestAggregateDetail],
   );
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
@@ -592,7 +596,9 @@ export function useLiveDashboardTelemetry({
       recordIntervalSamples(statsRef.current, key, item, sourceSamples);
       if (selection.kind !== "custom") {
         const columns = statsRef.current[key];
-        if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime());
+        // Raw evidence is kept 35 s before the window: a sliding statistics range may be up to 30 s
+        // older while fresh server statistics load, and its raw rows must stay exact.
+        if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime() - 35_000);
       }
       historyRef.current[key] = appendSavedDashboardTail(
         item,
@@ -884,8 +890,10 @@ export function useLiveDashboardTelemetry({
       setLatest({ ...latestRef.current });
       setCadence(cadenceRef.current);
       setHistory({ ...reducedBySeries });
-      // A viewport committed while loading (e.g. a restored saved view) gets its detail now.
+      // A viewport committed while loading (a restored saved view, a reload after a reconnect or a
+      // density change) gets its detail now: raw from the columns, aggregated by one request.
       setViewportDetail(computeViewportDetail(dashboard.items));
+      requestAggregateDetail();
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
       setHistoryProgress(null);
       setHistoryStatus("ready");
@@ -920,6 +928,7 @@ export function useLiveDashboardTelemetry({
     scopeKey,
     tailSourceGapMs,
     computeViewportDetail,
+    requestAggregateDetail,
     serverStats,
   ]);
 
@@ -947,13 +956,16 @@ export function useLiveDashboardTelemetry({
   // browser's raw columns. A new server result changes this callback so rows recompute.
   const intervalStatistics = useCallback<LiveDashboardIntervalStatistics>(
     (itemIdentity, fromMs, toMs) => {
-      if (serverStats.has(itemIdentity)) return serverStats.get(itemIdentity, fromMs, toMs);
+      // One range for every row (aggregated and raw), so the table never mixes intervals.
+      const [effectiveFrom, effectiveTo] = serverStats.effectiveRange(fromMs, toMs);
+      if (serverStats.has(itemIdentity))
+        return serverStats.exactFor(itemIdentity, effectiveFrom, effectiveTo);
       return cachedIntervalStatistics(
         statsCacheRef.current,
         itemIdentity,
         statsRef.current[itemIdentity],
-        fromMs,
-        toMs,
+        effectiveFrom,
+        effectiveTo,
       );
     },
     // statsVersion: consumers recompute when new exact server statistics arrive.

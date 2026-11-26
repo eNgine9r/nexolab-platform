@@ -204,4 +204,54 @@ describe("Saved Dashboard aggregated history (P0 charts)", () => {
     expect(historyAggregate).toHaveBeenCalledTimes(2);
     stats.dispose();
   });
+
+  it("gives every row one range and never cancels a slow compatible request in flight", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { adapter, queries } = aggregateAdapter(() => 9);
+    const slow = {
+      historyAggregate: vi.fn(async (query: HistoryAggregateQuery) => {
+        await gate;
+        return adapter.historyAggregate!(query);
+      }),
+    } as unknown as TelemetryAdapter;
+    let now = T0 + 3_600_000;
+    const stats = new DashboardServerStatistics(
+      () => undefined,
+      () => now,
+    );
+    const window = { fromMs: T0, toMs: T0 + 3_600_000 };
+    stats.reset(
+      slow,
+      new Map([["item-1", sample("106-01")]]),
+      new Map([["item-1", { fromMs: T0 } as never]]),
+      window,
+    );
+
+    // 20 s later the window has moved; every row still uses the loaded range while a refresh loads.
+    now += 20_000;
+    expect(stats.effectiveRange(T0 + 20_000, T0 + 3_620_000)).toEqual([T0, T0 + 3_600_000]);
+    await wait(500);
+    expect(slow.historyAggregate).toHaveBeenCalledTimes(1);
+    // The window keeps moving while the request is slow: no second request, no cancellation.
+    for (const shift of [25_000, 30_000]) {
+      now = T0 + 3_600_000 + shift;
+      stats.effectiveRange(T0 + shift, T0 + 3_600_000 + shift);
+      await wait(450);
+    }
+    expect(slow.historyAggregate).toHaveBeenCalledTimes(1);
+    release();
+    await wait(50);
+    expect(queries).toHaveLength(1);
+    expect(stats.effectiveRange(T0 + 20_000, T0 + 3_620_000)).toEqual([T0 + 20_000, T0 + 3_620_000]);
+    expect(stats.exactFor("item-1", T0 + 20_000, T0 + 3_620_000)?.max).toBe(9);
+    stats.dispose();
+  });
+
+  it("uses the requested range unchanged when no series is aggregated", () => {
+    const stats = new DashboardServerStatistics(() => undefined);
+    expect(stats.effectiveRange(T0, T0 + 1_000)).toEqual([T0, T0 + 1_000]);
+  });
 });
