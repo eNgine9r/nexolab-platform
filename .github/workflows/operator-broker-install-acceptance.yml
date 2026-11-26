@@ -10,6 +10,7 @@ on:
       - docs/operations/operator-broker/**
       - docs/operations/storage/nexolab-storage-inventory.sh
       - docs/operations/network/wp2c-stage2-frontend.py
+      - docs/operations/network/wp2c-stage3-backend.py
       - tests/test_ci_operator_broker.py
       - .github/workflows/operator-broker-install-acceptance.yml
   push:
@@ -18,6 +19,7 @@ on:
       - docs/operations/operator-broker/**
       - docs/operations/storage/nexolab-storage-inventory.sh
       - docs/operations/network/wp2c-stage2-frontend.py
+      - docs/operations/network/wp2c-stage3-backend.py
       - .github/workflows/operator-broker-install-acceptance.yml
   workflow_dispatch:
 
@@ -52,6 +54,7 @@ jobs:
           cp docs/operations/operator-broker/{nexolab-operator-broker.py,nexolab-operator-broker.service,nexolab-operator-broker.socket,install-operator-broker.sh} /tmp/payload/
           cp docs/operations/storage/nexolab-storage-inventory.sh /tmp/payload/
           cp docs/operations/network/wp2c-stage2-frontend.py /tmp/payload/
+          cp docs/operations/network/wp2c-stage3-backend.py /tmp/payload/
           chmod 0444 /tmp/payload/*
 
       - name: Workloads (one NEXOLAB container that logs a secret, one foreign product)
@@ -200,6 +203,16 @@ jobs:
           swapped=$(call deploy.lan-frontend phase=prepare artifact_sha256=$bad "${ident[@]}" --approval "$id" || true)
           grep -q '"error": "approval_mismatch"' <<<"$swapped"
           sudo test ! -e "/var/lib/nexolab-operator-deploy/$bad.zip"
+          # Stage 3 prove (v1.6): the pinned tool runs as the owner account and stops on this non-production node
+          id=$(approve deploy.backend-loopback --arg phase=prove)
+          prove=$(call deploy.backend-loopback phase=prove --approval "$id") || { echo "$prove"; exit 1; }
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); res = r["result"]
+          assert r["ok"] and res["ok"] is False and res["deploy_user"] == "nexolab" and not res["production_changed"], r
+          assert any(m.startswith("STOP WRONG_NODE") for m in res["markers"]), res
+          assert "RUN_AS_OPERATOR_NONROOT" not in res["output"], res
+          ' "$prove"
           # DR backup: read-only health; start refuses while the unit is not installed
           call backup.health | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["ok"] and r["result"]["units"]["nexolab-dr-backup.service"]["LoadState"] == "not-found", r'
           id=$(approve backup.start)
@@ -295,6 +308,20 @@ jobs:
           assert st["nexolab/ci-stale:issue-8-arm64"] in ("untagged", "deleted"), st
           ' "$out"
           docker image inspect nexolab/ci-previous-ui:issue-9-arm64 >/dev/null
+          # #1789: a recovery-catalog compose naming an image, without any rollback word, protects it too
+          docker tag alpine:3.22 nexolab/ci-catalog:issue-10-arm64
+          sudo install -d -m 0755 /var/lib/nexolab/version-management/catalog/recovery-ci/deploy
+          echo "    image: nexolab/ci-catalog:issue-10-arm64" | sudo tee /var/lib/nexolab/version-management/catalog/recovery-ci/deploy/compose.central.yaml >/dev/null
+          printf '{"images": [{"ref": "nexolab/ci-catalog:issue-10-arm64", "id": "%s"}]}' "$rid" > /tmp/m5.json
+          csha=$(sha256sum /tmp/m5.json | cut -d' ' -f1); cp /tmp/m5.json "$HOME/operator-inbox/$csha.json"
+          id=$(approve storage.remove-images --arg manifest_sha256=$csha)
+          out=$(call storage.remove-images manifest_sha256=$csha --approval "$id") || { echo "$out"; exit 1; }
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); st = {x["ref"]: x["status"] for x in r["result"]["results"]}
+          assert st == {"nexolab/ci-catalog:issue-10-arm64": "skipped_protected_or_rollback_record"}, st
+          ' "$out"
+          docker image inspect nexolab/ci-catalog:issue-10-arm64 >/dev/null
 
       - name: Stage 2 offline build pattern on real BuildKit (#1782)
         run: |
@@ -368,23 +395,23 @@ jobs:
 
           # 2. clean upgrade keeps v1.1 as the retained previous version
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/payload 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.4.0" <<<"$out"
-          test "$(version)" = 1.4.0
+          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.6.0" <<<"$out"
+          test "$(version)" = 1.6.0
           test "$(sudo stat -c '%U:%G %a' /var/lib/nexolab-operator/previous)" = "root:root 700"
 
           # 3. explicit rollback to v1.1, then roll forward again
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.4.0 to=1.1.0" <<<"$out"
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.6.0 to=1.1.0" <<<"$out"
           test "$(version)" = 1.1.0
           test "$(broker_sha)" = "$v11"
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.4.0" <<<"$out"
-          test "$(version)" = 1.4.0
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.6.0" <<<"$out"
+          test "$(version)" = 1.6.0
 
           # 4. a tampered payload changes nothing
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/tampered 2>&1) && exit 1 || true
           grep -q "installed broker left unchanged" <<<"$out"
-          test "$(version)" = 1.4.0
+          test "$(version)" = 1.6.0
           sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit | grep -q '"ok": true'
 
       - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence

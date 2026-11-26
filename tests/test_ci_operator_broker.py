@@ -715,6 +715,23 @@ class BrokerV12Tests(unittest.TestCase):
             broker_module.validate_args(schema, {"phase": "shell", "expect_current_source": "a" * 40,
                                                  "expect_current_build": "abcdefgh"})
 
+    def test_stage3_prove_runs_only_the_prove_mode_as_the_owner(self) -> None:
+        (self.install / "handlers" / "wp2c-stage3-backend.py").write_text("# pinned tool\n")
+        broker = self.broker(output="COMPOSE_FIDELITY_PROVEN central-mqtt (x)\nSTAGE3_PROVE_GREEN phase=switch services=5\n")
+        result = broker_module.op_deploy_backend_loopback(broker, {"phase": "prove"})
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["production_changed"])
+        self.assertEqual(len(self.calls), 1)
+        call = self.calls[0]
+        self.assertEqual(call[:6], ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", "--uid=nexolab"])
+        tool = call.index(str(self.install / "handlers" / "wp2c-stage3-backend.py"))
+        self.assertEqual(call[tool + 1:tool + 4], ["prove", "--phase", "switch"])
+        self.assertTrue(any(m.startswith("STAGE3_PROVE_GREEN") for m in result["markers"]))
+        schema = broker_module.production_ops()["deploy.backend-loopback"].schema
+        for phase in ("execute", "drop-compat", "rollback", "check"):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.validate_args(schema, {"phase": phase})
+
     def test_deploy_account_is_never_root_or_the_dev_account(self) -> None:
         self.mock.patch.stopall()
         import pwd
@@ -1007,6 +1024,23 @@ class BrokerV14Tests(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertTrue(all("node_modules" not in e["path"] for i in result["images"] for e in i["evidence"]))
 
+    def test_recovery_catalog_and_backup_paths_are_recovery_context(self) -> None:
+        # #1789: the site recovery catalog referenced minio images on lines without any rollback word
+        self.write("catalog/recovery-cc27b609eea2/deploy/compose/compose.central.yaml",
+                   "    image: nexolab/dashboard:issue-1609-27b27386-arm64\n")
+        self.write("catalog/plain/compose.yaml", f"image: {self.rollback_id[7:19]}\n")
+        result = broker_module.image_references(self.entries, roots=(self.root / "records",))
+        by_ref = {i["ref"]: i for i in result["images"]}
+        stale = by_ref["nexolab/dashboard:issue-1609-27b27386-arm64"]
+        self.assertEqual(stale["rollback_references"], 1)
+        self.assertTrue(stale["evidence"][0]["recovery_path"])
+        plain = by_ref["nexolab/dashboard:issue-1522-469485b0-arm64"]
+        self.assertEqual((plain["references"], plain["rollback_references"]), (1, 0))
+        for path in ("/var/lib/nexolab/version-management/catalog/x/manifest.json", "/var/backups/nexolab/a/b.txt",
+                     "/home/nexolab/nexolab-platform/runtime/recovery/r.json", "/etc/nexolab-storage/protected-images"):
+            self.assertTrue(broker_module.RECOVERY_PATH.search(path), path)
+        self.assertFalse(broker_module.RECOVERY_PATH.search("/home/nexolab/commander-workspaces/nexolab-1518-test/x.py"))
+
     def test_snippets_are_redacted(self) -> None:
         self.write("ws/env.txt", f"ROLLBACK_IMAGE={self.stale_id} password=hunter2\n")
         result = broker_module.image_references(self.entries, roots=(self.root / "records",))
@@ -1084,7 +1118,8 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertIn(op.kind, ("read", "recover", "approved"))
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
-        self.assertEqual(approved, ["backup.start", "deploy.lan-frontend", "service.restore-legacy-https",
+        self.assertEqual(approved, ["backup.start", "deploy.backend-loopback", "deploy.lan-frontend",
+                                    "service.restore-legacy-https",
                                     "service.retire-legacy-https", "storage.cleanup-regenerable",
                                     "storage.remove-images", "wifi.connect-test",
                                     "wifi.profile-remove"])  # each one reviewed explicitly
@@ -1149,6 +1184,7 @@ class BrokerStaticContractTests(unittest.TestCase):
             "nexolab-operator-broker.socket": SOCKET_UNIT,
             "nexolab-storage-inventory.sh": ROOT / "docs" / "operations" / "storage" / "nexolab-storage-inventory.sh",
             "wp2c-stage2-frontend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage2-frontend.py",
+            "wp2c-stage3-backend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage3-backend.py",
         }
         self.assertEqual(set(pins), set(expected))
         for name, path in expected.items():

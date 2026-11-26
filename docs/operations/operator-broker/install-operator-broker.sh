@@ -8,7 +8,7 @@
 #   bash install-operator-broker.sh status
 #   bash install-operator-broker.sh uninstall
 #
-# <payload-dir> holds the five pinned payload files below (a reviewed copy of main). Every
+# <payload-dir> holds the six pinned payload files below (a reviewed copy of main). Every
 # file is first copied into a root-only staging directory and verified there, so nothing
 # the development account can still modify is ever installed. The broker is
 # socket-activated, touches no production service, container, network or credential at
@@ -25,10 +25,11 @@ set -Eeuo pipefail
 umask 022
 
 declare -A PIN=(
-  [nexolab-operator-broker.py]=42ef050d88f62b8f1dd6087864cd1dc505b0376ac756c19d24ce5ea8e67b03d9
+  [nexolab-operator-broker.py]=dfa29c0338d5a598a85a708d1e9e0b516e775484d901d7eb41e1b59a6a3921e9
   [nexolab-operator-broker.service]=9dd3659153a46a5f1c8877bb21a9ceffc22f8e0e0f0bb3ae29b48e93a9a601bd
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
   [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b
+  [wp2c-stage3-backend.py]=30d9c13451ab9ab8faf4a7a41e011128520fb20f377e539c3b08e8d12b9d8ad5
   [wp2c-stage2-frontend.py]=bcbb9788a36ba717e43d8717ea790714f147b87bb77af995cc64a29acd3086cb
 )
 LIB=/usr/local/lib/nexolab-operator
@@ -191,6 +192,7 @@ install() {
   sudo install -o root -g root -m 0755 "$STAGE/nexolab-operator-broker.py" "$LIB/nexolab-operator-broker.py"
   sudo install -o root -g root -m 0755 "$STAGE/nexolab-storage-inventory.sh" "$LIB/handlers/nexolab-storage-inventory.sh"
   sudo install -o root -g root -m 0755 "$STAGE/wp2c-stage2-frontend.py" "$LIB/handlers/wp2c-stage2-frontend.py"
+  sudo install -o root -g root -m 0755 "$STAGE/wp2c-stage3-backend.py" "$LIB/handlers/wp2c-stage3-backend.py"
   sudo install -o root -g root -m 0644 "$STAGE/nexolab-operator-broker.service" "$UNIT_DIR/nexolab-operator-broker.service"
   sudo install -o root -g root -m 0644 "$STAGE/nexolab-operator-broker.socket" "$UNIT_DIR/nexolab-operator-broker.socket"
   sudo install -d -o root -g root -m 0700 /etc/nexolab-operator /etc/nexolab-operator/approvals
