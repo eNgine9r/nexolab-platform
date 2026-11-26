@@ -1,3 +1,20 @@
+## 2026-11-26 (evening) — Stage 2 prepared GREEN; manifest evidence; broker v1.5 guard fix; Stage 3 prove
+
+- **Broker v1.4.0 installed by the owner.** The approved `deploy.lan-frontend phase=prepare` (receipt 67) is **GREEN**:
+  - offline build (no network, pull or cache) on the proven `node:22.23.1-bookworm-slim` base;
+  - image `nexolab/dashboard:wp2c-stage2-c5bb48a1dad3-arm64` (`sha256:c02579b1…`) verified file by file (17,627 files);
+  - both Compose files proven;
+  - isolated preview: identity `c5bb48a1`/`xRUAt2U9…`, Docker DNS and server API verified, preview removed;
+  - `STAGE2_CHECK_PASS NO_WRITES`.
+
+  **Production unchanged:** LAN dashboard still `7db6e1a8`/`CWBs…`; all endpoints 200; telemetry persisting. The bundle has same-origin API/WS, no backend ports and no host origins. Its only runtime internet reference is the optional Telegram Mini App SDK on that route. **Stage 2 activation awaits the separate `phase=execute` approval.**
+- **SSD evidence:** `storage.image-references` on manifest B (complete, 120,370 files).
+  - **Keep:** `issue-1625`, `1609` and `1603` (recorded rollback images of older releases), and the `minio`/`minio-mc` `RELEASE` images (referenced by the recovery catalog `recovery-cc27b609eea2`).
+  - **Manifest C** (`3c928c51…`): 20 images with no rollback, recovery or protection reference. Removal needs specific owner authorization.
+- **#1790, broker v1.5 (merged):** the guard now counts references under the recovery catalog, backup, recovery or protection paths as recovery context. v1.4 would not have protected the `minio` images.
+- **#1792 (open):** Stage 3 `prove` mode plus broker v1.6 `deploy.backend-loopback phase=prove`. It gives real Compose fidelity evidence on the host without switching anything.
+- **#1791 (open):** minimal #1428 owner checklist covering activation, key custody, off-device copy and independent restore.
+
 ## 2026-11-26 (afternoon) — v1.3 live; cleanup +6.2 GiB; Stage 2 build fixed (v1.4); manifest A withdrawn; DR-A activation package
 
 - **Broker v1.3.0 installed by the owner** (v1.1.0 retained for rollback).
