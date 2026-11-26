@@ -176,6 +176,12 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertIn("deployment_runtime", result["classes"])
 
+    def test_dev_resource_guard_is_governance_routed_without_unknown_paths(self) -> None:
+        result = classify(["scripts/dev-resource-guard.py", "tests/test_ci_dev_resource_guard.py",
+                           "docs/operations/dev-session-memory.md"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+
     def test_dr_offdevice_copy_is_dr_routed_without_unknown_paths(self) -> None:
         paths = [
             "scripts/nexolab-dr-offdevice-copy.py",
