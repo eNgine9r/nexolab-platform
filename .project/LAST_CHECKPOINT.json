@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T15:30:00Z",
+  "timestamp": "2026-11-26T17:00:00Z",
   "actor": "claude",
-  "event": "P0 chart performance & reliability (#1804): 24 h break, Timeout 8000 ms (DB pool convoy), load volume and zoom/pan root causes fixed in source (#1806, #1808, #1814, #1812, #1815 merged); not deployed",
+  "event": "#1813 merged (aggregated history with raw fallback, viewport detail, exact statistics); consolidated frontend-only chart RC built (91a1003a, build DZ6ux7EZK) and staged, not deployed",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: approve a frontend-only release for browser acceptance of #1805/#1809/#1810 (LAN + HTTPS, real history); backend #1807/#1811 after DR #1428. Agent: #1813 (L5).",
+  "next_action": "Owner: approve the chart RC (archive Stage 2 workspace, deploy.lan-frontend prepare/execute, browser acceptance LAN + :8444) per docs/operations/chart-p0-release-candidate.md; backend chart work after DR #1428.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -71,7 +71,7 @@
       "issue": 1762
     },
     "next_work_package": {
-      "issue": 1813
+      "issue": 1762
     }
   },
   "work_packages": [
@@ -12640,7 +12640,7 @@
     {
       "issue": 1813,
       "title": "Use the aggregated history API with raw fallback, exact statistics and zoom detail",
-      "lifecycle": "ready",
+      "lifecycle": "needs_validation",
       "priority": "critical",
       "scope": "Feature-detected aggregate path (series groups <= 4), raw fallback, exact viewport statistics, zoom detail, gap summary server fields.",
       "depends_on": [
@@ -12662,7 +12662,12 @@
         "services/telemetry-service/tests/"
       ],
       "evidence": {
-        "site_cutover": false
+        "merged": "PR #1817 merge 10150491 (exact-head GREEN, 46/46 browser specs)",
+        "release_candidate": "frontend artifact 91a1003af2bf85632637f57c32851129bae373f1bd013edbf4511136b5d4b505 build DZ6ux7EZK-NU0NhUmnhVr staged in operator-inbox",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending",
+        "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
       }
     }
   ],
