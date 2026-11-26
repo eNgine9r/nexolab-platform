@@ -92,10 +92,11 @@ export class DashboardServerStatistics {
   private readonly exact = new Map<string, IntervalStatistics>();
   private fetched: Array<{ fromMs: number; toMs: number; at: number }> = [];
   private readonly failedAt = new Map<string, number>();
-  private pending: [number, number] | null = null;
-  private inFlight: [number, number] | null = null;
+  // Independent ranges (the zoomed viewport and the full window) are requested independently and
+  // never cancel each other; compatible sliding ranges are coalesced (review).
+  private pending: Array<[number, number]> = [];
+  private readonly inFlight = new Map<string, { range: [number, number]; controller: AbortController }>();
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private controller: AbortController | null = null;
 
   constructor(
     private readonly onChange: () => void,
@@ -166,10 +167,9 @@ export class DashboardServerStatistics {
   dispose(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    this.pending = null;
-    this.inFlight = null;
-    this.controller?.abort();
-    this.controller = null;
+    this.pending = [];
+    for (const request of this.inFlight.values()) request.controller.abort();
+    this.inFlight.clear();
   }
 
   private key(itemIdentity: string, fromMs: number, toMs: number): string {
@@ -181,25 +181,29 @@ export class DashboardServerStatistics {
     const failed = this.failedAt.get(`${fromMs}|${toMs}`);
     if (failed !== undefined && this.now() - failed < SERVER_STATISTICS_RETRY_MS) return;
     // A compatible request already in flight answers this one; repeated reads never cancel it.
-    if (this.inFlight && this.compatible(this.inFlight, [fromMs, toMs])) return;
-    this.pending = [fromMs, toMs];
+    const range: [number, number] = [fromMs, toMs];
+    if ([...this.inFlight.values()].some((request) => this.compatible(request.range, range))) return;
+    // Of compatible pending ranges keep the newest; independent ranges are all kept.
+    this.pending = [...this.pending.filter((pending) => !this.compatible(pending, range)), range];
     if (this.timer !== null) return;
     this.timer = setTimeout(() => void this.flush(), SERVER_STATISTICS_BATCH_MS);
   }
 
-  private async flush(): Promise<void> {
+  private flush(): void {
     this.timer = null;
-    const range = this.pending;
-    this.pending = null;
+    const ranges = this.pending;
+    this.pending = [];
+    for (const range of ranges) void this.request(range);
+  }
+
+  private async request(range: [number, number]): Promise<void> {
     const adapter = this.adapter;
-    if (!range || !adapter || !(range[1] > range[0])) return;
+    if (!adapter || !(range[1] > range[0])) return;
+    if ([...this.inFlight.values()].some((request) => this.compatible(request.range, range))) return;
     const [fromMs, toMs] = range;
-    if (this.inFlight && this.compatible(this.inFlight, range)) return;
-    // Only a genuinely different range (a new zoom) supersedes the request in flight.
-    this.controller?.abort();
+    const requestKey = `${fromMs}|${toMs}`;
     const controller = new AbortController();
-    this.controller = controller;
-    this.inFlight = range;
+    this.inFlight.set(requestKey, { range, controller });
     const identities = [...this.identities];
     try {
       const response = await fetchAggregatedSeries(
@@ -234,10 +238,7 @@ export class DashboardServerStatistics {
       if (controller.signal.aborted) return;
       this.failedAt.set(`${fromMs}|${toMs}`, this.now());
     } finally {
-      if (this.controller === controller) {
-        this.controller = null;
-        this.inFlight = null;
-      }
+      if (this.inFlight.get(requestKey)?.controller === controller) this.inFlight.delete(requestKey);
     }
   }
 }

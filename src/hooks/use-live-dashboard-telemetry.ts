@@ -761,6 +761,9 @@ export function useLiveDashboardTelemetry({
       // series takes the raw path below.
       const aggregatedItems = new Map<string, TelemetrySample>();
       const windowStatistics = new Map<string, IntervalStatistics>();
+      // The raw series of a mixed dashboard load under the aggregate snapshot, so every series
+      // describes the same completed window (review).
+      let sharedSnapshotAt: string | undefined;
       const eligible = dashboard.items.filter(aggregateEligible);
       if (adapter.historyAggregate && eligible.length > 0) {
         try {
@@ -774,6 +777,7 @@ export function useLiveDashboardTelemetry({
               pointsPerSeriesRef.current,
             );
             if (disposed) return;
+            sharedSnapshotAt = result.snapshotAt;
             for (const [key, identity] of identities) {
               const channelKey = liveChannelKey(identity);
               if (result.aggregatedChannels.has(channelKey)) {
@@ -816,7 +820,7 @@ export function useLiveDashboardTelemetry({
         adapter,
         rawItems.map(dashboardSeriesQuery),
         requestedWindow,
-        { signal: controller.signal },
+        { signal: controller.signal, snapshotAt: sharedSnapshotAt },
         (result, index) => {
           if (disposed) return;
           const item = rawItems[index];

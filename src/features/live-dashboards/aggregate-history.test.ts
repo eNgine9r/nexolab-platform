@@ -254,4 +254,32 @@ describe("Saved Dashboard aggregated history (P0 charts)", () => {
     const stats = new DashboardServerStatistics(() => undefined);
     expect(stats.effectiveRange(T0, T0 + 1_000)).toEqual([T0, T0 + 1_000]);
   });
+
+  it("requests the zoomed viewport and the full window independently, neither cancelling the other", async () => {
+    const signals: AbortSignal[] = [];
+    const { adapter } = aggregateAdapter((query) => (query.to.getTime() - query.from.getTime()) / 60_000);
+    const slow = {
+      historyAggregate: vi.fn(async (query: HistoryAggregateQuery, signal?: AbortSignal) => {
+        if (signal) signals.push(signal);
+        await wait(300);
+        return adapter.historyAggregate!(query);
+      }),
+    } as unknown as TelemetryAdapter;
+    const stats = new DashboardServerStatistics(
+      () => undefined,
+      () => T0 + 3_600_000,
+    );
+    stats.reset(slow, new Map([["item-1", sample("106-01")]]));
+    // The table (viewport) and the density counter (full window) ask alternately while loading.
+    for (let round = 0; round < 3; round += 1) {
+      stats.effectiveRange(T0 + 600_000, T0 + 1_200_000);
+      stats.effectiveRange(T0, T0 + 3_600_000);
+      await wait(150);
+    }
+    await wait(1_000);
+    expect(signals.every((signal) => !signal.aborted)).toBe(true);
+    expect(stats.exactFor("item-1", T0 + 600_000, T0 + 1_200_000)?.max).toBe(10);
+    expect(stats.exactFor("item-1", T0, T0 + 3_600_000)?.max).toBe(60);
+    stats.dispose();
+  });
 });
