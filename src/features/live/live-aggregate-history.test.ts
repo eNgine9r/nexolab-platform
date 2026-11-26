@@ -150,6 +150,7 @@ describe("aggregated history display (#1813)", () => {
       gap_count: expected.gaps.count,
       gap_total_ms: expected.gaps.totalMs,
       gap_longest_ms: expected.gaps.longestMs,
+      recent_valid_ms: [],
     };
     const mapped = wireToIntervalStatistics(wire, fromMs, toMs);
     expect(mapped.validCount).toBe(expected.validCount);
