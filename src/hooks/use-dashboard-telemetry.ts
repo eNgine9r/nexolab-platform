@@ -397,6 +397,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     historyOrderingRef.current = null;
     historyPendingLiveRef.current = [];
+    // A flush pending for the previous window must not consume the new window's samples.
+    if (tailTimerRef.current !== null) globalThis.clearTimeout(tailTimerRef.current);
+    tailTimerRef.current = null;
     tailBufferRef.current = [];
     historyTailContextRef.current = {
       scopeKey,

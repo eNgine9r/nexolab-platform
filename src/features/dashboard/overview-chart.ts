@@ -315,7 +315,7 @@ function detailSegments(series: OverviewBaseSeries, fromMs: number, toMs: number
     if (end > start) inside.push({ ...segment, points: segment.points.slice(start, end) });
   }
   if (inside.length === 0) return series.segments;
-  let reduced: ChartSegment[];
+  let reduced: readonly ChartSegment[];
   try {
     reduced = reduceTruthfully(inside);
   } catch {
