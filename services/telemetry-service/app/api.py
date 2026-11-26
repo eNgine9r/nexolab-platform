@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.contracts import Alarm, Quality
-from app.db import Database, TelemetryQuery
+from app.db import Database, HistoryCapacityError, TelemetryQuery
 from app.delivery import PersistedTelemetryReadModel, StalenessState
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
@@ -153,12 +153,21 @@ def create_api_router(
             from_at=from_at,
             to_at=to_at,
         )
-        rows, resolved_snapshot_at = read_model.history_snapshot_samples(
-            query=query,
-            limit=limit + 1,
-            offset=offset,
-            snapshot_at=snapshot_at,
-        )
+        try:
+            rows, resolved_snapshot_at = read_model.history_snapshot_samples(
+                query=query,
+                limit=limit + 1,
+                offset=offset,
+                snapshot_at=snapshot_at,
+            )
+        except HistoryCapacityError as error:
+            # #1807: fail fast inside the browser's request budget instead of queueing for a
+            # pooled connection; the client retries this page under the same snapshot.
+            raise HTTPException(
+                status_code=503,
+                detail=str(error),
+                headers={"Retry-After": "1"},
+            ) from error
         return _collection(
             rows,
             limit=limit,
