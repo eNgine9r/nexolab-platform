@@ -340,6 +340,7 @@ export function useLiveDashboardTelemetry({
   );
   useEffect(() => () => serverStats.dispose(), [serverStats]);
   const detailDomainRef = useRef<{ fromMs: number; toMs: number } | null>(null);
+  const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
   const [viewportDetail, setViewportDetail] = useState<Record<string, ViewportDetail>>({});
   // #1805: continuity tolerance per series, derived once from the RAW history load, and channels
   // whose last live sample was not renderable (the next point starts a new segment).
@@ -429,7 +430,6 @@ export function useLiveDashboardTelemetry({
   );
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
-  const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
   const historySelectionRef = useRef<LiveDashboardHistoryRange>(historyRange);
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeScopeRef = useRef<string | null>(scopeKey);
