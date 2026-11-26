@@ -112,7 +112,12 @@ export function sceneDataSignature(scene: ChartRendererScene): string {
       }
     }
   }
-  const { xDomain: _xDomain, interactionDomain: _interactionDomain, series, ...rest } = scene;
+  // Everything except the visible window and the (separately hashed) series points.
+  const rest: Record<string, unknown> = { ...scene };
+  delete rest.xDomain;
+  delete rest.interactionDomain;
+  delete rest.series;
+  const series = scene.series;
   const metadata = JSON.stringify({
     rest,
     series: series.map(({ segments, ...meta }) => ({
