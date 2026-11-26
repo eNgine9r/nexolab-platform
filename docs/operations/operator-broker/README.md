@@ -91,6 +91,16 @@ The pinned Stage 2 tool builds `FROM` a local `node:` tag of the proven base, ne
 
 **v1.6 (#1734):** approved `deploy.backend-loopback phase=prove` runs the pinned WP2c Stage 3 tool (`wp2c-stage3-backend.py prove --phase switch`) as the owner account in a bounded transient unit (900 s). It renders and proves every candidate and rollback Compose file against the live containers using only `docker inspect`, `docker network inspect` and `docker compose config`. It runs no `up`, no `exec` and no DNS probe, needs no backup receipt, and changes nothing in production. The proof files (0600, they hold runtime environment values) stay in the owner's workspace under `proofs/`. They are never the rollback source. The switch, drop-compat and rollback phases are not accepted by the schema; they come as a separate reviewed release bound to a #1428 receipt.
 
+**v1.7 (#1796):**
+
+- `deploy.backend-loopback` accepts `retain_env=CORS_ALLOWED_ORIGINS`, bound by the approval. That acknowledges the compatibility origin kept in the CORS allowlist during the dual-publish switch.
+- Approved `network.tailscale-inspection-route` (#1784):
+  - `apply` proceeds only from the known broken `:8443` shape (`/` on the retired 3102/3100) and only when the LAN gateway serves the Stage 2 build;
+  - it saves `tailscale serve get-config --all` (root, 0600), sets `/` and `/api` to the LAN gateway and leaves `/inspection-login` untouched;
+  - it verifies through Tailscale HTTPS: `/` 200, the identity is the Stage 2 build, and `/api/v1` answers;
+  - any failure restores the saved configuration; `restore` puts back the newest saved configuration;
+  - Funnel `:443`, `:8444` and `:8445` are never touched.
+
 Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)
