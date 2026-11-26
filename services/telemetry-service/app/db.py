@@ -26,6 +26,8 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
@@ -34,6 +36,21 @@ from app.committed_receipts import CommittedReceiptIdentity, prepare_committed_r
 
 
 TELEMETRY_HISTORY_ADVISORY_LOCK_ID = 263_000_001
+# #1807: history reads use their own bounded pool so chart loading can never starve ingestion or
+# the other APIs of connections, and they fail fast inside the browser's 8 s request budget
+# instead of queueing for the default 30 s pool checkout.
+HISTORY_READ_POOL_SIZE = 4
+HISTORY_READ_POOL_TIMEOUT_SECONDS = 2.0
+HISTORY_READ_STATEMENT_TIMEOUT_MS = 6_000
+
+
+class HistoryCapacityError(RuntimeError):
+    """History read capacity or time budget exhausted; the client should retry later."""
+
+
+def _is_statement_timeout(error: OperationalError) -> bool:
+    # PostgreSQL SQLSTATE 57014 query_canceled (statement_timeout).
+    return getattr(getattr(error, "orig", None), "sqlstate", None) == "57014"
 
 
 class Base(DeclarativeBase):
@@ -274,11 +291,29 @@ class Database:
             expire_on_commit=False,
             class_=Session,
         )
+        if self.engine.dialect.name == "postgresql":
+            self.history_engine = create_engine(
+                database_url,
+                pool_pre_ping=True,
+                pool_size=HISTORY_READ_POOL_SIZE,
+                max_overflow=0,
+                pool_timeout=HISTORY_READ_POOL_TIMEOUT_SECONDS,
+                connect_args=connect_args,
+            )
+        else:
+            self.history_engine = self.engine
+        self._history_sessions = sessionmaker(
+            bind=self.history_engine,
+            expire_on_commit=False,
+            class_=Session,
+        )
 
     def create_schema(self) -> None:
         Base.metadata.create_all(self.engine)
 
     def dispose(self) -> None:
+        if self.history_engine is not self.engine:
+            self.history_engine.dispose()
         self.engine.dispose()
 
     def ping(self) -> bool:
@@ -720,36 +755,53 @@ class Database:
         offset: int,
         snapshot_at: datetime | None = None,
     ) -> tuple[list[TelemetrySample], datetime]:
-        with self._sessions() as session:
-            with session.begin():
-                resolved_snapshot_at = snapshot_at
-                if resolved_snapshot_at is None:
-                    if self.engine.dialect.name == "postgresql":
-                        session.execute(
-                            text("SELECT pg_advisory_xact_lock(:lock_id)"),
-                            {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
-                        )
-                        resolved_snapshot_at = session.scalar(
-                            select(func.clock_timestamp())
-                        )
-                    else:
-                        resolved_snapshot_at = datetime.now(UTC)
+        """One history page under an ingestion snapshot watermark.
 
-                if not isinstance(resolved_snapshot_at, datetime):
-                    raise RuntimeError("Unable to establish telemetry history snapshot")
-
-                snapshot_query = replace(
-                    query,
-                    received_before=resolved_snapshot_at,
-                )
-                statement = self._history_statement(
-                    query=snapshot_query,
-                    limit=limit,
-                    offset=offset,
-                )
-                rows = list(session.scalars(statement))
-
+        #1807: the watermark is fixed in its own short transaction. The exclusive advisory lock
+        waits for in-flight inserts (which hold it shared) and is released at once, so the
+        page SELECT never blocks ingestion or other history requests. Previously the lock was
+        held for the whole SELECT, and concurrent chart loads exhausted the shared pool.
+        """
+        try:
+            resolved_snapshot_at = (
+                snapshot_at if snapshot_at is not None else self._establish_history_snapshot()
+            )
+            if not isinstance(resolved_snapshot_at, datetime):
+                raise RuntimeError("Unable to establish telemetry history snapshot")
+            snapshot_query = replace(query, received_before=resolved_snapshot_at)
+            statement = self._history_statement(query=snapshot_query, limit=limit, offset=offset)
+            with self._history_sessions() as session:
+                with session.begin():
+                    self._limit_history_statement(session)
+                    rows = list(session.scalars(statement))
+        except SQLAlchemyTimeoutError as error:
+            raise HistoryCapacityError("History read capacity is exhausted") from error
+        except OperationalError as error:
+            if _is_statement_timeout(error):
+                raise HistoryCapacityError("History query exceeded its time budget") from error
+            raise
         return rows, resolved_snapshot_at
+
+    def _establish_history_snapshot(self) -> datetime:
+        with self._history_sessions() as session:
+            with session.begin():
+                if self.history_engine.dialect.name != "postgresql":
+                    return datetime.now(UTC)
+                self._limit_history_statement(session)
+                session.execute(
+                    text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                    {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+                )
+                resolved = session.scalar(select(func.clock_timestamp()))
+        if not isinstance(resolved, datetime):
+            raise RuntimeError("Unable to establish telemetry history snapshot")
+        return resolved
+
+    def _limit_history_statement(self, session: Session) -> None:
+        if self.history_engine.dialect.name == "postgresql":
+            session.execute(
+                text(f"SET LOCAL statement_timeout = {int(HISTORY_READ_STATEMENT_TIMEOUT_MS)}")
+            )
 
     @staticmethod
     def _session_linked() -> Any:
