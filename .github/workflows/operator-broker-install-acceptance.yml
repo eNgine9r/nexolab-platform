@@ -276,7 +276,8 @@ jobs:
           if sudo -u runner test -r /home/nexolab/commander-workspaces/ci-release/site-activation-report.json; then exit 1; fi
           printf '{"images": [{"ref": "nexolab/ci-rollback:issue-9-arm64", "id": "%s"}, {"ref": "nexolab/ci-stale:issue-8-arm64", "id": "%s"}]}' "$rid" "$rid" > /tmp/m4.json
           sha=$(sha256sum /tmp/m4.json | cut -d' ' -f1); cp /tmp/m4.json "$HOME/operator-inbox/$sha.json"
-          evidence=$(call storage.image-references manifest_sha256=$sha)
+          evidence=$(call storage.image-references manifest_sha256=$sha) || { echo "$evidence"; exit 1; }
+          echo "$evidence" | head -c 3000
           python3 -c '
           import json, sys
           r = json.loads(sys.argv[1]); res = r["result"]; by = {i["ref"]: i for i in res["images"]}
@@ -285,7 +286,7 @@ jobs:
           assert rb["rollback_references"] >= 1 and any("ci-release" in e["path"] for e in rb["evidence"]), rb
           ' "$evidence"
           id=$(approve storage.remove-images --arg manifest_sha256=$sha)
-          out=$(call storage.remove-images manifest_sha256=$sha --approval "$id")
+          out=$(call storage.remove-images manifest_sha256=$sha --approval "$id") || { echo "$out"; exit 1; }
           echo "$out" | head -c 2000
           python3 -c '
           import json, sys
