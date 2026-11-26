@@ -239,6 +239,30 @@ async function viewportDetailLatency(page: Page, testId: string, lastInteraction
   return { latencyMs: null, points: "none" };
 }
 
+/**
+ * P0 charts correctness: the statistics of the full window state, for every one of the 24 series,
+ * the exact peak written to PostgreSQL (25 + channel), the communication errors as failed polls and
+ * the 5 min silent gap as a gap — whether they came from raw columns or the aggregated backend.
+ */
+async function assertExactStatistics(page: Page, channels: number): Promise<void> {
+  const rows = page.getByTestId("dashboard-statistics-row");
+  await expect(rows).toHaveCount(channels, { timeout: 60_000 });
+  for (let channel = 1; channel <= channels; channel += 1) {
+    const row = rows.filter({
+      has: page.locator("th", { hasText: new RegExp(`(^|\\s)perf-${channel} · temperature`) }),
+    });
+    await expect(row).toHaveCount(1);
+    const cells = row.locator("td");
+    await expect
+      .poll(async () => Number.parseFloat(((await cells.nth(1).textContent()) ?? "").replace(",", ".")), {
+        timeout: 30_000,
+      })
+      .toBe(25 + channel);
+    await expect(cells.nth(3)).toContainText("з помилкою");
+    await expect(cells.nth(5)).toContainText("прогал");
+  }
+}
+
 async function heapMegabytes(page: Page): Promise<number | null> {
   return page.evaluate(() => {
     const memory = Reflect.get(performance, "memory") as { usedJSHeapSize?: number } | undefined;
@@ -354,6 +378,7 @@ ANALYZE telemetry_samples;
       });
       const firstChartMs = Date.now() - startedAt;
       const ingestMs = await ingest;
+      await assertExactStatistics(page, channelCount);
 
       const { interaction, lastInteractionAt } = await measureZoomPan(page);
       // Scale-dependent detail: time from the end of the last pan until detailed measurements of the
@@ -413,14 +438,23 @@ SELECT gen_random_uuid()::text, ${sqlString(organizationId)}, ${sqlString(dashbo
        NULL, 'degC'
 FROM generate_series(1, ${channelCount}) AS channel;
 `);
-    {
+    // P0 charts: through the aggregated backend, and through the raw path the current site backend
+    // uses (aggregate endpoint answered 404).
+    for (const dashboardMode of ["saved-dashboard-aggregate", "saved-dashboard-raw"] as const) {
       const context = await authenticatedContext(browser);
       await installPerfProbe(context);
       const page = await context.newPage();
-      const traffic = { history: 0, historyBytes: 0, failed: 0 };
+      if (dashboardMode === "saved-dashboard-raw") {
+        await page.route("**/api/v1/telemetry/history/aggregate**", (route) =>
+          route.fulfill({ status: 404, contentType: "application/json", body: '{"detail":"Not Found"}' }),
+        );
+      }
+      const traffic = { history: 0, aggregate: 0, historyBytes: 0, failed: 0 };
       page.on("requestfinished", async (request) => {
-        if (!new URL(request.url()).pathname.endsWith("/api/v1/telemetry/history")) return;
-        traffic.history += 1;
+        const pathname = new URL(request.url()).pathname;
+        if (!pathname.includes("/api/v1/telemetry/history")) return;
+        if (pathname.endsWith("/history/aggregate")) traffic.aggregate += 1;
+        else traffic.history += 1;
         const sizes = await request.sizes().catch(() => null);
         traffic.historyBytes += sizes?.responseBodySize ?? 0;
       });
@@ -454,16 +488,24 @@ FROM generate_series(1, ${channelCount}) AS channel;
       await expect(loadingText).toHaveCount(0, { timeout: 240_000 });
       await expect(page.getByTestId("chart-renderer-host").first()).toBeVisible({ timeout: 60_000 });
       const firstChartMs = Date.now() - startedAt;
+      await assertExactStatistics(page, channelCount);
       const { interaction, lastInteractionAt } = await measureZoomPan(page);
       const detail = await viewportDetailLatency(page, "saved-dashboard-chart-workspace", lastInteractionAt);
+      const dashboardWorkspace = page.getByTestId("saved-dashboard-chart-workspace");
+      const historySource =
+        (await dashboardWorkspace.count()) > 0
+          ? await dashboardWorkspace.getAttribute("data-history-source")
+          : null;
       const result = {
-        mode: "saved-dashboard",
+        mode: dashboardMode,
+        historySource,
         channels: channelCount,
         range: "24h",
         rowsPerChannel: 8_610,
         firstSeriesMs,
         firstChartMs,
         historyRequests: traffic.history,
+        aggregateRequests: traffic.aggregate,
         historyMegabytes: Math.round((traffic.historyBytes / 1_048_576) * 10) / 10,
         failedHistoryRequests: traffic.failed,
         heapMegabytes: await heapMegabytes(page),

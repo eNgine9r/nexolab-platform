@@ -42,7 +42,18 @@ import {
   savedDashboardViewportDetail,
   type SavedDashboardDetailSource,
 } from "@/features/live-dashboards/viewport-detail";
-import type { ViewportDetail } from "@/features/live/live-aggregate-history";
+import {
+  aggregateViewportDetail,
+  loadAggregatedLiveHistory,
+  type ViewportDetail,
+} from "@/features/live/live-aggregate-history";
+import {
+  aggregateEligible,
+  DashboardServerStatistics,
+  resolveDashboardIdentities,
+} from "@/features/live-dashboards/aggregate-history";
+import { liveChannelKey } from "@/features/live/live-telemetry";
+import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
 import {
   appendSavedDashboardTail,
   operatorHistoryPreview,
@@ -137,6 +148,8 @@ export interface LiveDashboardTelemetryModel {
   setDetailViewport?: (domain: { fromMs: number; toMs: number } | null) => void;
   /** Number of detail points currently merged into `series` (0: full-range points only). */
   viewportDetailPoints?: number;
+  /** P0 charts: "aggregate" when at least one series came from the aggregated history API. */
+  historySource?: "aggregate" | "raw";
   historyRange: LiveDashboardHistoryRange;
   historyWindow: LiveDashboardHistoryRange;
   historyStatus: LiveDashboardHistoryStatus;
@@ -316,7 +329,18 @@ export function useLiveDashboardTelemetry({
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
   const statsRef = useRef<Record<string, IntervalSampleColumns>>({});
   const statsCacheRef = useRef<Map<string, IntervalStatistics | null>>(new Map());
+  // P0 charts: aggregated series (item identity -> real series identity) and their server statistics.
+  const aggregatedRef = useRef<Map<string, TelemetrySample>>(new Map());
+  const historyAdapterRef = useRef<TelemetryAdapter | null>(null);
+  const detailControllerRef = useRef<AbortController | null>(null);
+  const [statsVersion, setStatsVersion] = useState(0);
+  const [historySource, setHistorySource] = useState<"aggregate" | "raw">("raw");
+  const [serverStats] = useState(
+    () => new DashboardServerStatistics(() => setStatsVersion((value) => value + 1)),
+  );
+  useEffect(() => () => serverStats.dispose(), [serverStats]);
   const detailDomainRef = useRef<{ fromMs: number; toMs: number } | null>(null);
+  const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
   const [viewportDetail, setViewportDetail] = useState<Record<string, ViewportDetail>>({});
   // #1805: continuity tolerance per series, derived once from the RAW history load, and channels
   // whose last live sample was not renderable (the next point starts a new segment).
@@ -338,6 +362,8 @@ export function useLiveDashboardTelemetry({
       const sources: SavedDashboardDetailSource[] = [];
       for (const item of items) {
         const key = dashboardItemIdentity(item);
+        // Aggregated series get their detail from the server (their columns hold only the tail).
+        if (aggregatedRef.current.has(key)) continue;
         const columns = statsRef.current[key];
         const identity = latestRef.current[key] ?? historyRef.current[key]?.[0];
         if (!columns || !identity) continue;
@@ -348,16 +374,62 @@ export function useLiveDashboardTelemetry({
     [tailSourceGapMs],
   );
   const dashboardItemsRef = useRef<readonly LiveDashboardItem[]>([]);
+  // Aggregated series (P0 charts): one cancellable request for the committed viewport; a newer
+  // viewport or history reload aborts it.
+  const requestAggregateDetail = useCallback(() => {
+    detailControllerRef.current?.abort();
+    detailControllerRef.current = null;
+    const committed = detailDomainRef.current;
+    const adapter = historyAdapterRef.current;
+    const aggregated = [...aggregatedRef.current];
+    if (!committed || !adapter?.historyAggregate || aggregated.length === 0) return;
+    const controller = new AbortController();
+    detailControllerRef.current = controller;
+    void aggregateViewportDetail(
+      adapter,
+      aggregated.map(([, identity]) => identity),
+      committed,
+      pointsPerSeriesRef.current,
+      (channelKey) => {
+        const entry = aggregated.find(([, identity]) => liveChannelKey(identity) === channelKey);
+        return entry ? tailSourceGapMs(entry[0]) : undefined;
+      },
+      controller.signal,
+      Date.now(),
+      // The loaded window bounds the request (a wide zoom plus margin could exceed 31 d, HTTP 422).
+      {
+        fromMs: historyWindowRef.current.from.getTime(),
+        toMs: Math.max(historyWindowRef.current.to.getTime(), Date.now()),
+      },
+    )
+      .then((detail) => {
+        if (controller.signal.aborted) return;
+        const byItem: Record<string, ViewportDetail> = {};
+        for (const [item, identity] of aggregated) {
+          const channelKey = liveChannelKey(identity);
+          if (!detail.channels.has(channelKey)) continue;
+          byItem[item] = {
+            ...detail,
+            channels: new Set([channelKey]),
+            samples: detail.samples.filter((sample) => liveChannelKey(sample) === channelKey),
+          };
+        }
+        setViewportDetail((current) => ({ ...current, ...byItem }));
+      })
+      // A failed or superseded detail request keeps the full-range points; nothing is invented.
+      .catch(() => undefined);
+  }, [tailSourceGapMs]);
   const setDetailViewport = useCallback(
     (domain: { fromMs: number; toMs: number } | null) => {
       detailDomainRef.current = domain && domain.toMs > domain.fromMs ? domain : null;
+      // Raw series: from the browser's raw columns, no request.
       setViewportDetail(computeViewportDetail(dashboardItemsRef.current));
+      requestAggregateDetail();
     },
-    [computeViewportDetail],
+    [computeViewportDetail, requestAggregateDetail],
   );
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
-  const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
   const historySelectionRef = useRef<LiveDashboardHistoryRange>(historyRange);
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeScopeRef = useRef<string | null>(scopeKey);
@@ -530,7 +602,9 @@ export function useLiveDashboardTelemetry({
       recordIntervalSamples(statsRef.current, key, item, sourceSamples);
       if (selection.kind !== "custom") {
         const columns = statsRef.current[key];
-        if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime());
+        // Raw evidence is kept 35 s before the window: a sliding statistics range may be up to 30 s
+        // older while fresh server statistics load, and its raw rows must stay exact.
+        if (columns) pruneIntervalSamplesBefore(columns, nextWindow.from.getTime() - 35_000);
       }
       historyRef.current[key] = appendSavedDashboardTail(
         item,
@@ -651,6 +725,10 @@ export function useLiveDashboardTelemetry({
     historyRef.current = {};
     statsRef.current = {};
     statsCacheRef.current = new Map();
+    aggregatedRef.current = new Map();
+    serverStats.reset(null, new Map());
+    detailControllerRef.current?.abort();
+    detailControllerRef.current = null;
     sourceGapRef.current = {};
     pendingBreaksRef.current = new Set();
     historyOrderingRef.current = null;
@@ -667,21 +745,91 @@ export function useLiveDashboardTelemetry({
     });
 
     const adapter = securedAdapter(config, organizationId);
+    historyAdapterRef.current = adapter;
     void (async () => {
       const sourceTails: TelemetrySample[] = [];
       const reducedBySeries: Record<string, TelemetrySample[]> = {};
       let loadedSeries = 0;
-      // #1809: every series loads in parallel under one snapshot, bounded by the shared limiter.
-      // Each series is reduced as soon as it has loaded, so its raw samples can be released
-      // instead of holding every channel's complete raw history until the slowest finishes.
+      const totalSeries = dashboard.items.length;
+      // #1824: show each series as soon as it has loaded. Live samples that arrive meanwhile
+      // stay pending and are reconciled once the whole window is complete.
+      const publish = (key: string) => {
+        historyRef.current[key] = reducedBySeries[key];
+        loadedSeries += 1;
+        if (loadedSeries < totalSeries) {
+          setHistory({ ...historyRef.current });
+          setHistoryProgress({ loaded: loadedSeries, total: totalSeries });
+        }
+      };
+
+      // P0 charts: eligible series through the aggregated history API (extremum-preserving
+      // buckets, exact server statistics); a backend without it answers 404 once and every
+      // series takes the raw path below.
+      const aggregatedItems = new Map<string, TelemetrySample>();
+      const windowStatistics = new Map<string, IntervalStatistics>();
+      // The raw series of a mixed dashboard load under the aggregate snapshot, so every series
+      // describes the same completed window (review).
+      let sharedSnapshotAt: string | undefined;
+      const eligible = dashboard.items.filter(aggregateEligible);
+      if (adapter.historyAggregate && eligible.length > 0) {
+        try {
+          const identities = await resolveDashboardIdentities(adapter, eligible, controller.signal);
+          if (identities.size > 0) {
+            const result = await loadAggregatedLiveHistory(
+              adapter,
+              [...identities.values()],
+              requestedWindow,
+              controller.signal,
+              pointsPerSeriesRef.current,
+            );
+            if (disposed) return;
+            sharedSnapshotAt = result.snapshotAt;
+            for (const [key, identity] of identities) {
+              const channelKey = liveChannelKey(identity);
+              if (result.aggregatedChannels.has(channelKey)) {
+                aggregatedItems.set(key, identity);
+                const statistics = result.windowStatistics.get(channelKey);
+                if (statistics) windowStatistics.set(key, statistics);
+              } else {
+                // Few rows: the server answered with raw rows, already recorded as raw columns.
+                const columns = result.intervalColumns[channelKey];
+                if (columns) statsRef.current[key] = columns;
+              }
+              const gapMs = result.sourceGapMsByChannel.get(channelKey);
+              if (gapMs !== undefined) sourceGapRef.current[key] = gapMs;
+              if (requestedRange.kind !== "custom") {
+                cadenceRef.current = seedCadenceObservations(
+                  cadenceRef.current,
+                  key,
+                  result.cadenceSamples
+                    .filter((sample) => liveChannelKey(sample) === channelKey)
+                    .slice(-CADENCE_OBSERVATION_LIMIT)
+                    .map(sampleTimestamp),
+                );
+              }
+              reducedBySeries[key] = result.samples.filter((sample) => liveChannelKey(sample) === channelKey);
+              const tail = reducedBySeries[key].at(-1);
+              if (tail) sourceTails.push(tail);
+              publish(key);
+            }
+          }
+        } catch (error) {
+          if (!isAggregateUnsupported(error)) throw error;
+        }
+      }
+
+      // #1809: every remaining series loads in parallel under one snapshot, bounded by the shared
+      // limiter. Each series is reduced as soon as it has loaded, so its raw samples can be
+      // released instead of holding every channel's complete raw history until the slowest finishes.
+      const rawItems = dashboard.items.filter((item) => !(dashboardItemIdentity(item) in reducedBySeries));
       await loadCompleteTelemetryHistoryForSeries(
         adapter,
-        dashboard.items.map(dashboardSeriesQuery),
+        rawItems.map(dashboardSeriesQuery),
         requestedWindow,
-        { signal: controller.signal },
+        { signal: controller.signal, snapshotAt: sharedSnapshotAt },
         (result, index) => {
           if (disposed) return;
-          const item = dashboard.items[index];
+          const item = rawItems[index];
           const key = dashboardItemIdentity(item);
           const samples = result.samples.filter((sample) => dashboardSeriesMatches(item, sample));
           recordIntervalSamples(statsRef.current, key, item, samples);
@@ -701,16 +849,16 @@ export function useLiveDashboardTelemetry({
             sourceTails.push(tail);
             latestRef.current[key] = newestSample(latestRef.current[key], tail);
           }
-          // #1824: show each series as soon as it has loaded. Live samples that arrive meanwhile
-          // stay pending and are reconciled once the whole window is complete.
-          historyRef.current[key] = reducedBySeries[key];
-          loadedSeries += 1;
-          if (loadedSeries < dashboard.items.length) {
-            setHistory({ ...historyRef.current });
-            setHistoryProgress({ loaded: loadedSeries, total: dashboard.items.length });
-          }
+          publish(key);
         },
       );
+      if (disposed) return;
+      aggregatedRef.current = aggregatedItems;
+      serverStats.reset(adapter, aggregatedItems, windowStatistics, {
+        fromMs: requestedWindow.from.getTime(),
+        toMs: requestedWindow.to.getTime(),
+      });
+      setHistorySource(aggregatedItems.size > 0 ? "aggregate" : "raw");
 
       if (disposed) return;
       let ordering = seedTelemetryHistoryOrderingState(sourceTails);
@@ -752,8 +900,10 @@ export function useLiveDashboardTelemetry({
       setLatest({ ...latestRef.current });
       setCadence(cadenceRef.current);
       setHistory({ ...reducedBySeries });
-      // A viewport committed while loading (e.g. a restored saved view) gets its detail now.
+      // A viewport committed while loading (a restored saved view, a reload after a reconnect or a
+      // density change) gets its detail now: raw from the columns, aggregated by one request.
       setViewportDetail(computeViewportDetail(dashboard.items));
+      requestAggregateDetail();
       setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
       setHistoryProgress(null);
       setHistoryStatus("ready");
@@ -788,6 +938,8 @@ export function useLiveDashboardTelemetry({
     scopeKey,
     tailSourceGapMs,
     computeViewportDetail,
+    requestAggregateDetail,
+    serverStats,
   ]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
@@ -810,15 +962,26 @@ export function useLiveDashboardTelemetry({
   );
 
   // Reads the raw column store; consumers recompute when `series` changes (every flush).
-  const intervalStatistics = useCallback<LiveDashboardIntervalStatistics>((itemIdentity, fromMs, toMs) => {
-    return cachedIntervalStatistics(
-      statsCacheRef.current,
-      itemIdentity,
-      statsRef.current[itemIdentity],
-      fromMs,
-      toMs,
-    );
-  }, []);
+  // Aggregated series: exact server statistics of the original rows (P0 charts); raw series: the
+  // browser's raw columns. A new server result changes this callback so rows recompute.
+  const intervalStatistics = useCallback<LiveDashboardIntervalStatistics>(
+    (itemIdentity, fromMs, toMs) => {
+      // One range for every row (aggregated and raw), so the table never mixes intervals.
+      const [effectiveFrom, effectiveTo] = serverStats.effectiveRange(fromMs, toMs);
+      if (serverStats.has(itemIdentity))
+        return serverStats.exactFor(itemIdentity, effectiveFrom, effectiveTo);
+      return cachedIntervalStatistics(
+        statsCacheRef.current,
+        itemIdentity,
+        statsRef.current[itemIdentity],
+        effectiveFrom,
+        effectiveTo,
+      );
+    },
+    // statsVersion: consumers recompute when new exact server statistics arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverStats, statsVersion],
+  );
 
   const intervalColumns = useCallback(
     (itemIdentity: string): IntervalSampleColumns | undefined => statsRef.current[itemIdentity],
@@ -858,6 +1021,7 @@ export function useLiveDashboardTelemetry({
     intervalColumns,
     setDetailViewport,
     viewportDetailPoints: visible ? viewportDetailPoints : 0,
+    historySource,
     historyRange,
     historyWindow,
     historyStatus,

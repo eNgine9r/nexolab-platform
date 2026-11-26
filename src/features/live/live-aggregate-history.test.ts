@@ -13,6 +13,7 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 import {
   aggregateSeriesToSamples,
+  aggregateViewportDetail,
   columnsViewportDetail,
   loadAggregatedLiveHistory,
   mergeViewportDetail,
@@ -371,5 +372,38 @@ describe("continuity at aggregate and detail boundaries (#1813 review)", () => {
       ],
     };
     expect(liveHistorySegments(mergeViewportDetail([before, brokenCoarse], detail))).toHaveLength(2);
+  });
+});
+
+describe("aggregate viewport detail bounds (review)", () => {
+  it("keeps a wide zoom plus its margin inside the loaded window", async () => {
+    const queries: HistoryAggregateQuery[] = [];
+    const adapter = {
+      historyAggregate: vi.fn(async (query: HistoryAggregateQuery) => {
+        queries.push(query);
+        return {
+          fromMs: query.from.getTime(),
+          toMs: query.to.getTime(),
+          bucketMs: 1,
+          snapshotAt: "2026-11-26T12:00:00.000Z",
+          series: [],
+        };
+      }),
+    } as unknown as TelemetryAdapter;
+    const DAY = 86_400_000;
+    const now = T0 + 30 * DAY;
+    // A 30-day window zoomed to days 5..25: with ±50 % the request would span 35 days (HTTP 422).
+    await aggregateViewportDetail(
+      adapter,
+      [identity()],
+      { fromMs: T0 + 5 * DAY, toMs: T0 + 25 * DAY },
+      240,
+      () => undefined,
+      new AbortController().signal,
+      now,
+      { fromMs: T0, toMs: now },
+    );
+    expect(queries[0].from.getTime()).toBe(T0);
+    expect(queries[0].to.getTime()).toBe(now);
   });
 });

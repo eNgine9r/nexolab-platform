@@ -323,7 +323,12 @@ function observeHistoryRanges(page: Page): number[] {
   const ranges: number[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (!url.pathname.endsWith("/api/v1/telemetry/history")) return;
+    // Raw pages or aggregated history (P0 charts) both carry the requested window.
+    if (
+      !url.pathname.endsWith("/api/v1/telemetry/history") &&
+      !url.pathname.endsWith("/api/v1/telemetry/history/aggregate")
+    )
+      return;
     const from = Date.parse(url.searchParams.get("from") ?? "");
     const to = Date.parse(url.searchParams.get("to") ?? "");
     if (Number.isFinite(from) && Number.isFinite(to)) ranges.push(to - from);
