@@ -1,17 +1,22 @@
-## 2026-11-25 — Pending owner actions (resume point after any reboot; updated evening)
+## 2026-11-26 — Pending owner actions (resume point after any reboot)
 
-1. **Operator Broker v1.0 is installed and verified** (2026-11-25). Apply **v1.1** (merged in #1773; payload `~/recovery-p0/broker-v1.1`):
+1. **Upgrade the Operator Broker to v1.2** (#1776). If any step fails, the installer restores v1.1 automatically:
    ```
-   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.1/install-operator-broker.sh > $T/i.sh && echo "f89963a4bdd8dab9b724c002e59f9c66599a6f6d47fb9e5957db88aca1af826f  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.1
+   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.2-20261126T064249Z/install-operator-broker.sh > $T/i.sh && echo "fcfeaea985ac574409f492fb87740226838241f02014401bd2884de3543c74e2  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.2-20261126T064249Z
    ```
-   Then grant per-run approvals, which the agent executes through the broker:
-   - `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op storage.cleanup-regenerable --ttl-minutes 60 --reason "T1"`
-   - the same with `--op service.retire-legacy-https`, which stops the legacy frontend restart loop.
-2. **SSD cleanup:** `owner-2026-11-25-ssd-cleanup.sh t1`, then `t2a` (pinned `978209882d…`). Needed for the #1428 backup (28 GiB) and the Stage 2 build reserve (20 GiB).
-3. **WP2c Stage 2 (#1734):** `owner-2026-11-25-stage2.sh prepare` (pinned `19c0085c…`). After it passes, `execute` needs exact Product Owner approval.
-4. **Wi-Fi (#1735):** the open `me_mac` profile and the `iPhone` hotspot profile have autoconnect on. This is a security risk; the owner decides whether to delete them. **LAB KK1:** router-side check for a MAC block/ACL on `2C:CF:67:A6:09:3A` and a changed PSK. Then the guarded `nexolab-wifi-recover.sh apply`.
-5. **Reboot cause (#1399):** cause undetermined (no undervoltage or PMIC event; abrupt stop; 1 min hardware watchdog). A heartbeat is running in `~/p0-evidence/heartbeat/`; the agent restarts it after a reboot (`setsid nohup ~/p0-evidence/heartbeat/heartbeat.sh &`).
-6. **#1428 DR evidence (hard gate):** real encrypted backup, off-device copy and isolated restore.
+2. **Approvals** (the agent executes them through the broker):
+   - `storage.cleanup-regenerable --arg build_cache=all-unused`: about 3.3 GB of build cache, giving headroom for the Stage 2 offline build.
+   - `deploy.lan-frontend --arg phase=prepare --arg artifact_sha256=f916352c726bd899754326b44a78b763d900b7fe03c55629d356433710289e1e --arg expect_current_source=7db6e1a801aa6c1a142febd4e91c79eef62d5beb --arg expect_current_build=CWBsCWWebOZGHa5YyWp18`: stage, offline build, preview on 127.0.0.1:3125 and check. No production change.
+   - Later, separately: the same with `phase=execute` (switches the LAN dashboard, with automatic verified rollback).
+3. **SSD:** old release workspaces need the `t2a` owner decision. Unused candidate images (`issue-*`, `staged-*`, `1518-*`) come as a manifest-bound approved op in broker v1.3.
+4. **Wi-Fi (#1735):**
+   - LAB KK1 has an auth timeout at full signal. The owner checks the router for a MAC filter or block list on `2C:CF:67:A6:09:3A`.
+   - The open `me_mac` and `iPhone` profiles have autoconnect on; deleting them is the owner's decision.
+5. **Reboot cause (#1399):** still undetermined. The heartbeat is in `~/p0-evidence/heartbeat/`; the agent restarts it after a reboot.
+6. **#1428 DR evidence (hard gate for Stage 3):**
+   - the owner provisions `/etc/nexolab/dr-backup.json` and its keys, and installs `nexolab-dr-backup.{service,timer}` (#1630);
+   - then approved `backup.start`, the off-device copy and the isolated restore.
+7. **Tailscale `:8443 /`** proxies to `127.0.0.1:3102`, where nothing listens (502). This is pre-existing; owner decision.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 

@@ -12237,7 +12237,8 @@
         "site_cutover": false,
         "site_acceptance": "owner_pending",
         "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read",
-        "finding_2026_11_25_diag": "Read-only diag 16:14Z: LAB KK1 system-wide, wpa-psk, psk-flags 0, WPA2 ch11 signal 100; brcmfmac 7.45.265; CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16 (802.11 auth timeout, before the 4-way handshake) every ~13 s; previous boot failed with no-secrets (4-way handshake). Hypothesis: wrong/changed PSK followed by AP-side block of MAC 2C:CF:67:A6:09:3A after repeated failures, or AP ACL. Needs owner/router-side check; four autoconnect Wi-Fi profiles exist (LAB KK1, WEST, me_mac, netplan-wlan0-iPhone)."
+        "finding_2026_11_25_diag": "Read-only diag 16:14Z: LAB KK1 system-wide, wpa-psk, psk-flags 0, WPA2 ch11 signal 100; brcmfmac 7.45.265; CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16 (802.11 auth timeout, before the 4-way handshake) every ~13 s; previous boot failed with no-secrets (4-way handshake). Hypothesis: wrong/changed PSK followed by AP-side block of MAC 2C:CF:67:A6:09:3A after repeated failures, or AP ACL. Needs owner/router-side check; four autoconnect Wi-Fi profiles exist (LAB KK1, WEST, me_mac, netplan-wlan0-iPhone).",
+        "finding_2026_11_26": "LAB KK1 still ASSOC-REJECT status_code=16 bssid=00:..:00 (brcmfmac fullmac: auth timeout, AP does not answer auth frames) with signal 100 WPA2-PSK ch11 -> consistent with AP-side MAC filter/blocklist; phy country 99 (firmware rejected UA) does not restrict ch11. Next: approved bounded connect test with temporary random MAC (broker v1.3), owner router check."
       },
       "branch": null
     },
@@ -12265,7 +12266,10 @@
         "local_checks": "27 contract tests on a real Unix socket with peer credentials; production read ops smoke-tested unprivileged on the Pi",
         "source_merge": "PR #1759 merged 19a0f4c1 (exact-head GREEN); inventory handler repinned in #1760. Owner install pending (payload ~/recovery-p0/broker-v1, installer sha256 42bf8b5b...).",
         "installer_fix_1769": "PR #1770 merged 65205691: owner EACCES / root unauthorized_peer / dev sandbox allowed proven by real systemd install in CI; NEXOLAB-only Docker scope; raw reports root-only; verified rollback. Owner command pinned installer sha256 1b21af15....",
-        "site_install": "v1.0 (#1770) owner-installed 2026-11-25; all ops verified from dev tmux; v1.1 (#1773) merged, owner upgrade pending (installer sha256 f89963a4...)."
+        "site_install": "v1.0 (#1770) owner-installed 2026-11-25; all ops verified from dev tmux; v1.1 (#1773) merged, owner upgrade pending (installer sha256 f89963a4...).",
+        "site_v1_1_installed": "2026-11-26 owner upgrade to v1.1, independently verified (owner=refused root=refused dev=allowed audit=ok)",
+        "site_approved_runs_2026_11_26": "storage.cleanup-regenerable ok: volumes unchanged, 18 in-use images kept, 22.14->22.32 GiB (journal 68 MB; no untagged images; 3.3 GB build cache <7d). service.retire-legacy-https ok: loop stopped at NRestarts 10305, nginx disabled, :3105 identity unchanged; mask exit 1 (real /etc unit file; fixed in v1.2 #1776). Post-checks: LAN 200, Tailscale :8444 200, telemetry ready lag ~0.15 s, persisted advancing.",
+        "docker_service_model": "2026-11-26 exported via broker (p0-evidence/docker-service-model-20261126.json, 0600); alias hazard: both MQTT brokers carry alias mqtt on nexolab-standalone-runtime"
       }
     },
     {
@@ -12296,6 +12300,31 @@
         "merged": "Slice 1 central #1763, slice 2 Edge #1765 merged, default OFF. Next: slice 3 isolated e2e acceptance + dedicated receipt identities provisioning (gap recorded on #1762).",
         "slice_3_acceptance": "Slice 3 PR #1768 (feat/1762-receipt-e2e-acceptance): dynsec admin create-org-receipt-publisher (publish-only nexolab/v1/{org}/+/receipts) and create-node-receipt-subscriber (literal read-only nexolab/v1/{org}/{node}/receipts) with real-broker deny cases; Committed Receipt Acceptance workflow GREEN run 45688608839: tiny broker queue overflow observed, forged receipts not delivered, wrong-node/out-of-order/duplicate rejected without prune, two Edge restarts lossless, PostgreSQL sequences 1..248 exactly once, Edge outbox drained. Throughput: head replay 1.14 rows/s, resend after Edge restart 7.2 rows/s; 53,000 rows about 12.9 h and no convergence with 4.5 rows/s live flow (follow-up). Hardware, site broker ACL and site UNVERIFIED.",
         "slice_4_catch_up": "Slice 4 PR #1771 (feat/1762-receipt-bulk-catchup): Edge exact-row receipt binding replaces the FIFO-head rule (receipt prunes only the pending row whose event_id, node_sequence, org, node and scoped telemetry topic match; durable receipt_id ledger and single-row delete in one BEGIN IMMEDIATE; contract copies byte-identical, pending_row_topic replaces oldest_pending_sequence; unknown/pruned rows rejected). Edge windowed FIFO catch-up resend (window 50 in flight, 200 rows/s token bucket, stall and publish-failure backoff, paused while telemetry disconnected). Central batch publisher (50 per batch, per-message QoS1 PUBACK, durable per-row leases, no same-node ordering block) woken by the ingestion commit path. Acceptance gate: net catch-up >= 50 rows/s after central restart with live flow running; exactly-once, drained-outbox and rejection assertions unchanged. Before: head replay 1.14 rows/s, overall 2.3 rows/s. After (PR #1771, Committed Receipt Acceptance run 45696227212, two attempts GREEN): net catch-up 65.1 and 63.8 rows/s with live flow (68.9 rows/s PostgreSQL commits), whole recovery 36.0 and 39.1 rows/s, 1,201-row outage backlog, sequences 1..1472 exactly once, outbox drained. Device Agent tests 446/446 local; contract 24/24 local; telemetry PostgreSQL tests CI only. Hardware, site broker ACL and site throughput UNVERIFIED."
+      }
+    },
+    {
+      "issue": 1775,
+      "title": "Operator Broker v1.2: automatic upgrade rollback, approved LAN frontend deployment and DR backup handlers",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Installer upgrade snapshot + automatic restore of the previous version + rollback mode; approved deploy.lan-frontend (pinned Stage 2 tool as owner, approval binds phase/artifact sha/current identity); backup.health/backup.start; cleanup build_cache scope; retire-legacy mask fix.",
+      "depends_on": [
+        1758
+      ],
+      "branch": "feat/1775-broker-v1-2",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "tests/test_ci_operator_broker.py",
+        ".github/workflows/operator-broker-install-acceptance.yml",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_upgrade_pending",
+        "merged": "PR #1776 merge 79b40c36 (head d54f94a1, exact-head GREEN incl. Merge Gate and real systemd install: v1.1->v1.2 injected failure restored v1.1 byte-identical, upgrade/rollback/roll-forward, deploy plumbing as owner account)",
+        "local_checks": "57 broker + 37 Stage 2 tests passed",
+        "payload": "~/recovery-p0/broker-v1.2-20261126T064249Z, installer sha256 fcfeaea985ac574409f492fb87740226838241f02014401bd2884de3543c74e2, all pins verified, byte-identical to main@79b40c36"
       }
     }
   ],
