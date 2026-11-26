@@ -192,6 +192,8 @@ Verify the accepted handler shape:
 tailscale serve status
 ```
 
+> **2026-11-26 (#1784):** the `/` target below (`127.0.0.1:3100`) is retired. The current `:8443` root points to an unused candidate port (502). The prepared fix (`docs/operations/network/tailscale-8443-inspection-fix.md`) routes `/` and `/api` through the LAN gateway after WP2c Stage 2.
+
 Expected structure:
 
 ```text
