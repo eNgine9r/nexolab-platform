@@ -29,7 +29,7 @@ declare -A PIN=(
   [nexolab-operator-broker.service]=9dd3659153a46a5f1c8877bb21a9ceffc22f8e0e0f0bb3ae29b48e93a9a601bd
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
   [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b
-  [wp2c-stage3-backend.py]=30d9c13451ab9ab8faf4a7a41e011128520fb20f377e539c3b08e8d12b9d8ad5
+  [wp2c-stage3-backend.py]=b3176baff391b104dd71c876d9b2aef97bf871954aa3fbf4bb082f45fe5acac4
   [wp2c-stage2-frontend.py]=bcbb9788a36ba717e43d8717ea790714f147b87bb77af995cc64a29acd3086cb
 )
 LIB=/usr/local/lib/nexolab-operator
