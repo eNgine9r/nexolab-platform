@@ -1,16 +1,13 @@
 import {
   computeIntervalStatistics,
+  createIntervalSampleColumns,
   type IntervalSampleColumns,
   type IntervalStatistics,
 } from "@/features/charts/interval-statistics";
 import type { ChartSeriesIdentity } from "@/features/charts/domain";
 import { columnsViewportDetail, type ViewportDetail } from "@/features/live/live-aggregate-history";
 import { groupByChannelKey, LIVE_HISTORY_MIN_SOURCE_GAP_MS } from "@/features/live/live-history";
-import {
-  pruneLiveIntervalSamples,
-  recordLiveIntervalSamples,
-  type LiveIntervalColumns,
-} from "@/features/live/live-interval-columns";
+import { pruneLiveIntervalSamples, type LiveIntervalColumns } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -35,13 +32,89 @@ function capturedMs(sample: TelemetrySample): number {
   return Date.parse(sample.captured_at);
 }
 
+/**
+ * Merges ascending, unique `addTimestamps` (with `addValues` when given) into the ascending
+ * `stamps`/`values` columns; an existing timestamp wins (as appendIntervalSample). Appending after
+ * or prepending before the held range is a concat; overlaps take one linear merge — never a splice
+ * per row (inserting older slices row by row was quadratic: ~36 s for 30 d at 10 s, review).
+ */
+function mergeSorted(
+  stamps: number[],
+  values: number[] | null,
+  addTimestamps: number[],
+  addValues: number[] | null,
+): { stamps: number[]; values: number[] | null } {
+  if (addTimestamps.length === 0) return { stamps, values };
+  if (stamps.length === 0 || addTimestamps[0] > stamps[stamps.length - 1]) {
+    return {
+      stamps: stamps.concat(addTimestamps),
+      values: values && addValues ? values.concat(addValues) : null,
+    };
+  }
+  if (addTimestamps[addTimestamps.length - 1] < stamps[0]) {
+    return {
+      stamps: addTimestamps.concat(stamps),
+      values: values && addValues ? addValues.concat(values) : null,
+    };
+  }
+  const mergedStamps: number[] = [];
+  const mergedValues: number[] | null = values && addValues ? [] : null;
+  let left = 0;
+  let right = 0;
+  while (left < stamps.length || right < addTimestamps.length) {
+    const takeLeft =
+      right >= addTimestamps.length || (left < stamps.length && stamps[left] <= addTimestamps[right]);
+    if (takeLeft) {
+      if (right < addTimestamps.length && stamps[left] === addTimestamps[right]) right += 1;
+      mergedStamps.push(stamps[left]);
+      if (mergedValues && values) mergedValues.push(values[left]);
+      left += 1;
+    } else {
+      mergedStamps.push(addTimestamps[right]);
+      if (mergedValues && addValues) mergedValues.push(addValues[right]);
+      right += 1;
+    }
+  }
+  return { stamps: mergedStamps, values: mergedValues };
+}
+
 /** Records RAW temperature-probe samples (any order; duplicates by timestamp are ignored). */
 export function recordOverviewSamples(
   store: OverviewHistoryStore,
   samples: readonly TelemetrySample[],
 ): void {
   const probes = samples.filter(isTemperatureProbeSample);
-  recordLiveIntervalSamples(store.columns, probes);
+  // Per series: valid and non-valid polls, each sorted and unique, merged in one step.
+  const batches = new Map<string, { valid: Array<[number, number]>; invalid: number[] }>();
+  for (const sample of probes) {
+    const timestampMs = capturedMs(sample);
+    if (!Number.isFinite(timestampMs)) continue;
+    const key = liveChannelKey(sample);
+    let batch = batches.get(key);
+    if (!batch) {
+      batch = { valid: [], invalid: [] };
+      batches.set(key, batch);
+    }
+    const valid = sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
+    if (valid) batch.valid.push([timestampMs, sample.value as number]);
+    else batch.invalid.push(timestampMs);
+  }
+  for (const [key, batch] of batches) {
+    const columns = (store.columns[key] ??= createIntervalSampleColumns());
+    batch.valid.sort((left, right) => left[0] - right[0]);
+    const validStamps: number[] = [];
+    const validValues: number[] = [];
+    for (const [timestampMs, value] of batch.valid) {
+      if (validStamps[validStamps.length - 1] === timestampMs) continue;
+      validStamps.push(timestampMs);
+      validValues.push(value);
+    }
+    const merged = mergeSorted(columns.validTimestamps, columns.validValues, validStamps, validValues);
+    columns.validTimestamps = merged.stamps;
+    columns.validValues = merged.values ?? [];
+    const invalid = [...new Set(batch.invalid)].sort((left, right) => left - right);
+    columns.invalidTimestamps = mergeSorted(columns.invalidTimestamps, null, invalid, null).stamps;
+  }
   for (const sample of probes) {
     const key = liveChannelKey(sample);
     if (!store.identities.has(key)) store.identities.set(key, sample);

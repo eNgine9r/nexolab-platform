@@ -482,7 +482,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       sessions: apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/sessions"),
     };
     expect(firstCycleCounts.latest).toBe(initialLatestRequests);
-    expect(firstCycleCounts.history).toBeLessThanOrEqual(initialHistoryRequests + 2);
+    // At most two more window loads of the initial size (#1833: a window is a set of time slices).
+    expect(firstCycleCounts.history).toBeLessThanOrEqual(initialHistoryRequests * 3);
     const overviewAlertRefreshDeltas = [
       expectOverviewAlertReadDelta(
         { active: initialActiveAlertReads, acknowledged: initialAcknowledgedAlertReads },

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { computeIntervalStatistics, type IntervalStatistics } from "@/features/charts/interval-statistics";
 import { columnsFromRawSamples } from "@/features/charts/raw-sample-statistics";
 import { isLiveHistorySegmentStart } from "@/features/live/live-history";
+import { recordLiveIntervalSamples } from "@/features/live/live-interval-columns";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -138,5 +139,33 @@ describe("Overview RAW history columns (P0 charts)", () => {
       .filter((point) => point.timestampMs >= detail.fromMs && point.timestampMs <= detail.toMs);
     expect(inside).toHaveLength(41);
     expect(series.segments.length >= 3).toBe(true);
+  });
+
+  it("merges slices in any order exactly like row-by-row recording (duplicates and failures included)", () => {
+    const rows = day();
+    rows.push(probe(10, { event_id: "duplicate-10", value: 99 })); // same timestamp: first one wins
+    const slices: TelemetrySample[][] = [];
+    for (let start = 0; start < rows.length; start += 700) slices.push(rows.slice(start, start + 700));
+    const order = [...slices.slice(3), ...slices.slice(0, 3).reverse()];
+    // The same slice order recorded row by row: the first recorded copy of a timestamp wins in both.
+    const reference = createOverviewHistoryStore();
+    for (const slice of order) recordLiveIntervalSamples(reference.columns, slice);
+    const merged = createOverviewHistoryStore();
+    for (const slice of order) recordOverviewSamples(merged, slice);
+    const key = liveChannelKey(rows[0]);
+    expect(merged.columns[key]).toEqual(reference.columns[key]);
+  });
+
+  it("records 30 days of newest-first slices in bounded time", () => {
+    const store = createOverviewHistoryStore();
+    const started = performance.now();
+    for (let slice = 119; slice >= 0; slice -= 1) {
+      const rows: TelemetrySample[] = [];
+      for (let index = slice * 2_160; index < (slice + 1) * 2_160; index += 1) rows.push(probe(index));
+      recordOverviewSamples(store, rows);
+    }
+    expect(store.columns[key].validTimestamps).toHaveLength(259_200);
+    // Row-by-row insertion of older slices took ~36 s; the merge takes well under a few seconds.
+    expect(performance.now() - started).toBeLessThan(8_000);
   });
 });

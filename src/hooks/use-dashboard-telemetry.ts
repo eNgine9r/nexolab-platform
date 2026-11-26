@@ -505,6 +505,13 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
           setCadence(seeded);
         }
         const ordering = seedTelemetryHistoryOrderingState([...loadedStore.latest.values()]);
+        // A series whose newest persisted poll failed starts a new segment with its next valid
+        // point: the drawn history omits failed polls, so the break must be carried (review).
+        for (const [key, latest] of loadedStore.latest) {
+          if (latest.quality !== "valid" || latest.value === null || !Number.isFinite(latest.value)) {
+            pendingBreaksRef.current.add(key);
+          }
+        }
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
         const finalWindow = advanceHistoryWindow(requestedWindow, reconciled.samples);
@@ -595,13 +602,30 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     store,
   ]);
 
-  const visibleHistory =
-    activeHistoryKey === historyKey
-      ? historySamples.filter(
-          (sample) =>
-            allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id),
-        )
-      : [];
+  // Memoized: the chart re-derives from this list, so it must not change identity per render.
+  // A series with only failed polls in the window has no drawable point; its newest RAW poll
+  // represents it, so its failure state and counts stay visible instead of the series vanishing.
+  const visibleHistory = useMemo(() => {
+    if (activeHistoryKey !== historyKey) return [];
+    const allowed = (sample: TelemetrySample) =>
+      allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id);
+    const drawn = historySamples.filter(allowed);
+    if (!historyStore) return drawn;
+    const drawnKeys = new Set(drawn.map(liveChannelKey));
+    const failureOnly = [...historyStore.latest.entries()]
+      .filter(([key, latest]) => !drawnKeys.has(key) && allowed(latest))
+      .map(([, latest]) => latest);
+    return failureOnly.length > 0 ? drawn.concat(failureOnly) : drawn;
+    // historyVersion: the store is mutated in place.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeHistoryKey,
+    allowedTemperatureChannels,
+    historyKey,
+    historySamples,
+    historyStore,
+    historyVersion,
+  ]);
   const visibleHistoryStatus = activeHistoryKey === historyKey ? historyStatus : "loading";
   const visibleHistoryWindow = activeHistoryKey === historyKey ? historyWindow : null;
   const visibleHistoryError = activeHistoryKey === historyKey ? historyError : null;
