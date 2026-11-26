@@ -489,10 +489,21 @@ export async function aggregateViewportDetail(
   sourceGapMsFor: (channelKey: string) => number | undefined,
   signal: AbortSignal,
   nowMs = Date.now(),
+  /** The loaded history window: the margin never extends the request beyond it (review). */
+  bounds?: { fromMs: number; toMs: number },
 ): Promise<ViewportDetail> {
   const span = domain.toMs - domain.fromMs;
-  const fromMs = domain.fromMs - span * DETAIL_MARGIN_RATIO;
-  const toMs = Math.min(domain.toMs + span * DETAIL_MARGIN_RATIO, nowMs);
+  // A wide zoom plus its margin could exceed the longest range the aggregate API serves (31 d,
+  // HTTP 422); the request stays inside the loaded window, which the API already accepted.
+  const fromMs = Math.max(
+    domain.fromMs - span * DETAIL_MARGIN_RATIO,
+    bounds?.fromMs ?? Number.NEGATIVE_INFINITY,
+  );
+  const toMs = Math.min(
+    domain.toMs + span * DETAIL_MARGIN_RATIO,
+    nowMs,
+    bounds?.toMs ?? Number.POSITIVE_INFINITY,
+  );
   const window = { from: new Date(fromMs), to: new Date(Math.max(toMs, fromMs + 1)) };
   const buckets = Math.max(1, Math.ceil(maximumPointsPerChannel / POINTS_PER_BUCKET));
   const response = await fetchAggregatedSeries(adapter, identities.map(keyOf), window, buckets, { signal });
