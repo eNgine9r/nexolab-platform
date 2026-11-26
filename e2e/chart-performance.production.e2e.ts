@@ -289,6 +289,7 @@ ANALYZE telemetry_samples;
         await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5, { steps: 12 });
         await page.mouse.up({ button: "left" });
       }
+      const lastInteractionAt = Date.now();
       await page.waitForTimeout(600);
       const interaction = await page.evaluate((since) => {
         const perf = Reflect.get(window, "__nexolabPerf1813") as {
@@ -319,10 +320,10 @@ ANALYZE telemetry_samples;
       // visible window are shown (raw columns: immediate; aggregated backend: one request).
       let detailLatencyMs: number | null = null;
       if ((await workspace.count()) > 0) {
-        const waitStartedAt = Date.now();
         for (let attempt = 0; attempt < 100; attempt += 1) {
           if ((await workspace.getAttribute("data-viewport-detail")) !== "none") {
-            detailLatencyMs = Date.now() - waitStartedAt;
+            // From the final pan, including the 120 ms commit and any request.
+            detailLatencyMs = Date.now() - lastInteractionAt;
             break;
           }
           await page.waitForTimeout(100);

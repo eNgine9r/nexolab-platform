@@ -143,6 +143,13 @@ export interface LiveTelemetryModel {
 /** #1813: in aggregate mode, sliding live-window statistics are refreshed at most this often. */
 const SERVER_STATISTICS_REFRESH_MS = 30_000;
 
+/** Two statistics intervals of a sliding window: same length and at most 30 s apart. */
+function compatible(left: [number, number], right: [number, number]): boolean {
+  return (
+    left[1] - left[0] === right[1] - right[0] && Math.abs(left[0] - right[0]) <= SERVER_STATISTICS_REFRESH_MS
+  );
+}
+
 function loadRuntimeConfig(): RuntimeConfigResult {
   try {
     return { config: getTelemetryRuntimeConfig(), error: null };
@@ -332,7 +339,7 @@ export function useLiveTelemetry({
   const historyAdapterRef = useRef<TelemetryAdapter | null>(null);
   const serverStatsRef = useRef<Map<string, IntervalStatistics>>(new Map());
   const fetchedRangesRef = useRef<Array<{ fromMs: number; toMs: number; at: number }>>([]);
-  const statsInFlightRef = useRef<Set<string>>(new Set());
+  const statsInFlightRef = useRef<Map<string, [number, number]>>(new Map());
   const statsFailedAtRef = useRef<Map<string, number>>(new Map());
   const pendingStatsRef = useRef<Map<string, [number, number]>>(new Map());
   const statsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -347,7 +354,7 @@ export function useLiveTelemetry({
       aggregatedChannelsRef.current.has(liveChannelKey(identity)),
     );
     if (identities.length === 0) return;
-    statsInFlightRef.current.add(rangeKey);
+    statsInFlightRef.current.set(rangeKey, [fromMs, toMs]);
     void fetchAggregatedSeries(
       adapter,
       identities.map((identity) => ({
@@ -401,7 +408,9 @@ export function useLiveTelemetry({
   const scheduleServerStatistics = useCallback(
     (fromMs: number, toMs: number) => {
       const rangeKey = `${fromMs}|${toMs}`;
-      if (statsInFlightRef.current.has(rangeKey)) return;
+      // A sliding window must not queue one request per tick: an in-flight compatible interval
+      // (same length, <= 30 s apart) answers it.
+      if ([...statsInFlightRef.current.values()].some((range) => compatible(range, [fromMs, toMs]))) return;
       const failedAt = statsFailedAtRef.current.get(rangeKey);
       if (failedAt !== undefined && Date.now() - failedAt < 10_000) return;
       if (recentCompatibleRange(fromMs, toMs)) return;
@@ -409,7 +418,11 @@ export function useLiveTelemetry({
       if (statsTimerRef.current !== null) return;
       statsTimerRef.current = setTimeout(() => {
         statsTimerRef.current = null;
-        const ranges = [...pendingStatsRef.current.values()];
+        // Coalesce: of compatible sliding intervals keep only the newest.
+        const ranges: Array<[number, number]> = [];
+        for (const range of [...pendingStatsRef.current.values()].sort((left, right) => right[0] - left[0])) {
+          if (!ranges.some((kept) => compatible(kept, range))) ranges.push(range);
+        }
         pendingStatsRef.current.clear();
         for (const [from, to] of ranges) fetchServerStatistics(from, to);
       }, 400);
@@ -655,7 +668,12 @@ export function useLiveTelemetry({
             setHistoryWindow(nextWindow);
           }
           recordLiveIntervalSamples(intervalColumnsRef.current, reconciliation.samples);
-          pruneLiveIntervalSamples(intervalColumnsRef.current, nextWindow.from.getTime());
+          // Keep raw evidence a little before the window: a sliding statistics interval may be up to
+          // 30 s older (#1813), and its raw rows must stay exact.
+          pruneLiveIntervalSamples(
+            intervalColumnsRef.current,
+            nextWindow.from.getTime() - SERVER_STATISTICS_REFRESH_MS - 5_000,
+          );
           setHistorySamples((current) => {
             const next = mergeLiveHistoryTail(
               current,
