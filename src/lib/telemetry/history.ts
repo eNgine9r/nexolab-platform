@@ -283,7 +283,7 @@ export function reconcileTelemetryHistoryEvents(
  * The first failure aborts the remaining pages so an unusable load stops consuming the server.
  * Results keep the order of `filtersList`.
  */
-export async function loadCompleteTelemetryHistoryForSeries(
+export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetryHistoryResult>(
   adapter: TelemetryAdapter,
   filtersList: readonly TelemetryFilters[],
   window: TelemetryHistoryWindow,
@@ -291,14 +291,20 @@ export async function loadCompleteTelemetryHistoryForSeries(
     TelemetryHistoryLoadOptions,
     "signal" | "snapshotAt" | "pageSize" | "maxPages" | "retryDelaysMs"
   > = {},
-): Promise<CompleteTelemetryHistoryResult[]> {
+  /**
+   * Runs as soon as ONE series has loaded, so callers can reduce it and let its raw samples be
+   * released instead of holding every series' complete raw history until the slowest finishes.
+   */
+  onSeriesLoaded: (result: CompleteTelemetryHistoryResult, index: number) => T = (result) =>
+    result as unknown as T,
+): Promise<T[]> {
   if (filtersList.length === 0) return [];
   const linked = new AbortController();
   const forwardAbort = () => linked.abort(options.signal?.reason);
   if (options.signal?.aborted) linked.abort(options.signal.reason);
   else options.signal?.addEventListener("abort", forwardAbort, { once: true });
 
-  const failFast = <T>(promise: Promise<T>): Promise<T> =>
+  const failFast = <R>(promise: Promise<R>): Promise<R> =>
     promise.catch((error: unknown) => {
       linked.abort();
       throw error;
@@ -309,24 +315,25 @@ export async function loadCompleteTelemetryHistoryForSeries(
     const announced = new Promise<string>((resolve) => {
       announce = resolve;
     });
-    const first = failFast(
-      loadCompleteTelemetryHistory(adapter, filtersList[0], window, {
-        ...options,
-        signal: linked.signal,
-        onSnapshot: announce,
-      }),
-    );
+    const firstLoad = loadCompleteTelemetryHistory(adapter, filtersList[0], window, {
+      ...options,
+      signal: linked.signal,
+      onSnapshot: announce,
+    });
     const snapshotFor = async (): Promise<string> =>
-      options.snapshotAt ?? Promise.race([announced, first.then((result) => result.snapshotAt)]);
-    const rest = filtersList.slice(1).map((filters) =>
+      options.snapshotAt ?? Promise.race([announced, firstLoad.then((result) => result.snapshotAt)]);
+    const first = failFast(firstLoad.then((result) => onSeriesLoaded(result, 0)));
+    const rest = filtersList.slice(1).map((filters, offset) =>
       failFast(
-        snapshotFor().then((snapshotAt) =>
-          loadCompleteTelemetryHistory(adapter, filters, window, {
-            ...options,
-            signal: linked.signal,
-            snapshotAt,
-          }),
-        ),
+        snapshotFor()
+          .then((snapshotAt) =>
+            loadCompleteTelemetryHistory(adapter, filters, window, {
+              ...options,
+              signal: linked.signal,
+              snapshotAt,
+            }),
+          )
+          .then((result) => onSeriesLoaded(result, offset + 1)),
       ),
     );
     return await Promise.all([first, ...rest]);

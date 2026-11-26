@@ -339,7 +339,11 @@ export async function loadCompleteLiveHistory(
   }
 
   // #1809: channels load in parallel under one snapshot (bounded by the shared history limiter).
-  const results = await loadCompleteTelemetryHistoryForSeries(
+  // Each channel is reduced as soon as it has loaded; only compact raw columns (for exact
+  // statistics) and the reduced series are kept, not every channel's raw sample objects.
+  const intervalColumns: LiveIntervalColumns = {};
+  const sourceGapMsByChannel = new Map<string, number>();
+  const perChannel = await loadCompleteTelemetryHistoryForSeries(
     adapter,
     identities.map((identity) => ({
       node_id: identity.node_id,
@@ -349,24 +353,31 @@ export async function loadCompleteLiveHistory(
     })),
     window,
     { signal },
+    (result) => {
+      recordLiveIntervalSamples(
+        intervalColumns,
+        result.samples.filter((sample) => acceptedSample(sample)),
+      );
+      for (const [key, gapMs] of deriveLiveSourceGapMsByChannel(result.samples)) {
+        sourceGapMsByChannel.set(key, gapMs);
+      }
+      return {
+        snapshotAt: result.snapshotAt,
+        reduced: downsampleLiveHistory(result.samples, window, maximumPointsPerChannel),
+        cadence: newestRawSamplesPerChannel(result.samples, CADENCE_OBSERVATION_LIMIT),
+      };
+    },
   );
-  const snapshotAt = results[0].snapshotAt;
-  // concat, not push(...spread): a 30-day channel has >250 000 samples and spreading them as
-  // call arguments overflows the stack ("Maximum call stack size exceeded").
-  let allSamples: TelemetrySample[] = [];
-  for (const result of results) allSamples = allSamples.concat(result.samples);
-
-  const intervalColumns: LiveIntervalColumns = {};
-  recordLiveIntervalSamples(
-    intervalColumns,
-    allSamples.filter((sample) => acceptedSample(sample)),
-  );
+  // Same channel order as a single downsampleLiveHistory call (stable sort keeps time order).
+  const samples = perChannel
+    .flatMap((channel) => channel.reduced)
+    .sort((left, right) => liveChannelKey(left).localeCompare(liveChannelKey(right), "uk-UA"));
   return {
-    samples: downsampleLiveHistory(allSamples, window, maximumPointsPerChannel),
+    samples,
     intervalColumns,
-    snapshotAt,
-    cadenceSamples: newestRawSamplesPerChannel(allSamples, CADENCE_OBSERVATION_LIMIT),
-    sourceGapMsByChannel: deriveLiveSourceGapMsByChannel(allSamples),
+    snapshotAt: perChannel[0].snapshotAt,
+    cadenceSamples: perChannel.flatMap((channel) => channel.cadence),
+    sourceGapMsByChannel,
   };
 }
 
