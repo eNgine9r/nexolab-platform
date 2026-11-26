@@ -732,9 +732,25 @@ def prove_base(old: dict) -> dict:
     return best[0]
 
 
-def dockerfile_for(old: dict, base_id: str, owner: str, source: str) -> str:
+def base_reference(base: dict) -> str:
+    """A local `node:` tag that resolves to the proven base ID.
+
+    BuildKit cannot build FROM a bare image ID (it resolves `sha256:<id>` as the Docker Hub
+    repository `library/sha256` and tries to pull; site run 2026-11-26, #1782). The tag is
+    re-proven against the ID here and immediately before the build, and the built image's
+    layers are proven to start with the base layers afterwards."""
+    tags = sorted(t for t in base.get("RepoTags") or [] if t.startswith("node:") and "@" not in t)
+    need(tags, "BASE_IMAGE_HAS_NO_NODE_TAG " + base["Id"])
+    for tag in tags:
+        if image_inspect(tag)["Id"] == base["Id"]:
+            return tag
+    raise Stop("BASE_TAG_DOES_NOT_RESOLVE_TO_PROVEN_ID " + base["Id"])
+
+
+def dockerfile_for(old: dict, base_ref: str, owner: str, source: str) -> str:
     cfg = old["Config"]
-    lines = [f"FROM {base_id}"]
+    need(not base_ref.startswith("sha256:"), "BUILDKIT_CANNOT_BUILD_FROM_IMAGE_ID")
+    lines = [f"FROM {base_ref}"]
     for item in cfg.get("Env") or []:
         key, _, value = item.partition("=")
         lines.append(f"ENV {key}={json.dumps(value)}")
@@ -797,7 +813,8 @@ def mode_build(args: argparse.Namespace) -> int:
     old = image_inspect(current["Image"])
     need(old["Architecture"] == "arm64", "CURRENT_IMAGE_NOT_ARM64")
     base = prove_base(old)
-    print("BASE_PROVEN " + base["Id"] + " " + ",".join(base.get("RepoTags") or []), flush=True)
+    base_ref = base_reference(base)
+    print("BASE_PROVEN " + base["Id"] + " " + ",".join(base.get("RepoTags") or []) + " via " + base_ref, flush=True)
     workdir = old["Config"].get("WorkingDir") or "/app"
 
     def in_old(*cmd: str) -> str:
@@ -826,7 +843,8 @@ def mode_build(args: argparse.Namespace) -> int:
     for digest, name in manifest:
         path = app / name
         need(path.is_file() and not path.is_symlink() and sha256_file(path) == digest, "CONTEXT_FILE_MISMATCH " + name)
-    (context / "Dockerfile").write_text(dockerfile_for(old, base["Id"], owner, source), encoding="utf-8")
+    (context / "Dockerfile").write_text(dockerfile_for(old, base_ref, owner, source), encoding="utf-8")
+    need(image_inspect(base_ref)["Id"] == base["Id"], "BASE_TAG_MOVED " + base_ref)  # re-proven right before the build
     print("== build: tar-streamed context, no cache, no pull, no network", flush=True)
     tar = subprocess.Popen(["tar", "-C", str(context), "-cf", "-", "."], stdout=subprocess.PIPE)
     result = subprocess.run(["docker", "build", "--no-cache", "--pull=false", "--network", "none", "--platform", "linux/arm64",

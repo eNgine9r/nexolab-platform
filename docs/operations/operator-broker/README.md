@@ -75,6 +75,18 @@ Log operations now keep the newest output when it exceeds the cap. Redaction nev
 | `wifi.connect-test`     | approved | One bounded `nmcli connection up` of a Wi-Fi profile (`mac=permanent` or `random`). The MAC setting is changed in memory only (`--temporary`) and restored. A random-MAC test is always brought down afterwards. Refuses unless Ethernet holds the default route and `wlan0` is not connected; reports whether Ethernet still holds it                                                                                                 |
 | `wifi.profile-remove`   | approved | Removes exactly one inactive Wi-Fi profile by name. Ethernet profiles and the active connection are refused. Irreversible (the owner re-creates the profile if needed)                                                                                                                                                                                                                                                                 |
 
+### v1.4 (#1782)
+
+| Op                         | Kind | What it does                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage.image-references` | read | For each image of an inbox manifest, searches root-only NEXOLAB records for its full ID, 12-character ID, reference and tag. Covers release workspaces, the version-management catalog, `/var/backups/nexolab`, `/etc/nexolab-storage`, system and user units, runtime deployments and recovery. It reports the referencing files with redacted lines and flags rollback/previous/recovery/restore/keep context |
+
+Scan rules: links are never followed; `node_modules`, `.git`, `.next`, archives and binary files are skipped; only text records up to 4 MiB are read; the scan is bounded in files and time and reports `complete`.
+
+`storage.remove-images` now re-runs that scan on every removal. An image named in `/etc/nexolab-storage/protected-images`, or referenced in a rollback context, is skipped (`skipped_protected_or_rollback_record`), whatever the manifest says. An incomplete scan removes nothing.
+
+The pinned Stage 2 tool builds `FROM` a local `node:` tag of the proven base, never `FROM sha256:<id>`: BuildKit resolves a bare ID as the Docker Hub repository `library/sha256` (site `prepare` on 2026-11-26). The tag is re-proven against the base ID before the build, and the image's base layers are proven after it. CI builds the pattern on a real BuildKit.
+
 Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)

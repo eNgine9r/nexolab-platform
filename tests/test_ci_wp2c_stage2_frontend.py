@@ -737,14 +737,28 @@ class BuildHelperTests(unittest.TestCase):
         old = {"Config": {"Env": IMAGE_ENV, "WorkingDir": "/app", "User": "node", "ExposedPorts": {"3000/tcp": {}},
                           "Healthcheck": HEALTH, "Cmd": ["npm", "run", "start"],
                           "Labels": {"org.opencontainers.image.revision": OLD_SRC, "org.opencontainers.image.version": OLD_SRC}}}
-        text = S2.dockerfile_for(old, "sha256:" + "c" * 64, "1000:1000", NEW_SRC)
+        text = S2.dockerfile_for(old, "node:22.23.1-bookworm-slim", "1000:1000", NEW_SRC)
         lines = text.splitlines()
-        self.assertEqual(lines[0], "FROM sha256:" + "c" * 64)
+        self.assertEqual(lines[0], "FROM node:22.23.1-bookworm-slim")
+        with self.assertRaises(S2.Stop):  # BuildKit resolves a bare ID as docker.io/library/sha256 (#1782)
+            S2.dockerfile_for(old, "sha256:" + "c" * 64, "1000:1000", NEW_SRC)
         self.assertFalse([line for line in lines if line.startswith("RUN")])
         self.assertIn(f'LABEL "org.opencontainers.image.revision"="{NEW_SRC}"', lines)
         self.assertIn(f'LABEL "org.opencontainers.image.version"="{NEW_SRC}"', lines)
         self.assertIn("COPY --chown=1000:1000 app/ /app/", lines)
         self.assertIn("USER node", lines)
+
+    def test_base_reference_is_a_node_tag_that_resolves_to_the_proven_id(self) -> None:
+        from unittest import mock
+        base_id = "sha256:" + "b" * 64
+        base = {"Id": base_id, "RepoTags": ["node:22.23.1-bookworm-slim", "other:tag"]}
+        with mock.patch.object(S2, "image_inspect", return_value={"Id": base_id}):
+            self.assertEqual(S2.base_reference(base), "node:22.23.1-bookworm-slim")
+        with mock.patch.object(S2, "image_inspect", return_value={"Id": "sha256:" + "d" * 64}):
+            with self.assertRaises(S2.Stop):  # the tag was moved to another image
+                S2.base_reference(base)
+        with self.assertRaises(S2.Stop):  # no node tag at all
+            S2.base_reference({"Id": base_id, "RepoTags": ["busybox:1.37"]})
 
     def test_identity_manifest_keeps_template_shape(self) -> None:
         manifest = json.loads(S2.identity_manifest(identity(OLD_SRC, OLD_BUILD), NEW_SRC, NEW_BUILD))
