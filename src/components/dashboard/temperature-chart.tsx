@@ -144,13 +144,11 @@ function HistoryChart({
     if (!historyStore || !viewportDomain) return samples;
     const shown = new Set(samples.map(liveChannelKey));
     const detail = overviewViewportDetail(historyStore, viewportDomain, chartPointBudget("overview"));
-    return [
-      ...mergeViewportDetail(samples, {
-        ...detail,
-        channels: new Set([...detail.channels].filter((key) => shown.has(key))),
-        samples: detail.samples.filter((sample) => shown.has(liveChannelKey(sample))),
-      }),
-    ];
+    const detailSamples = detail.samples.filter((sample) => shown.has(liveChannelKey(sample)));
+    // Only channels with detail points are replaced: a failure-only series (no drawable point)
+    // keeps its representative poll instead of vanishing from the chart and statistics (review).
+    const detailed = new Set(detailSamples.map(liveChannelKey));
+    return [...mergeViewportDetail(samples, { ...detail, channels: detailed, samples: detailSamples })];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyStore, historyVersion, samples, viewportDomain]);
   // #1827: series are built once per display change; a zoom/pan only rebuilds the reduced points.
