@@ -4,6 +4,11 @@ import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backf
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
+import {
+  appendHistoryTail,
+  orderedHistoryWindow,
+  trimHistoryWindow,
+} from "@/features/dashboard/overview-history-window";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -54,6 +59,13 @@ const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24, "7d": 7 * 24 } as const;
 const HISTORY_PENDING_LIVE_LIMIT = 5_000;
+/**
+ * #1827: live history updates are coalesced — at most one per second up to 6 h, one per 5 s for
+ * longer windows (a 24 h chart point spans minutes; series turn stale after 30 s at the earliest).
+ */
+function historyTailFlushMs(durationMs: number): number {
+  return durationMs > 6 * 60 * 60 * 1_000 ? 5_000 : 1_000;
+}
 
 interface RuntimeConfigResult {
   config: TelemetryRuntimeConfig | null;
@@ -135,25 +147,6 @@ function advanceHistoryWindow(
   return toMs === current.to.getTime() ? current : { from: new Date(toMs - durationMs), to: new Date(toMs) };
 }
 
-function samplesInsideHistoryWindow(
-  samples: readonly TelemetrySample[],
-  window: TelemetryHistoryWindow,
-): TelemetrySample[] {
-  const fromMs = window.from.getTime();
-  const toMs = window.to.getTime();
-  const byEventId = new Map<string, TelemetrySample>();
-  for (const sample of samples) {
-    const capturedAt = Date.parse(sample.captured_at);
-    if (!Number.isFinite(capturedAt) || capturedAt < fromMs || capturedAt > toMs) continue;
-    byEventId.set(sample.event_id, sample);
-  }
-  return [...byEventId.values()].sort(
-    (left, right) =>
-      Date.parse(left.captured_at) - Date.parse(right.captured_at) ||
-      left.event_id.localeCompare(right.event_id),
-  );
-}
-
 function serializedHistoryWindow(window: TelemetryHistoryWindow): { from: string; to: string } {
   return { from: window.from.toISOString(), to: window.to.toISOString() };
 }
@@ -207,6 +200,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
   const historyTailContextRef = useRef<DashboardHistoryTailContext | null>(null);
+  const tailBufferRef = useRef<TelemetrySample[]>([]);
+  const tailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (tailTimerRef.current !== null) globalThis.clearTimeout(tailTimerRef.current);
+      tailTimerRef.current = null;
+    },
+    [],
+  );
   const historyKey =
     scopeKey === null
       ? null
@@ -253,10 +255,19 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     const nextWindow = advanceHistoryWindow(context.window, reconciled.samples);
     historyTailContextRef.current = { ...context, window: nextWindow };
-    setHistorySamples((current) =>
-      samplesInsideHistoryWindow([...current, ...reconciled.samples], nextWindow),
-    );
-    setHistoryWindow(serializedHistoryWindow(nextWindow));
+    // #1827: live samples are coalesced (see historyTailFlushMs); deriving the Overview from raw
+    // history per sample cost more than the sample interval at 24 h.
+    tailBufferRef.current.push(...reconciled.samples);
+    if (tailTimerRef.current !== null) return;
+    tailTimerRef.current = globalThis.setTimeout(() => {
+      tailTimerRef.current = null;
+      const pending = tailBufferRef.current;
+      tailBufferRef.current = [];
+      const latestContext = historyTailContextRef.current;
+      if (pending.length === 0 || !latestContext || latestContext.historyKey !== context.historyKey) return;
+      setHistorySamples((current) => appendHistoryTail(current, pending, latestContext.window));
+      setHistoryWindow(serializedHistoryWindow(latestContext.window));
+    }, historyTailFlushMs(context.durationMs));
   }, []);
 
   useEffect(() => {
@@ -270,7 +281,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       const nextWindow = advanceWindowToClock(context.window, now);
       if (nextWindow === context.window) return;
       historyTailContextRef.current = { ...context, window: nextWindow };
-      setHistorySamples((current) => samplesInsideHistoryWindow(current, nextWindow));
+      setHistorySamples((current) => trimHistoryWindow(current, nextWindow));
       setHistoryWindow(serializedHistoryWindow(nextWindow));
     }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
@@ -386,6 +397,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     historyOrderingRef.current = null;
     historyPendingLiveRef.current = [];
+    tailBufferRef.current = [];
     historyTailContextRef.current = {
       scopeKey,
       historyKey,
@@ -415,7 +427,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
           // Exactly the requested window: no live tail, no advance, no cadence seeding from the past.
           historyPendingLiveRef.current = [];
           historyOrderingRef.current = null;
-          setHistorySamples(samplesInsideHistoryWindow(persisted, requestedWindow));
+          setHistorySamples(orderedHistoryWindow(persisted, requestedWindow));
           setHistoryWindow(serializedHistoryWindow(requestedWindow));
           setHistoryStatus("ready");
           setHistoryError(null);
@@ -431,7 +443,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
         const finalWindow = advanceHistoryWindow(requestedWindow, reconciled.samples);
-        const combined = samplesInsideHistoryWindow([...persisted, ...reconciled.samples], finalWindow);
+        const combined = orderedHistoryWindow([...persisted, ...reconciled.samples], finalWindow);
 
         historyPendingLiveRef.current = [];
         historyOrderingRef.current = reconciled.state;

@@ -5,6 +5,7 @@ import {
   reduceChartSegmentsToPointBudget,
   type ChartFreshnessState,
   type ChartRendererScene,
+  type ChartSegment,
   type ChartSeries,
   type ChartSeriesIdentity,
   type ChartXDomain,
@@ -59,15 +60,34 @@ function timestamp(sample: TelemetrySample): number {
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }
 
-function orderedUniqueSamples(samples: readonly TelemetrySample[]): TelemetrySample[] {
-  const byEventId = new Map<string, TelemetrySample>();
+interface TimedSample {
+  sample: TelemetrySample;
+  timestampMs: number;
+}
+
+/** Unique by event_id (earliest copy wins), time-ordered; each timestamp parsed once (#1827). */
+function orderedUniqueSamples(samples: readonly TelemetrySample[]): TimedSample[] {
+  const byEventId = new Map<string, TimedSample>();
   for (const sample of samples) {
+    const timestampMs = timestamp(sample);
     const existing = byEventId.get(sample.event_id);
-    if (!existing || timestamp(sample) < timestamp(existing)) byEventId.set(sample.event_id, sample);
+    if (!existing || timestampMs < existing.timestampMs)
+      byEventId.set(sample.event_id, { sample, timestampMs });
   }
   return [...byEventId.values()].sort(
-    (left, right) => timestamp(left) - timestamp(right) || left.event_id.localeCompare(right.event_id),
+    (left, right) =>
+      left.timestampMs - right.timestampMs || left.sample.event_id.localeCompare(right.sample.event_id),
   );
+}
+
+/** The newest `limit` distinct timestamps, oldest first, from a time-ordered series. */
+function recentDistinctTimestamps(samples: readonly TimedSample[], limit: number): number[] {
+  const recent: number[] = [];
+  for (let index = samples.length - 1; index >= 0 && recent.length < limit; index -= 1) {
+    const timestampMs = samples[index].timestampMs;
+    if (recent.at(-1) !== timestampMs) recent.push(timestampMs);
+  }
+  return recent.reverse();
 }
 
 export function overviewChartFreshness(status: DashboardTelemetryStatus): ChartFreshnessState {
@@ -86,11 +106,11 @@ export function overviewChartFreshness(status: DashboardTelemetryStatus): ChartF
  */
 function overviewSeriesFreshness(
   status: DashboardTelemetryStatus,
-  samples: readonly TelemetrySample[],
+  samples: readonly TimedSample[],
   now: number,
   historical: boolean,
 ): SeriesFreshness {
-  const latest = samples.at(-1);
+  const latest = samples.at(-1)?.sample;
   if (historical) {
     return historicalSeriesFreshness(
       latest
@@ -98,7 +118,7 @@ function overviewSeriesFreshness(
         : null,
     );
   }
-  const recent = [...new Set(samples.map(timestamp))].slice(-CADENCE_OBSERVATION_LIMIT);
+  const recent = recentDistinctTimestamps(samples, CADENCE_OBSERVATION_LIMIT);
   return resolveSeriesFreshness({
     page: overviewChartFreshness(status),
     latest: latest
@@ -134,18 +154,18 @@ function buildSeries(
   soloSeriesKey: string | null,
   now: number,
   historical: boolean,
-): ChartSeries {
+): OverviewBaseSeries {
   const samples = orderedUniqueSamples(source);
-  const firstSample = samples[0];
+  const firstSample = samples[0]?.sample;
   if (!firstSample) throw new Error("Overview chart series requires at least one sample");
   const identity = overviewChartIdentity(firstSample);
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[visualIndex % CHART_SERIES_TOKENS.length];
   const segments = buildChartSegments(
     identity,
-    samples.map((sample) => ({
+    samples.map(({ sample, timestampMs }) => ({
       id: sample.event_id,
-      timestampMs: timestamp(sample),
+      timestampMs,
       value: sample.value,
       quality: sample.quality,
       sourceEventId: sample.event_id,
@@ -160,24 +180,57 @@ function buildSeries(
     markerShape: token.markerShape,
     ...overviewSeriesFreshness(status, samples, now, historical),
     segments: reduceTruthfully(segments),
+    rawSegments: segments,
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: "instantaneous",
   };
 }
 
-export function buildOverviewChartGroups(options: OverviewChartBuildOptions): OverviewChartGroup[] {
+/** A built Overview series plus its unreduced segments, for viewport detail (#1827). */
+interface OverviewBaseSeries extends ChartSeries {
+  rawSegments: readonly ChartSegment[];
+}
+
+export interface OverviewChartBaseGroup {
+  id: string;
+  nativeUnit: string;
+  physicalQuantity: ChartUnitGroup["physicalQuantity"];
+  series: OverviewBaseSeries[];
+}
+
+/**
+ * #1827: every Overview series built once per history change — grouped, ordered, segmented from
+ * RAW samples and reduced to the full-range budget. The zoom domain is applied separately by
+ * `overviewChartGroupsForDomain`, so a zoom/pan no longer rebuilds the series.
+ */
+export function buildOverviewChartBase(
+  options: Omit<OverviewChartBuildOptions, "xDomain">,
+): OverviewChartBaseGroup[] {
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const groupedSamples = new Map<string, TelemetrySample[]>();
   const identities = new Map<string, ChartSeriesIdentity>();
 
-  for (const sample of options.samples.filter(isTemperatureProbeSample)) {
-    const identity = overviewChartIdentity(sample);
-    const key = chartSeriesKey(identity);
+  // #1827: the probe check and the series key depend only on the identity fields, so they are
+  // computed once per distinct identity instead of once per raw sample.
+  const keyByIdentity = new Map<string, string | null>();
+  for (const sample of options.samples) {
+    const composite = `${sample.node_id}\u0000${sample.equipment_id}\u0000${sample.channel_id}\u0000${sample.metric}\u0000${sample.unit}`;
+    let key = keyByIdentity.get(composite);
+    if (key === undefined) {
+      if (isTemperatureProbeSample(sample)) {
+        const identity = overviewChartIdentity(sample);
+        key = chartSeriesKey(identity);
+        identities.set(key, identity);
+      } else {
+        key = null;
+      }
+      keyByIdentity.set(composite, key);
+    }
+    if (key === null) continue;
     const group = groupedSamples.get(key);
     if (group) group.push(sample);
     else groupedSamples.set(key, [sample]);
-    identities.set(key, identity);
   }
 
   const orderedKeys = [...groupedSamples.keys()].sort((left, right) => left.localeCompare(right, "en"));
@@ -228,14 +281,94 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
         nativeUnit: group.nativeUnit,
         physicalQuantity: group.physicalQuantity,
         firstIndex: selected[0]?.index ?? Number.MAX_SAFE_INTEGER,
-        scene: {
-          series,
-          xDomain: options.xDomain,
-        },
+        series,
       };
     })
     .sort((left, right) => left.firstIndex - right.firstIndex)
-    .map(({ id, nativeUnit, physicalQuantity, scene }) => ({ id, nativeUnit, physicalQuantity, scene }));
+    .map(({ id, nativeUnit, physicalQuantity, series }) => ({ id, nativeUnit, physicalQuantity, series }));
+}
+
+/** Zoom detail covers the viewport plus this share of its width on each side, for smooth panning. */
+export const OVERVIEW_DETAIL_MARGIN_RATIO = 0.5;
+
+function lowerBoundPoint(points: readonly { timestampMs: number }[], targetMs: number): number {
+  let low = 0;
+  let high = points.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (points[middle].timestampMs < targetMs) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+/**
+ * Full-range points outside the detail range, and the RAW points inside it reduced to the series
+ * budget (first/min/max/last per bucket, segment boundaries and pinned evidence kept). Breaks are
+ * the raw segments' own, so nothing is joined or interpolated.
+ */
+function detailSegments(series: OverviewBaseSeries, fromMs: number, toMs: number): readonly ChartSegment[] {
+  const inside: ChartSegment[] = [];
+  for (const segment of series.rawSegments) {
+    const start = lowerBoundPoint(segment.points, fromMs);
+    const end = lowerBoundPoint(segment.points, toMs + 1);
+    if (end > start) inside.push({ ...segment, points: segment.points.slice(start, end) });
+  }
+  if (inside.length === 0) return series.segments;
+  let reduced: ChartSegment[];
+  try {
+    reduced = reduceTruthfully(inside);
+  } catch {
+    // The detail budget cannot hold every evidence boundary: keep the full-range points.
+    return series.segments;
+  }
+  const insideById = new Map(reduced.map((segment) => [segment.id, segment.points]));
+  return series.segments.map((segment) => {
+    const points = insideById.get(segment.id);
+    if (!points) return segment;
+    return {
+      ...segment,
+      points: [
+        ...segment.points.filter((point) => point.timestampMs < fromMs),
+        ...points,
+        ...segment.points.filter((point) => point.timestampMs > toMs),
+      ],
+    };
+  });
+}
+
+/**
+ * Applies the x-domain to the built series. With a committed zoom/pan (`detailDomain`), each series
+ * shows the original measurements of the visible window (±50 %) from its raw segments.
+ */
+export function overviewChartGroupsForDomain(
+  base: readonly OverviewChartBaseGroup[],
+  xDomain: ChartXDomain,
+  detailDomain: ChartXDomain | null = null,
+): OverviewChartGroup[] {
+  const span = detailDomain ? detailDomain.toMs - detailDomain.fromMs : 0;
+  const detailFrom = detailDomain ? detailDomain.fromMs - span * OVERVIEW_DETAIL_MARGIN_RATIO : 0;
+  const detailTo = detailDomain ? detailDomain.toMs + span * OVERVIEW_DETAIL_MARGIN_RATIO : 0;
+  return base.map((group) => ({
+    id: group.id,
+    nativeUnit: group.nativeUnit,
+    physicalQuantity: group.physicalQuantity,
+    scene: {
+      series: group.series.map((entry) => {
+        // Raw segments stay out of the renderer scene.
+        const series: Partial<OverviewBaseSeries> & ChartSeries = { ...entry };
+        delete series.rawSegments;
+        return detailDomain && span > 0
+          ? { ...series, segments: detailSegments(entry, detailFrom, detailTo) }
+          : series;
+      }),
+      xDomain,
+    },
+  }));
+}
+
+export function buildOverviewChartGroups(options: OverviewChartBuildOptions): OverviewChartGroup[] {
+  return overviewChartGroupsForDomain(buildOverviewChartBase(options), options.xDomain);
 }
 
 export function overviewResetDomain(
