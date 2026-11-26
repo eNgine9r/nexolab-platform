@@ -1,0 +1,1368 @@
+#!/usr/bin/env python3
+"""WP2c Stage 3 (#1734): backend publishes on loopback, Edge bridge over Docker DNS, owner-run.
+
+Runs on the production host as the operator account (docker group, never root).
+It recreates exactly five Compose services, each derived from ``docker inspect``
+(they belong to different Compose projects and configuration paths), in this order:
+
+  central MQTT -> telemetry-service (readiness) -> MinIO -> dashboard -> Edge MQTT
+
+The only intended changes are:
+
+  * host publishes on the compatibility address (default 172.18.48.66) move to
+    127.0.0.1 with the same ports (dashboard host port: --dashboard-host-port);
+  * telemetry-service OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = --object-storage-public-url;
+  * Edge MQTT CENTRAL_MQTT_HOST=central-mqtt (the alias unique to the central
+    broker on nexolab-standalone-runtime; ``mqtt`` is carried by BOTH brokers
+    there) and CENTRAL_MQTT_PORT=1883. CENTRAL_BRIDGE_CLIENT_ID is preserved.
+
+Image IDs, volumes and mounts, networks and aliases, labels, restart policy,
+healthcheck, user, command, entrypoint and every other environment entry stay
+identical. The tool never runs ``down``, ``-v``, ``rm``, ``prune``,
+``--remove-orphans``, never creates or removes volumes or networks and never
+touches the Device Agent, serial devices or Modbus.
+
+Modes:
+
+  plan     read-only change set from ``docker inspect`` (or --from-model JSON for
+           offline review), alias hazards, retained compatibility-address
+           references and the external consumers that remain an owner step.
+  check    read-only preflight: lock, non-root, node, 20 GiB reserve, a fresh
+           backup receipt (#1428), every container healthy, readiness, Docker DNS
+           of the bridge host from the Edge broker, compose models derivable.
+  execute  check, then write candidate + rollback Compose per service (0600 in a
+           0700 run directory), prove both with a daemon-free ``docker compose
+           config`` comparison, then switch in order with per-service
+           verification; any failure rolls back every attempted service in
+           reverse order and verifies. Finally telemetry continuity: readiness
+           ``last_persisted_at`` must advance within --continuity-seconds.
+  rollback explicit verified rollback from the recorded rollback Compose files.
+
+Markers: STAGE3_BACKEND_GREEN (0), STAGE3_ROLLED_BACK_VERIFIED (3 after a failed
+switch, 0 for an explicit rollback), HARD_BLOCKER_ROLLBACK_UNVERIFIED (4),
+STOP <reason> (2, nothing switched).
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import fcntl
+import hashlib
+import ipaddress
+import json
+import os
+import re
+import socket
+import stat
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import NamedTuple
+
+DEFAULT_WORKSPACE = "/home/nexolab/commander-workspaces/nexolab-wp2c-stage3"
+DEFAULT_LOCK = "/tmp/nexolab-current-head-launch.lock"
+DEFAULT_COMPAT_IP = "172.18.48.66"
+LOOPBACK = "127.0.0.1"
+DEFAULT_SHARED_NETWORK = "nexolab-standalone-runtime"
+DEFAULT_UNTOUCHED = ("nexolab-edge-device-agent-1", "nexolab-central-postgres-1")
+OBJECT_URL_ENV = "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"
+BRIDGE_HOST_ENV = "CENTRAL_MQTT_HOST"
+BRIDGE_PORT_ENV = "CENTRAL_MQTT_PORT"
+BRIDGE_CLIENT_ENV = "CENTRAL_BRIDGE_CLIENT_ID"
+GIB = 1024**3
+DEFAULT_SHM = 64 * 1024 * 1024
+POLL_SECONDS = 1.0
+WORK_PACKAGE = "1734-wp2c-stage3"
+
+
+class Spec(NamedTuple):
+    key: str
+    container: str
+    project: str
+    service: str
+
+
+SERVICES = (
+    Spec("central-mqtt", "nexolab-central-mqtt-1", "nexolab-central", "mqtt"),
+    Spec("telemetry-service", "nexolab-central-telemetry-service-1", "nexolab-central", "telemetry-service"),
+    Spec("minio", "nexolab-central-minio-1", "nexolab-central", "minio"),
+    Spec("dashboard", "nexolab-central-dashboard-1", "nexolab-central", "dashboard"),
+    Spec("edge-mqtt", "nexolab-edge-mqtt-1", "nexolab-edge", "mqtt"),
+)
+BY_KEY = {spec.key: spec for spec in SERVICES}
+TELEMETRY, CENTRAL_MQTT, EDGE_MQTT, DASHBOARD = (BY_KEY["telemetry-service"], BY_KEY["central-mqtt"],
+                                                  BY_KEY["edge-mqtt"], BY_KEY["dashboard"])
+
+ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+ALIAS = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+RUN_NAME = re.compile(r"^[0-9]{8}T[0-9]{6}[0-9]{6}Z$")
+
+# HostConfig settings that must stay at their Docker default; everything else is
+# translated explicitly and compared after the switch.
+MUST_BE_EMPTY = (
+    "VolumesFrom", "Devices", "DeviceRequests", "DeviceCgroupRules", "Privileged", "PublishAllPorts", "PidMode",
+    "UTSMode", "UsernsMode", "CgroupParent", "VolumeDriver", "AutoRemove", "Cgroup", "Links",
+)
+HOSTCONFIG_COMPARE = (
+    "PortBindings", "RestartPolicy", "NetworkMode", "Init", "Privileged", "CapAdd", "CapDrop", "SecurityOpt",
+    "ExtraHosts", "Dns", "DnsSearch", "DnsOptions", "GroupAdd", "Tmpfs", "Sysctls", "Ulimits", "Memory", "MemorySwap",
+    "MemoryReservation", "NanoCpus", "CpuShares", "PidsLimit", "ShmSize", "OomScoreAdj", "LogConfig", "ReadonlyRootfs",
+    "Devices", "IpcMode", "PidMode", "UsernsMode", "Runtime", "PublishAllPorts",
+)
+
+
+class Stop(Exception):
+    """Fail closed before or outside a production change."""
+
+
+def need(condition: object, reason: str) -> None:
+    if not condition:
+        raise Stop(reason)
+
+
+# ---------------------------------------------------------------- utilities
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def docker_env() -> dict[str, str]:
+    """Inherited environment without Compose overrides that could redirect a command."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("COMPOSE_")}
+
+
+def run(argv: list[str], timeout: int = 120, check: bool = True) -> subprocess.CompletedProcess:
+    result = subprocess.run(argv, capture_output=True, timeout=timeout, check=False, env=docker_env())
+    if check and result.returncode:
+        raise Stop("COMMAND_FAILED " + " ".join(argv[:6]) + ": " + result.stderr.decode(errors="replace")[-400:])
+    return result
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def free_bytes(path: Path) -> int:
+    probe = path
+    while not probe.exists():
+        probe = probe.parent
+    st = os.statvfs(probe)
+    return st.f_bavail * st.f_frsize
+
+
+def write_private(path: Path, data: str, exclusive: bool = False) -> None:
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if exclusive:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            out.write(data)
+        return
+    tmp = path.with_name(f".{path.name}.tmp")
+    if tmp.exists() or tmp.is_symlink():
+        tmp.unlink()
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as out:
+        out.write(data)
+    os.replace(tmp, path)
+
+
+def write_json(path: Path, value: object, exclusive: bool = False) -> None:
+    write_private(path, json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", exclusive=exclusive)
+
+
+def read_json(path: Path, reason: str) -> object:
+    need(path.is_file() and not path.is_symlink(), reason)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as error:
+        raise Stop(reason + " (not JSON)") from error
+
+
+def digest(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def env_map(env: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for item in env:
+        key, sep, value = item.partition("=")
+        need(sep and ENV_KEY.match(key) and "\n" not in key, "UNSUPPORTED_ENV_ENTRY " + key[:40])
+        need(key not in out, "DUPLICATE_ENV_KEY " + key)
+        out[key] = value
+    return out
+
+
+# ---------------------------------------------------------------- HTTP / TCP probes
+
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def http_get(url: str, timeout: float = 5.0) -> tuple[int, bytes]:
+    try:
+        with _OPENER.open(url, timeout=timeout) as response:
+            return response.status, response.read(1024 * 1024)
+    except urllib.error.HTTPError as error:
+        return error.code, error.read(64 * 1024) if error.fp else b""
+    except Exception as error:  # noqa: BLE001 - every transport failure is a failed probe
+        raise Stop(f"HTTP_UNAVAILABLE {url} {str(error)[:160]}") from error
+
+
+def tcp_open(host: str, port: int, timeout: float = 3.0) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def loopback_port_free(port: int) -> bool:
+    return not tcp_open(LOOPBACK, port, timeout=1.0)
+
+
+# ---------------------------------------------------------------- docker reads (read-only)
+
+
+def inspect(name: str) -> dict:
+    result = run(["docker", "inspect", "--type", "container", name], timeout=60, check=False)
+    need(result.returncode == 0, "CONTAINER_NOT_FOUND " + name)
+    return json.loads(result.stdout)[0]
+
+
+def image_inspect(ref: str) -> dict:
+    result = run(["docker", "image", "inspect", ref], timeout=60, check=False)
+    need(result.returncode == 0, "IMAGE_NOT_FOUND " + ref)
+    return json.loads(result.stdout)[0]
+
+
+def network_members(network: str) -> dict[str, str]:
+    """Container ID -> name for every container attached to ``network``."""
+    result = run(["docker", "network", "inspect", network], timeout=60, check=False)
+    need(result.returncode == 0, "NETWORK_NOT_FOUND " + network)
+    data = json.loads(result.stdout)[0]
+    return {cid: (item or {}).get("Name", "") for cid, item in (data.get("Containers") or {}).items()}
+
+
+def health(container: dict) -> str:
+    state = container.get("State") or {}
+    if not state.get("Running"):
+        return "not-running"
+    return (state.get("Health") or {}).get("Status") or "running"
+
+
+def wanted_health(container: dict) -> str:
+    hc = (container.get("Config") or {}).get("Healthcheck") or {}
+    return "healthy" if hc.get("Test") and hc["Test"] != ["NONE"] else "running"
+
+
+def bindings(container: dict) -> list[tuple[str, str, str]]:
+    """Sorted (container_port, host_ip, host_port) of every configured publish."""
+    raw = (container.get("HostConfig") or {}).get("PortBindings") or {}
+    return sorted((cport, b.get("HostIp") or "", b.get("HostPort") or "") for cport, items in raw.items() for b in (items or []))
+
+
+def local_url(container: dict) -> str:
+    entries = bindings(container)
+    need(len(entries) == 1, f"EXPECTED_ONE_PORT_BINDING {container.get('Name')} {entries}")
+    _, host, port = entries[0]
+    host = LOOPBACK if host in ("", "0.0.0.0") else host
+    return f"http://{host}:{port}"
+
+
+def readiness() -> dict:
+    url = local_url(inspect(TELEMETRY.container)) + "/health/ready"
+    status, body = http_get(url)
+    try:
+        data = json.loads(body or b"{}")
+    except ValueError:
+        data = {}
+    need(status == 200 and data.get("status") == "ready", f"API_NOT_READY {url} status={status} {str(data)[:200]}")
+    return data
+
+
+def dashboard_identity(container: dict) -> dict:
+    status, body = http_get(local_url(container) + "/api/runtime-identity")
+    need(status == 200, f"DASHBOARD_IDENTITY_HTTP_{status}")
+    try:
+        data = json.loads(body)
+    except ValueError as error:
+        raise Stop("DASHBOARD_IDENTITY_NOT_JSON") from error
+    return {"source_commit": data.get("source_commit"), "build_id": data.get("build_id")}
+
+
+def snapshots(names: list[str]) -> dict:
+    entries = {}
+    for name in names:
+        data = inspect(name)
+        need(health(data) == wanted_health(data), f"CONTAINER_UNHEALTHY {name} {health(data)}")
+        entries[name] = {"container_id": data["Id"], "image_id": data["Image"],
+                         "started_at": (data.get("State") or {}).get("StartedAt"), "restart_count": data.get("RestartCount", 0)}
+    return entries
+
+
+# ---------------------------------------------------------------- validation of the intended values
+
+
+def validate_bridge_host(host: str) -> None:
+    need(host, "BRIDGE_HOST_REQUIRED")
+    try:
+        ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        pass
+    else:
+        raise Stop("BRIDGE_HOST_IP_LITERAL_REFUSED " + host)
+    need(host.lower() not in ("mqtt", "localhost"),
+         f"BRIDGE_HOST_AMBIGUOUS_REFUSED {host} (both brokers carry 'mqtt' on the shared network; use central-mqtt)")
+    need(ALIAS.match(host), "BRIDGE_HOST_NOT_A_DOCKER_ALIAS " + host)
+
+
+def validate_object_url(url: str | None, compat_ip: str) -> None:
+    need(url, "OBJECT_STORAGE_PUBLIC_URL_REQUIRED (--object-storage-public-url; no default)")
+    parts = urllib.parse.urlsplit(url)
+    need(not any(ch.isspace() for ch in url) and "@" not in parts.netloc, "OBJECT_STORAGE_PUBLIC_URL_INVALID")
+    need(parts.scheme in ("http", "https") and parts.hostname,
+         "OBJECT_STORAGE_PUBLIC_URL_NOT_ABSOLUTE (telemetry-service passes it to boto3 as endpoint_url, which needs "
+         "scheme://host; a bare same-origin path would stop the service at start)")
+    need(compat_ip not in url, "OBJECT_STORAGE_PUBLIC_URL_USES_COMPAT_ADDRESS")
+    try:
+        ip = ipaddress.ip_address(parts.hostname)
+    except ValueError:
+        return
+    need(ip.is_loopback, "OBJECT_STORAGE_PUBLIC_URL_IP_LITERAL_REFUSED " + parts.hostname)
+
+
+# ---------------------------------------------------------------- views (inspect or offline model)
+
+
+def view_from_inspect(container: dict) -> dict:
+    cfg, host = container.get("Config") or {}, container.get("HostConfig") or {}
+    networks = (container.get("NetworkSettings") or {}).get("Networks") or {}
+    return {
+        "name": container["Name"].lstrip("/"), "labels": cfg.get("Labels") or {}, "image": cfg.get("Image"),
+        "image_id": container.get("Image"), "env": list(cfg.get("Env") or []), "ports": host.get("PortBindings") or {},
+        "networks": {n: sorted(set((e or {}).get("Aliases") or []) | set((e or {}).get("DNSNames") or []))
+                     for n, e in networks.items()},
+        "redacted": False,
+    }
+
+
+def view_from_model(item: dict) -> dict:
+    return {
+        "name": item["name"], "labels": item.get("labels") or {}, "image": item.get("image"), "image_id": item.get("image_id"),
+        "env": list(item.get("env") or []), "ports": item.get("port_bindings") or {},
+        "networks": {n: sorted((e or {}).get("aliases") or []) for n, e in (item.get("networks") or {}).items()},
+        "redacted": True,
+    }
+
+
+def load_model(path: Path) -> tuple[dict[str, dict], dict[str, dict]]:
+    """(views by name, raw docker-inspect containers by name — empty for a sanitized broker model)."""
+    data = read_json(path, "MODEL_NOT_READABLE " + str(path))
+    if isinstance(data, dict):
+        data = (data.get("result") or data).get("containers")
+    need(isinstance(data, list) and data, "MODEL_HAS_NO_CONTAINERS")
+    if all(isinstance(item, dict) and "Config" in item for item in data):
+        raw = {item["Name"].lstrip("/"): item for item in data}
+        return {name: view_from_inspect(item) for name, item in raw.items()}, raw
+    return {item["name"]: view_from_model(item) for item in data}, {}
+
+
+# ---------------------------------------------------------------- change set
+
+
+def service_delta(spec: Spec, view: dict, args: argparse.Namespace) -> dict:
+    labels = view["labels"]
+    need(labels.get("com.docker.compose.project") == spec.project, f"COMPOSE_PROJECT_UNEXPECTED {spec.container}")
+    need(labels.get("com.docker.compose.service") == spec.service, f"COMPOSE_SERVICE_UNEXPECTED {spec.container}")
+    need(view["name"] == spec.container == f"{spec.project}-{spec.service}-1", "UNEXPECTED_CONTAINER_NAME " + view["name"])
+    ports = []
+    for cport, items in sorted(view["ports"].items()):
+        for binding in items or []:
+            hip, hport = binding.get("HostIp") or "", binding.get("HostPort") or ""
+            need(hport, f"PORT_BINDING_WITHOUT_HOST_PORT {spec.container} {cport}")
+            if hip == args.compat_ip:
+                target = str(args.dashboard_host_port) if spec.key == DASHBOARD.key else hport
+                ports.append({"container_port": cport, "from": [hip, hport], "to": [LOOPBACK, target]})
+            else:
+                need(hip == LOOPBACK, f"UNEXPECTED_PUBLISH_ADDRESS {spec.container} {cport} {hip or '0.0.0.0'}:{hport}")
+    env = env_map(view["env"]) if not view["redacted"] else dict(item.partition("=")[::2] for item in view["env"])
+    wanted: dict[str, str] = {}
+    if spec.key == TELEMETRY.key:
+        wanted[OBJECT_URL_ENV] = args.object_storage_public_url
+    if spec.key == EDGE_MQTT.key:
+        wanted[BRIDGE_HOST_ENV] = args.bridge_host
+        wanted[BRIDGE_PORT_ENV] = str(args.bridge_port)
+        need(env.get(BRIDGE_CLIENT_ENV) and env[BRIDGE_CLIENT_ENV] not in ("<set>", "[REDACTED]"), "BRIDGE_CLIENT_ID_MISSING")
+    changes = {}
+    for key, value in wanted.items():
+        need(key in env, f"ENV_KEY_MISSING {spec.container} {key}")
+        if env[key] != value:
+            changes[key] = [env[key], value]
+    retained = sorted(k for k, v in env.items() if k not in wanted and args.compat_ip in v)
+    preserved = {BRIDGE_CLIENT_ENV: env[BRIDGE_CLIENT_ENV]} if spec.key == EDGE_MQTT.key else {}
+    return {"key": spec.key, "container": spec.container, "project": spec.project, "service": spec.service,
+            "image_id": view["image_id"], "ports": ports, "env": changes, "preserved": preserved,
+            "retained_compat_env": retained}
+
+
+def alias_analysis(views: dict[str, dict], args: argparse.Namespace) -> dict:
+    carriers: dict[str, list[str]] = {}
+    for name, view in sorted(views.items()):
+        for alias in view["networks"].get(args.shared_network, []):
+            carriers.setdefault(alias, []).append(name)
+    ambiguous = {alias: names for alias, names in carriers.items() if len(names) > 1}
+    consumers = []
+    for name, view in sorted(views.items()):
+        if args.shared_network not in view["networks"]:
+            continue
+        for item in view["env"]:
+            key, _, value = item.partition("=")
+            if key.endswith("_HOST") and value in ambiguous:
+                consumers.append(f"{name} {key}={value}")
+    return {"bridge_host_carriers": carriers.get(args.bridge_host, []), "ambiguous_aliases": ambiguous,
+            "ambiguous_consumers": consumers}
+
+
+def external_consumers(args: argparse.Namespace) -> list[str]:
+    ip, port = args.compat_ip, args.dashboard_host_port
+    return [
+        f"tailscale serve :8443 /api -> http://{ip}:8082/api: retarget to http://127.0.0.1:8082/api",
+        f"tailscale serve :8444 -> http://{ip}:3000: retarget to http://127.0.0.1:{port} or the LAN gateway",
+        "nexolab-lan-gateway (port 80): upstreams to loopback, then remove the temporary compatibility allow flag",
+        "HTTPS external UI private_api_origin: http://127.0.0.1:8082",
+        "nexolab-compat-address.service (nxcompat0): keep until Phase 4, then retire",
+        f"Compose files of record still name {ip}; a later 'up' from them reverts this stage (update the catalog separately)",
+        "wp2c-stage2-frontend.py rollback.compose.yaml was recorded before Stage 3 and republishes the dashboard on the "
+        "compatibility address",
+    ]
+
+
+def build_plan(views: dict[str, dict], args: argparse.Namespace) -> dict:
+    services = []
+    for spec in SERVICES:
+        need(spec.container in views, "CONTAINER_NOT_FOUND " + spec.container)
+        services.append(service_delta(spec, views[spec.container], args))
+    aliases = alias_analysis(views, args)
+    blockers = []
+    if aliases["bridge_host_carriers"] != [CENTRAL_MQTT.container]:
+        blockers.append(f"BRIDGE_HOST_NOT_UNIQUE_TO_CENTRAL_MQTT {args.bridge_host} carriers={aliases['bridge_host_carriers']}")
+    for spec in (CENTRAL_MQTT, EDGE_MQTT):
+        if args.shared_network not in views[spec.container]["networks"]:
+            blockers.append(f"NOT_ON_SHARED_NETWORK {spec.container} {args.shared_network}")
+    central_ports = {cport for cport, _ in views[CENTRAL_MQTT.container]["ports"].items()}
+    if central_ports != {f"{args.bridge_port}/tcp"}:
+        blockers.append(f"BRIDGE_PORT_NOT_CENTRAL_CONTAINER_PORT {args.bridge_port} central={sorted(central_ports)}")
+    unacknowledged = [f"{s['container']} {k}" for s in services for k in s["retained_compat_env"] if k not in args.retain_env]
+    for spec_delta in services:
+        if not spec_delta["ports"] and not spec_delta["env"]:
+            blockers.append("SERVICE_ALREADY_SWITCHED_OR_UNEXPECTED " + spec_delta["key"])
+    if unacknowledged:
+        blockers.append("UNACKNOWLEDGED_COMPAT_IP_REFERENCE " + ", ".join(unacknowledged) + " (review; --retain-env KEY)")
+    return {"compat_ip": args.compat_ip, "order": [s.key for s in SERVICES], "services": services,
+            "aliases": aliases, "external_consumers": external_consumers(args), "blockers": blockers,
+            "env_values_redacted": any(v["redacted"] for v in views.values())}
+
+
+def print_plan(plan: dict) -> None:
+    print(f"STAGE3_PLAN compat_ip={plan['compat_ip']} order={' -> '.join(plan['order'])}", flush=True)
+    for index, item in enumerate(plan["services"], 1):
+        print(f"[{index}] {item['key']}: {item['container']} (project {item['project']}, service {item['service']}, "
+              f"image {item['image_id']})")
+        for port in item["ports"]:
+            print(f"    publish {port['container_port']}: {':'.join(port['from'])} -> {':'.join(port['to'])}")
+        for key, (old, new) in sorted(item["env"].items()):
+            print(f"    env {key}: {old} -> {new}")
+        for key, value in item["preserved"].items():
+            print(f"    preserved {key}={value}")
+        for key in item["retained_compat_env"]:
+            print(f"    RETAINED compat-address reference (unchanged) env {key}")
+        print("    unchanged: image, volumes/mounts, networks+aliases, labels, restart, healthcheck, user, command, "
+              "entrypoint, every other env entry")
+    for alias, names in sorted(plan["aliases"]["ambiguous_aliases"].items()):
+        print(f"HAZARD alias '{alias}' on the shared network is carried by {', '.join(names)}")
+    for consumer in plan["aliases"]["ambiguous_consumers"]:
+        print(f"HAZARD ambiguous-alias consumer (unchanged by Stage 3): {consumer}")
+    print(f"BRIDGE_HOST_CARRIERS {plan['aliases']['bridge_host_carriers']}")
+    if plan["env_values_redacted"]:
+        print("NOTE offline model: secret env values are redacted; retained references can only be proven from docker inspect")
+    print("EXTERNAL consumers (NOT changed by this tool; separate owner step right after a green switch):")
+    for line in plan["external_consumers"]:
+        print("  - " + line)
+    for blocker in plan["blockers"]:
+        print("BLOCKER " + blocker)
+    sys.stdout.flush()
+
+
+# ---------------------------------------------------------------- compose model (from docker inspect)
+
+
+def compose_labels(container: dict) -> dict:
+    return {k: v for k, v in ((container.get("Config") or {}).get("Labels") or {}).items() if k.startswith("com.docker.compose.")}
+
+
+def user_labels(container: dict, image: dict) -> dict:
+    image_labels = (image.get("Config") or {}).get("Labels") or {}
+    labels = (container.get("Config") or {}).get("Labels") or {}
+    return {k: v for k, v in labels.items() if not k.startswith("com.docker.compose.") and image_labels.get(k) != v}
+
+
+def auto_aliases(container: dict) -> set[str]:
+    return {compose_labels(container).get("com.docker.compose.service", ""), container["Name"].lstrip("/"), container["Id"][:12]}
+
+
+def restart_string(host: dict) -> str:
+    restart = host.get("RestartPolicy") or {}
+    if restart.get("Name") and restart["Name"] != "no":
+        retries = restart.get("MaximumRetryCount") or 0
+        return f"on-failure:{retries}" if restart["Name"] == "on-failure" and retries else restart["Name"]
+    return "no"
+
+
+def duration(ns: int | None) -> str | None:
+    return f"{int(ns) // 1_000_000}ms" if ns else None
+
+
+def service_model(container: dict, image: dict, compat_ip: str) -> dict:
+    """Compose document equivalent to the inspected container (fail closed on the unknown)."""
+    cfg, host, img = container["Config"], container["HostConfig"], image.get("Config") or {}
+    name = container["Name"].lstrip("/")
+    service = compose_labels(container).get("com.docker.compose.service")
+    for key in MUST_BE_EMPTY:
+        need(not host.get(key), f"UNSUPPORTED_CONTAINER_SETTING {name} {key}={host.get(key)!r}")
+    need(host.get("IpcMode") in (None, "", "private", "shareable"), f"UNSUPPORTED_CONTAINER_SETTING {name} IpcMode")
+    need(host.get("Runtime") in (None, "", "runc"), f"UNSUPPORTED_CONTAINER_SETTING {name} Runtime")
+    networks = (container.get("NetworkSettings") or {}).get("Networks") or {}
+    need(networks and host.get("NetworkMode") in networks, f"UNSUPPORTED_NETWORK_MODE {name} {host.get('NetworkMode')}")
+    # Compose attaches the alphabetically first network first; it must be the recorded primary network.
+    need(sorted(networks)[0] == host.get("NetworkMode"), f"PRIMARY_NETWORK_NOT_FIRST {name} {host.get('NetworkMode')}")
+    scan = json.dumps([cfg.get("Cmd"), cfg.get("Entrypoint"), cfg.get("Healthcheck"), host.get("ExtraHosts")])
+    need(compat_ip not in scan, f"UNHANDLED_COMPAT_IP_REFERENCE {name} command/entrypoint/healthcheck/extra_hosts")
+
+    svc: dict = {"image": cfg["Image"], "pull_policy": "never"}
+    if cfg.get("User") != img.get("User"):
+        svc["user"] = cfg.get("User") or ""
+    if cfg.get("Entrypoint") != img.get("Entrypoint"):
+        svc["entrypoint"] = cfg.get("Entrypoint") or []
+    if cfg.get("Cmd") != img.get("Cmd"):
+        svc["command"] = cfg.get("Cmd") or []
+    if cfg.get("WorkingDir") != img.get("WorkingDir"):
+        svc["working_dir"] = cfg.get("WorkingDir") or ""
+    if cfg.get("StopSignal") and cfg.get("StopSignal") != img.get("StopSignal"):
+        svc["stop_signal"] = cfg["StopSignal"]
+    if cfg.get("StopTimeout") is not None:
+        svc["stop_grace_period"] = f"{int(cfg['StopTimeout'])}s"
+    if cfg.get("Tty"):
+        svc["tty"] = True
+    if cfg.get("OpenStdin"):
+        svc["stdin_open"] = True
+    env = list(cfg.get("Env") or [])
+    env_map(env)
+    svc["environment"] = env
+    labels = user_labels(container, image)
+    if labels:
+        svc["labels"] = labels
+    extra_expose = sorted(set(cfg.get("ExposedPorts") or {}) - set(img.get("ExposedPorts") or {}) - set(host.get("PortBindings") or {}))
+    if extra_expose:
+        svc["expose"] = extra_expose
+    svc["ports"] = [f"{hip}:{hport}:{cport}" if hip else f"{hport}:{cport}" for cport, hip, hport in bindings(container)]
+    auto = auto_aliases(container)
+    svc["networks"] = {}
+    for net in sorted(networks):
+        endpoint = networks[net] or {}
+        ipam = endpoint.get("IPAMConfig") or {}
+        need(not ipam.get("IPv4Address") and not ipam.get("IPv6Address"), f"UNSUPPORTED_STATIC_IP {name} {net}")
+        aliases = sorted(set(endpoint.get("Aliases") or []) - auto)
+        svc["networks"][net] = {"aliases": aliases} if aliases else {}
+    volumes, top_volumes = [], {}
+    targets = set()
+    for mount in container.get("Mounts") or []:
+        kind, target = mount.get("Type"), mount.get("Destination")
+        need(target and target not in targets, f"DUPLICATE_MOUNT_TARGET {name} {target}")
+        targets.add(target)
+        if kind == "volume":
+            need(mount.get("Name") and mount.get("Driver") in (None, "", "local"), f"UNSUPPORTED_VOLUME {name} {target}")
+            entry = {"type": "volume", "source": mount["Name"], "target": target}
+            top_volumes[mount["Name"]] = {"name": mount["Name"], "external": True}
+        elif kind == "bind":
+            need(mount.get("Source", "").startswith("/") and mount.get("Propagation") in (None, "", "rprivate"),
+                 f"UNSUPPORTED_BIND {name} {target}")
+            entry = {"type": "bind", "source": mount["Source"], "target": target, "bind": {"create_host_path": False}}
+        else:
+            raise Stop(f"UNSUPPORTED_MOUNT_TYPE {name} {kind} {target}")
+        if not mount.get("RW", True):
+            entry["read_only"] = True
+        volumes.append(entry)
+    for path in (img.get("Volumes") or {}):
+        need(path in targets, f"IMAGE_VOLUME_NOT_MOUNTED {name} {path} (an anonymous volume would be created)")
+    if volumes:
+        svc["volumes"] = sorted(volumes, key=lambda v: v["target"])
+    svc["restart"] = restart_string(host)
+    if host.get("Init"):
+        svc["init"] = True
+    hc = cfg.get("Healthcheck")
+    if hc and hc.get("Test"):
+        if hc["Test"] == ["NONE"]:
+            svc["healthcheck"] = {"disable": True}
+        else:
+            block: dict = {"test": hc["Test"]}
+            for key, field in (("Interval", "interval"), ("Timeout", "timeout"), ("StartPeriod", "start_period"),
+                               ("StartInterval", "start_interval")):
+                if duration(hc.get(key)):
+                    block[field] = duration(hc.get(key))
+            if hc.get("Retries"):
+                block["retries"] = int(hc["Retries"])
+            svc["healthcheck"] = block
+    if host.get("ReadonlyRootfs"):
+        svc["read_only"] = True
+    for key, field in (("CapAdd", "cap_add"), ("CapDrop", "cap_drop"), ("SecurityOpt", "security_opt"),
+                       ("ExtraHosts", "extra_hosts"), ("Dns", "dns"), ("DnsSearch", "dns_search"), ("DnsOptions", "dns_opt"),
+                       ("GroupAdd", "group_add")):
+        if host.get(key):
+            svc[field] = list(host[key])
+    if host.get("Tmpfs"):
+        svc["tmpfs"] = [f"{path}:{opts}" if opts else path for path, opts in sorted(host["Tmpfs"].items())]
+    if host.get("Sysctls"):
+        svc["sysctls"] = dict(host["Sysctls"])
+    if host.get("Ulimits"):
+        svc["ulimits"] = {u["Name"]: {"soft": int(u["Soft"]), "hard": int(u["Hard"])} for u in host["Ulimits"]}
+    if host.get("Memory"):
+        svc["mem_limit"] = int(host["Memory"])
+        if host.get("MemorySwap"):
+            svc["memswap_limit"] = int(host["MemorySwap"])
+    if host.get("MemoryReservation"):
+        svc["mem_reservation"] = int(host["MemoryReservation"])
+    if host.get("NanoCpus"):
+        svc["cpus"] = format(host["NanoCpus"] / 1e9, "g")
+    if host.get("CpuShares"):
+        svc["cpu_shares"] = int(host["CpuShares"])
+    if host.get("PidsLimit") and int(host["PidsLimit"]) > 0:
+        svc["pids_limit"] = int(host["PidsLimit"])
+    if host.get("ShmSize") and int(host["ShmSize"]) != DEFAULT_SHM:
+        svc["shm_size"] = int(host["ShmSize"])
+    if host.get("OomScoreAdj"):
+        svc["oom_score_adj"] = int(host["OomScoreAdj"])
+    log = host.get("LogConfig") or {}
+    if log.get("Type"):
+        svc["logging"] = {"driver": log["Type"], "options": dict(log.get("Config") or {})}
+    document: dict = {"services": {service: svc},
+                      "networks": {net: {"name": net, "external": True} for net in sorted(networks)}}
+    if top_volumes:
+        document["volumes"] = dict(sorted(top_volumes.items()))
+    return document
+
+
+def candidate_document(document: dict, spec: Spec, delta: dict) -> dict:
+    cand = copy.deepcopy(document)
+    svc = cand["services"][spec.service]
+    for port in delta["ports"]:
+        old = f"{port['from'][0]}:{port['from'][1]}:{port['container_port']}"
+        new = f"{port['to'][0]}:{port['to'][1]}:{port['container_port']}"
+        need(svc["ports"].count(old) == 1, f"PORT_DELTA_NOT_APPLICABLE {spec.key} {old}")
+        svc["ports"][svc["ports"].index(old)] = new
+    for key, (old, new) in delta["env"].items():
+        entry = f"{key}={old}"
+        need(svc["environment"].count(entry) == 1, f"ENV_DELTA_NOT_APPLICABLE {spec.key} {key}")
+        svc["environment"][svc["environment"].index(entry)] = f"{key}={new}"
+    return cand
+
+
+def model_changes(rollback: dict, candidate: dict, spec: Spec) -> list[str]:
+    """Paths that differ between the two documents (proof that only the deltas change)."""
+    out = []
+    if {k: v for k, v in rollback.items() if k != "services"} != {k: v for k, v in candidate.items() if k != "services"}:
+        out.append("top-level")
+    rb, cd = rollback["services"][spec.service], candidate["services"][spec.service]
+    for key in sorted(set(rb) | set(cd)):
+        if key == "environment":
+            old, new = env_map(rb[key]), env_map(cd[key])
+            out += [f"environment.{k}" for k in sorted(set(old) | set(new)) if old.get(k) != new.get(k)]
+        elif key == "ports":
+            out += [f"ports:{p}" for p in sorted(set(rb[key]) ^ set(cd[key]))]
+        elif rb.get(key) != cd.get(key):
+            out.append(key)
+    return out
+
+
+def expected_model_changes(spec: Spec, delta: dict) -> list[str]:
+    out = [f"environment.{k}" for k in sorted(delta["env"])]
+    for port in delta["ports"]:
+        out.append(f"ports:{port['from'][0]}:{port['from'][1]}:{port['container_port']}")
+        out.append(f"ports:{port['to'][0]}:{port['to'][1]}:{port['container_port']}")
+    return sorted(out)
+
+
+def _scalar(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    need(isinstance(value, str), f"UNSUPPORTED_YAML_VALUE {type(value).__name__}")
+    return json.dumps(value.replace("$", "$$"))  # Compose interpolation escape
+
+
+def to_yaml(value: object, indent: int = 0) -> str:
+    pad = "  " * indent
+    lines: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            k = json.dumps(str(key))
+            if isinstance(item, (dict, list)) and item:
+                lines.append(f"{pad}{k}:")
+                lines.append(to_yaml(item, indent + 1))
+            elif isinstance(item, dict):
+                lines.append(f"{pad}{k}: {{}}")
+            elif isinstance(item, list):
+                lines.append(f"{pad}{k}: []")
+            else:
+                lines.append(f"{pad}{k}: {_scalar(item)}")
+    elif isinstance(value, list):
+        for item in value:
+            if isinstance(item, (dict, list)):
+                need(isinstance(item, dict) and item, "UNSUPPORTED_YAML_NESTING")
+                nested = to_yaml(item, indent + 1).splitlines()
+                lines.append(f"{pad}- {nested[0].lstrip()}")
+                lines.extend(nested[1:])
+            else:
+                lines.append(f"{pad}- {_scalar(item)}")
+    return "\n".join(lines)
+
+
+def render_compose(document: dict, spec: Spec, title: str) -> str:
+    header = (
+        f"# {title}\n# Generated by wp2c-stage3-backend.py from `docker inspect` at {utc_now()}.\n"
+        "# Contains runtime environment values: keep 0600, never copy off the host.\n"
+        f"# Use only with: docker compose --file <this> --project-name {spec.project} up --no-deps --no-build "
+        f"--pull never --force-recreate --detach {spec.service}\n"
+    )
+    return header + to_yaml(document) + "\n"
+
+
+# ---------------------------------------------------------------- effective settings (post-switch comparison)
+
+
+def _norm(value: object) -> object:
+    if isinstance(value, dict):
+        out = {k: _norm(v) for k, v in value.items()}
+        return {k: v for k, v in out.items() if v not in (None, [], {}, "", 0, False)}
+    if isinstance(value, list):
+        return [_norm(v) for v in value]
+    return value
+
+
+def effective(container: dict) -> dict:
+    """Settings that must match between the recorded and the recreated container (env values hashed)."""
+    cfg, host = container.get("Config") or {}, container.get("HostConfig") or {}
+    auto = auto_aliases(container)
+    networks = (container.get("NetworkSettings") or {}).get("Networks") or {}
+    mounts = sorted([m.get("Type") or "", (m.get("Name") if m.get("Type") == "volume" else m.get("Source")) or "",
+                     m.get("Destination") or "", bool(m.get("RW", True))] for m in container.get("Mounts") or [])
+    return {
+        "image_id": container.get("Image"),
+        "config_image": cfg.get("Image"),
+        "env": {k: digest(v) for k, v in env_map(list(cfg.get("Env") or [])).items()},
+        "user": cfg.get("User") or "",
+        "cmd": cfg.get("Cmd"),
+        "entrypoint": cfg.get("Entrypoint"),
+        "working_dir": cfg.get("WorkingDir") or "",
+        "healthcheck": _norm(cfg.get("Healthcheck") or {}),
+        "stop_signal": cfg.get("StopSignal") or "",
+        "stop_timeout": cfg.get("StopTimeout"),
+        "exposed_ports": sorted(cfg.get("ExposedPorts") or {}),
+        "labels": {k: v for k, v in (cfg.get("Labels") or {}).items() if not k.startswith("com.docker.compose.")},
+        "networks": {n: sorted(set((e or {}).get("Aliases") or []) - auto) for n, e in sorted(networks.items())},
+        "mounts": mounts,
+        "host_config": _norm({k: host.get(k) for k in HOSTCONFIG_COMPARE}),
+    }
+
+
+def expected_candidate(baseline: dict, delta: dict) -> dict:
+    exp = copy.deepcopy(baseline)
+    for key, (_, new) in delta["env"].items():
+        exp["env"][key] = digest(new)
+    port_bindings = exp["host_config"].get("PortBindings") or {}
+    for port in delta["ports"]:
+        items = port_bindings.get(port["container_port"]) or []
+        old = {"HostIp": port["from"][0], "HostPort": port["from"][1]}
+        need(old in items, f"PORT_DELTA_NOT_IN_BASELINE {port}")
+        items[items.index(old)] = {"HostIp": port["to"][0], "HostPort": port["to"][1]}
+    return exp
+
+
+def differences(expected: dict, actual: dict) -> list[str]:
+    diffs = []
+    for key in expected:
+        if key in ("host_config", "env"):
+            continue
+        if expected[key] != actual.get(key):
+            diffs.append(key)
+    ee, ae = expected["env"], actual.get("env") or {}
+    diffs += [f"env.{k}" for k in sorted(set(ee) | set(ae)) if ee.get(k) != ae.get(k)]
+    eh, ah = expected["host_config"], actual.get("host_config") or {}
+    diffs += [f"HostConfig.{k}" for k in sorted(set(eh) | set(ah)) if eh.get(k) != ah.get(k)]
+    return diffs
+
+
+# ---------------------------------------------------------------- compose config fidelity (daemon-free)
+
+
+def _unescape(value: object) -> object:
+    if isinstance(value, str):
+        return value.replace("$$", "$")
+    if isinstance(value, list):
+        return [_unescape(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _unescape(v) for k, v in value.items()}
+    return value
+
+
+def compose_config(path: Path, spec: Spec) -> dict:
+    result = run(["docker", "compose", "--file", str(path), "--project-name", spec.project, "config", "--format", "json"],
+                 timeout=60)
+    try:
+        return json.loads(result.stdout)
+    except ValueError as error:
+        raise Stop("COMPOSE_CONFIG_NOT_JSON " + path.name) from error
+
+
+def config_vs_container(config: dict, document: dict, container: dict, image: dict, spec: Spec) -> list[str]:
+    """Prove the rendered rollback configuration reproduces the inspected container."""
+    svc = (config.get("services") or {}).get(spec.service)
+    need(isinstance(svc, dict), f"COMPOSE_CONFIG_SERVICE_MISSING {spec.key}")
+    model = document["services"][spec.service]
+    cfg, host = container["Config"], container["HostConfig"]
+    diffs = []
+    if svc.get("image") != cfg.get("Image"):
+        diffs.append("image")
+    env = {k: "" if v is None else str(_unescape(v)) for k, v in (svc.get("environment") or {}).items()}
+    if env != env_map(list(cfg.get("Env") or [])):
+        diffs.append("environment")
+    ports = sorted((f"{p.get('target')}/{p.get('protocol') or 'tcp'}", p.get("host_ip") or "", str(p.get("published") or ""))
+                   for p in svc.get("ports") or [])
+    if ports != bindings(container):
+        diffs.append("ports")
+    auto = auto_aliases(container)
+    nets = {n: sorted(set((v or {}).get("aliases") or [])) for n, v in (svc.get("networks") or {}).items()}
+    want = {n: sorted(set((e or {}).get("Aliases") or []) - auto) for n, e in container["NetworkSettings"]["Networks"].items()}
+    if nets != want:
+        diffs.append("networks")
+    vols = sorted([v.get("type"), v.get("source"), v.get("target"), bool(v.get("read_only"))] for v in svc.get("volumes") or [])
+    mounts = sorted([m["Type"], m["Name"] if m["Type"] == "volume" else m["Source"], m["Destination"], not m.get("RW", True)]
+                    for m in container.get("Mounts") or [])
+    if vols != mounts:
+        diffs.append("volumes")
+    if (svc.get("restart") or "no") != restart_string(host):
+        diffs.append("restart")
+    if _unescape(svc.get("labels") or {}) != user_labels(container, image):
+        diffs.append("labels")
+    for key in ("user", "entrypoint", "command", "working_dir"):
+        if key in model and _unescape(svc.get(key)) != model[key]:
+            diffs.append(key)
+    if "healthcheck" in model and "test" in model["healthcheck"]:
+        if _unescape((svc.get("healthcheck") or {}).get("test")) != model["healthcheck"]["test"]:
+            diffs.append("healthcheck")
+    for net in want:
+        if not ((config.get("networks") or {}).get(net) or {}).get("external"):
+            diffs.append(f"network-not-external:{net}")
+    for volume in document.get("volumes") or {}:
+        if not ((config.get("volumes") or {}).get(volume) or {}).get("external"):
+            diffs.append(f"volume-not-external:{volume}")
+    return diffs
+
+
+def config_with_deltas(config: dict, spec: Spec, delta: dict) -> dict:
+    exp = copy.deepcopy(config)
+    svc = exp["services"][spec.service]
+    for key, (_, new) in delta["env"].items():
+        svc["environment"][key] = new
+    for port in delta["ports"]:
+        target, _, proto = port["container_port"].partition("/")
+        hits = [p for p in svc.get("ports") or []
+                if (str(p.get("target")), p.get("protocol") or "tcp", p.get("host_ip") or "", str(p.get("published")))
+                == (target, proto or "tcp", port["from"][0], port["from"][1])]
+        need(len(hits) == 1, f"CONFIG_PORT_DELTA_NOT_APPLICABLE {spec.key} {port['container_port']}")
+        hits[0]["host_ip"] = port["to"][0]
+        hits[0]["published"] = port["to"][1] if isinstance(hits[0].get("published"), str) else int(port["to"][1])
+    return exp
+
+
+# ---------------------------------------------------------------- guards
+
+
+def hold_lock(path: Path) -> int:
+    if not path.exists() and not path.is_symlink():
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600))
+        except FileExistsError:
+            pass
+    st = os.lstat(path)
+    need(stat.S_ISREG(st.st_mode) and st.st_nlink == 1 and st.st_uid == os.geteuid() and (st.st_mode & 0o777) == 0o600,
+         "CANONICAL_LOCK_UNSAFE " + str(path))
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    fst = os.fstat(fd)
+    if (fst.st_dev, fst.st_ino) != (st.st_dev, st.st_ino):
+        os.close(fd)
+        raise Stop("CANONICAL_LOCK_INODE_CHANGED")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as error:
+        os.close(fd)
+        raise Stop("ACTIVE_DEPLOYMENT_LOCK " + str(path)) from error
+    return fd
+
+
+def identity_checks(args: argparse.Namespace) -> None:
+    need(os.geteuid() != 0, "RUN_AS_OPERATOR_NONROOT")
+    need(os.uname().nodename.split(".")[0] == args.expect_node, f"WRONG_NODE {os.uname().nodename} expected={args.expect_node}")
+
+
+def disk_check(args: argparse.Namespace) -> None:
+    paths = [Path(args.workspace)] + ([Path(args.docker_root)] if args.docker_root and Path(args.docker_root).exists() else [])
+    for path in paths:
+        need(free_bytes(path) >= args.reserve_gib * GIB, f"DISK_RESERVE_{args.reserve_gib}GIB_FAILED {path}")
+
+
+def workspace(args: argparse.Namespace) -> Path:
+    path = Path(args.workspace)
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    need(not path.is_symlink() and path.stat().st_uid == os.geteuid(), "WORKSPACE_NOT_OWNED " + str(path))
+    os.chmod(path, 0o700)
+    return path
+
+
+def _receipt_time(data: dict, path: Path) -> datetime:
+    for key in ("completed_at", "finished_at", "created_at"):
+        value = data.get(key)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                raise Stop(f"BACKUP_RECEIPT_TIMESTAMP_INVALID {key}") from None
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+
+
+def verify_backup_receipt(args: argparse.Namespace) -> dict:
+    """#1428 gate: a fresh backup receipt must exist before any backend container is recreated."""
+    need(args.backup_receipt, "BACKUP_RECEIPT_REQUIRED (--backup-receipt, #1428)")
+    path = Path(args.backup_receipt)
+    need(path.is_file() and not path.is_symlink(), "BACKUP_RECEIPT_MISSING " + str(path))
+    data = read_json(path, "BACKUP_RECEIPT_NOT_JSON " + str(path))
+    need(isinstance(data, dict), "BACKUP_RECEIPT_NOT_AN_OBJECT")
+    status = data.get("status")
+    need(isinstance(status, str) and status.strip(), "BACKUP_RECEIPT_STATUS_MISSING")
+    need(not re.search(r"FAIL|ERROR|ABORT", status.upper()), "BACKUP_RECEIPT_STATUS_FAILED " + status)
+    when = _receipt_time(data, path)
+    age = datetime.now(timezone.utc) - when
+    need(age >= timedelta(minutes=-5), "BACKUP_RECEIPT_FROM_THE_FUTURE")
+    need(age <= timedelta(hours=args.max_backup_age_hours),
+         f"BACKUP_RECEIPT_STALE age={age.total_seconds() / 3600:.1f}h max={args.max_backup_age_hours}h")
+    return {"path": str(path), "sha256": sha256_file(path), "status": status, "timestamp": when.isoformat(),
+            "age_hours": round(age.total_seconds() / 3600, 2)}
+
+
+def dns_probe(container: str, host: str, expected_ip: str) -> None:
+    result = run(["docker", "exec", container, "getent", "hosts", host], timeout=30, check=False)
+    first = result.stdout.decode(errors="replace").split()
+    need(result.returncode == 0 and first, f"DOCKER_DNS_FAILED {host} from {container} rc={result.returncode}")
+    need(first[0] == expected_ip, f"DOCKER_DNS_UNEXPECTED {host} -> {first[0]} expected {expected_ip}")
+
+
+# ---------------------------------------------------------------- read-only preflight
+
+
+def live_state(args: argparse.Namespace) -> dict:
+    """Inspect, derive every compose model in memory and prove the change set (no writes)."""
+    containers = {spec.key: inspect(spec.container) for spec in SERVICES}
+    images = {}
+    for spec in SERVICES:
+        container = containers[spec.key]
+        images[spec.key] = image_inspect(container["Image"])
+        need(image_inspect(container["Config"]["Image"])["Id"] == container["Image"],
+             f"IMAGE_TAG_MOVED {spec.container} {container['Config']['Image']} no longer names the running image")
+    views = {c["Name"].lstrip("/"): view_from_inspect(c) for c in containers.values()}
+    members = network_members(args.shared_network)
+    for cid, name in members.items():
+        if name not in views:
+            views[name] = view_from_inspect(inspect(cid))
+    plan = build_plan(views, args)
+    models = {}
+    for spec, delta in zip(SERVICES, plan["services"]):
+        rollback = service_model(containers[spec.key], images[spec.key], args.compat_ip)
+        candidate = candidate_document(rollback, spec, delta)
+        changes = sorted(model_changes(rollback, candidate, spec))
+        need(changes == expected_model_changes(spec, delta), f"MODEL_DELTA_MISMATCH {spec.key} {changes}")
+        models[spec.key] = {"rollback": rollback, "candidate": candidate}
+    central = containers[CENTRAL_MQTT.key]
+    endpoint = ((central.get("NetworkSettings") or {}).get("Networks") or {}).get(args.shared_network) or {}
+    return {"containers": containers, "images": images, "plan": plan, "models": models,
+            "central_shared_ip": endpoint.get("IPAddress") or ""}
+
+
+def preflight(args: argparse.Namespace) -> dict:
+    identity_checks(args)
+    disk_check(args)
+    validate_bridge_host(args.bridge_host)
+    validate_object_url(args.object_storage_public_url, args.compat_ip)
+    receipt = verify_backup_receipt(args)
+    print(f"BACKUP_RECEIPT_OK status={receipt['status']} age_hours={receipt['age_hours']} sha256={receipt['sha256'][:16]}",
+          flush=True)
+    state = live_state(args)
+    print_plan(state["plan"])
+    need(not state["plan"]["blockers"], "PLAN_BLOCKERS " + "; ".join(state["plan"]["blockers"]))
+    for spec in SERVICES:
+        container = state["containers"][spec.key]
+        need(health(container) == wanted_health(container), f"CONTAINER_UNHEALTHY {spec.container} {health(container)}")
+    untouched = snapshots(args.untouched)
+    for delta in state["plan"]["services"]:
+        for port in delta["ports"]:
+            need(loopback_port_free(int(port["to"][1])), f"LOOPBACK_PORT_IN_USE {port['to'][1]} ({delta['key']})")
+    need(state["central_shared_ip"], "CENTRAL_MQTT_SHARED_NETWORK_IP_UNKNOWN")
+    dns_probe(EDGE_MQTT.container, args.bridge_host, state["central_shared_ip"])
+    print(f"BRIDGE_DNS_OK {args.bridge_host} -> {state['central_shared_ip']} from {EDGE_MQTT.container}", flush=True)
+    ready = readiness()
+    dash = dashboard_identity(state["containers"][DASHBOARD.key])
+    print(f"READINESS_OK last_persisted_at={ready.get('last_persisted_at')} dashboard={dash}", flush=True)
+    state.update(receipt=receipt, untouched=untouched, readiness_before=ready, dashboard_identity=dash)
+    return state
+
+
+# ---------------------------------------------------------------- switching
+
+
+def compose_up_argv(path: Path, spec: Spec) -> list[str]:
+    # No --remove-orphans, no down, no volumes: only the named service is recreated.
+    return ["docker", "compose", "--file", str(path), "--project-name", spec.project, "up", "--no-deps", "--no-build",
+            "--pull", "never", "--force-recreate", "--detach", spec.service]
+
+
+def parse_ts(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def last_persisted() -> datetime | None:
+    try:
+        return parse_ts(readiness().get("last_persisted_at"))
+    except Stop:
+        return None
+
+
+def continuity(args: argparse.Namespace, floor: datetime | None) -> str:
+    deadline = time.monotonic() + args.continuity_seconds
+    last = "unknown"
+    while True:
+        try:
+            value = readiness().get("last_persisted_at")
+            last = str(value)
+            parsed = parse_ts(value)
+            if parsed is not None and (floor is None or parsed > floor):
+                return value
+        except Stop as error:
+            last = str(error)[:200]
+        if time.monotonic() >= deadline:
+            raise Stop(f"TELEMETRY_CONTINUITY_NOT_PROVEN last_persisted_at did not advance past {floor} within "
+                       f"{args.continuity_seconds}s (last {last})")
+        time.sleep(POLL_SECONDS)
+
+
+def verify_service(spec: Spec, expected: dict, args: argparse.Namespace, ctx: dict, *, candidate: bool) -> dict:
+    deadline = time.monotonic() + args.wait_seconds
+    last = "not started"
+    container: dict | None = None
+    while time.monotonic() < deadline:
+        try:
+            container = inspect(spec.container)
+            need(container.get("Image") == expected["image_id"], "IMAGE_NOT_EXPECTED")
+            need(health(container) == wanted_health(container), f"NOT_YET_HEALTHY {health(container)}")
+            break
+        except Stop as error:
+            last, container = str(error), None
+            time.sleep(POLL_SECONDS)
+    need(container is not None, f"SERVICE_NOT_HEALTHY {spec.key} {last[:300]}")
+    diffs = differences(expected, effective(container))
+    need(not diffs, f"RECREATED_SETTINGS_DIFFER {spec.key} {diffs}")
+    while True:
+        try:
+            for _, host, port in bindings(container):
+                need(tcp_open(host or LOOPBACK, int(port)), f"PUBLISH_NOT_LISTENING {host}:{port}")
+            if spec.key in (CENTRAL_MQTT.key, TELEMETRY.key):
+                readiness()
+            if spec.key == DASHBOARD.key and ctx.get("dashboard_identity"):
+                need(dashboard_identity(container) == ctx["dashboard_identity"], "DASHBOARD_IDENTITY_CHANGED")
+            if spec.key == EDGE_MQTT.key and candidate:
+                dns_probe(spec.container, args.bridge_host, ctx["central_shared_ip"])
+            return container
+        except Stop as error:
+            if time.monotonic() >= deadline:
+                raise Stop(f"SERVICE_PROBE_FAILED {spec.key} {str(error)[:300]}") from error
+            time.sleep(POLL_SECONDS)
+
+
+def record(run_dir: Path, report: dict, kind: str) -> Path:
+    path = run_dir / f"{kind}-report-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}.json"
+    write_json(path, report, exclusive=True)
+    print("REPORT_PATH " + str(path), flush=True)
+    return path
+
+
+def rollback_chain(args: argparse.Namespace, manifest: dict, run_dir: Path, keys: list[str], ctx: dict,
+                   report: dict, kind: str) -> int:
+    floor_values = [parse_ts((manifest.get("readiness_before") or {}).get("last_persisted_at")), last_persisted()]
+    floors = [v for v in floor_values if v is not None]
+    floor = max(floors) if floors else None
+    errors, done = [], []
+    for key in reversed(keys):
+        spec, entry = BY_KEY[key], manifest["services"][key]
+        try:
+            run(compose_up_argv(run_dir / entry["rollback_file"], spec), timeout=300)
+            verify_service(spec, entry["baseline_effective"], args, ctx, candidate=False)
+            done.append(key)
+            print(f"STAGE3_SERVICE_ROLLED_BACK {key}", flush=True)
+        except Exception as error:  # noqa: BLE001 - continue with the remaining services, then report
+            errors.append(f"{key}: {str(error)[:300]}")
+            print(f"ROLLBACK_STEP_FAILED {key} {str(error)[:300]}", flush=True)
+    if not errors:
+        try:
+            value = continuity(args, floor)
+            print(f"TELEMETRY_CONTINUITY_OK last_persisted_at={value}", flush=True)
+            need(snapshots(args.untouched) == ctx["untouched"], "UNTOUCHED_CONTAINER_CHANGED")
+        except Exception as error:  # noqa: BLE001
+            errors.append(str(error)[:300])
+    report.update(rolled_back=done, finished_at_utc=utc_now())
+    if errors:
+        report.update(outcome="HARD_BLOCKER_ROLLBACK_UNVERIFIED", rollback_errors=errors)
+        try:
+            record(run_dir, report, kind)
+        finally:
+            print("HARD_BLOCKER_ROLLBACK_UNVERIFIED " + " | ".join(errors)[:600], flush=True)
+        return 4
+    report.update(outcome="ROLLED_BACK_VERIFIED")
+    record(run_dir, report, kind)
+    print("STAGE3_ROLLED_BACK_VERIFIED", flush=True)
+    return 0
+
+
+def prepare(args: argparse.Namespace, state: dict, ws: Path) -> tuple[Path, dict]:
+    """Write and prove the candidate + rollback Compose files of every service (no production change)."""
+    runs = ws / "runs"
+    runs.mkdir(mode=0o700, exist_ok=True)
+    run_dir = runs / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    run_dir.mkdir(mode=0o700)
+    manifest = {"work_package": WORK_PACKAGE, "created_at_utc": utc_now(), "compat_ip": args.compat_ip,
+                "bridge_host": args.bridge_host, "bridge_port": args.bridge_port, "order": [s.key for s in SERVICES],
+                "readiness_before": {"last_persisted_at": state["readiness_before"].get("last_persisted_at")},
+                "dashboard_identity": state["dashboard_identity"], "central_shared_ip": state["central_shared_ip"],
+                "backup_receipt": state["receipt"], "services": {}}
+    for spec, delta in zip(SERVICES, state["plan"]["services"]):
+        container, image, models = state["containers"][spec.key], state["images"][spec.key], state["models"][spec.key]
+        rb_path, cd_path = run_dir / f"{spec.key}.rollback.compose.yaml", run_dir / f"{spec.key}.candidate.compose.yaml"
+        write_private(rb_path, render_compose(models["rollback"], spec, f"WP2c Stage 3 ROLLBACK {spec.key} = exact "
+                                              f"current {container['Id'][:12]}"))
+        write_private(cd_path, render_compose(models["candidate"], spec, f"WP2c Stage 3 CANDIDATE {spec.key}"))
+        rb_cfg, cd_cfg = compose_config(rb_path, spec), compose_config(cd_path, spec)
+        diffs = config_vs_container(rb_cfg, models["rollback"], container, image, spec)
+        need(not diffs, f"COMPOSE_FIDELITY_FAILED {spec.key} rollback differs from the running container: {diffs}")
+        need(config_with_deltas(rb_cfg, spec, delta) == cd_cfg,
+             f"COMPOSE_FIDELITY_FAILED {spec.key} candidate differs from rollback beyond the intended deltas")
+        baseline = effective(container)
+        manifest["services"][spec.key] = {
+            "container": spec.container, "project": spec.project, "service": spec.service,
+            "container_id": container["Id"], "image_id": container["Image"], "config_image": container["Config"]["Image"],
+            "delta": {"ports": delta["ports"], "env": delta["env"]},
+            "rollback_file": rb_path.name, "candidate_file": cd_path.name,
+            "compose_sha256": {rb_path.name: sha256_file(rb_path), cd_path.name: sha256_file(cd_path)},
+            "baseline_effective": baseline, "candidate_effective": expected_candidate(baseline, delta),
+        }
+        print(f"COMPOSE_FIDELITY_PROVEN {spec.key} (rollback = running container; candidate = rollback + deltas)", flush=True)
+    write_json(run_dir / "manifest.json", manifest)
+    write_private(ws / "LATEST", run_dir.name + "\n")
+    return run_dir, manifest
+
+
+def public_report(manifest: dict, state: dict) -> dict:
+    return {"work_package": WORK_PACKAGE, "mode": "backend_loopback", "started_at_utc": utc_now(),
+            "backup_receipt": state["receipt"], "untouched_before": state["untouched"],
+            "services": {k: {"container_id": v["container_id"], "image_id": v["image_id"], "delta": v["delta"],
+                             "compose_sha256": v["compose_sha256"]} for k, v in manifest["services"].items()}}
+
+
+def mode_plan(args: argparse.Namespace) -> int:
+    need(os.geteuid() != 0, "RUN_AS_OPERATOR_NONROOT")
+    validate_bridge_host(args.bridge_host)
+    validate_object_url(args.object_storage_public_url, args.compat_ip)
+    if args.from_model:
+        views, raw = load_model(Path(args.from_model))
+        plan = build_plan(views, args)
+        if raw:
+            for spec, delta in zip(SERVICES, plan["services"]):
+                image = {"Config": {}}
+                rollback = service_model(raw[spec.container], image, args.compat_ip)
+                changes = sorted(model_changes(rollback, candidate_document(rollback, spec, delta), spec))
+                need(changes == expected_model_changes(spec, delta), f"MODEL_DELTA_MISMATCH {spec.key} {changes}")
+    else:
+        plan = live_state(args)["plan"]
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True), flush=True)
+    else:
+        print_plan(plan)
+    if plan["blockers"]:
+        raise Stop("PLAN_BLOCKERS " + "; ".join(plan["blockers"]))
+    print("STAGE3_PLAN_OK (read-only; nothing changed)", flush=True)
+    return 0
+
+
+def mode_check(args: argparse.Namespace) -> int:
+    fd = hold_lock(Path(args.lock_path))
+    try:
+        preflight(args)
+    finally:
+        os.close(fd)
+    print("STAGE3_CHECK_PASS NO_WRITES", flush=True)
+    return 0
+
+
+def mode_execute(args: argparse.Namespace) -> int:
+    fd = hold_lock(Path(args.lock_path))
+    try:
+        ws = workspace(args)
+        state = preflight(args)
+        run_dir, manifest = prepare(args, state, ws)
+        print("STAGE3_PREFLIGHT_PASS run=" + str(run_dir), flush=True)
+        ctx = {"dashboard_identity": state["dashboard_identity"], "central_shared_ip": state["central_shared_ip"],
+               "untouched": state["untouched"]}
+        report = public_report(manifest, state)
+        attempted: list[str] = []
+        floor: datetime | None = None
+        try:
+            # Switched from here on: even a partial Compose failure requires rollback.
+            for spec in SERVICES:
+                entry = manifest["services"][spec.key]
+                if spec.key == EDGE_MQTT.key:
+                    # Strict floor: the newest persisted row before the bridge moves (readiness must answer).
+                    floor = parse_ts(readiness().get("last_persisted_at")) or parse_ts(
+                        manifest["readiness_before"]["last_persisted_at"])
+                attempted.append(spec.key)
+                run(compose_up_argv(run_dir / entry["candidate_file"], spec), timeout=300)
+                verify_service(spec, entry["candidate_effective"], args, ctx, candidate=True)
+                print(f"STAGE3_SERVICE_SWITCHED {spec.key}", flush=True)
+            value = continuity(args, floor)
+            print(f"TELEMETRY_CONTINUITY_OK last_persisted_at={value}", flush=True)
+            need(snapshots(args.untouched) == state["untouched"], "UNTOUCHED_CONTAINER_CHANGED")
+            disk_check(args)
+        except BaseException as error:  # noqa: BLE001 - every failure (even Ctrl-C) after the first switch rolls back
+            print("ACTIVATION_CHECK_FAILED " + str(error)[:400], flush=True)
+            report.update(error=str(error)[:600], attempted=list(attempted))
+            rc = rollback_chain(args, manifest, run_dir, attempted, ctx, report, "execute")
+            return 3 if rc == 0 else 4
+        report.update(outcome="STAGE3_BACKEND_GREEN", switched=attempted, last_persisted_at=value, finished_at_utc=utc_now())
+        record(run_dir, report, "execute")
+        print("STAGE3_BACKEND_GREEN", flush=True)
+        print("NEXT (owner, not executed by this tool):", flush=True)
+        for line in state["plan"]["external_consumers"]:
+            print("  - " + line, flush=True)
+        return 0
+    finally:
+        os.close(fd)
+
+
+def load_run(args: argparse.Namespace) -> tuple[Path, dict]:
+    ws = workspace(args)
+    latest = ws / "LATEST"
+    name = args.run or (latest.read_text(encoding="utf-8").strip() if latest.is_file() and not latest.is_symlink() else "")
+    need(name and RUN_NAME.match(name), "RUN_NOT_FOUND (no LATEST; pass --run <name>)")
+    run_dir = ws / "runs" / name
+    manifest = read_json(run_dir / "manifest.json", "RUN_MANIFEST_MISSING " + name)
+    need(isinstance(manifest, dict) and set(manifest.get("services") or {}) == set(BY_KEY), "RUN_MANIFEST_INCOMPLETE")
+    for key, entry in manifest["services"].items():
+        path = run_dir / entry["rollback_file"]
+        need(path.is_file() and not path.is_symlink() and sha256_file(path) == entry["compose_sha256"][path.name],
+             "ROLLBACK_COMPOSE_CHANGED " + path.name)
+        need(image_inspect(entry["config_image"])["Id"] == entry["image_id"], f"ROLLBACK_IMAGE_TAG_MOVED {key}")
+    return run_dir, manifest
+
+
+def mode_rollback(args: argparse.Namespace) -> int:
+    fd = hold_lock(Path(args.lock_path))
+    try:
+        identity_checks(args)
+        run_dir, manifest = load_run(args)
+        keys = []
+        for spec in SERVICES:
+            container = inspect(spec.container)
+            at_baseline = (not differences(manifest["services"][spec.key]["baseline_effective"], effective(container))
+                           and health(container) == wanted_health(container))
+            print(f"{'ALREADY_AT_BASELINE' if at_baseline else 'ROLLBACK_NEEDED'} {spec.key}", flush=True)
+            if not at_baseline:
+                keys.append(spec.key)
+        ctx = {"dashboard_identity": manifest.get("dashboard_identity"), "central_shared_ip": manifest["central_shared_ip"],
+               "untouched": snapshots(args.untouched)}
+        report = {"work_package": WORK_PACKAGE, "mode": "explicit_rollback", "run": run_dir.name, "started_at_utc": utc_now(),
+                  "services_to_roll_back": keys}
+        return 0 if rollback_chain(args, manifest, run_dir, keys, ctx, report, "rollback") == 0 else 4
+    finally:
+        os.close(fd)
+
+
+# ---------------------------------------------------------------- CLI
+
+
+def parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("mode", choices=("plan", "check", "execute", "rollback"))
+    p.add_argument("--workspace", default=DEFAULT_WORKSPACE)
+    p.add_argument("--from-model", help="plan only: offline JSON (broker docker.service-model or a docker inspect array)")
+    p.add_argument("--json", action="store_true", help="plan only: print the change set as JSON")
+    p.add_argument("--compat-ip", default=DEFAULT_COMPAT_IP, help="interim compatibility address to leave")
+    p.add_argument("--dashboard-host-port", type=int, default=3000)
+    p.add_argument("--object-storage-public-url", help="required: new OBJECT_STORAGE_PUBLIC_ENDPOINT_URL (no default)")
+    p.add_argument("--bridge-host", default="central-mqtt")
+    p.add_argument("--bridge-port", type=int, default=1883)
+    p.add_argument("--shared-network", default=DEFAULT_SHARED_NETWORK)
+    p.add_argument("--retain-env", action="append", default=[], help="env key allowed to keep a compat-address reference")
+    p.add_argument("--backup-receipt", help="#1428 backup receipt JSON (required for check/execute)")
+    p.add_argument("--max-backup-age-hours", type=float, default=24.0)
+    p.add_argument("--untouched", action="append", help="container that must stay unchanged (repeatable)")
+    p.add_argument("--run", help="rollback only: run directory name under <workspace>/runs (default: LATEST)")
+    p.add_argument("--expect-node", default="nexolab-edge-01")
+    p.add_argument("--lock-path", default=DEFAULT_LOCK)
+    p.add_argument("--reserve-gib", type=int, default=20)
+    p.add_argument("--docker-root", default="/var/lib/docker")
+    p.add_argument("--wait-seconds", type=int, default=180)
+    p.add_argument("--continuity-seconds", type=int, default=60)
+    return p
+
+
+MODES = {"plan": mode_plan, "check": mode_check, "execute": mode_execute, "rollback": mode_rollback}
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    args.untouched = args.untouched or list(DEFAULT_UNTOUCHED)
+    if not 0 < args.dashboard_host_port < 65536 or not 0 < args.bridge_port < 65536:
+        print("STOP PORT_OUT_OF_RANGE", file=sys.stderr, flush=True)
+        return 2
+    if os.geteuid() == 0:
+        print("STOP RUN_AS_OPERATOR_NONROOT", file=sys.stderr, flush=True)
+        return 2
+    if args.from_model and args.mode != "plan":
+        print("STOP FROM_MODEL_IS_PLAN_ONLY (a sanitized model is never an execution input)", file=sys.stderr, flush=True)
+        return 2
+    try:
+        return MODES[args.mode](args)
+    except Stop as error:
+        print("STOP " + str(error)[:900], file=sys.stderr, flush=True)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -59,6 +59,9 @@ A wildcard listener cannot share a port with a specific-address bind, so the LAN
   4. Dashboard;
   5. Edge MQTT. The bridge queue is persisted, the client ID is unchanged, and it is recreated last.
 - Verify the full matrix below. Rollback: recreate from the phase-0 recorded configuration (same images and volumes) and restore the compatibility address.
+- **Tool:** `wp2c-stage3-backend.py` (modes `plan`, `check`, `execute`, `rollback`; see the [README](README.md#wp2c-stage-3-backend-on-loopback-wp2c-stage3-backendpy)). It derives each of the five services from `docker inspect` (they come from different Compose projects and paths), changes only the publish host IP, `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` and the Edge bridge host/port, proves candidate and rollback with `docker compose config`, switches in the order above and rolls every attempted service back in reverse on any failure. `check` and `execute` require a fresh #1428 backup receipt.
+- **Alias hazard:** on `nexolab-standalone-runtime` both brokers carry the alias `mqtt`. The bridge must target `central-mqtt:1883`; the tool refuses `mqtt` or an IP literal and requires `central-mqtt` to be unique to the central broker.
+- **Not changed by the tool** (owner step right after the switch): `tailscale serve` targets, the LAN gateway upstreams, the HTTPS private origin and the Compose files of record. The dashboard keeps host port 3000 on loopback unless `--dashboard-host-port` says otherwise.
 
 ### Phase 4 — retire the interim address
 
