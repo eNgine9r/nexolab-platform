@@ -435,7 +435,13 @@ export function columnsViewportDetail(
       indices = [...keep].sort((left, right) => left - right);
     }
     for (const index of indices) {
-      const sample = sampleFrom(identity, `raw:${key}:${stamps[index]}`, stamps[index], values[index], "valid");
+      const sample = sampleFrom(
+        identity,
+        `raw:${key}:${stamps[index]}`,
+        stamps[index],
+        values[index],
+        "valid",
+      );
       samples.push(index > start && breakBefore[index - start] === 1 ? markSegmentStart(sample) : sample);
     }
     coveredToMs = Math.max(coveredToMs, stamps[end - 1]);
