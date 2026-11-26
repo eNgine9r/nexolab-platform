@@ -49,7 +49,25 @@ v1.1 adds:
 
 Log operations now keep the newest output when it exceeds the cap. Redaction never crosses a line.
 
-Future approved deployment or network operations (Wi-Fi profile change, Stage 2/3 activation, backup) come as separate reviewed handlers. Each one needs a new pinned release, applied by the owner with `upgrade`, and an approval per run.
+### v1.2 (#1775)
+
+| Op                            | Kind     | What it does                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy.lan-frontend`         | approved | WP2c Stage 2 (#1734). `phase=prepare` (stage, offline build, preview on `127.0.0.1:3125`, check: production unchanged), `phase=execute` (switch with automatic verified rollback) or `phase=rollback`. Runs the **pinned** Stage 2 tool as the owner account `nexolab` (docker group, never root) in a bounded transient unit |
+| `backup.health`               | read     | DR backup units and timer, presence (never contents) of `/etc/nexolab/dr-backup.json`, bundle names, sizes and modes, free space against the 20 GiB reserve                                                                                                                                                                   |
+| `backup.start`                | approved | Starts the owner-installed `nexolab-dr-backup.service` once, like its timer. Refuses when the unit or its config is not installed, a run is active, or less than 28 GiB is free. Installing the unit and its keys stays an owner step (#1630)                                                                                 |
+| `storage.cleanup-regenerable` | approved | New argument `build_cache=older-than-7d` (default) or `all-unused`. The approval binds it, so removing all unused build cache needs that exact approval                                                                                                                                                                       |
+
+`service.retire-legacy-https` no longer tries `mask` on a unit whose file is a real file in `/etc/systemd/system` (the v1.1 site run returned exit 1 there). It reports what still pulls the unit in instead. On the site that is only the disabled legacy nginx unit.
+
+**How `deploy.lan-frontend` binds what is deployed.**
+
+- The approval fixes the phase, the artifact SHA-256 and the expected identity (`expect_current_source`, `expect_current_build`) of the dashboard being replaced.
+- The agent places the artifact in `~nexolab-dev/operator-inbox/<sha256>.zip`. The broker opens it without following links and hashes it while copying into `/var/lib/nexolab-operator-deploy` (root:nexolab 0750; file 0640). Only that verified copy reaches the tool.
+- Different bytes give `approval_mismatch`, and the tool is not run.
+- A workspace already staged from another artifact is refused for `prepare` and `execute`. `execute` needs a prepared workspace.
+
+Further handlers (Wi-Fi profile change, Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)
 
@@ -85,10 +103,22 @@ Any failure removes everything it installed and verifies the removal (`ROLLBACK_
 CI (`operator-broker-install-acceptance.yml`) performs the real installation on a disposable runner with systemd, with an owner account outside the socket group. It also covers a tampered payload, a failure during installation, a foreign container that must stay invisible, a NEXOLAB container logging a secret, and uninstall. Production services, containers, networks and credentials are not touched.
 
 ```bash
-bash install-operator-broker.sh upgrade <payload-dir>   # new pins verified before the installed broker is touched
+bash install-operator-broker.sh upgrade <payload-dir>   # verify new pins, snapshot, replace; failure restores the previous version
+bash install-operator-broker.sh rollback                # back to the version retained by the last upgrade (run again to roll forward)
 bash install-operator-broker.sh status
 bash install-operator-broker.sh uninstall   # keeps audit log and reports as evidence
 ```
+
+**Upgrade with automatic rollback (v1.2).**
+
+1. `upgrade` verifies the new pins first. A bad payload changes nothing.
+2. It copies the installed code and units into `/var/lib/nexolab-operator/previous.pending` (root, 0700) with a SHA-256 manifest.
+3. It installs the new version and runs the full acceptance on the real socket.
+4. If any step fails, including a payload changed after the check, it verifies the snapshot manifest, reinstalls the previous version, runs the same acceptance and prints `OPERATOR_BROKER_UPGRADE_ROLLED_BACK version=<previous>` (exit 3).
+5. Only if the previous version also fails does it fall back to verified removal (`ROLLBACK_VERIFIED` or `HARD_BLOCKER_ROLLBACK_INCOMPLETE`).
+6. After a successful upgrade, `previous/` holds the replaced version for `rollback`.
+
+CI installs the merged v1.1 from history and injects a failure after the v1.2 install (the test-only `NEXOLAB_OPERATOR_TEST_FAULT=after-install`, which can only cause a rollback). It proves the byte-identical v1.1 is back and accepted, then upgrades, rolls back and rolls forward.
 
 Owner approval of a gated operation, when such an operation exists:
 
