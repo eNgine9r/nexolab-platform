@@ -412,7 +412,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     await waitForRouteUsable(page, "overview");
     await expect.poll(() => sockets.active, { timeout: 20_000 }).toBe(1);
     await expect.poll(() => countRequests(requests.telemetry, "/latest")).toBe(1);
-    await expect.poll(() => countRequests(requests.telemetry, "/history")).toBe(1);
+    // P0 charts (#1833): the 24 h Overview window loads as four 6 h time slices.
+    await expect.poll(() => countRequests(requests.telemetry, "/history")).toBe(4);
     await expect.poll(() => overviewAlertReadCount(requests.apiReads, "active")).toBe(1);
     await expect.poll(() => overviewAlertReadCount(requests.apiReads, "acknowledged")).toBe(1);
 
@@ -481,7 +482,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       sessions: apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/sessions"),
     };
     expect(firstCycleCounts.latest).toBe(initialLatestRequests);
-    expect(firstCycleCounts.history).toBeLessThanOrEqual(initialHistoryRequests + 2);
+    // At most two more window loads of the initial size (#1833: a window is a set of time slices).
+    expect(firstCycleCounts.history).toBeLessThanOrEqual(initialHistoryRequests * 3);
     const overviewAlertRefreshDeltas = [
       expectOverviewAlertReadDelta(
         { active: initialActiveAlertReads, acknowledged: initialAcknowledgedAlertReads },
@@ -630,7 +632,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     }
     expect(await documentLoadCount(page)).toBe(1);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
-    expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests + 8);
+    // At most eight more window loads of the initial size (each window is a set of time slices).
+    expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests * 9);
     expect(equipmentCatalogReads).toBe(warmBaselineCounts.equipmentCatalog);
     expect(layoutDraftReads).toBe(warmBaselineCounts.layoutDrafts);
     expect(layoutPublishedReads).toBe(warmBaselineCounts.layoutPublished);

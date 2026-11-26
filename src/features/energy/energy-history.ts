@@ -22,10 +22,13 @@ import {
   type EnergyMeter,
   type EnergyMetricId,
 } from "@/features/energy/energy-telemetry";
+import { loadTelemetryHistorySlices } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
+/** History slice of Energy loads: up to a day stays one paged stream, 7 d loads 7 slices in parallel. */
+const ENERGY_HISTORY_SLICE_MS = 24 * 60 * 60 * 1_000;
+
 const HISTORY_PAGE_SIZE = 1_000;
-const MAX_HISTORY_PAGES = 100;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
 const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
 export const MAX_HISTORY_POINTS_PER_METER = chartPointBudget("energy-history");
@@ -551,73 +554,34 @@ export async function loadCompleteEnergyHistory(
   onRawSamples?: (samples: readonly TelemetrySample[]) => void,
   meters: readonly CommissionedEnergyMeter[] = [],
 ): Promise<TelemetrySample[]> {
-  const samples = new Map<string, TelemetrySample>();
-  let cursorTo = new Date(window.to);
-  let snapshotAt = initialSnapshotAt;
-
-  for (let page = 0; page < MAX_HISTORY_PAGES; page += 1) {
-    const response = await adapter.history(
-      {
-        node_id: window.nodeId,
-        metric: window.metric,
-        from: window.from,
-        to: cursorTo,
-        snapshot_at: snapshotAt,
-        limit: HISTORY_PAGE_SIZE,
-        offset: 0,
-      },
-      signal,
-    );
-
-    const responseSnapshotAt = response.snapshot_at;
-    if (!responseSnapshotAt || Number.isNaN(Date.parse(responseSnapshotAt))) {
-      throw new Error("Telemetry history page did not provide an ingestion snapshot watermark");
-    }
-    if (snapshotAt === undefined) {
-      snapshotAt = responseSnapshotAt;
-    } else if (responseSnapshotAt !== snapshotAt) {
-      throw new Error("Telemetry history ingestion snapshot changed during pagination");
-    }
-
-    for (const sample of response.items) {
-      if (
-        sample.node_id === window.nodeId &&
-        sample.metric === window.metric &&
-        isAcceptedEnergyHistorySample(sample, meters)
-      ) {
-        samples.set(sample.event_id, sample);
+  // P0 charts: the window loads as time slices (bounded parallelism, page retry, a page limit per
+  // slice, a raw row budget, cancellation) instead of one sequential stream capped at 100 pages.
+  const collected: Array<{ sample: TelemetrySample; capturedAt: number }> = [];
+  await loadTelemetryHistorySlices(
+    adapter,
+    { node_id: window.nodeId, metric: window.metric },
+    { from: window.from, to: window.to },
+    // 24 h slices: up to a day stays one paged stream as before; 7 d becomes 7 parallel slices.
+    { signal, snapshotAt: initialSnapshotAt, pageSize: HISTORY_PAGE_SIZE, sliceMs: ENERGY_HISTORY_SLICE_MS },
+    (slice) => {
+      for (const sample of slice) {
+        if (
+          sample.node_id === window.nodeId &&
+          sample.metric === window.metric &&
+          isAcceptedEnergyHistorySample(sample, meters)
+        ) {
+          collected.push({ sample, capturedAt: Date.parse(sample.captured_at) });
+        }
       }
-    }
-
-    if (response.next_offset === null) {
-      onRawSamples?.([...samples.values()]);
-      return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority, meters);
-    }
-
-    const capturedTimes = response.items
-      .map((sample) => Date.parse(sample.captured_at))
-      .filter(Number.isFinite);
-    if (capturedTimes.length === 0) {
-      throw new Error("Telemetry history page did not provide a stable cursor");
-    }
-
-    const oldestCapturedAt = Math.min(...capturedTimes);
-    if (oldestCapturedAt <= window.from.getTime()) {
-      onRawSamples?.([...samples.values()]);
-      return downsampleEnergyHistory([...samples.values()], maximumPoints, window, cadenceAuthority, meters);
-    }
-
-    const boundaryCount = capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length;
-    if (boundaryCount >= HISTORY_PAGE_SIZE) {
-      throw new Error("Telemetry history timestamp density exceeds the safe cursor window");
-    }
-
-    const currentCursor = cursorTo.getTime();
-    const overlappingBoundaryCursor = oldestCapturedAt + 1;
-    cursorTo = new Date(
-      overlappingBoundaryCursor < currentCursor ? overlappingBoundaryCursor : currentCursor - 1,
-    );
-  }
-
-  throw new Error("Telemetry history exceeded the supported pagination window");
+    },
+  );
+  // Slices are disjoint but arrive in any order: one sort with each timestamp parsed once.
+  const samples = collected
+    .sort(
+      (left, right) =>
+        left.capturedAt - right.capturedAt || left.sample.event_id.localeCompare(right.sample.event_id),
+    )
+    .map((entry) => entry.sample);
+  onRawSamples?.(samples);
+  return downsampleEnergyHistory(samples, maximumPoints, window, cadenceAuthority, meters);
 }
