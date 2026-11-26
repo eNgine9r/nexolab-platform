@@ -160,6 +160,29 @@ export function buildUnknownTimeline(
   return result;
 }
 
+/**
+ * #1829: the intervals of `timeline` inside `range`, clipped to it. The builders only clip their
+ * intervals by the range bounds, so clipping a timeline built for the loaded range gives exactly the
+ * timeline built for any sub-range — without re-reading the raw history on every zoom.
+ */
+export function clipTimeline(
+  timeline: readonly TimelineInterval[],
+  range: { from: Date; to: Date },
+): TimelineInterval[] {
+  const fromBound = range.from.getTime();
+  const toBound = range.to.getTime();
+  const result: TimelineInterval[] = [];
+  for (const interval of timeline) {
+    const fromMs = Math.max(fromBound, interval.fromMs);
+    const toMs = Math.min(toBound, interval.toMs);
+    if (toMs <= fromMs) continue;
+    result.push(
+      fromMs === interval.fromMs && toMs === interval.toMs ? interval : { ...interval, fromMs, toMs },
+    );
+  }
+  return result;
+}
+
 export function summarizeActiveTimeline(
   timeline: readonly TimelineInterval[],
   range: { from: Date; to: Date },
