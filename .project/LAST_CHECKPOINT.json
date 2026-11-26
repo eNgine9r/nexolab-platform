@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T12:12:51Z",
+  "timestamp": "2026-11-26T15:30:00Z",
   "actor": "claude",
-  "event": "Stage 3 Compose proof GREEN on the Pi (owner-run pinned package); #1428 minimum owner actions posted; infrastructure sprint handed over (broker frozen at v1.7)",
+  "event": "P0 chart performance & reliability (#1804): 24 h break, Timeout 8000 ms (DB pool convoy), load volume and zoom/pan root causes fixed in source (#1806, #1808, #1814, #1812, #1815 merged); not deployed",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: #1428 A→D, Stage 2/:8443 browser acceptance, then Stage 3 check/execute approval. Agent: product development (next product WP selection by Product Owner)",
+  "next_action": "Owner: approve a frontend-only release for browser acceptance of #1805/#1809/#1810 (LAN + HTTPS, real history); backend #1807/#1811 after DR #1428. Agent: #1813 (L5).",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -5595,7 +5595,7 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none (source-only; no site, hardware, Modbus, backup, restore or migration performed)",
+  "runtime_mutation": "none (source-only; read-only broker docker.logs/docker.containers inspection; no site, hardware, Modbus, backup, restore or migration performed)",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,

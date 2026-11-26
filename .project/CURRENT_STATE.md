@@ -1,3 +1,36 @@
+## 2026-11-26 (P0 charts) — chart performance and reliability: defects reproduced, root causes fixed in source (#1804)
+
+Product Owner P0 addendum to #1638: slow loading, breaks on 24 h charts, unstable zoom and pan, and `Timeout 8000 ms`. The baseline and the root causes are in `docs/audits/chart-p0-performance-baseline-1804.md`.
+
+- **24 h breaks (#1805, merged in #1806):** a display defect; the data is present.
+  - Root cause: the live tail re-reduced already reduced points and re-derived the gap tolerance from them. Measured: 1 → 114 segments after 10 min of Live.
+  - Fix: continuity is decided once on raw data. After the fix: 1 segment.
+  - Also fixed: 30-day loads crashed with `Maximum call stack size exceeded`.
+- **`Timeout 8000 ms` — production root cause (#1807, merged in #1808):**
+  - The read-only broker `docker.logs` showed `QueuePool limit of size 5 overflow 10 reached` in `history_snapshot_samples`.
+  - Cause: the first history page held the exclusive snapshot advisory lock for the whole SELECT, while ingestion takes the same lock shared.
+  - Fix: a short snapshot transaction; a dedicated bounded history pool (4 connections, 2 s checkout, 6 s statement timeout); 503 + `Retry-After`. PostgreSQL CI proves the lock is free and ingestion is unaffected.
+- **Frontend loading (#1809, merged in #1814):**
+  - a tab-wide limiter (3); the timeout starts only when a page is actually sent;
+  - page retry on timeout/503;
+  - parallel series under one snapshot;
+  - per-series reduction on load.
+  - Measured with 100 ms simulated page latency: 8 × 24 h 9.2 → 4.0 s, 8 × 7 d 62 → 28 s.
+- **Aggregated history API (#1811, merged in #1812):**
+  - extremum-preserving M4 buckets and exact statistics;
+  - equivalence with the reference implementation proven on PostgreSQL 16;
+  - runner timings 24 ch × 24 h 711 ms, 1 ch × 30 d 398 ms.
+- **Zoom/pan (#1810, merged in #1815):**
+  - one series per channel with null breaks;
+  - no animation;
+  - wheel commit coalesced;
+  - window-only fast path.
+- **Not deployed and not verified on site.** Browser FPS and timings on the Pi or an operator PC are UNVERIFIED.
+  - Frontend #1805/#1809/#1810: an owner-approved frontend-only release is needed for browser acceptance.
+  - Backend #1807/#1811: deployment is gated by DR #1428.
+- **Next:** #1813 (L5), so the frontend uses the aggregate API with raw fallback, exact viewport statistics and zoom detail.
+- No Modbus, hardware, site or data change was made.
+
 ## 2026-11-26 (final) — Stage 3 Compose proof GREEN on the Pi; infrastructure sprint handed over
 
 - **Stage 3 (#1734):** the owner ran the pinned package (`b3176baf…`) and got `STAGE3_PROVE_GREEN phase=switch services=5`. All five Compose fidelity checks passed on the real host; evidence is in the owner workspace `proofs/20261126T121055681325Z`. Nothing was switched. `execute` stays **not authorised** until there is a #1428 receipt under 24 h, `check` passes and the owner gives exact approval.

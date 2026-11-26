@@ -71,7 +71,7 @@
       "issue": 1762
     },
     "next_work_package": {
-      "issue": 1734
+      "issue": 1813
     }
   },
   "work_packages": [
@@ -12517,6 +12517,152 @@
         "merged": "PR #1797 merge 77673a1a (head 7e6685d1, exact-head GREEN incl. real systemd)",
         "payload": "~/recovery-p0/broker-v1.7-20261126T110444Z installer 41a49d3b62263e2de7b7280012e5ead8c494d748394dadb2053ef847031bcfcc",
         "site_installed": "2026-11-26 owner upgrade 1.6.0 -> 1.7.0 (ACCEPTANCE_OK 1.7.0); broker frozen at v1.7 (Product Owner, sprint completion)"
+      }
+    },
+    {
+      "issue": 1805,
+      "title": "False continuity breaks on 24 h Live and Saved Dashboard charts",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Continuity decided once on raw data; append-only live tail; no re-segmentation of reduced points; 30-day stack overflow fixed.",
+      "depends_on": [],
+      "branch": "fix/1805-chart-continuity-breaks",
+      "permitted_paths": [
+        "src/features/charts/",
+        "src/features/live/",
+        "src/features/live-dashboards/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "docs/audits/",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1806 merge f729ac32 (exact-head GREEN)",
+        "measured": "24 h + 10 min live: 114 -> 1 segment (Pi CPU, repository code)",
+        "site_cutover": false,
+        "hardware_verified": false,
+        "site_acceptance": "owner_frontend_release_pending"
+      }
+    },
+    {
+      "issue": 1807,
+      "title": "History requests exhaust the DB pool (Timeout 8000 ms): snapshot lock held during query",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Short snapshot transaction; dedicated bounded history pool; 6 s statement timeout; 503 + Retry-After.",
+      "depends_on": [],
+      "branch": "fix/1807-history-snapshot-pool",
+      "permitted_paths": [
+        "services/telemetry-service/app/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1808 merge be401a96 (exact-head GREEN incl. PostgreSQL 16 tests)",
+        "production_evidence": "broker docker.logs 2026-11-26 12:28Z QueuePool limit of size 5 overflow 10 reached in history_snapshot_samples",
+        "site_cutover": false,
+        "deployment_gate": "DR #1428"
+      }
+    },
+    {
+      "issue": 1809,
+      "title": "History loading: bounded concurrency, page retry, parallel channels, no queued timeouts",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Tab-wide history limiter (3); timeout starts in slot; page retry; parallel series under one snapshot; per-series reduction.",
+      "depends_on": [
+        1805
+      ],
+      "branch": "fix/1809-history-load-reliability",
+      "permitted_paths": [
+        "src/features/charts/",
+        "src/features/live/",
+        "src/features/live-dashboards/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "docs/audits/",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1814 merge dce89f58 (exact-head GREEN)",
+        "measured": "100 ms/page simulated: 8x24h 9.2->4.0 s; 24x24h 26.7->11.3 s; 8x7d 62->28 s",
+        "site_cutover": false,
+        "site_acceptance": "owner_frontend_release_pending"
+      }
+    },
+    {
+      "issue": 1810,
+      "title": "Smooth zoom/pan: one series per channel, no animation, no React rebuild per wheel tick",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "ECharts adapter: null-break single series, marker scatter, animation off, coalesced wheel commit, window-only fast path.",
+      "depends_on": [
+        1805
+      ],
+      "branch": "perf/1810-chart-interaction-smoothness",
+      "permitted_paths": [
+        "src/features/charts/",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1815 merge bfe4d456 (exact-head GREEN after 4 review rounds)",
+        "site_cutover": false,
+        "browser_fps": "UNVERIFIED",
+        "site_acceptance": "owner_frontend_release_pending"
+      }
+    },
+    {
+      "issue": 1811,
+      "title": "Extremum-preserving aggregated history API (M4 buckets + exact statistics)",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "GET /api/v1/telemetry/history/aggregate; one-pass SQL; reference implementation; equivalence on PostgreSQL 16.",
+      "depends_on": [
+        1807
+      ],
+      "branch": "feat/1811-history-aggregate-api",
+      "permitted_paths": [
+        "services/telemetry-service/app/",
+        "services/telemetry-service/tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "merged": "PR #1812 merge b6189c93 (exact-head GREEN)",
+        "measured": "runner PG16: 24ch x 24h 711 ms; 1ch x 30d 398 ms",
+        "site_cutover": false,
+        "deployment_gate": "DR #1428"
+      }
+    },
+    {
+      "issue": 1813,
+      "title": "Use the aggregated history API with raw fallback, exact statistics and zoom detail",
+      "lifecycle": "ready",
+      "priority": "critical",
+      "scope": "Feature-detected aggregate path (series groups <= 4), raw fallback, exact viewport statistics, zoom detail, gap summary server fields.",
+      "depends_on": [
+        1811,
+        1810
+      ],
+      "branch": "feat/1813-chart-aggregate-history",
+      "permitted_paths": [
+        "src/features/charts/",
+        "src/features/live/",
+        "src/features/live-dashboards/",
+        "src/hooks/",
+        "src/lib/telemetry/",
+        "src/components/live/",
+        "src/components/live-dashboards/",
+        "docs/audits/",
+        ".project/",
+        "services/telemetry-service/app/history_aggregate.py",
+        "services/telemetry-service/tests/"
+      ],
+      "evidence": {
+        "site_cutover": false
       }
     }
   ],
