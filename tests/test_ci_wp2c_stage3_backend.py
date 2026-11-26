@@ -846,6 +846,36 @@ class CheckTests(SiteTestCase):
 ORDER = ["central-mqtt", "telemetry-service", "minio", "dashboard", "edge-mqtt"]
 
 
+class ProveTests(SiteTestCase):
+    def test_prove_renders_and_proves_without_switching(self) -> None:
+        argv = list(self.site.argv("prove"))
+        self.assertNotIn("--backup-receipt", argv)  # prove never needs a backup receipt
+        rc, output = self.site.main("prove", raw=argv)
+        self.assertEqual(rc, 0, output)
+        self.assertIn("STAGE3_PROVE_GREEN phase=switch services=5", output)
+        self.assertEqual(output.count("COMPOSE_FIDELITY_PROVEN"), 5)
+        for call in self.site.calls():
+            readonly = (call[:2] in (["inspect", "--type"], ["image", "inspect"], ["network", "inspect"])
+                        or (call[0] == "compose" and "config" in call))
+            self.assertTrue(readonly, call)
+        self.assertFalse([c for c in self.site.calls() if c[0] == "exec" or "up" in c])
+        proofs = list((self.site.ws / "proofs").iterdir())
+        self.assertEqual(len(proofs), 1)
+        self.assertEqual(oct(proofs[0].stat().st_mode & 0o777), "0o700")
+        self.assertFalse((self.site.ws / "LATEST").exists())  # never the rollback source
+        self.assertFalse((self.site.ws / "runs").exists())
+        self.assert_safe_calls()
+
+    def test_prove_stops_on_plan_blockers(self) -> None:
+        state = self.site.load()
+        state["containers"][EMQTT]["Config"]["Env"] = [e for e in state["containers"][EMQTT]["Config"]["Env"]
+                                                       if not e.startswith("CENTRAL_BRIDGE_CLIENT_ID=")]
+        self.site.state_path.write_text(json.dumps(state))
+        rc, output = self.site.main("prove")
+        self.assertEqual(rc, 2)
+        self.assertFalse((self.site.ws / "proofs").exists() and any((self.site.ws / "proofs").iterdir()))
+
+
 class ExecuteTests(SiteTestCase):
     def test_green_switch_in_order_then_explicit_rollback(self) -> None:
         rc, output = self.site.main("execute")

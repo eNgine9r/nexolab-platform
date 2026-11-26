@@ -715,6 +715,23 @@ class BrokerV12Tests(unittest.TestCase):
             broker_module.validate_args(schema, {"phase": "shell", "expect_current_source": "a" * 40,
                                                  "expect_current_build": "abcdefgh"})
 
+    def test_stage3_prove_runs_only_the_prove_mode_as_the_owner(self) -> None:
+        (self.install / "handlers" / "wp2c-stage3-backend.py").write_text("# pinned tool\n")
+        broker = self.broker(output="COMPOSE_FIDELITY_PROVEN central-mqtt (x)\nSTAGE3_PROVE_GREEN phase=switch services=5\n")
+        result = broker_module.op_deploy_backend_loopback(broker, {"phase": "prove"})
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["production_changed"])
+        self.assertEqual(len(self.calls), 1)
+        call = self.calls[0]
+        self.assertEqual(call[:6], ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", "--uid=nexolab"])
+        tool = call.index(str(self.install / "handlers" / "wp2c-stage3-backend.py"))
+        self.assertEqual(call[tool + 1:tool + 4], ["prove", "--phase", "switch"])
+        self.assertTrue(any(m.startswith("STAGE3_PROVE_GREEN") for m in result["markers"]))
+        schema = broker_module.production_ops()["deploy.backend-loopback"].schema
+        for phase in ("execute", "drop-compat", "rollback", "check"):
+            with self.assertRaises(broker_module.Rejected):
+                broker_module.validate_args(schema, {"phase": phase})
+
     def test_deploy_account_is_never_root_or_the_dev_account(self) -> None:
         self.mock.patch.stopall()
         import pwd
@@ -1101,7 +1118,8 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertIn(op.kind, ("read", "recover", "approved"))
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
-        self.assertEqual(approved, ["backup.start", "deploy.lan-frontend", "service.restore-legacy-https",
+        self.assertEqual(approved, ["backup.start", "deploy.backend-loopback", "deploy.lan-frontend",
+                                    "service.restore-legacy-https",
                                     "service.retire-legacy-https", "storage.cleanup-regenerable",
                                     "storage.remove-images", "wifi.connect-test",
                                     "wifi.profile-remove"])  # each one reviewed explicitly
@@ -1166,6 +1184,7 @@ class BrokerStaticContractTests(unittest.TestCase):
             "nexolab-operator-broker.socket": SOCKET_UNIT,
             "nexolab-storage-inventory.sh": ROOT / "docs" / "operations" / "storage" / "nexolab-storage-inventory.sh",
             "wp2c-stage2-frontend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage2-frontend.py",
+            "wp2c-stage3-backend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage3-backend.py",
         }
         self.assertEqual(set(pins), set(expected))
         for name, path in expected.items():

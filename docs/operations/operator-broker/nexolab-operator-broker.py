@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -1367,6 +1367,27 @@ def op_wifi_profile_remove(broker: "Broker", args: dict) -> dict:
             "gone": profile["name"] not in remaining}
 
 
+STAGE3_TOOL = "wp2c-stage3-backend.py"
+STAGE3_WORKSPACE = "commander-workspaces/nexolab-wp2c-stage3"
+STAGE3_MARKERS = re.compile(r"^(STAGE3_[A-Z_]+[^\n]{0,200}|COMPOSE_FIDELITY_PROVEN [^\n]{0,160}|HARD_BLOCKER_[A-Z_]+[^\n]{0,200}"
+                            r"|STOP [^\n]{0,300})", re.M)
+
+
+def op_deploy_backend_loopback(broker: "Broker", args: dict) -> dict:
+    """Owner-approved WP2c Stage 3 (#1734). v1.6 allows only phase=prove: the pinned tool renders and proves every
+    candidate and rollback Compose file against the live containers (inspect + compose config) and switches nothing.
+    The switch, drop-compat and rollback phases come as a separate reviewed release, bound to a #1428 receipt."""
+    user, home, _gid = deploy_account(broker)
+    tool = broker.install_dir / "handlers" / STAGE3_TOOL
+    assert_trusted(tool, broker.trusted_uid, directory=False)
+    argv = ["/usr/bin/python3", "-I", "-B", str(tool), "prove", "--phase", "switch",
+            "--workspace", str(home / STAGE3_WORKSPACE)]
+    result = run_as_owner(broker, user, argv, 900)
+    return {"phase": args["phase"], "ok": result.exit == 0, "exit": result.exit, "timed_out": result.timed_out,
+            "markers": STAGE3_MARKERS.findall(result.output)[-20:], "output": result.output[-8000:],
+            "deploy_user": user, "production_changed": False}
+
+
 # ----------------------------------------------------------------------------- DR backup (#1775, #1428)
 DR_UNIT = "nexolab-dr-backup.service"
 DR_TIMER = "nexolab-dr-backup.timer"
@@ -1489,6 +1510,9 @@ def production_ops() -> dict[str, Operation]:
                   timeout=150),
         Operation("wifi.profile-remove", "approved", "Owner-approved: remove one inactive Wi-Fi profile",
                   op_wifi_profile_remove, {"profile": Name(WIFI_PROFILE_NAME)}, timeout=60),
+        Operation("deploy.backend-loopback", "approved",
+                  "Owner-approved WP2c Stage 3: phase=prove renders and proves the switch Compose files (no switch)",
+                  op_deploy_backend_loopback, {"phase": Enum(("prove",))}, timeout=1000),
         Operation("backup.health", "read", "DR backup units, config presence, bundle list, free space vs reserve",
                   op_backup_health),
         Operation("backup.start", "approved", "Owner-approved: start the installed DR backup unit once (#1630)",
