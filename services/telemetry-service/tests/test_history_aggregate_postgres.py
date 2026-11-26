@@ -160,3 +160,23 @@ def test_thirty_day_single_channel_timing(database) -> None:
         UserWarning,
         stacklevel=1,
     )
+
+
+def test_sql_interval_statistics_equal_reference(database) -> None:
+    instance, node_id = database
+    _seed(instance, node_id, channels=4, seconds=86_400, cadence=10)
+    keys = _keys(node_id, 4)
+    window = {"from_at": BASE, "to_at": BASE + timedelta(days=1), "snapshot_at": BASE + timedelta(days=2)}
+    started = time.perf_counter()
+    sql, _ = aggregate_history(instance, keys, buckets=1, statistics=True, **window)
+    sql_ms = (time.perf_counter() - started) * 1000
+    reference, _ = aggregate_history(instance, keys, buckets=1, statistics=True, reference=True, **window)
+    for left, right in zip(sql, reference, strict=True):
+        a, b = left.statistics, right.statistics
+        assert a is not None and b is not None
+        assert (a.valid_count, a.invalid_count, a.minimum, a.maximum) == (b.valid_count, b.invalid_count, b.minimum, b.maximum)
+        assert (a.first_valid_ms, a.last_valid_ms, a.median_spacing_ms) == (b.first_valid_ms, b.last_valid_ms, b.median_spacing_ms)
+        assert (a.gap_count, a.gap_total_ms, a.gap_longest_ms) == (b.gap_count, b.gap_total_ms, b.gap_longest_ms)
+        assert a.valid_sum == pytest.approx(b.valid_sum, rel=1e-9)
+        assert a.gap_count >= 1  # the seeded 1 000 s gap
+    warnings.warn(f"#1813 timing statistics 4 ch x 24 h @10 s: SQL {sql_ms:.0f} ms", UserWarning, stacklevel=1)

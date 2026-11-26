@@ -185,3 +185,26 @@ def test_non_finite_raw_values_are_returned_as_null(tmp_path: Path) -> None:
     assert [row[1] for row in series["raw"]] == [4.0, None, 5.0, None]
     assert series["valid_count"] == 2
     assert series["maximum"] == 5.0
+
+
+def test_interval_statistics_match_browser_semantics(tmp_path: Path) -> None:
+    client, database = _client(tmp_path)
+    events = _seed(database)
+    response = client.get(
+        "/api/v1/telemetry/history/aggregate", params=_params(buckets=1, statistics="true")
+    )
+    assert response.status_code == 200, response.text
+    stats = response.json()["series"][0]["statistics"]
+    valid = [event for event in events if event.quality == "valid"]
+    assert stats["valid_count"] == len(valid)
+    assert stats["invalid_count"] == 1
+    assert stats["maximum"] == 19.5 and stats["minimum"] == -3.25
+    assert abs(stats["valid_sum"] - sum(event.value for event in valid)) < 1e-9
+    assert stats["median_spacing_ms"] == 10_000
+    # Only the silent 300 s gap (index 299 -> 330) exceeds max(30 s, 3 x 10 s); the invalid sample
+    # at index 200 leaves a 20 s spacing between valid samples, which is not a silent gap.
+    assert stats["gap_count"] == 1
+    assert stats["gap_longest_ms"] == stats["gap_total_ms"] == 310_000
+    assert stats["first_valid_ms"] == epoch_ms(BASE)
+    plain = client.get("/api/v1/telemetry/history/aggregate", params=_params()).json()["series"][0]
+    assert plain["statistics"] is None
