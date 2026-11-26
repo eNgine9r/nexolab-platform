@@ -99,6 +99,17 @@ def _is_valid(quality: str, value: float | None) -> bool:
     return quality == "valid" and value is not None and math.isfinite(value)
 
 
+def epoch_us(value: datetime) -> int:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    delta = value - _EPOCH
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds
+
+
+def us_to_ms(microseconds: int) -> int:
+    return (microseconds + 500) // 1_000
+
+
 def aggregate_rows(
     rows: Iterable[tuple[int, float | None, str]],
     *,
@@ -106,34 +117,49 @@ def aggregate_rows(
     bucket_ms: int,
     buckets: int,
 ) -> list[Bucket]:
-    """Reference M4 aggregation over (captured_ms, value, quality) rows in captured order.
+    """Reference M4 aggregation over (captured_us, value, quality) rows.
 
-    Ties keep the earliest sample for first/minimum/maximum and the latest for last, matching the
-    PostgreSQL ordering (captured_at, event_id).
+    Deterministic tie rules shared with the PostgreSQL query (no ordering of input required):
+    first = smallest (time, value); last = largest (time, value); minimum = smallest
+    (value, time); maximum = largest value, earliest time. Times are microseconds; the response
+    carries milliseconds rounded half up.
     """
-    result: dict[int, Bucket] = {}
-    for captured_ms, value, quality in rows:
+    state: dict[int, dict[str, Any]] = {}
+    for captured_us, value, quality in rows:
+        captured_ms = us_to_ms(captured_us)
         index = min(buckets - 1, max(0, (captured_ms - from_ms) // bucket_ms))
-        bucket = result.setdefault(index, Bucket(index=index))
+        entry = state.setdefault(index, {"bucket": Bucket(index=index)})
+        bucket: Bucket = entry["bucket"]
         bucket.count += 1
         if not _is_valid(quality, value):
             bucket.invalid_count += 1
-            if bucket.first_invalid_ms is None:
-                bucket.first_invalid_ms = captured_ms
-            bucket.last_invalid_ms = captured_ms
+            bucket.first_invalid_ms = captured_ms if bucket.first_invalid_ms is None else min(bucket.first_invalid_ms, captured_ms)
+            bucket.last_invalid_ms = captured_ms if bucket.last_invalid_ms is None else max(bucket.last_invalid_ms, captured_ms)
             continue
         assert value is not None
-        point = (captured_ms, float(value))
+        numeric = float(value)
         bucket.valid_count += 1
-        bucket.total += float(value)
-        if bucket.first is None:
-            bucket.first = point
-        bucket.last = point
-        if bucket.minimum is None or value < bucket.minimum[1]:
-            bucket.minimum = point
-        if bucket.maximum is None or value > bucket.maximum[1]:
-            bucket.maximum = point
-    return [result[index] for index in sorted(result)]
+        bucket.total += numeric
+        candidate = (captured_us, numeric)
+        if entry.get("first") is None or candidate < entry["first"]:
+            entry["first"] = candidate
+        if entry.get("last") is None or candidate > entry["last"]:
+            entry["last"] = candidate
+        if entry.get("min") is None or (numeric, captured_us) < entry["min"]:
+            entry["min"] = (numeric, captured_us)
+        if entry.get("max") is None or (numeric, -captured_us) > entry["max"]:
+            entry["max"] = (numeric, -captured_us)
+    result: list[Bucket] = []
+    for index in sorted(state):
+        entry = state[index]
+        bucket = entry["bucket"]
+        if bucket.valid_count:
+            bucket.first = (us_to_ms(entry["first"][0]), entry["first"][1])
+            bucket.last = (us_to_ms(entry["last"][0]), entry["last"][1])
+            bucket.minimum = (us_to_ms(entry["min"][1]), entry["min"][0])
+            bucket.maximum = (us_to_ms(-entry["max"][1]), entry["max"][0])
+        result.append(bucket)
+    return result
 
 
 def _series_filter(key: SeriesKey, from_at: datetime, to_at: datetime, snapshot_at: datetime) -> Any:
@@ -148,28 +174,20 @@ def _series_filter(key: SeriesKey, from_at: datetime, to_at: datetime, snapshot_
     )
 
 
-_POSTGRES_SUMMARY = text(
+_POSTGRES_UNIT = text(
     """
-    SELECT count(*) AS total,
-           count(*) FILTER (WHERE ok) AS valid,
-           min(value) FILTER (WHERE ok) AS minimum,
-           max(value) FILTER (WHERE ok) AS maximum,
-           avg(value) FILTER (WHERE ok) AS average,
-           min(captured_at) AS first_at,
-           max(captured_at) AS last_at,
-           (array_agg(unit ORDER BY captured_at DESC, event_id DESC))[1] AS unit
-    FROM (
-        SELECT captured_at, event_id, value, unit,
-               (quality = 'valid' AND value IS NOT NULL AND value <> 'NaN'::float8
-                AND value <> 'Infinity'::float8 AND value <> '-Infinity'::float8) AS ok
-        FROM telemetry_samples
-        WHERE node_id = :node_id AND equipment_id = :equipment_id AND channel_id = :channel_id
-          AND metric = :metric AND captured_at >= :from_at AND captured_at <= :to_at
-          AND received_at <= :snapshot_at
-    ) AS source
+    SELECT unit FROM telemetry_samples
+    WHERE node_id = :node_id AND equipment_id = :equipment_id AND channel_id = :channel_id
+      AND metric = :metric AND captured_at >= :from_at AND captured_at <= :to_at
+      AND received_at <= :snapshot_at
+    ORDER BY captured_at DESC
+    LIMIT 1
     """
 )
 
+# One pass, no per-bucket sorting: min/max over [value, time] arrays give the extremum and its
+# time with deterministic ties (same rules as aggregate_rows). Times are exact microseconds in
+# float8 (exact below 2^53 us, i.e. until year 2255).
 _POSTGRES_BUCKETS = text(
     """
     SELECT bucket,
@@ -178,23 +196,20 @@ _POSTGRES_BUCKETS = text(
            count(*) FILTER (WHERE NOT ok) AS invalid,
            min(ms) FILTER (WHERE NOT ok) AS first_invalid_ms,
            max(ms) FILTER (WHERE NOT ok) AS last_invalid_ms,
-           (array_agg(ms ORDER BY captured_at, event_id) FILTER (WHERE ok))[1] AS first_ms,
-           (array_agg(value ORDER BY captured_at, event_id) FILTER (WHERE ok))[1] AS first_value,
-           (array_agg(ms ORDER BY captured_at DESC, event_id DESC) FILTER (WHERE ok))[1] AS last_ms,
-           (array_agg(value ORDER BY captured_at DESC, event_id DESC) FILTER (WHERE ok))[1] AS last_value,
-           (array_agg(ms ORDER BY value, captured_at, event_id) FILTER (WHERE ok))[1] AS min_ms,
-           min(value) FILTER (WHERE ok) AS min_value,
-           (array_agg(ms ORDER BY value DESC, captured_at, event_id) FILTER (WHERE ok))[1] AS max_ms,
-           max(value) FILTER (WHERE ok) AS max_value,
+           min(ARRAY[us, value]) FILTER (WHERE ok) AS first_pair,
+           max(ARRAY[us, value]) FILTER (WHERE ok) AS last_pair,
+           min(ARRAY[value, us]) FILTER (WHERE ok) AS min_pair,
+           max(ARRAY[value, -us]) FILTER (WHERE ok) AS max_pair,
            sum(value) FILTER (WHERE ok) AS total_value
     FROM (
-        SELECT captured_at, event_id, value, ms,
-               LEAST(:last_bucket, GREATEST(0, floor((ms - :from_ms) / :bucket_ms)))::bigint AS bucket,
-               (quality = 'valid' AND value IS NOT NULL AND value <> 'NaN'::float8
-                AND value <> 'Infinity'::float8 AND value <> '-Infinity'::float8) AS ok
+        SELECT us, value, ok, (floor((us + 500) / 1000))::bigint AS ms,
+               LEAST(:last_bucket, GREATEST(0, floor((floor((us + 500) / 1000) - :from_ms) / :bucket_ms)))::bigint
+                   AS bucket
         FROM (
-            SELECT captured_at, event_id, value, quality,
-                   round(extract(epoch FROM captured_at) * 1000)::bigint AS ms
+            SELECT value,
+                   (extract(epoch FROM captured_at) * 1000000)::float8 AS us,
+                   (quality = 'valid' AND value IS NOT NULL AND value <> 'NaN'::float8
+                    AND value <> 'Infinity'::float8 AND value <> '-Infinity'::float8) AS ok
             FROM telemetry_samples
             WHERE node_id = :node_id AND equipment_id = :equipment_id AND channel_id = :channel_id
               AND metric = :metric AND captured_at >= :from_at AND captured_at <= :to_at
@@ -207,10 +222,15 @@ _POSTGRES_BUCKETS = text(
 )
 
 
-def _pair(ms: Any, value: Any) -> tuple[int, float] | None:
-    if ms is None or value is None:
+def _us_pair_ms(pair: Any, *, value_first: bool = False, negated_time: bool = False) -> tuple[int, float] | None:
+    if pair is None:
         return None
-    return int(ms), float(value)
+    if value_first:
+        value, us = float(pair[0]), float(pair[1])
+    else:
+        us, value = float(pair[0]), float(pair[1])
+    microseconds = int(-us if negated_time else us)
+    return us_to_ms(microseconds), value
 
 
 def _parameters(key: SeriesKey, from_at: datetime, to_at: datetime, snapshot_at: datetime) -> dict[str, Any]:
@@ -274,14 +294,44 @@ def _aggregate_series_reference(
         ]
         return summary
     from_ms = epoch_ms(from_at)
-    summary.mode = "aggregate"
-    summary.buckets = aggregate_rows(
-        ((epoch_ms(row.captured_at), row.value, row.quality) for row in rows),
+    result = aggregate_rows(
+        ((epoch_us(row.captured_at), row.value, row.quality) for row in rows),
         from_ms=from_ms,
         bucket_ms=bucket_width_ms(from_ms, epoch_ms(to_at), buckets),
         buckets=buckets,
     )
-    return summary
+    return _summary_from_buckets(key, summary.unit, result)
+
+
+def _summary_from_buckets(key: SeriesKey, unit: str | None, buckets: list[Bucket]) -> SeriesAggregate:
+    valid = sum(bucket.valid_count for bucket in buckets)
+    total = sum(bucket.total for bucket in buckets if bucket.valid_count)
+    times = [
+        moment
+        for bucket in buckets
+        for moment in (
+            bucket.first[0] if bucket.first else None,
+            bucket.last[0] if bucket.last else None,
+            bucket.first_invalid_ms,
+            bucket.last_invalid_ms,
+        )
+        if moment is not None
+    ]
+    minima = [bucket.minimum[1] for bucket in buckets if bucket.minimum]
+    maxima = [bucket.maximum[1] for bucket in buckets if bucket.maximum]
+    return SeriesAggregate(
+        key=key,
+        unit=unit,
+        mode="aggregate",
+        count=sum(bucket.count for bucket in buckets),
+        valid_count=valid,
+        minimum=min(minima) if minima else None,
+        maximum=max(maxima) if maxima else None,
+        average=(total / valid) if valid else None,
+        first_ms=min(times) if times else None,
+        last_ms=max(times) if times else None,
+        buckets=buckets,
+    )
 
 
 def _aggregate_series_postgres(
@@ -294,50 +344,38 @@ def _aggregate_series_postgres(
     buckets: int,
 ) -> SeriesAggregate:
     parameters = _parameters(key, from_at, to_at, snapshot_at)
-    summary_row = session.execute(_POSTGRES_SUMMARY, parameters).one()
-    count = int(summary_row.total)
-    if count <= buckets * RAW_POINTS_PER_BUCKET:
-        rows = _raw_rows(session, key, from_at, to_at, snapshot_at)
-        summary = _summary_from_rows(key, rows)
-        summary.raw = [
-            (epoch_ms(row.captured_at), row.value, row.quality, row.alarm, row.event_id) for row in rows
-        ]
-        return summary
     from_ms = epoch_ms(from_at)
     bucket_ms = bucket_width_ms(from_ms, epoch_ms(to_at), buckets)
-    bucket_rows = session.execute(
+    rows = session.execute(
         _POSTGRES_BUCKETS,
         {**parameters, "from_ms": from_ms, "bucket_ms": bucket_ms, "last_bucket": buckets - 1},
     )
-    result = SeriesAggregate(
-        key=key,
-        unit=summary_row.unit,
-        mode="aggregate",
-        count=count,
-        valid_count=int(summary_row.valid),
-        minimum=None if summary_row.minimum is None else float(summary_row.minimum),
-        maximum=None if summary_row.maximum is None else float(summary_row.maximum),
-        average=None if summary_row.average is None else float(summary_row.average),
-        first_ms=None if summary_row.first_at is None else epoch_ms(summary_row.first_at),
-        last_ms=None if summary_row.last_at is None else epoch_ms(summary_row.last_at),
-    )
-    for row in bucket_rows:
-        result.buckets.append(
-            Bucket(
-                index=int(row.bucket),
-                count=int(row.total),
-                valid_count=int(row.valid),
-                invalid_count=int(row.invalid),
-                first_invalid_ms=None if row.first_invalid_ms is None else int(row.first_invalid_ms),
-                last_invalid_ms=None if row.last_invalid_ms is None else int(row.last_invalid_ms),
-                first=_pair(row.first_ms, row.first_value),
-                last=_pair(row.last_ms, row.last_value),
-                minimum=_pair(row.min_ms, row.min_value),
-                maximum=_pair(row.max_ms, row.max_value),
-                total=0.0 if row.total_value is None else float(row.total_value),
-            )
+    result: list[Bucket] = [
+        Bucket(
+            index=int(row.bucket),
+            count=int(row.total),
+            valid_count=int(row.valid),
+            invalid_count=int(row.invalid),
+            first_invalid_ms=None if row.first_invalid_ms is None else int(row.first_invalid_ms),
+            last_invalid_ms=None if row.last_invalid_ms is None else int(row.last_invalid_ms),
+            first=_us_pair_ms(row.first_pair),
+            last=_us_pair_ms(row.last_pair),
+            minimum=_us_pair_ms(row.min_pair, value_first=True),
+            maximum=_us_pair_ms(row.max_pair, value_first=True, negated_time=True),
+            total=0.0 if row.total_value is None else float(row.total_value),
         )
-    return result
+        for row in rows
+    ]
+    count = sum(bucket.count for bucket in result)
+    if count <= buckets * RAW_POINTS_PER_BUCKET:
+        raw_rows = _raw_rows(session, key, from_at, to_at, snapshot_at)
+        summary = _summary_from_rows(key, raw_rows)
+        summary.raw = [
+            (epoch_ms(row.captured_at), row.value, row.quality, row.alarm, row.event_id) for row in raw_rows
+        ]
+        return summary
+    unit = session.execute(_POSTGRES_UNIT, parameters).scalar()
+    return _summary_from_buckets(key, unit, result)
 
 
 def aggregate_history(

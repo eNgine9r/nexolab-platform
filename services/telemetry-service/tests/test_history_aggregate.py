@@ -148,15 +148,15 @@ def test_rejects_malformed_or_too_many_series(tmp_path: Path) -> None:
 
 
 def test_reference_aggregation_ties_and_bucket_edges() -> None:
-    rows = [
+    rows = [  # (captured microseconds, value, quality), deliberately out of order
+        (99_000, 7.0, "valid"),  # last sample of bucket 0
         (0, 5.0, "valid"),
-        (10, 1.0, "valid"),
-        (20, 1.0, "valid"),  # tie: the earliest minimum wins
-        (30, 9.0, "valid"),
-        (40, 9.0, "valid"),  # tie: the earliest maximum wins
-        (50, None, "sensor_error"),
-        (99, 7.0, "valid"),  # last sample of bucket 0
-        (100, 2.0, "valid"),  # first sample of bucket 1
+        (20_000, 1.0, "valid"),
+        (10_000, 1.0, "valid"),  # tie: the earliest minimum wins
+        (40_000, 9.0, "valid"),
+        (30_000, 9.0, "valid"),  # tie: the earliest maximum wins
+        (50_000, None, "sensor_error"),
+        (100_000, 2.0, "valid"),  # first sample of bucket 1
     ]
     buckets = aggregate_rows(rows, from_ms=0, bucket_ms=bucket_width_ms(0, 200, 2), buckets=2)
     first, second = buckets
