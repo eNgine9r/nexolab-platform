@@ -614,6 +614,18 @@ test("opens a persisted selected-series dashboard after service restart without 
         .filter((item) => item.url.includes("/latest") || item.url.includes("/history"))
         .every((item) => {
           const url = new URL(item.url);
+          // Raw pages and latest name the selected series by channel_id; aggregated history (P0
+          // charts) by its node|equipment|channel|metric series parameters.
+          if (url.pathname.endsWith("/history/aggregate")) {
+            const series = url.searchParams.getAll("series");
+            return (
+              series.length > 0 &&
+              series.every((value) => {
+                const [, , channelId, metric] = value.split("|");
+                return channelId === "106-03" && metric === "temperature.probe";
+              })
+            );
+          }
           return (
             url.searchParams.get("channel_id") === "106-03" &&
             url.searchParams.get("metric") === "temperature.probe"
@@ -687,9 +699,13 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toContainText("без шкали");
     await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");
     await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");
+    // One history read per series on raw backends; aggregated history reads the series together.
     await expect
-      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
-      .toBeGreaterThanOrEqual(4);
+      .poll(() => {
+        const history = requests.telemetry.filter((item) => item.url.includes("/history"));
+        return history.length >= 4 || history.some((item) => item.url.includes("/history/aggregate"));
+      })
+      .toBe(true);
     await expect(page.getByRole("button", { name: "1 година", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "30 днів", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Власний період", exact: true })).toBeVisible();
