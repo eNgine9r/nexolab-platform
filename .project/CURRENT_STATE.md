@@ -1,3 +1,39 @@
+## 2026-11-26 (afternoon) — v1.3 live; cleanup +6.2 GiB; Stage 2 build fixed (v1.4); manifest A withdrawn; DR-A activation package
+
+- **Broker v1.3.0 installed by the owner** (v1.1.0 retained for rollback).
+- **Approved `storage.cleanup-regenerable build_cache=all-unused`:**
+  - free space 22.06 → 28.29 GiB (build cache 8.16 GB);
+  - volumes unchanged, 18 in-use images kept, every protected or recovery image skipped;
+  - LAN `:80`/`192.168.1.220`, `:3105`, dashboard and Tailscale `:8444` return 200;
+  - telemetry ready (lag 0.19 s), 12 containers healthy.
+- **Approved `deploy.lan-frontend phase=prepare`:**
+  - `stage` verified (17,627 runtime files);
+  - `build` stopped: BuildKit cannot build `FROM sha256:<id>` and resolved it as `docker.io/library/sha256`;
+  - production unchanged.
+
+  Fixed in **#1783 broker v1.4**: the build uses a proven local `node:` tag, proven again against the base, and a real BuildKit CI step covers it. Payload `~/recovery-p0/broker-v1.4-20261126T075330Z` (installer `6d3e1f2d…`). After the upgrade, `prepare` resumes at `build` with a new approval.
+
+- **SSD manifest A withdrawn** (owner review). It contained the documented rollback dashboard `issue-1522-469485b0`.
+  - Manifest B (`18c84854…`, 25 images) is staged.
+  - v1.4 adds `storage.image-references`, a root-side scan of release, catalog, backup, protection and unit records. `remove-images` now skips any protected or rollback-referenced image.
+  - No removal until the owner has reviewed the evidence.
+- **Tailscale `:8443` 502 (#1784):**
+  - `/` points to the unused candidate port 3102;
+  - the live 3104 and 3105 bundles compile the Funnel origin, so they are incompatible with `:8443`.
+
+  Prepared fix (#1785): `/` and `/api` → LAN gateway, after Stage 2.
+
+- **#1428 DR-A activation (#1786, PR #1787):**
+  - the unit's `/opt/nexolab/current` is absent on the Pi;
+  - the template's local-auth paths are wrong for this site.
+
+  New read-only renderer (its output passes the backup tool's validation) and an owner runbook. The first backup runs through the broker `backup.start` approval.
+
+- **Wi-Fi (#1735, read-only):**
+  - LAB KK1 fails at association, before the WPA handshake. An AP-side refusal is most likely.
+  - NetworkManager stops retrying minutes after boot.
+  - No bypass test, per the owner. Needs a router check, and owner approval for unlimited autoconnect retries.
+
 ## 2026-11-26 (later) — broker v1.3 merged and staged; Stage 3 tool merged
 
 - **#1780 broker v1.3** (`d25599f7`, includes v1.2). Approved operations:

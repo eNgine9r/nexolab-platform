@@ -1,27 +1,19 @@
-## 2026-11-26 — Pending owner actions (resume point after any reboot; updated after v1.3)
+## 2026-11-26 — Pending owner actions (resume point after any reboot; updated after v1.4)
 
-1. **Upgrade the Operator Broker to v1.3** (#1780, includes v1.2). If any step fails, the installer restores v1.1 automatically:
+1. **Upgrade the Operator Broker to v1.4** (#1783). It fixes the Stage 2 build and adds image reference evidence. If any step fails, the installer restores v1.3 automatically:
    ```
-   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.3-20261126T070346Z/install-operator-broker.sh > $T/i.sh && echo "3262da047d7aab96a01cabe535b2b82e46c2e9560ad5e4c16a9c9f8f48e07bd0  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.3-20261126T070346Z
+   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.4-20261126T075330Z/install-operator-broker.sh > $T/i.sh && echo "6d3e1f2d0d4d7b5fb0281e554d323eb88e4a7aa1cedfd6350343e00c9280c39b  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.4-20261126T075330Z
    ```
-2. **Approvals** (`sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op <op> [--arg k=v ...] --ttl-minutes 240 --reason "<why>"`). The agent executes them through the broker.
-   - `storage.cleanup-regenerable --arg build_cache=all-unused`: about 3.3 GB.
-   - `storage.remove-images --arg manifest_sha256=fb84ea64e305f72e9931339252cc9a1ac6cb2a34df8c9e2b9f46d32fd0eff623`: 26 stale images; listed sizes up to about 11 GB, less in practice because of shared layers.
-   - `deploy.lan-frontend --arg phase=prepare --arg artifact_sha256=f916352c726bd899754326b44a78b763d900b7fe03c55629d356433710289e1e --arg expect_current_source=7db6e1a801aa6c1a142febd4e91c79eef62d5beb --arg expect_current_build=CWBsCWWebOZGHa5YyWp18`: no production change.
-   - `wifi.connect-test --arg "profile=LAB KK1" --arg mac=random`: diagnosis only; Ethernet stays primary.
-   - Later, separately: `deploy.lan-frontend` with `phase=execute`, which switches the LAN dashboard with automatic verified rollback.
-3. **SSD owner decisions:**
-   - old release workspaces (`t2a`);
-   - images kept out of manifest A: `issue-1615-1e5537cb`, `staged-*`, `quick-central:1490`, versitygw arm64.
-4. **Wi-Fi (#1735):**
-   - router check for a MAC filter or block list on `2C:CF:67:A6:09:3A`;
-   - whether to remove the open `me_mac` and `iPhone` profiles (approved `wifi.profile-remove`).
-5. **Reboot cause (#1399):** still undetermined. The heartbeat is in `~/p0-evidence/heartbeat/`; the agent restarts it after a reboot.
-6. **#1428 DR evidence (hard gate for Stage 3):**
-   - the owner provisions `/etc/nexolab/dr-backup.json` and its keys, and installs `nexolab-dr-backup.{service,timer}` (#1630);
-   - then approved `backup.start`, the off-device copy and the isolated restore.
-7. **Stage 3 (#1734), after Stage 2 execute and #1428:** the owner runs `wp2c-stage3-backend.py plan` and `check` on the host first. `execute` needs exact approval.
-8. **Tailscale `:8443 /`** proxies to `127.0.0.1:3102`, where nothing listens (502). This is pre-existing; owner decision.
+2. **New approval:** `deploy.lan-frontend` with `phase=prepare`, `artifact_sha256=f916352c726bd899754326b44a78b763d900b7fe03c55629d356433710289e1e`, `expect_current_source=7db6e1a801aa6c1a142febd4e91c79eef62d5beb` and `expect_current_build=CWBsCWWebOZGHa5YyWp18`. It resumes at `build`; no production change. `phase=execute` stays a separate approval.
+3. **SSD:**
+   - the agent runs the read-only `storage.image-references` on manifest B (`18c84854…`) and reports the evidence per image;
+   - only then is a `storage.remove-images` approval requested;
+   - `t2a` workspaces remain an owner decision.
+4. **#1428 DR-A:** after PR #1787 merges, follow `docs/operations/dr-site-activation-1428.md` (the agent stages the pinned package). Key generation and custody are owner only. The first backup needs a `backup.start` approval.
+5. **Wi-Fi (#1735):** the owner checks the router (MAC filter or block list, client limit, logs for `2C:CF:67:A6:09:3A`). Approval is needed for unlimited autoconnect retries, and for removing the open `me_mac` and `iPhone` profiles.
+6. **Tailscale `:8443` (#1784):** apply the prepared fix after Stage 2 execute (`docs/operations/network/tailscale-8443-inspection-fix.md`).
+7. **Reboot cause (#1399):** still undetermined. The heartbeat is running; the agent restarts it after a reboot.
+8. **Stage 3 (#1734):** after Stage 2 execute and #1428. The owner runs `plan` and `check` on the host first; `execute` needs exact approval.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 

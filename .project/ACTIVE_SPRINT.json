@@ -12223,7 +12223,8 @@
         "wp2c_stage1": "2026-11-25 16:13Z owner ran Stage 1 v3 (8a48f62b...): NEXOLAB_STAGE1_GATEWAY_GREEN, real systemd sandbox SANDBOX_OK, gateway enabled+active on 127.0.0.1:80 and 192.168.1.220:80, login 200/API 400/WS 101 parity, OAuth gate 302, tailnet listener untouched, telemetry ready. Evidence p0-evidence/owner-stage1-20261125T161322Z.log. Stage 2/3 not approved.",
         "wp2c_stage2": "Source complete: #1761 same-origin artifact profile, #1764 actionable contract check (Supabase GOTRUE localhost default allowed; IP literals and 8082/1884/3000 forbidden), #1766 guarded tool docs/operations/network/wp2c-stage2-frontend.py (stage/build/preview/check/execute/rollback, compose fidelity proof, gateway verification, auto rollback). ARM64 artifact run 45682123670 from main c5bb48a1, zip sha256 f916352c..., build xRUAt2U9c3oug1ETWuLsT, same_origin_browser_bundle=no-absolute-host-origin. Owner: owner-2026-11-25-stage2.sh (19c0085c...) prepare, then execute only after Stage 2 approval. Not run on site.",
         "stage3_tool": "PR #1779 merge 95204dc9 (exact-head GREEN, 42 tests): wp2c-stage3-backend.py plan/check/execute/rollback/drop-compat. Switch = dual publish (add 127.0.0.1, keep compat) + Edge bridge to central-mqtt:1883 with client ID preserved; drop-compat (Phase 4) after external consumers retargeted. check needs a fresh #1428 backup receipt and Stage 2 active. plan --from-model on the 2026-11-26 export: STAGE3_PLAN_OK (p0-evidence/stage3-plan-from-model-20261126.txt). Real Compose behaviour unverified until owner plan/check on host.",
-        "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18)."
+        "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18).",
+        "stage2_prepare_2026_11_26": "approved prepare: stage OK, build failed (BuildKit FROM image ID, fixed in #1783/v1.4); workspace stage.json retained, so prepare resumes at build after the v1.4 upgrade with a new approval"
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12240,7 +12241,8 @@
         "site_acceptance": "owner_pending",
         "finding": "LAB KK1/WEST/me_mac profiles invisible to other users (consistent with user-scoped permissions and agent-owned PSK -> no-secrets headless); radio enabled; regdom UA; contents not read",
         "finding_2026_11_25_diag": "Read-only diag 16:14Z: LAB KK1 system-wide, wpa-psk, psk-flags 0, WPA2 ch11 signal 100; brcmfmac 7.45.265; CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16 (802.11 auth timeout, before the 4-way handshake) every ~13 s; previous boot failed with no-secrets (4-way handshake). Hypothesis: wrong/changed PSK followed by AP-side block of MAC 2C:CF:67:A6:09:3A after repeated failures, or AP ACL. Needs owner/router-side check; four autoconnect Wi-Fi profiles exist (LAB KK1, WEST, me_mac, netplan-wlan0-iPhone).",
-        "finding_2026_11_26": "LAB KK1 still ASSOC-REJECT status_code=16 bssid=00:..:00 (brcmfmac fullmac: auth timeout, AP does not answer auth frames) with signal 100 WPA2-PSK ch11 -> consistent with AP-side MAC filter/blocklist; phy country 99 (firmware rejected UA) does not restrict ch11. Next: approved bounded connect test with temporary random MAC (broker v1.3), owner router check."
+        "finding_2026_11_26": "LAB KK1 still ASSOC-REJECT status_code=16 bssid=00:..:00 (brcmfmac fullmac: auth timeout, AP does not answer auth frames) with signal 100 WPA2-PSK ch11 -> consistent with AP-side MAC filter/blocklist; phy country 99 (firmware rejected UA) does not restrict ch11. Next: approved bounded connect test with temporary random MAC (broker v1.3), owner router check.",
+        "finding_2026_11_26_history": "Boots -1 and -2 (2026-11-25): 9 ASSOC-REJECT status_code=16 each, no CTRL-EVENT-CONNECTED retained; NM gives up after a few minutes (no-secrets, TEMP-DISABLED) so the profile never retries until reboot. Failure is at association, before the WPA handshake (a wrong PSK would show WRONG_KEY after association) -> AP-side refusal most likely (MAC filter/block list/client limit). Owner instruction 2026-11-26: no MAC-filter bypass test; router-side check required; unlimited autoconnect retries (WP3) needs owner approval."
       },
       "branch": null
     },
@@ -12353,7 +12355,83 @@
         "merged": "PR #1780 merge d25599f7 (head 8aa321d4, exact-head GREEN incl. Merge Gate and real systemd: image removal untag/in-use/protected/volumes, Wi-Fi fail closed, v1.1->v1.3 upgrade with injected-failure rollback)",
         "local_checks": "63 broker tests passed",
         "payload": "~/recovery-p0/broker-v1.3-20261126T070346Z, installer sha256 3262da047d7aab96a01cabe535b2b82e46c2e9560ad5e4c16a9c9f8f48e07bd0, pins verified, byte-identical to main@d25599f7",
-        "ssd_manifest_a": "~/operator-inbox/fb84ea64e305f72e9931339252cc9a1ac6cb2a34df8c9e2b9f46d32fd0eff623.json: 26 stale candidate/experiment images (issue-1522/1625/1609/1603 dashboards, 1615 candidate, 1518 non-rollback set, issue1146 set, issue1142/1147 object-storage experiments); excluded for owner decision: issue-1638 (previous release), issue-1615-1e5537cb, staged-*, quick-central:1490, versitygw-v1.8.0-arm64"
+        "ssd_manifest_a": "WITHDRAWN 2026-11-26 after owner review: fb84ea64 contained nexolab/dashboard:issue-1522-469485b0-arm64, the documented frontend_rollback_release (.project baselines; storage-reclamation-plan keep list). Replaced by manifest B 18c84854 (25 images, A minus issue-1522); removal only after broker v1.4 storage.image-references evidence review and a new owner approval.",
+        "site_installed": "2026-11-26 owner upgrade to v1.3.0 verified (ACCEPTANCE_OK version=1.3.0; v1.1.0 retained for rollback)"
+      }
+    },
+    {
+      "issue": 1782,
+      "title": "Broker v1.4: Stage 2 offline build fix (BuildKit FROM image ID) and root-side image reference evidence",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Stage 2 tool builds FROM a proven local node: tag (re-proven before build, base layers after); storage.image-references read op; storage.remove-images skips protected/rollback-referenced images.",
+      "depends_on": [
+        1778
+      ],
+      "branch": "feat/1782-broker-v1-4",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "docs/operations/network/wp2c-stage2-frontend.py",
+        "tests/test_ci_operator_broker.py",
+        "tests/test_ci_wp2c_stage2_frontend.py",
+        ".github/workflows/operator-broker-install-acceptance.yml",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_upgrade_pending",
+        "site_failure": "2026-11-26 approved deploy.lan-frontend prepare (receipt seq 60): stage OK (17627 runtime files); build STOP IMAGE_BUILD_FAILED: FROM sha256:6c74791e resolved as docker.io/library/sha256 (pull denied); production unchanged",
+        "merged": "PR #1783 merge 6c2248ce (head 1529c55e, exact-head GREEN incl. Merge Gate; real systemd: STAGE2_BUILD_PATTERN_OK on real BuildKit, record guard skipped rollback-referenced image, v1.1->v1.4 upgrade with injected-failure rollback)",
+        "local_checks": "68 broker + 38 Stage 2 tests passed",
+        "payload": "~/recovery-p0/broker-v1.4-20261126T075330Z, installer sha256 6d3e1f2d0d4d7b5fb0281e554d323eb88e4a7aa1cedfd6350343e00c9280c39b, pins verified, byte-identical to main@6c2248ce"
+      }
+    },
+    {
+      "issue": 1784,
+      "title": "Tailscale :8443 private inspection origin returns 502 (stale staging target 127.0.0.1:3102)",
+      "lifecycle": "blocked",
+      "priority": "medium",
+      "scope": "Prepared owner fix: route :8443 / and /api through the LAN gateway 127.0.0.1:80 after Stage 2; /inspection-login unchanged; backup/verify/rollback runbook.",
+      "depends_on": [
+        1734
+      ],
+      "branch": "docs/1784-tailscale-8443",
+      "permitted_paths": [
+        "docs/operations/network/",
+        "docs/operations/opera-tailscale-inspection.md"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "after_stage2_execute",
+        "root_cause": "/ -> 127.0.0.1:3102 (unused protected candidate port; accepted 3100 retired); live 3104/3105 bundles compile the Funnel origin, so they are incompatible with the :8443 origin; /api shadows dashboard /api routes and depends on the compatibility address"
+      }
+    },
+    {
+      "issue": 1786,
+      "title": "#1428 DR-A site activation package: confirmed site config renderer and owner runbook",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Read-only site config renderer (docker inspect) + owner runbook (pinned install to /usr/local/lib/nexolab-dr, drop-in, key/custody, plan, first run via broker backup.start approval, verify, rollback).",
+      "depends_on": [
+        1630
+      ],
+      "branch": "feat/1786-dr-site-activation",
+      "permitted_paths": [
+        "scripts/nexolab-dr-site-config.py",
+        "tests/test_ci_dr_site_config.py",
+        "docs/operations/dr-site-activation-1428.md",
+        "scripts/classify-ci-impact.py",
+        "tests/test_ci_change_impact.py",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_activation_pending",
+        "site_gaps": "unit code path /opt/nexolab/current absent on Pi; template CONFIRM- values; template local-auth key paths wrong for site (live /run/secrets/nexolab_local_auth_{private,public}_key); host cryptography 43.0.0 present",
+        "local_checks": "7 renderer tests (rendered config passes backup tool load_config, 8 stores) + 96 change-impact tests"
       }
     }
   ],
