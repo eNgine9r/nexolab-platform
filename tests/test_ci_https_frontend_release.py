@@ -283,6 +283,19 @@ class Execute(unittest.TestCase):
         self.assertFalse(self.dropin.exists())
         self.assertFalse(any("restart" in call for call in fake.calls))
 
+    def test_refuses_a_second_execute_over_an_installed_dropin(self):
+        fake = FakeHost(self.module)
+        fake.dropin = str(self.dropin)
+        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
+        installed = self.dropin.read_text()
+        restarts = sum(1 for call in fake.calls if "restart" in call)
+        with self.assertRaisesRegex(self.module.ReleaseError, "already installed"):
+            self.module.phase_execute(self.zip, self.expectation(), (SOURCE, BUILD), fake.as_host())
+        self.assertEqual(self.dropin.read_text(), installed)
+        self.assertEqual(sum(1 for call in fake.calls if "restart" in call), restarts)
+        self.assertTrue(self.module.phase_rollback(fake.as_host()))
+        self.assertEqual(fake.live, OLD)
+
     def test_rollback_command_uses_the_recorded_state(self):
         fake = FakeHost(self.module)
         fake.dropin = str(self.dropin)

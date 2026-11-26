@@ -468,6 +468,10 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
     unit = show(host, "WorkingDirectory", "ExecStart")
     dropin_text = render_dropin(execstart_argv(unit.get("ExecStart", "")), unit.get("WorkingDirectory", ""), release, LIVE_PORT)
     dropin = dropin_path(expected.source)
+    if dropin.exists():
+        # Overwriting it would lose the drop-in the recorded "previous" identity depends on, and a
+        # later rollback would activate an older underlying release instead (review).
+        raise ReleaseError(f"{dropin} is already installed; run rollback first; nothing changed")
     user = pwd.getpwnam(SERVICE_USER)
     write_state({"dropin": str(dropin), "previous": list(current), "release": str(release), "target": [expected.source, expected.build]})
     dropin.parent.mkdir(parents=True, exist_ok=True)
