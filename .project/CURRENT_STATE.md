@@ -1,3 +1,9 @@
+## 2026-11-26 (final) — Stage 3 Compose proof GREEN on the Pi; infrastructure sprint handed over
+
+- **Stage 3 (#1734):** the owner ran the pinned package (`b3176baf…`) and got `STAGE3_PROVE_GREEN phase=switch services=5`. All five Compose fidelity checks passed on the real host; evidence is in the owner workspace `proofs/20261126T121055681325Z`. Nothing was switched. `execute` stays **not authorised** until there is a #1428 receipt under 24 h, `check` passes and the owner gives exact approval.
+- **#1428:** the minimum owner actions are posted on the issue (A activate → A2 `backup.start` → B custody → C off-device → D isolated restore), using the pinned package `dr-a-20261126T102935Z`.
+- **The infrastructure sprint is complete on the agent side.** The broker is frozen at v1.7, and the remaining items are owner actions (BLOCKERS). Next: product development. The next product Work Package needs Product Owner selection; #1762 site activation waits on #1428.
+
 ## 2026-11-26 (close+) — Tailscale `:8443` fixed (#1784)
 
 - **Owner-approved** broker v1.7 `network.tailscale-inspection-route apply`: `:8443 /` and `/api` now go to the LAN gateway, and `/inspection-login` is unchanged.

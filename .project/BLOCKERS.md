@@ -3,10 +3,7 @@
 1. **Stage 2 browser acceptance:** at the LAN address and Tailscale `:8444`, check login, Live Data, a chart and a photo, then log out. Problem → `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=rollback …`.
 2. **Tailscale `:8443`:** fixed on 2026-11-26. Remaining: a viewer login from an approved workstation at `https://<node>:8443/inspection-login`.
 3. **#1428 DR (critical path):** `docs/operations/dr-1428-owner-checklist.md` with the package `~/recovery-p0/dr-a-20261126T102935Z` (`SHA256SUMS` `aec18fc941538eb9165a2acd8ad5d806f33b1d5e96bf0ad7304ff88c12147e84`). The first backup needs `backup.start` (approval).
-4. **Stage 3 (after 3 A2, exact approval):** owner-run from `~/recovery-p0/stage3-20261126T114923Z/wp2c-stage3-backend.py` (`b3176baff391b104dd71c876d9b2aef97bf871954aa3fbf4bb082f45fe5acac4`) with `--retain-env CORS_ALLOWED_ORIGINS`:
-   - `prove` may run now (read-only);
-   - `check`/`execute` need the A2 receipt;
-   - then retarget the consumers as in the closeout document (gateway drop-in with dashboard `:3000`), and `drop-compat` (approval).
+4. **Stage 3:** `prove` is GREEN on the Pi (2026-11-26). Next, after #1428 A2: `check --retain-env CORS_ALLOWED_ORIGINS --backup-receipt <A2 receipt>`, then `execute` with exact approval, from `~/recovery-p0/stage3-20261126T114923Z` (`b3176baf…`). Then retarget the consumers and run `drop-compat` (approval).
 5. **Optional:** SSD manifect C (`3c928c51…`, specific authorization); Wi-Fi router check and profile decisions.
 6. **Monitoring:** reboot cause (#1399), with the heartbeat running.
 
