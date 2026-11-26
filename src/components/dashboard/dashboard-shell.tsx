@@ -225,6 +225,8 @@ export function DashboardShell() {
                     status={telemetry.status}
                     samples={telemetry.temperatures}
                     historySamples={telemetry.historySamples}
+                    historyStore={telemetry.historyStore}
+                    historyVersion={telemetry.historyVersion}
                     historyRange={telemetry.historyRange}
                     historyStatus={telemetry.historyStatus}
                     historyWindow={telemetry.historyWindow}

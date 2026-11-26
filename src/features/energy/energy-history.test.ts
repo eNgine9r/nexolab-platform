@@ -133,7 +133,8 @@ describe("energy history", () => {
         limit: 1000,
         snapshot_at: undefined,
       }),
-      undefined,
+      // The sliced loader always passes its own cancellation signal (P0 charts).
+      expect.any(AbortSignal),
     );
     expect(adapter.history).toHaveBeenNthCalledWith(
       2,
@@ -144,7 +145,7 @@ describe("energy history", () => {
         snapshot_at: SNAPSHOT_AT,
         to: new Date("2026-08-03T10:00:02.001Z"),
       }),
-      undefined,
+      expect.any(AbortSignal),
     );
     expect(result.map((item) => item.event_id)).toEqual([
       "energy-edge-01-200-0",
@@ -433,6 +434,6 @@ describe("energy history", () => {
         from: new Date("2026-08-03T09:00:00Z"),
         to: new Date("2026-08-03T11:00:00Z"),
       }),
-    ).rejects.toThrow("stable cursor");
+    ).rejects.toThrow("invalid captured_at timestamp");
   });
 });

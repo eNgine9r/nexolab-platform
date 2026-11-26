@@ -5,10 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
 import {
-  appendHistoryTail,
-  orderedHistoryWindow,
-  trimHistoryWindow,
-} from "@/features/dashboard/overview-history-window";
+  createOverviewHistoryStore,
+  overviewDisplayHistory,
+  overviewRecentTimestamps,
+  overviewSourceGapMs,
+  pruneOverviewHistory,
+  recordOverviewSamples,
+  type OverviewHistoryStore,
+} from "@/features/dashboard/overview-history";
+import { chartPointBudget } from "@/features/charts/point-budget";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
@@ -24,14 +29,14 @@ import {
   type DashboardTelemetryView,
 } from "@/lib/telemetry/dashboard-state";
 import {
-  loadCompleteTelemetryHistory,
+  loadTelemetryHistorySlices,
   reconcileTelemetryHistoryEvents,
   seedTelemetryHistoryOrderingState,
   type TelemetryHistoryOrderingState,
   type TelemetryHistoryWindow,
 } from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
-import { advanceWindowToClock } from "@/features/live/live-history";
+import { advanceWindowToClock, appendLiveHistoryTail } from "@/features/live/live-history";
 import {
   customHistoryRangeKey,
   resolveCustomHistoryWindow,
@@ -40,8 +45,9 @@ import {
 import {
   EMPTY_CADENCE_OBSERVATIONS,
   liveFreshnessFor,
+  CADENCE_OBSERVATION_LIMIT,
   recordCadenceObservation,
-  seedCadenceFromSamples,
+  seedCadenceObservations,
   type CadenceObservations,
 } from "@/features/live/freshness";
 import { liveChannelKey } from "@/features/live/live-telemetry";
@@ -59,6 +65,8 @@ const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24, "7d": 7 * 24 } as const;
 const HISTORY_PENDING_LIVE_LIMIT = 5_000;
+/** Display points per Overview series; every raw measurement stays in the history columns. */
+const OVERVIEW_DISPLAY_POINTS = chartPointBudget("overview");
 /**
  * #1827: live history updates are coalesced — at most one per second up to 6 h, one per 5 s for
  * longer windows (a 24 h chart point spans minutes; series turn stale after 30 s at the earliest).
@@ -97,7 +105,14 @@ export interface DashboardTelemetryModel {
   view: DashboardTelemetryView | null;
   kpis: readonly DashboardKpiValue[] | typeof demoKpis;
   temperatures: TelemetrySample[];
+  /**
+   * Continuity-annotated display history (extremum-preserving reduction plus the live tail). Every
+   * RAW measurement is in `historyStore` (exact statistics, viewport detail); P0 charts 7 d / 30 d.
+   */
   historySamples: TelemetrySample[];
+  historyStore?: OverviewHistoryStore | null;
+  /** Changes whenever `historyStore` changed (consumers recompute statistics and detail). */
+  historyVersion?: number;
   historyRange: DashboardHistoryRange;
   historyStatus: DashboardHistoryStatus;
   historyWindow: { from: string; to: string } | null;
@@ -190,6 +205,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const customFrom = historyRange === "custom" ? (customWindow?.from ?? null) : null;
   const customTo = historyRange === "custom" ? (customWindow?.to ?? null) : null;
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
+  const historyStoreRef = useRef<OverviewHistoryStore | null>(null);
+  const [historyStore, setHistoryStore] = useState<OverviewHistoryStore | null>(null);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  // Channels whose last live sample was not renderable: their next point starts a new segment.
+  const pendingBreaksRef = useRef<Set<string>>(new Set());
+  const sourceGapMsFor = useCallback(
+    (key: string) => overviewSourceGapMs(historyStoreRef.current?.columns[key]),
+    [],
+  );
   const [historyStatus, setHistoryStatus] = useState<DashboardHistoryStatus>(
     runtime.config?.mode === "live" ? "loading" : "idle",
   );
@@ -232,43 +256,57 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     setHistoryGeneration((value) => value + 1);
   }, [runtime.config]);
 
-  const commitHistoryTail = useCallback((incoming: readonly TelemetrySample[], expectedScopeKey: string) => {
-    const temperatureSamples = incoming.filter(isTemperatureProbeSample);
-    if (temperatureSamples.length === 0) return;
+  const commitHistoryTail = useCallback(
+    (incoming: readonly TelemetrySample[], expectedScopeKey: string) => {
+      const temperatureSamples = incoming.filter(isTemperatureProbeSample);
+      if (temperatureSamples.length === 0) return;
 
-    const context = historyTailContextRef.current;
-    if (!context || context.scopeKey !== expectedScopeKey) return;
-    // A fixed custom period never receives live samples, before or after its history loads.
-    if (context.fixed) return;
+      const context = historyTailContextRef.current;
+      if (!context || context.scopeKey !== expectedScopeKey) return;
+      // A fixed custom period never receives live samples, before or after its history loads.
+      if (context.fixed) return;
 
-    const ordering = historyOrderingRef.current;
-    if (ordering === null) {
-      historyPendingLiveRef.current = [...historyPendingLiveRef.current, ...temperatureSamples].slice(
-        -HISTORY_PENDING_LIVE_LIMIT,
-      );
-      return;
-    }
+      const ordering = historyOrderingRef.current;
+      if (ordering === null) {
+        historyPendingLiveRef.current = [...historyPendingLiveRef.current, ...temperatureSamples].slice(
+          -HISTORY_PENDING_LIVE_LIMIT,
+        );
+        return;
+      }
 
-    const reconciled = reconcileTelemetryHistoryEvents(temperatureSamples, ordering);
-    historyOrderingRef.current = reconciled.state;
-    if (reconciled.samples.length === 0) return;
+      const reconciled = reconcileTelemetryHistoryEvents(temperatureSamples, ordering);
+      historyOrderingRef.current = reconciled.state;
+      if (reconciled.samples.length === 0) return;
 
-    const nextWindow = advanceHistoryWindow(context.window, reconciled.samples);
-    historyTailContextRef.current = { ...context, window: nextWindow };
-    // #1827: live samples are coalesced (see historyTailFlushMs); deriving the Overview from raw
-    // history per sample cost more than the sample interval at 24 h.
-    tailBufferRef.current.push(...reconciled.samples);
-    if (tailTimerRef.current !== null) return;
-    tailTimerRef.current = globalThis.setTimeout(() => {
-      tailTimerRef.current = null;
-      const pending = tailBufferRef.current;
-      tailBufferRef.current = [];
-      const latestContext = historyTailContextRef.current;
-      if (pending.length === 0 || !latestContext || latestContext.historyKey !== context.historyKey) return;
-      setHistorySamples((current) => appendHistoryTail(current, pending, latestContext.window));
-      setHistoryWindow(serializedHistoryWindow(latestContext.window));
-    }, historyTailFlushMs(context.durationMs));
-  }, []);
+      const nextWindow = advanceHistoryWindow(context.window, reconciled.samples);
+      historyTailContextRef.current = { ...context, window: nextWindow };
+      // #1827: live samples are coalesced (see historyTailFlushMs); deriving the Overview from raw
+      // history per sample cost more than the sample interval at 24 h.
+      tailBufferRef.current.push(...reconciled.samples);
+      if (tailTimerRef.current !== null) return;
+      tailTimerRef.current = globalThis.setTimeout(() => {
+        tailTimerRef.current = null;
+        const pending = tailBufferRef.current;
+        tailBufferRef.current = [];
+        const latestContext = historyTailContextRef.current;
+        if (pending.length === 0 || !latestContext || latestContext.historyKey !== context.historyKey) return;
+        const historyStore = historyStoreRef.current;
+        if (historyStore) {
+          recordOverviewSamples(historyStore, pending);
+          pruneOverviewHistory(historyStore, latestContext.window.from.getTime());
+        }
+        setHistorySamples((current) =>
+          appendLiveHistoryTail(current, pending, latestContext.window, OVERVIEW_DISPLAY_POINTS, {
+            sourceGapMsFor,
+            pendingBreakChannels: pendingBreaksRef.current,
+          }),
+        );
+        setHistoryVersion((value) => value + 1);
+        setHistoryWindow(serializedHistoryWindow(latestContext.window));
+      }, historyTailFlushMs(context.durationMs));
+    },
+    [sourceGapMsFor],
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -281,11 +319,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       const nextWindow = advanceWindowToClock(context.window, now);
       if (nextWindow === context.window) return;
       historyTailContextRef.current = { ...context, window: nextWindow };
-      setHistorySamples((current) => trimHistoryWindow(current, nextWindow));
+      if (historyStoreRef.current) pruneOverviewHistory(historyStoreRef.current, nextWindow.from.getTime());
+      setHistorySamples((current) =>
+        appendLiveHistoryTail(current, [], nextWindow, OVERVIEW_DISPLAY_POINTS, { sourceGapMsFor }),
+      );
+      setHistoryVersion((value) => value + 1);
       setHistoryWindow(serializedHistoryWindow(nextWindow));
     }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [sourceGapMsFor]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -401,6 +443,8 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     if (tailTimerRef.current !== null) globalThis.clearTimeout(tailTimerRef.current);
     tailTimerRef.current = null;
     tailBufferRef.current = [];
+    pendingBreaksRef.current = new Set();
+    historyStoreRef.current = null;
     historyTailContextRef.current = {
       scopeKey,
       historyKey,
@@ -415,49 +459,92 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setHistoryStatus("loading");
       setHistoryError(null);
       setHistorySamples([]);
+      setHistoryStore(null);
       setHistoryWindow(serializedHistoryWindow(requestedWindow));
     });
 
-    void loadCompleteTelemetryHistory(adapter, { metric: "temperature.probe" }, requestedWindow, {
-      signal: controller.signal,
-    })
-      .then((result) => {
+    // P0 charts: the window loads as time slices (bounded parallelism, page retry, its own page
+    // limit per slice, cancelled with the effect) into compact RAW columns; a window over the safe
+    // raw row budget stops early with an explicit message instead of loading partially.
+    const loadedStore = createOverviewHistoryStore();
+    void loadTelemetryHistorySlices(
+      adapter,
+      { metric: "temperature.probe" },
+      requestedWindow,
+      { signal: controller.signal },
+      (samples) => recordOverviewSamples(loadedStore, samples),
+    )
+      .then(() => {
         const context = historyTailContextRef.current;
         if (disposed || !context || context.historyKey !== historyKey) return;
 
-        const persisted = result.samples.filter(isTemperatureProbeSample);
         if (fixed) {
           // Exactly the requested window: no live tail, no advance, no cadence seeding from the past.
           historyPendingLiveRef.current = [];
           historyOrderingRef.current = null;
-          setHistorySamples(orderedHistoryWindow(persisted, requestedWindow));
+          historyStoreRef.current = loadedStore;
+          setHistoryStore(loadedStore);
+          setHistorySamples(overviewDisplayHistory(loadedStore, requestedWindow, OVERVIEW_DISPLAY_POINTS));
+          setHistoryVersion((value) => value + 1);
           setHistoryWindow(serializedHistoryWindow(requestedWindow));
           setHistoryStatus("ready");
           setHistoryError(null);
           return;
         }
         // Raw persisted spacing bootstraps freshness before the live stream has seen two polls.
-        const seeded = seedCadenceFromSamples(cadenceRef.current, persisted, liveChannelKey);
+        let seeded = cadenceRef.current;
+        for (const [key, columns] of Object.entries(loadedStore.columns)) {
+          seeded = seedCadenceObservations(
+            seeded,
+            key,
+            overviewRecentTimestamps(columns, CADENCE_OBSERVATION_LIMIT),
+          );
+        }
         if (seeded !== cadenceRef.current) {
           cadenceRef.current = seeded;
           setCadence(seeded);
         }
-        const ordering = seedTelemetryHistoryOrderingState(persisted);
+        const ordering = seedTelemetryHistoryOrderingState([...loadedStore.latest.values()]);
+        // A series whose newest persisted poll failed starts a new segment with its next valid
+        // point: the drawn history omits failed polls, so the break must be carried (review).
+        for (const [key, latest] of loadedStore.latest) {
+          if (latest.quality !== "valid" || latest.value === null || !Number.isFinite(latest.value)) {
+            pendingBreaksRef.current.add(key);
+          }
+        }
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
         const finalWindow = advanceHistoryWindow(requestedWindow, reconciled.samples);
-        const combined = orderedHistoryWindow([...persisted, ...reconciled.samples], finalWindow);
+        // Display from the persisted columns first, then the live samples that arrived meanwhile.
+        const persistedDisplay = overviewDisplayHistory(
+          loadedStore,
+          requestedWindow,
+          OVERVIEW_DISPLAY_POINTS,
+        );
+        historyStoreRef.current = loadedStore;
+        setHistoryStore(loadedStore);
+        recordOverviewSamples(loadedStore, reconciled.samples);
+        const combined = appendLiveHistoryTail(
+          persistedDisplay,
+          reconciled.samples,
+          finalWindow,
+          OVERVIEW_DISPLAY_POINTS,
+          { sourceGapMsFor, pendingBreakChannels: pendingBreaksRef.current },
+        );
 
         historyPendingLiveRef.current = [];
         historyOrderingRef.current = reconciled.state;
         historyTailContextRef.current = { ...context, window: finalWindow };
         setHistorySamples(combined);
+        setHistoryVersion((value) => value + 1);
         setHistoryWindow(serializedHistoryWindow(finalWindow));
         setHistoryStatus("ready");
         setHistoryError(null);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
+        historyStoreRef.current = null;
+        setHistoryStore(null);
         historyOrderingRef.current = null;
         historyPendingLiveRef.current = [];
         setHistorySamples([]);
@@ -487,6 +574,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     runtime.config,
     scopeKey,
     selectedOrganizationId,
+    sourceGapMsFor,
   ]);
 
   const view = useMemo(() => {
@@ -514,13 +602,30 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     store,
   ]);
 
-  const visibleHistory =
-    activeHistoryKey === historyKey
-      ? historySamples.filter(
-          (sample) =>
-            allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id),
-        )
-      : [];
+  // Memoized: the chart re-derives from this list, so it must not change identity per render.
+  // A series with only failed polls in the window has no drawable point; its newest RAW poll
+  // represents it, so its failure state and counts stay visible instead of the series vanishing.
+  const visibleHistory = useMemo(() => {
+    if (activeHistoryKey !== historyKey) return [];
+    const allowed = (sample: TelemetrySample) =>
+      allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id);
+    const drawn = historySamples.filter(allowed);
+    if (!historyStore) return drawn;
+    const drawnKeys = new Set(drawn.map(liveChannelKey));
+    const failureOnly = [...historyStore.latest.entries()]
+      .filter(([key, latest]) => !drawnKeys.has(key) && allowed(latest))
+      .map(([, latest]) => latest);
+    return failureOnly.length > 0 ? drawn.concat(failureOnly) : drawn;
+    // historyVersion: the store is mutated in place.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeHistoryKey,
+    allowedTemperatureChannels,
+    historyKey,
+    historySamples,
+    historyStore,
+    historyVersion,
+  ]);
   const visibleHistoryStatus = activeHistoryKey === historyKey ? historyStatus : "loading";
   const visibleHistoryWindow = activeHistoryKey === historyKey ? historyWindow : null;
   const visibleHistoryError = activeHistoryKey === historyKey ? historyError : null;
@@ -590,6 +695,8 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       (sample) => allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id),
     ),
     historySamples: visibleHistory,
+    historyStore: activeHistoryKey === historyKey ? historyStore : null,
+    historyVersion,
     historyRange,
     historyStatus: visibleHistoryStatus,
     historyWindow: visibleHistoryWindow,

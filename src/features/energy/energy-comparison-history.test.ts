@@ -65,7 +65,8 @@ describe("Energy multi-metric history", () => {
     expect(
       history.mock.calls.every(
         ([filters]) =>
-          filters.from === window.from && new Date(filters.to ?? 0).getTime() === window.to.getTime(),
+          new Date(filters.from ?? 0).getTime() === window.from.getTime() &&
+          new Date(filters.to ?? 0).getTime() === window.to.getTime(),
       ),
     ).toBe(true);
     expect(subscribe).not.toHaveBeenCalled();

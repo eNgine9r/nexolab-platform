@@ -119,19 +119,21 @@ function validateWindow(window: TelemetryHistoryWindow): void {
 }
 
 function orderedUnique(samples: Iterable<TelemetrySample>): TelemetrySample[] {
-  const byEventId = new Map<string, TelemetrySample>();
+  // Each timestamp is parsed once; the comparator used to parse both sides per comparison.
+  const byEventId = new Map<string, { sample: TelemetrySample; capturedAt: number }>();
   for (const sample of samples) {
     const capturedAt = parsedTimestamp(sample.captured_at);
     if (!Number.isFinite(capturedAt)) {
       throw new Error(`Telemetry sample ${sample.event_id} has an invalid captured_at timestamp`);
     }
-    if (!byEventId.has(sample.event_id)) byEventId.set(sample.event_id, sample);
+    if (!byEventId.has(sample.event_id)) byEventId.set(sample.event_id, { sample, capturedAt });
   }
-  return [...byEventId.values()].sort(
-    (left, right) =>
-      parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at) ||
-      left.event_id.localeCompare(right.event_id),
-  );
+  return [...byEventId.values()]
+    .sort(
+      (left, right) =>
+        left.capturedAt - right.capturedAt || left.sample.event_id.localeCompare(right.sample.event_id),
+    )
+    .map((entry) => entry.sample);
 }
 
 export function telemetryHistoryIdentityKey(sample: TelemetrySample): string {
@@ -298,6 +300,12 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
      * order instead of all at the end, and callers can show them progressively.
      */
     seriesConcurrency?: number;
+    /**
+     * Raw row budget of the whole load (default HISTORY_MAX_RAW_ROWS). After each completed series
+     * the total is projected from the rows per series; an over-budget load stops every request
+     * and throws TelemetryHistoryVolumeError instead of reading for minutes.
+     */
+    maxRows?: number;
   } = {},
   /**
    * Runs as soon as ONE series has loaded, so callers can reduce it and let its raw samples be
@@ -312,11 +320,27 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
   if (options.signal?.aborted) linked.abort(options.signal.reason);
   else options.signal?.addEventListener("abort", forwardAbort, { once: true });
 
+  let volumeError: TelemetryHistoryVolumeError | null = null;
   const failFast = <R>(promise: Promise<R>): Promise<R> =>
     promise.catch((error: unknown) => {
       linked.abort();
-      throw error;
+      throw volumeError ?? error;
     });
+  const maxRows = options.maxRows ?? HISTORY_MAX_RAW_ROWS;
+  let loadedRows = 0;
+  let loadedSeries = 0;
+  const withinBudget = (result: CompleteTelemetryHistoryResult): CompleteTelemetryHistoryResult => {
+    if (volumeError) throw volumeError;
+    loadedRows += result.samples.length;
+    loadedSeries += 1;
+    const projected = Math.round((loadedRows / loadedSeries) * filtersList.length);
+    if (loadedRows > maxRows || projected > maxRows) {
+      volumeError = new TelemetryHistoryVolumeError(Math.max(loadedRows, projected), maxRows);
+      linked.abort();
+      throw volumeError;
+    }
+    return result;
+  };
 
   try {
     let announce: (snapshotAt: string) => void = () => undefined;
@@ -337,7 +361,9 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
       Math.max(1, Math.floor(options.seriesConcurrency ?? HISTORY_MAX_CONCURRENT_REQUESTS)),
     );
     const first = failFast(
-      seriesSlots.run(linked.signal, () => firstLoad).then((result) => onSeriesLoaded(result, 0)),
+      seriesSlots
+        .run(linked.signal, () => firstLoad)
+        .then((result) => onSeriesLoaded(withinBudget(result), 0)),
     );
     const rest = filtersList.slice(1).map((filters, offset) =>
       failFast(
@@ -351,10 +377,171 @@ export async function loadCompleteTelemetryHistoryForSeries<T = CompleteTelemetr
               }),
             ),
           )
-          .then((result) => onSeriesLoaded(result, offset + 1)),
+          .then((result) => onSeriesLoaded(withinBudget(result), offset + 1)),
       ),
     );
     return await Promise.all([first, ...rest]);
+  } finally {
+    options.signal?.removeEventListener("abort", forwardAbort);
+  }
+}
+
+/** Default slice length of a long history window (each slice pages separately). */
+export const HISTORY_SLICE_MS = 6 * 60 * 60 * 1_000;
+/**
+ * Raw rows one history load may read before it stops (#P0 charts). About 500 pages of 1 000 rows:
+ * the old single-stream page cap, now enforced up front from the measured density instead of
+ * failing after minutes. Beyond it, aggregated history (backend after DR #1428) is required.
+ */
+export const HISTORY_MAX_RAW_ROWS = 500_000;
+
+/** A history window holds more raw rows than one load may read; nothing partial is shown. */
+export class TelemetryHistoryVolumeError extends Error {
+  constructor(
+    readonly estimatedRows: number,
+    readonly maximumRows: number,
+  ) {
+    super(
+      `Обраний період містить близько ${Math.round(estimatedRows / 1_000)} тис. вимірювань, ` +
+        `більше за безпечну межу ${Math.round(maximumRows / 1_000)} тис. для сирої історії. ` +
+        "Оберіть коротший період або менше каналів; агрегована історія для довгих періодів " +
+        "стане доступною після оновлення backend.",
+    );
+    this.name = "TelemetryHistoryVolumeError";
+  }
+}
+
+export interface TelemetryHistorySlice {
+  index: number;
+  from: Date;
+  to: Date;
+}
+
+export interface SlicedTelemetryHistoryOptions extends Pick<
+  TelemetryHistoryLoadOptions,
+  "signal" | "snapshotAt" | "pageSize" | "retryDelaysMs"
+> {
+  /** Slice length (default 6 h). Each slice keeps its own page limit. */
+  sliceMs?: number;
+  /** Slices loading at once (default: the tab's history request slots). */
+  sliceConcurrency?: number;
+  /** Page limit of one slice (default 500). */
+  maxPagesPerSlice?: number;
+  /** Raw row budget of the whole load (default HISTORY_MAX_RAW_ROWS). */
+  maxRows?: number;
+}
+
+export interface SlicedTelemetryHistoryResult {
+  snapshotAt: string;
+  rows: number;
+  slices: number;
+}
+
+/** [from, to) split into slices, newest first. The backend reads from inclusive, to exclusive. */
+export function telemetryHistorySlices(
+  window: TelemetryHistoryWindow,
+  sliceMs: number,
+): TelemetryHistorySlice[] {
+  validateWindow(window);
+  const fromMs = window.from.getTime();
+  const toMs = window.to.getTime();
+  const length = Math.max(1, Math.floor(sliceMs));
+  const slices: TelemetryHistorySlice[] = [];
+  for (let end = toMs, index = 0; end > fromMs; end -= length, index += 1) {
+    slices.push({ index, from: new Date(Math.max(fromMs, end - length)), to: new Date(end) });
+  }
+  return slices;
+}
+
+/**
+ * Loads one history filter over a long window as time slices (#P0 charts): newest slice first (it
+ * fixes the ingestion snapshot), the others under that snapshot with at most `sliceConcurrency`
+ * slices at once, each paging sequentially with page retry and its own page limit. Slices do not
+ * overlap. `onSlice` receives every slice's ordered, unique samples as soon as it has loaded, so
+ * callers reduce them and keep no raw sample objects.
+ *
+ * The row budget is checked from the measured density as soon as a slice completes and again for
+ * every slice; an over-budget window aborts every request and throws TelemetryHistoryVolumeError
+ * instead of loading for minutes or failing at a page limit. Aborting `signal` cancels everything.
+ */
+export async function loadTelemetryHistorySlices(
+  adapter: TelemetryAdapter,
+  filters: TelemetryFilters,
+  window: TelemetryHistoryWindow,
+  options: SlicedTelemetryHistoryOptions,
+  onSlice: (samples: TelemetrySample[], slice: TelemetryHistorySlice) => void,
+): Promise<SlicedTelemetryHistoryResult> {
+  const slices = telemetryHistorySlices(window, options.sliceMs ?? HISTORY_SLICE_MS);
+  const totalMs = window.to.getTime() - window.from.getTime();
+  const maxRows = options.maxRows ?? HISTORY_MAX_RAW_ROWS;
+  const linked = new AbortController();
+  const forwardAbort = () => linked.abort(options.signal?.reason);
+  if (options.signal?.aborted) linked.abort(options.signal.reason);
+  else options.signal?.addEventListener("abort", forwardAbort, { once: true });
+  let rows = 0;
+  let loadedMs = 0;
+  let volumeError: TelemetryHistoryVolumeError | null = null;
+  const checkBudget = () => {
+    const estimated = loadedMs > 0 ? Math.round((rows / loadedMs) * totalMs) : rows;
+    if (rows > maxRows || (loadedMs > 0 && estimated > maxRows)) {
+      volumeError ??= new TelemetryHistoryVolumeError(Math.max(rows, estimated), maxRows);
+      linked.abort();
+      throw volumeError;
+    }
+  };
+  const loadSlice = (
+    slice: TelemetryHistorySlice,
+    snapshotAt: string | undefined,
+    onSnapshot?: (value: string) => void,
+  ) =>
+    loadCompleteTelemetryHistory(
+      adapter,
+      filters,
+      { from: slice.from, to: slice.to },
+      {
+        signal: linked.signal,
+        snapshotAt,
+        pageSize: options.pageSize,
+        maxPages: options.maxPagesPerSlice,
+        retryDelaysMs: options.retryDelaysMs,
+        onSnapshot,
+      },
+    ).then((result) => {
+      if (volumeError) throw volumeError;
+      rows += result.samples.length;
+      loadedMs += slice.to.getTime() - slice.from.getTime();
+      checkBudget();
+      onSlice(result.samples, slice);
+      return result.snapshotAt;
+    });
+  const failFast = <R>(promise: Promise<R>): Promise<R> =>
+    promise.catch((error: unknown) => {
+      linked.abort();
+      throw volumeError ?? error;
+    });
+  try {
+    let announce: (snapshotAt: string) => void = () => undefined;
+    const announced = new Promise<string>((resolve) => {
+      announce = resolve;
+    });
+    const sliceSlots = new RequestLimiter(
+      Math.max(1, Math.floor(options.sliceConcurrency ?? HISTORY_MAX_CONCURRENT_REQUESTS)),
+    );
+    const first = failFast(
+      sliceSlots.run(linked.signal, () => loadSlice(slices[0], options.snapshotAt, announce)),
+    );
+    const snapshotFor = async (): Promise<string> => options.snapshotAt ?? Promise.race([announced, first]);
+    const rest = slices
+      .slice(1)
+      .map((slice) =>
+        failFast(
+          snapshotFor().then((snapshotAt) =>
+            sliceSlots.run(linked.signal, () => loadSlice(slice, snapshotAt)),
+          ),
+        ),
+      );
+    const [snapshotAt] = await Promise.all([first, ...rest]);
+    return { snapshotAt, rows, slices: slices.length };
   } finally {
     options.signal?.removeEventListener("abort", forwardAbort);
   }
