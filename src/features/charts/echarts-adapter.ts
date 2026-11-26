@@ -110,6 +110,10 @@ export function sceneDataSignature(scene: ChartRendererScene): string {
         mixNumber(point.timestampMs);
         mixNumber(point.value);
         mix(point.pinReasons?.length ?? 0);
+        for (const reason of point.pinReasons ?? []) {
+          for (let index = 0; index < reason.length; index += 1) mix(reason.charCodeAt(index));
+          mix(0);
+        }
         points += 1;
       }
     }
@@ -756,14 +760,19 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const unchangedData = this.scene !== null && signature === this.renderedSignature;
     this.scene = scene;
     this.lastCommittedCursorTimestampMs = undefined;
+    // #1810: a wheel zoom or drag pan that ECharts already shows but has not been committed to
+    // React yet must survive a scene refresh (live sample, clock tick); otherwise the refresh
+    // would write the pre-gesture window back and undo the user's zoom.
+    const pendingWindow = this.pendingZoomDomain ?? this.pendingPrimaryDragDomain;
+    const rendered = pendingWindow ? { ...scene, xDomain: pendingWindow } : scene;
     if (unchangedData) {
-      // #1810: only the visible window moved (zoom, pan, shared domain, live-follow tick without
-      // new data). Merge the window into the existing chart; series data is not rebuilt.
-      this.instance.setOption(xWindowOption(scene), { notMerge: false, lazyUpdate: false });
+      // Only the visible window moved (zoom, pan, shared domain, live-follow tick without new
+      // data). Merge the window into the existing chart; series data is not rebuilt.
+      this.instance.setOption(xWindowOption(rendered), { notMerge: false, lazyUpdate: false });
       return;
     }
     this.renderedSignature = signature;
-    this.instance.setOption(rendererOption(scene), {
+    this.instance.setOption(rendererOption(rendered), {
       notMerge: false,
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],

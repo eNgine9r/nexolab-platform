@@ -794,4 +794,42 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect((instance.options.at(-1) as Record<string, unknown>).series).toBeDefined();
     adapter.dispose();
   });
+
+  it("keeps an uncommitted wheel zoom when a live refresh arrives first (#1810)", () => {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+    instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
+    // A refresh with the pre-zoom window, before the idle commit.
+    adapter.setScene(structuredClone(scene));
+    expect(instance.options.at(-1)).toMatchObject({
+      dataZoom: [
+        {
+          startValue: scene.xDomain.fromMs + duration * 0.25,
+          endValue: scene.xDomain.fromMs + duration * 0.75,
+        },
+      ],
+    });
+    adapter.dispose();
+  });
+
+  it("fingerprints pin reason contents, not only their number (#1810)", () => {
+    const scene = createBenchmarkScene(1, { withEvidence: true });
+    const changed = structuredClone(scene);
+    const pinned = changed.series[0].segments
+      .flatMap((segment) => segment.points)
+      .find((point) => point.pinReasons?.length);
+    expect(pinned).toBeDefined();
+    pinned!.pinReasons = pinned!.pinReasons!.map(() => "alarm" as const);
+    expect(sceneDataSignature(changed)).not.toBe(sceneDataSignature(scene));
+  });
 });
