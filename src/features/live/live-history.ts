@@ -80,7 +80,7 @@ export function isLiveHistorySegmentStart(sample: TelemetrySample): boolean {
   return sample.event_id.startsWith(SEGMENT_PREFIX);
 }
 
-function markSegmentStart(sample: TelemetrySample): TelemetrySample {
+export function markSegmentStart(sample: TelemetrySample): TelemetrySample {
   if (isLiveHistorySegmentStart(sample)) return sample;
   return { ...sample, event_id: `${SEGMENT_PREFIX}${sample.event_id}` };
 }
@@ -212,7 +212,7 @@ function downsampleChannel(
  * Reduces one channel whose continuity is ALREADY decided (segment-start markers set from raw
  * data). It never re-derives gaps, so it is safe to apply to previously reduced points.
  */
-function reduceAnnotatedChannel(
+export function reduceAnnotatedChannel(
   annotated: readonly TelemetrySample[],
   window: LiveHistoryWindow,
   maximumPoints: number,
@@ -417,7 +417,10 @@ export function seedCadenceFromHistoryLoad(
   return seedCadenceFromSamples(observations, result.cadenceSamples, liveChannelKey);
 }
 
-function newestRawSamplesPerChannel(samples: readonly TelemetrySample[], limit: number): TelemetrySample[] {
+export function newestRawSamplesPerChannel(
+  samples: readonly TelemetrySample[],
+  limit: number,
+): TelemetrySample[] {
   const groups = new Map<string, TelemetrySample[]>();
   for (const sample of samples) {
     if (!acceptedSample(sample)) continue;

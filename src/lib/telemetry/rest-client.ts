@@ -1,6 +1,13 @@
 import { parseTelemetryCollection, parseTelemetryReadiness } from "./contract";
 import { TelemetryClientError, asTelemetryError } from "./errors";
 import { historyRequestLimiter, type RequestLimiter } from "./request-limiter";
+import {
+  isAggregateUnsupported,
+  parseHistoryAggregate,
+  seriesKeyParameter,
+  type HistoryAggregateQuery,
+  type HistoryAggregateResponse,
+} from "./history-aggregate";
 import type {
   TelemetryCollectionResponse,
   TelemetryFilters,
@@ -90,6 +97,12 @@ function pathWithQuery(path: string, params: URLSearchParams): string {
   return query ? `${path}?${query}` : path;
 }
 
+/**
+ * Base URLs whose backend answered 404/405 for the aggregate endpoint during this page lifetime
+ * (#1813). Later calls fail immediately without a request, so the raw fallback costs one probe.
+ */
+const aggregateUnsupportedBases = new Set<string>();
+
 export class TelemetryRestClient {
   private readonly fetchImpl: TelemetryFetch;
   private readonly timeoutMs: number;
@@ -125,6 +138,30 @@ export class TelemetryRestClient {
     const path = pathWithQuery("/api/v1/telemetry/history", params);
     // The request timeout starts inside the limiter slot, never while the page is still queued.
     return this.historyLimiter.run(signal, () => this.request(path, parseTelemetryCollection, signal));
+  }
+
+  historyAggregate(query: HistoryAggregateQuery, signal?: AbortSignal): Promise<HistoryAggregateResponse> {
+    if (aggregateUnsupportedBases.has(this.apiBaseUrl)) {
+      return Promise.reject(
+        new TelemetryClientError("http", "Aggregated history is not available on this backend", {
+          status: 404,
+        }),
+      );
+    }
+    const params = new URLSearchParams();
+    params.set("from", timestamp(query.from));
+    params.set("to", timestamp(query.to));
+    params.set("buckets", String(query.buckets));
+    for (const key of query.series) params.append("series", seriesKeyParameter(key));
+    if (query.snapshot_at !== undefined) params.set("snapshot_at", query.snapshot_at);
+    if (query.statistics) params.set("statistics", "true");
+    const path = pathWithQuery("/api/v1/telemetry/history/aggregate", params);
+    return this.historyLimiter
+      .run(signal, () => this.request(path, parseHistoryAggregate, signal))
+      .catch((error: unknown) => {
+        if (isAggregateUnsupported(error)) aggregateUnsupportedBases.add(this.apiBaseUrl);
+        throw error;
+      });
   }
 
   private async request<T>(

@@ -1,6 +1,15 @@
 "use client";
 
 import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
+import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
+import {
+  aggregateViewportDetail,
+  columnsViewportDetail,
+  fetchAggregatedSeries,
+  loadAggregatedLiveHistory,
+  wireToIntervalStatistics,
+  type ViewportDetail,
+} from "@/features/live/live-aggregate-history";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -8,6 +17,7 @@ import {
   LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
+  type LiveHistoryResult,
   seedCadenceFromHistoryLoad,
   mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
@@ -122,7 +132,16 @@ export interface LiveTelemetryModel {
   error: Error | null;
   retry: () => void;
   retryHistory: () => void;
+  /** #1813: "aggregate" when the backend served extremum-preserving history, else "raw". */
+  historySource?: "aggregate" | "raw";
+  /** #1813: detailed measurements for the visible window (null at full range). */
+  viewportDetail?: ViewportDetail | null;
+  /** #1813: request detail for the committed viewport; null returns to the full-range view. */
+  setDetailViewport?: (domain: { fromMs: number; toMs: number } | null) => void;
 }
+
+/** #1813: in aggregate mode, sliding live-window statistics are refreshed at most this often. */
+const SERVER_STATISTICS_REFRESH_MS = 30_000;
 
 function loadRuntimeConfig(): RuntimeConfigResult {
   try {
@@ -304,10 +323,89 @@ export function useLiveTelemetry({
     pointsPerChannelRef.current = pointsPerChannel;
   }, [pointsPerChannel]);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
+  // #1813: aggregate-mode channels have no raw columns in the browser; their exact statistics
+  // come from the server (same semantics), cached per range and refreshed at most every 30 s for
+  // a sliding live window so viewing history never loads telemetry ingestion.
+  const aggregatedChannelsRef = useRef<Set<string>>(new Set());
+  const loadedIdentitiesRef = useRef<readonly TelemetrySample[]>([]);
+  const historyAdapterRef = useRef<TelemetryAdapter | null>(null);
+  const serverStatsRef = useRef<Map<string, IntervalStatistics>>(new Map());
+  const latestServerStatsRef = useRef<Map<string, IntervalStatistics>>(new Map());
+  const statsRequestRef = useRef<{ key: string; startedAt: number; inFlight: boolean } | null>(null);
+  const [statsVersion, setStatsVersion] = useState(0);
+  const [historySource, setHistorySource] = useState<"aggregate" | "raw">("raw");
+  const requestServerStatistics = useCallback((fromMs: number, toMs: number) => {
+    const adapter = historyAdapterRef.current;
+    if (!adapter?.historyAggregate || aggregatedChannelsRef.current.size === 0) return;
+    const rangeKey = `${fromMs}|${toMs}`;
+    const previous = statsRequestRef.current;
+    const now = Date.now();
+    if (previous?.key === rangeKey) return;
+    if (previous?.inFlight) return;
+    const previousDuration = previous
+      ? Number(previous.key.split("|")[1]) - Number(previous.key.split("|")[0])
+      : NaN;
+    if (
+      previous &&
+      previousDuration === toMs - fromMs &&
+      now - previous.startedAt < SERVER_STATISTICS_REFRESH_MS
+    )
+      return;
+    const request = { key: rangeKey, startedAt: now, inFlight: true };
+    statsRequestRef.current = request;
+    const identities = loadedIdentitiesRef.current.filter((identity) =>
+      aggregatedChannelsRef.current.has(liveChannelKey(identity)),
+    );
+    void fetchAggregatedSeries(
+      adapter,
+      identities.map((identity) => ({
+        node_id: identity.node_id,
+        equipment_id: identity.equipment_id,
+        channel_id: identity.channel_id,
+        metric: identity.metric,
+      })),
+      { from: new Date(fromMs), to: new Date(toMs) },
+      1,
+      { statistics: true },
+    )
+      .then((response) => {
+        for (const identity of identities) {
+          const series = response.series.find(
+            (item) =>
+              item.node_id === identity.node_id &&
+              item.equipment_id === identity.equipment_id &&
+              item.channel_id === identity.channel_id &&
+              item.metric === identity.metric,
+          );
+          if (!series?.statistics) continue;
+          const statistics = wireToIntervalStatistics(series.statistics, fromMs, toMs);
+          const key = liveChannelKey(identity);
+          serverStatsRef.current.set(`${key}|${rangeKey}`, statistics);
+          latestServerStatsRef.current.set(key, statistics);
+        }
+        setStatsVersion((value) => value + 1);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        request.inFlight = false;
+      });
+  }, []);
   const intervalStatistics = useCallback(
-    (channelKey: string, fromMs: number, toMs: number) =>
-      liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs),
-    [],
+    (channelKey: string, fromMs: number, toMs: number) => {
+      if (!aggregatedChannelsRef.current.has(channelKey)) {
+        return liveIntervalStatistics(intervalColumnsRef.current, channelKey, fromMs, toMs);
+      }
+      const exact = serverStatsRef.current.get(`${channelKey}|${fromMs}|${toMs}`);
+      if (exact) return exact;
+      // Never from display points: request exact server statistics; meanwhile show the latest
+      // exact result for a window of the same length (it carries its own exact range).
+      setTimeout(() => requestServerStatistics(fromMs, toMs), 0);
+      const recent = latestServerStatsRef.current.get(channelKey);
+      return recent && recent.toMs - recent.fromMs === toMs - fromMs ? recent : null;
+    },
+    // statsVersion: consumers recompute when new exact server statistics arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [requestServerStatistics, statsVersion],
   );
   const selectedKeysRef = useRef(selectedKeys);
   const historyWindowRef = useRef(historyWindow);
@@ -323,6 +421,61 @@ export function useLiveTelemetry({
     const cadenceMs = observedCadenceMs(storeRef.current.cadence[channelKey]);
     return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
   }, []);
+  // #1813: detail for the committed viewport. Raw channels: from the browser's raw columns, no
+  // request. Aggregated channels: one cancellable request; a newer viewport aborts the older one.
+  const [viewportDetail, setViewportDetail] = useState<ViewportDetail | null>(null);
+  const detailControllerRef = useRef<AbortController | null>(null);
+  const setDetailViewport = useCallback(
+    (domain: { fromMs: number; toMs: number } | null) => {
+      detailControllerRef.current?.abort();
+      detailControllerRef.current = null;
+      if (!domain || !(domain.toMs > domain.fromMs)) {
+        setViewportDetail(null);
+        return;
+      }
+      const identities = loadedIdentitiesRef.current;
+      const budget = pointsPerChannelRef.current;
+      const aggregated = aggregatedChannelsRef.current;
+      const rawDetail = columnsViewportDetail(
+        identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),
+        intervalColumnsRef.current,
+        domain,
+        budget,
+        sourceGapMsFor,
+      );
+      setViewportDetail(rawDetail.channels.size > 0 ? rawDetail : null);
+      const adapter = historyAdapterRef.current;
+      const aggregatedIdentities = identities.filter((identity) => aggregated.has(liveChannelKey(identity)));
+      if (!adapter?.historyAggregate || aggregatedIdentities.length === 0) return;
+      const controller = new AbortController();
+      detailControllerRef.current = controller;
+      void aggregateViewportDetail(
+        adapter,
+        aggregatedIdentities,
+        domain,
+        budget,
+        sourceGapMsFor,
+        controller.signal,
+      )
+        .then((detail) => {
+          if (controller.signal.aborted) return;
+          setViewportDetail((current) =>
+            current && current.channels.size > 0
+              ? {
+                  fromMs: Math.min(current.fromMs, detail.fromMs),
+                  toMs: Math.max(current.toMs, detail.toMs),
+                  coveredToMs: Math.max(current.coveredToMs, detail.coveredToMs),
+                  channels: new Set([...current.channels, ...detail.channels]),
+                  samples: current.samples.concat(detail.samples),
+                }
+              : detail,
+          );
+        })
+        // A failed or superseded detail request keeps the full-range points; nothing is invented.
+        .catch(() => undefined);
+    },
+    [sourceGapMsFor],
+  );
 
   const setSelectedKeys = useCallback((keys: string[]) => {
     setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));
@@ -595,15 +748,41 @@ export function useLiveTelemetry({
       setHistoryError(null);
     });
 
-    void loadCompleteLiveHistory(
-      adapter,
-      historyIdentities,
-      requestedWindow,
-      controller.signal,
-      pointsPerChannelRef.current,
-    )
+    historyAdapterRef.current = adapter;
+    loadedIdentitiesRef.current = historyIdentities;
+    detailControllerRef.current?.abort();
+    const loadRaw = () =>
+      loadCompleteLiveHistory(
+        adapter,
+        historyIdentities,
+        requestedWindow,
+        controller.signal,
+        pointsPerChannelRef.current,
+      );
+    // #1813: extremum-preserving aggregated history when the backend serves it; otherwise (404 on
+    // backends without #1811, remembered for this page) the raw path, unchanged.
+    const load: Promise<LiveHistoryResult & { aggregatedChannels?: Set<string> }> = adapter.historyAggregate
+      ? loadAggregatedLiveHistory(
+          adapter,
+          historyIdentities,
+          requestedWindow,
+          controller.signal,
+          pointsPerChannelRef.current,
+          sourceGapMsFor,
+        ).catch((nextError: unknown) => {
+          if (isAggregateUnsupported(nextError)) return loadRaw();
+          throw nextError;
+        })
+      : loadRaw();
+    void load
       .then((result) => {
         if (disposed) return;
+        aggregatedChannelsRef.current = result.aggregatedChannels ?? new Set();
+        serverStatsRef.current = new Map();
+        latestServerStatsRef.current = new Map();
+        statsRequestRef.current = null;
+        setHistorySource(aggregatedChannelsRef.current.size > 0 ? "aggregate" : "raw");
+        setViewportDetail(null);
         // #1522: seed per-channel cadence from the persisted history that was
         // already requested for the selected channels; no additional requests.
         // Use the raw tail, never the chart-reduced series (bucket spacing would
@@ -763,5 +942,8 @@ export function useLiveTelemetry({
     error,
     retry,
     retryHistory,
+    historySource,
+    viewportDetail,
+    setDetailViewport,
   };
 }
