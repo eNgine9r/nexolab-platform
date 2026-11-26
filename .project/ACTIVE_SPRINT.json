@@ -12224,7 +12224,9 @@
         "wp2c_stage2": "Source complete: #1761 same-origin artifact profile, #1764 actionable contract check (Supabase GOTRUE localhost default allowed; IP literals and 8082/1884/3000 forbidden), #1766 guarded tool docs/operations/network/wp2c-stage2-frontend.py (stage/build/preview/check/execute/rollback, compose fidelity proof, gateway verification, auto rollback). ARM64 artifact run 45682123670 from main c5bb48a1, zip sha256 f916352c..., build xRUAt2U9c3oug1ETWuLsT, same_origin_browser_bundle=no-absolute-host-origin. Owner: owner-2026-11-25-stage2.sh (19c0085c...) prepare, then execute only after Stage 2 approval. Not run on site.",
         "stage3_tool": "PR #1779 merge 95204dc9 (exact-head GREEN, 42 tests): wp2c-stage3-backend.py plan/check/execute/rollback/drop-compat. Switch = dual publish (add 127.0.0.1, keep compat) + Edge bridge to central-mqtt:1883 with client ID preserved; drop-compat (Phase 4) after external consumers retargeted. check needs a fresh #1428 backup receipt and Stage 2 active. plan --from-model on the 2026-11-26 export: STAGE3_PLAN_OK (p0-evidence/stage3-plan-from-model-20261126.txt). Real Compose behaviour unverified until owner plan/check on host.",
         "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18).",
-        "stage2_prepare_2026_11_26": "approved prepare: stage OK, build failed (BuildKit FROM image ID, fixed in #1783/v1.4); workspace stage.json retained, so prepare resumes at build after the v1.4 upgrade with a new approval"
+        "stage2_prepare_2026_11_26": "approved prepare: stage OK, build failed (BuildKit FROM image ID, fixed in #1783/v1.4); workspace stage.json retained, so prepare resumes at build after the v1.4 upgrade with a new approval",
+        "stage2_prepare_2026_11_26_green": "Broker v1.4 approved deploy.lan-frontend prepare (receipt seq 67): BASE_PROVEN node:22.23.1-bookworm-slim; offline build (no network/pull/cache) IMAGE_VERIFIED nexolab/dashboard:wp2c-stage2-c5bb48a1dad3-arm64 sha256:c02579b1 files=17627; COMPOSE_FIDELITY_PROVEN rollback+candidate; PREVIEW identity c5bb48a1/xRUAt2U9c3oug1ETWuLsT + Docker DNS/server API verified, preview removed; STAGE2_CHECK_PASS NO_WRITES; production unchanged (LAN dashboard 7db6e1a8/CWBs..., all endpoints 200, telemetry persisting). Bundle: runtime contract same-origin, no backend ports/host origins; only external URL loaded at runtime is the Telegram Mini App SDK on that optional route (onError handled).",
+        "stage3_prove": "PR #1792 merge 20a59719 (exact-head GREEN; real systemd: pinned Stage 3 tool runs as nexolab, STOP WRONG_NODE on runner; ACCEPTANCE_OK 1.6.0). Broker v1.6 payload ~/recovery-p0/broker-v1.6-20261126T102928Z installer c92234a8..."
       },
       "branch": "feat/1734-same-origin-runtime"
     },
@@ -12384,7 +12386,9 @@
         "site_failure": "2026-11-26 approved deploy.lan-frontend prepare (receipt seq 60): stage OK (17627 runtime files); build STOP IMAGE_BUILD_FAILED: FROM sha256:6c74791e resolved as docker.io/library/sha256 (pull denied); production unchanged",
         "merged": "PR #1783 merge 6c2248ce (head 1529c55e, exact-head GREEN incl. Merge Gate; real systemd: STAGE2_BUILD_PATTERN_OK on real BuildKit, record guard skipped rollback-referenced image, v1.1->v1.4 upgrade with injected-failure rollback)",
         "local_checks": "68 broker + 38 Stage 2 tests passed",
-        "payload": "~/recovery-p0/broker-v1.4-20261126T075330Z, installer sha256 6d3e1f2d0d4d7b5fb0281e554d323eb88e4a7aa1cedfd6350343e00c9280c39b, pins verified, byte-identical to main@6c2248ce"
+        "payload": "~/recovery-p0/broker-v1.4-20261126T075330Z, installer sha256 6d3e1f2d0d4d7b5fb0281e554d323eb88e4a7aa1cedfd6350343e00c9280c39b, pins verified, byte-identical to main@6c2248ce",
+        "site_installed": "2026-11-26 owner upgrade 1.3.0 -> 1.4.0 (ACCEPTANCE_OK version=1.4.0)",
+        "manifest_b_evidence": "storage.image-references on 18c84854 (complete, 120370 files): keep issue-1625/1609/1603 (recorded rollback images in 1522/1613/1609 release baselines) and minio/minio-mc RELEASE (referenced by recovery catalog recovery-cc27b609eea2); 20 images with no rollback, recovery or protection reference -> manifest C 3c928c51 (removal needs specific owner authorization). Evidence: p0-evidence/image-references-manifest-b-20261126.json"
       }
     },
     {
@@ -12432,6 +12436,29 @@
         "site_acceptance": "owner_activation_pending",
         "site_gaps": "unit code path /opt/nexolab/current absent on Pi; template CONFIRM- values; template local-auth key paths wrong for site (live /run/secrets/nexolab_local_auth_{private,public}_key); host cryptography 43.0.0 present",
         "local_checks": "7 renderer tests (rendered config passes backup tool load_config, 8 stores) + 96 change-impact tests"
+      }
+    },
+    {
+      "issue": 1789,
+      "title": "Broker v1.5: image reference guard treats recovery-catalog and backup paths as recovery context",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "RECOVERY_PATH context in image_references; CI case with a catalog compose reference.",
+      "depends_on": [
+        1782
+      ],
+      "branch": "fix/1789-broker-v1-5",
+      "permitted_paths": [
+        "docs/operations/operator-broker/",
+        "tests/test_ci_operator_broker.py",
+        ".github/workflows/operator-broker-install-acceptance.yml",
+        ".project/"
+      ],
+      "evidence": {
+        "hardware_verified": false,
+        "site_cutover": false,
+        "site_acceptance": "owner_upgrade_pending",
+        "merged": "PR #1790 merge 3471fcd6 (head 2bc41ed1, exact-head GREEN; real systemd ACCEPTANCE_OK 1.5.0, catalog reference skipped)"
       }
     }
   ],
