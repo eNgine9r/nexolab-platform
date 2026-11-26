@@ -1,3 +1,20 @@
+## 2026-11-26 (P0 charts, #1813) — aggregated history, viewport detail, exact statistics; frontend RC staged, not deployed
+
+- **#1813 merged in #1817 (`10150491`):**
+  - Live Data uses `/history/aggregate` when the backend serves it; otherwise one 404 probe per page and the raw path;
+  - scale-dependent viewport detail (raw columns: no request; aggregate: one cancellable request);
+  - exact statistics of the visible period with a common range for all rows;
+  - server statistics (median spacing, gaps, recent sample times), source only.
+- **Browser evidence** (CI, 24 ch × 24 h, identical spec before/after): `docs/operations/chart-p0-release-candidate.md`.
+  - Aggregate backend: first chart 1.4–2.6 s and 0.5–0.7 MB, against 9.4–16.5 s and 95.5 MB before.
+  - Raw fallback (current site backend): 8.5–12.1 s, with viewport detail and fewer long tasks.
+  - Ingestion is not degraded while history loads (≈ 0.3–0.4 s in every configuration). An earlier 9–16 s figure was a measurement artifact and is corrected.
+- **Frontend-only RC (LAN + Tailscale `:8444`):**
+  - artifact `91a1003a…` (build `DZ6ux7EZK…`, source `10150491`), staged in `~/operator-inbox`;
+  - **not deployed**: the owner procedure is in the RC doc (archive the Stage 2 workspace, `deploy.lan-frontend` prepare → execute; rollback to `c5bb48a1`).
+- **Backend** (#1807, #1811, #1813 server part): source only; deployment gated by DR #1428.
+- **Not verified:** Pi browser, operator PC, 60 fps on real hardware.
+
 ## 2026-11-26 (P0 charts) — chart performance and reliability: defects reproduced, root causes fixed in source (#1804)
 
 Product Owner P0 addendum to #1638: slow loading, breaks on 24 h charts, unstable zoom and pan, and `Timeout 8000 ms`. The baseline and the root causes are in `docs/audits/chart-p0-performance-baseline-1804.md`.
