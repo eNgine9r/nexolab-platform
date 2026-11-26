@@ -56,8 +56,24 @@ The site backend (`75ceb465`) has no `/api/v1/telemetry/history/aggregate`.
      --arg expect_current_build=xRUAt2U9c3oug1ETWuLsT --ttl-minutes 120 --reason "#1813 RC prepare"
    ```
 
-4. **Execute** (switch with automatic verified rollback), only after the preview check is GREEN: the same command with `phase=execute`.
-5. **Rollback** if any acceptance step fails: the same command with `phase=rollback`. This restores `c5bb48a1`.
+4. **Run the approved prepare (agent).** `approve` only records an approval and prints an `approval_id`; it does not run anything. The owner gives the `approval_id` to the agent, which runs the operation once with exactly the approved arguments:
+
+   ```bash
+   python3 -I docs/operations/operator-broker/nexolab-operator.py deploy.lan-frontend \
+     phase=prepare artifact_sha256=91a1003af2bf85632637f57c32851129bae373f1bd013edbf4511136b5d4b505 \
+     expect_current_source=c5bb48a1dad3bf9bf28ca93cf021dbc69515a5b7 expect_current_build=xRUAt2U9c3oug1ETWuLsT \
+     --approval <approval_id>
+   ```
+
+   Prepare is complete only when the result shows the `stage`, `build`, `preview` and `check` steps passing (`STAGE2_CHECK_PASS`). The live dashboard must still report `c5bb48a1`/`xRUAt2U9…`.
+
+5. **Execute** (switch with automatic verified rollback): a new owner approval with `phase=execute`, then the agent runs it with that `approval_id`.
+   - Done only on `STAGE2_FRONTEND_GREEN`.
+   - The agent then verifies the new identity `10150491`/`DZ6ux7EZK…` on the LAN gateway and on Tailscale `:8444`.
+
+6. **Rollback** if any acceptance step fails: a new owner approval with `phase=rollback`, then the agent runs it with that `approval_id`.
+   - Recovery is complete only on `STAGE2_ROLLED_BACK_VERIFIED`, with the identity `c5bb48a1`/`xRUAt2U9…` confirmed on the LAN gateway and on `:8444`.
+   - An approval alone does **not** restore anything.
 
 ## Browser acceptance on the deployed system (owner, real history)
 
