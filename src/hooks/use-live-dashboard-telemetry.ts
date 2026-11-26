@@ -8,6 +8,7 @@ import {
   EMPTY_CADENCE_OBSERVATIONS,
   isLiveSampleFresh,
   liveFreshnessFor,
+  observedCadenceMs,
   recordCadenceObservation,
   seedCadenceObservations,
   type CadenceObservations,
@@ -49,6 +50,7 @@ import type {
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
 import {
+  LIVE_HISTORY_MIN_SOURCE_GAP_MS,
   advanceLiveHistoryWindow,
   advanceWindowToClock,
   deriveLiveSourceGapMsByChannel,
@@ -301,6 +303,14 @@ export function useLiveDashboardTelemetry({
   // whose last live sample was not renderable (the next point starts a new segment).
   const sourceGapRef = useRef<Record<string, number>>({});
   const pendingBreaksRef = useRef<Set<string>>(new Set());
+  // Raw history tolerance first; without enough history, the observed live cadence (x3, >= 30 s);
+  // undefined lets the append path use its fallback until a cadence is observed.
+  const tailSourceGapMs = useCallback((key: string): number | undefined => {
+    const fromHistory = sourceGapRef.current[key];
+    if (fromHistory !== undefined) return fromHistory;
+    const cadenceMs = observedCadenceMs(cadenceRef.current[key]);
+    return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
+  }, []);
   const pointsPerSeriesRef = useRef(pointsPerSeries);
   const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
   const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
@@ -481,7 +491,7 @@ export function useLiveDashboardTelemetry({
         sourceSamples,
         nextWindow,
         pointsPerSeriesRef.current,
-        sourceGapRef.current[key],
+        tailSourceGapMs(key),
         pendingBreaksRef.current,
       );
       setHistoryWindow(serializedWindow(nextWindow, selection.kind, selection.label));
@@ -556,7 +566,17 @@ export function useLiveDashboardTelemetry({
       if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
       renderTimerRef.current = null;
     };
-  }, [active, dashboard, generation, organizationId, runtime.config, runtime.error, scheduleFlush, scopeKey]);
+  }, [
+    active,
+    dashboard,
+    generation,
+    organizationId,
+    runtime.config,
+    runtime.error,
+    scheduleFlush,
+    scopeKey,
+    tailSourceGapMs,
+  ]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -656,7 +676,7 @@ export function useLiveDashboardTelemetry({
             [sample],
             finalWindow,
             pointsPerSeriesRef.current,
-            sourceGapRef.current[key],
+            tailSourceGapMs(key),
             pendingBreaksRef.current,
           );
           latestRef.current[key] = newestSample(latestRef.current[key], sample);
@@ -700,6 +720,7 @@ export function useLiveDashboardTelemetry({
     pointsPerSeries,
     runtime.config,
     scopeKey,
+    tailSourceGapMs,
   ]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
