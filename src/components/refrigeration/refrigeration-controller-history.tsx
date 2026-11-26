@@ -44,6 +44,7 @@ import {
   buildDefrostTimeline,
   buildRelayTimeline,
   buildRelayTransitions,
+  clipTimeline,
   summarizeActiveTimeline,
   type RelayTransition,
   type TimelineInterval,
@@ -248,30 +249,44 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     () => buildCompressorStartEvents(compressorSamples, compressorAnalysisRange),
     [compressorAnalysisRange, compressorSamples],
   );
-  const stateTimeline = useMemo(
+  // #1829: lanes are built once per loaded history over the loaded range; a zoom/pan only clips
+  // their intervals (identical to building them for the viewport, without re-reading raw history).
+  const fullStateTimeline = useMemo(
     () =>
-      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
-    [viewportRange, controller.history],
+      buildControlStateTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
+    [controller.history, controller.range],
   );
-  const stateTimelineWithUnknown = useMemo(
+  const fullStateTimelineWithUnknown = useMemo(
     () =>
       [
-        ...stateTimeline,
-        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], viewportRange),
+        ...fullStateTimeline,
+        ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
       ].sort((left, right) => left.fromMs - right.fromMs),
-    [stateTimeline, viewportRange, controller.history],
+    [fullStateTimeline, controller.history, controller.range],
+  );
+  const stateTimeline = useMemo(
+    () => clipTimeline(fullStateTimeline, viewportRange),
+    [fullStateTimeline, viewportRange],
+  );
+  const stateTimelineWithUnknown = useMemo(
+    () => clipTimeline(fullStateTimelineWithUnknown, viewportRange),
+    [fullStateTimelineWithUnknown, viewportRange],
   );
   const defrostTimeline = useMemo(
     () => buildDefrostTimeline(controller.history.get(EMBRACO_METRICS.controlState) ?? [], controller.range),
     [controller.history, controller.range],
   );
-  const compressorLane = useMemo(() => {
+  const fullCompressorLane = useMemo(() => {
     const speed = controller.history.get(EMBRACO_METRICS.compressorSpeed) ?? [];
     return [
-      ...buildCompressorTimeline(speed, viewportRange),
-      ...buildUnknownTimeline(speed, viewportRange),
+      ...buildCompressorTimeline(speed, controller.range),
+      ...buildUnknownTimeline(speed, controller.range),
     ].sort((left, right) => left.fromMs - right.fromMs);
-  }, [controller.history, viewportRange]);
+  }, [controller.history, controller.range]);
+  const compressorLane = useMemo(
+    () => clipTimeline(fullCompressorLane, viewportRange),
+    [fullCompressorLane, viewportRange],
+  );
   const defrostLane = useMemo(
     () =>
       [
@@ -284,15 +299,18 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     () => summarizeActiveTimeline(defrostTimeline, analysisRange),
     [defrostTimeline, analysisRange],
   );
-  const relayTimelines = useMemo(
-    () =>
-      [0, 1, 2, 3].map((relay) =>
-        [
-          ...buildRelayTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], relay, viewportRange),
-          ...buildUnknownTimeline(controller.history.get(EMBRACO_METRICS.relays) ?? [], viewportRange),
-        ].sort((left, right) => left.fromMs - right.fromMs),
+  const fullRelayTimelines = useMemo(() => {
+    const relays = controller.history.get(EMBRACO_METRICS.relays) ?? [];
+    const unknown = buildUnknownTimeline(relays, controller.range);
+    return [0, 1, 2, 3].map((relay) =>
+      [...buildRelayTimeline(relays, relay, controller.range), ...unknown].sort(
+        (left, right) => left.fromMs - right.fromMs,
       ),
-    [viewportRange, controller.history],
+    );
+  }, [controller.history, controller.range]);
+  const relayTimelines = useMemo(
+    () => fullRelayTimelines.map((timeline) => clipTimeline(timeline, viewportRange)),
+    [fullRelayTimelines, viewportRange],
   );
   const relayTransitions = useMemo(
     () =>
