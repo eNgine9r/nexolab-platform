@@ -179,6 +179,18 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
   };
 }
 
+/**
+ * True when the full interaction window was replaced (new range preset or custom range), not merely
+ * slid forward by a live-follow tick: its duration changed or it moved by more than 10 %.
+ */
+function windowReplaced(previous: ChartRendererScene, next: ChartRendererScene): boolean {
+  const before = previous.interactionDomain ?? previous.xDomain;
+  const after = next.interactionDomain ?? next.xDomain;
+  const duration = before.toMs - before.fromMs;
+  if (Math.abs(after.toMs - after.fromMs - duration) > 1) return true;
+  return Math.abs(after.fromMs - before.fromMs) > duration * 0.1;
+}
+
 /** The parts of the option that depend on the visible window only (#1810 fast path). */
 function xWindowOption(scene: ChartRendererScene) {
   const interactionDomain = scene.interactionDomain ?? scene.xDomain;
@@ -774,6 +786,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
     const signature = sceneDataSignature(scene);
     const unchangedData = this.scene !== null && signature === this.renderedSignature;
+    if (this.scene && windowReplaced(this.scene, scene)) {
+      // An explicit range selection replaced the whole window: a gesture on the old window is void.
+      this.cancelPendingZoomCommit();
+      this.pendingPrimaryDragDomain = null;
+    }
     this.scene = scene;
     this.lastCommittedCursorTimestampMs = undefined;
     // #1810: a wheel zoom or drag pan that ECharts already shows but has not been committed to

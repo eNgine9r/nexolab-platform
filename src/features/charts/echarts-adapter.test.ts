@@ -872,4 +872,29 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
     adapter.dispose();
   });
+
+  it("drops a pending wheel commit when an explicit range replaces the window (#1810)", async () => {
+    const instance = new FakeEChartsInstance();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+    instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
+    const longer = { fromMs: scene.xDomain.toMs - duration * 4, toMs: scene.xDomain.toMs };
+    adapter.setScene({ ...scene, xDomain: longer, interactionDomain: longer });
+    await waitForZoomCommit();
+    expect(onXDomainChange).not.toHaveBeenCalled();
+    expect(instance.options.at(-1)).toMatchObject({
+      dataZoom: [{ startValue: longer.fromMs, endValue: longer.toMs }],
+    });
+    adapter.dispose();
+  });
 });
