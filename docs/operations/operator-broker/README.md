@@ -67,7 +67,15 @@ Log operations now keep the newest output when it exceeds the cap. Redaction nev
 - Different bytes give `approval_mismatch`, and the tool is not run.
 - A workspace already staged from another artifact is refused for `prepare` and `execute`. `execute` needs a prepared workspace.
 
-Further handlers (Wi-Fi profile change, Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
+### v1.3 (#1778)
+
+| Op                      | Kind     | What it does                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage.remove-images` | approved | Removes the exact images listed in `~nexolab-dev/operator-inbox/<manifest_sha256>.json` (`{"images": [{"ref", "id"}]}`, ≤ 60). The manifest bytes must match the approved hash. Per image: NEXOLAB refs only, `protected`/`recovery`/`rollback`/`baseline`/`-base:` names refused, tag must still resolve to the listed id, no container (even stopped) may use it. `docker image rm` without `-f`; the volume set must stay identical |
+| `wifi.connect-test`     | approved | One bounded `nmcli connection up` of a Wi-Fi profile (`mac=permanent` or `random`). The MAC setting is changed in memory only (`--temporary`) and restored. A random-MAC test is always brought down afterwards. Refuses unless Ethernet holds the default route and `wlan0` is not connected; reports whether Ethernet still holds it                                                                                                 |
+| `wifi.profile-remove`   | approved | Removes exactly one inactive Wi-Fi profile by name. Ethernet profiles and the active connection are refused. Irreversible (the owner re-creates the profile if needed)                                                                                                                                                                                                                                                                 |
+
+Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
 ## Use (development account)
 
