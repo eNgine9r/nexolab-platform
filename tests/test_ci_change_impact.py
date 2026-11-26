@@ -169,6 +169,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(f'      - "{path}"', triggers)
 
+    def test_dr_site_config_renderer_is_dr_routed_without_unknown_paths(self) -> None:
+        result = classify(["scripts/nexolab-dr-site-config.py", "tests/test_ci_dr_site_config.py",
+                           "docs/operations/dr-site-activation-1428.md"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+
     def test_dr_offdevice_copy_is_dr_routed_without_unknown_paths(self) -> None:
         paths = [
             "scripts/nexolab-dr-offdevice-copy.py",
