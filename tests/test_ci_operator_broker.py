@@ -727,6 +727,10 @@ class BrokerV12Tests(unittest.TestCase):
         tool = call.index(str(self.install / "handlers" / "wp2c-stage3-backend.py"))
         self.assertEqual(call[tool + 1:tool + 4], ["prove", "--phase", "switch"])
         self.assertTrue(any(m.startswith("STAGE3_PROVE_GREEN") for m in result["markers"]))
+        self.assertNotIn("--retain-env", call)
+        self.calls.clear()
+        broker_module.op_deploy_backend_loopback(broker, {"phase": "prove", "retain_env": "CORS_ALLOWED_ORIGINS"})
+        self.assertEqual(self.calls[0][-2:], ["--retain-env", "CORS_ALLOWED_ORIGINS"])
         schema = broker_module.production_ops()["deploy.backend-loopback"].schema
         for phase in ("execute", "drop-compat", "rollback", "check"):
             with self.assertRaises(broker_module.Rejected):
@@ -1103,6 +1107,95 @@ class BrokerV14Tests(unittest.TestCase):
             self.assertNotIn(forbidden, scan)
 
 
+class BrokerV17Tests(unittest.TestCase):
+    """v1.7: approval-bound Stage 3 retain_env; Tailscale :8443 inspection route (#1784)."""
+
+    HOST = "nexolab-edge-01.tail7f9b04.ts.net:8443"
+
+    def setUp(self) -> None:
+        from unittest import mock
+        self.mock = mock
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.backups = Path(self.temp.name) / "tailscale"
+        patch = mock.patch.object(broker_module, "SERVE_BACKUP_DIR", self.backups)
+        patch.start()
+        self.addCleanup(patch.stop)
+        sleep = mock.patch.object(broker_module.time, "sleep")
+        sleep.start()
+        self.addCleanup(sleep.stop)
+        self.calls: list[list[str]] = []
+        self.handlers = {"/": "http://127.0.0.1:3102", "/api": "http://172.18.48.66:8082/api",
+                         "/inspection-login": "unix:/run/nexolab-opera-inspection/login.sock"}
+        self.build = "xRUAt2U9c3oug1ETWuLsT"
+        self.probe_codes = {"/": "200", "/api/runtime-identity": "200", "/api/v1/telemetry/latest": "400"}
+
+    def broker(self) -> object:
+        def runner(argv, _timeout, **_kw):
+            self.calls.append(argv)
+            out, code = "", 0
+            if argv[:4] == ["tailscale", "serve", "status", "--json"]:
+                out = json.dumps({"Web": {self.HOST: {"Handlers": {k: {"Proxy": v} for k, v in self.handlers.items()}},
+                                          "nexolab-edge-01.tail7f9b04.ts.net:443": {"Handlers": {"/": {"Proxy": "x"}}}}})
+            elif argv[:4] == ["tailscale", "serve", "get-config", "--all"]:
+                out = json.dumps({"saved": dict(self.handlers)})
+            elif argv[:3] == ["tailscale", "serve", "--bg"]:
+                path = argv[5].split("=", 1)[1]
+                self.handlers[path] = argv[6]
+            elif argv[:4] == ["tailscale", "serve", "set-config", "--all"]:
+                self.handlers = json.loads(Path(argv[4]).read_text())["saved"]
+            elif argv[:3] == ["tailscale", "ip", "-4"]:
+                out = "100.113.204.81\n"
+            elif argv[0] == "curl" and "-w" in argv:
+                out = self.probe_codes[argv[-1].split(":8443", 1)[1]]
+            elif argv[0] == "curl":
+                out = json.dumps({"build_id": self.build})
+            return broker_module.RunResult(code, out, False, False)
+        return type("B", (), {"runner": staticmethod(runner)})()
+
+    def test_apply_routes_root_and_api_through_the_gateway_and_keeps_inspection_login(self) -> None:
+        result = broker_module.op_tailscale_inspection_route(self.broker(), {"action": "apply"})
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(self.handlers, {"/": "http://127.0.0.1:80", "/api": "http://127.0.0.1:80/api",
+                                         "/inspection-login": "unix:/run/nexolab-opera-inspection/login.sock"})
+        backups = list(self.backups.glob("serve-before-*.json"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(oct(backups[0].stat().st_mode & 0o777), "0o600")
+        changed = [c for c in self.calls if c[:3] == ["tailscale", "serve", "--bg"]]
+        self.assertEqual([c[5] for c in changed], ["--set-path=/", "--set-path=/api"])
+        self.assertTrue(all(c[4] == "--https=8443" for c in changed))
+        self.assertFalse([c for c in self.calls if "funnel" in c or "--https=443" in c])
+
+    def test_apply_refuses_unknown_shape_or_before_stage2(self) -> None:
+        self.handlers["/"] = "http://127.0.0.1:3105"
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_tailscale_inspection_route(self.broker(), {"action": "apply"})
+        self.handlers["/"] = "http://127.0.0.1:3102"
+        self.build = broker_module.PRE_STAGE2_BUILD
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.op_tailscale_inspection_route(self.broker(), {"action": "apply"})
+        self.assertFalse([c for c in self.calls if c[:3] == ["tailscale", "serve", "--bg"]])
+
+    def test_failed_verification_restores_the_saved_configuration(self) -> None:
+        original = dict(self.handlers)
+        self.probe_codes["/"] = "502"
+        result = broker_module.op_tailscale_inspection_route(self.broker(), {"action": "apply"})
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["restored"])
+        self.assertEqual(self.handlers, original)
+
+    def test_restore_uses_the_newest_backup(self) -> None:
+        broker_module.op_tailscale_inspection_route(self.broker(), {"action": "apply"})
+        result = broker_module.op_tailscale_inspection_route(self.broker(), {"action": "restore"})
+        self.assertEqual(result["after"]["/"], "http://127.0.0.1:3102")
+
+    def test_stage3_prove_retain_env_is_approval_bound(self) -> None:
+        schema = broker_module.production_ops()["deploy.backend-loopback"].schema
+        self.assertEqual(broker_module.validate_args(schema, {"phase": "prove"}), {"phase": "prove", "retain_env": "none"})
+        with self.assertRaises(broker_module.Rejected):
+            broker_module.validate_args(schema, {"phase": "prove", "retain_env": "DATABASE_URL"})
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
@@ -1119,7 +1212,7 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
         self.assertEqual(approved, ["backup.start", "deploy.backend-loopback", "deploy.lan-frontend",
-                                    "service.restore-legacy-https",
+                                    "network.tailscale-inspection-route", "service.restore-legacy-https",
                                     "service.retire-legacy-https", "storage.cleanup-regenerable",
                                     "storage.remove-images", "wifi.connect-test",
                                     "wifi.profile-remove"])  # each one reviewed explicitly

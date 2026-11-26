@@ -213,6 +213,13 @@ jobs:
           assert any(m.startswith("STOP WRONG_NODE") for m in res["markers"]), res
           assert "RUN_AS_OPERATOR_NONROOT" not in res["output"], res
           ' "$prove"
+          # v1.7: retain_env is approval-bound; the :8443 route refuses without Tailscale (nothing changed)
+          id=$(approve deploy.backend-loopback --arg phase=prove --arg retain_env=CORS_ALLOWED_ORIGINS)
+          prove=$(call deploy.backend-loopback phase=prove retain_env=CORS_ALLOWED_ORIGINS --approval "$id") || { echo "$prove"; exit 1; }
+          grep -q 'STOP WRONG_NODE' <<<"$prove"
+          id=$(approve network.tailscale-inspection-route --arg action=apply)
+          route=$(call network.tailscale-inspection-route action=apply --approval "$id" || true)
+          grep -q '"error": "precondition_failed"' <<<"$route"
           # DR backup: read-only health; start refuses while the unit is not installed
           call backup.health | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["ok"] and r["result"]["units"]["nexolab-dr-backup.service"]["LoadState"] == "not-found", r'
           id=$(approve backup.start)
@@ -395,23 +402,23 @@ jobs:
 
           # 2. clean upgrade keeps v1.1 as the retained previous version
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/payload 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.6.0" <<<"$out"
-          test "$(version)" = 1.6.0
+          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.7.0" <<<"$out"
+          test "$(version)" = 1.7.0
           test "$(sudo stat -c '%U:%G %a' /var/lib/nexolab-operator/previous)" = "root:root 700"
 
           # 3. explicit rollback to v1.1, then roll forward again
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.6.0 to=1.1.0" <<<"$out"
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.7.0 to=1.1.0" <<<"$out"
           test "$(version)" = 1.1.0
           test "$(broker_sha)" = "$v11"
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.6.0" <<<"$out"
-          test "$(version)" = 1.6.0
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.7.0" <<<"$out"
+          test "$(version)" = 1.7.0
 
           # 4. a tampered payload changes nothing
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/tampered 2>&1) && exit 1 || true
           grep -q "installed broker left unchanged" <<<"$out"
-          test "$(version)" = 1.6.0
+          test "$(version)" = 1.7.0
           sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit | grep -q '"ok": true'
 
       - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence
