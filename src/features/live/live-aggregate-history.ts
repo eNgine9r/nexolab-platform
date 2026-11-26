@@ -11,7 +11,6 @@ import {
   groupByChannelKey,
   markSegmentStart,
   newestRawSamplesPerChannel,
-  reduceAnnotatedChannel,
   sortByCapturedAt,
   type LiveHistoryResult,
   type LiveHistoryWindow,
@@ -371,9 +370,8 @@ export function columnsViewportDetail(
   const span = domain.toMs - domain.fromMs;
   const fromMs = domain.fromMs - span * DETAIL_MARGIN_RATIO;
   const toMs = domain.toMs + span * DETAIL_MARGIN_RATIO;
-  const window = { from: new Date(fromMs), to: new Date(toMs) };
   const channels = new Set<string>();
-  let samples: TelemetrySample[] = [];
+  const samples: TelemetrySample[] = [];
   let coveredToMs = fromMs;
   for (const identity of identities) {
     const key = liveChannelKey(identity);
@@ -381,33 +379,66 @@ export function columnsViewportDetail(
     if (!store) continue;
     channels.add(key);
     const tolerance = sourceGapMsFor(key) ?? LIVE_HISTORY_FALLBACK_SOURCE_GAP_MS;
-    const start = lowerBound(store.validTimestamps, fromMs);
-    const end = lowerBound(store.validTimestamps, toMs + 1);
-    const channel: TelemetrySample[] = [];
-    let previousMs: number | null = null;
-    for (let index = start; index < end; index += 1) {
-      const timestampMs = store.validTimestamps[index];
-      const sample = sampleFrom(
-        identity,
-        `raw:${key}:${timestampMs}`,
-        timestampMs,
-        store.validValues[index],
-        "valid",
-      );
-      const invalidBetween =
-        previousMs !== null &&
-        lowerBound(store.invalidTimestamps, previousMs + 1) <
-          lowerBound(store.invalidTimestamps, timestampMs);
-      const silent = previousMs !== null && timestampMs - previousMs > tolerance;
-      channel.push(invalidBetween || silent ? markSegmentStart(sample) : sample);
-      previousMs = timestampMs;
+    const stamps = store.validTimestamps;
+    const values = store.validValues;
+    const invalid = store.invalidTimestamps;
+    const start = lowerBound(stamps, fromMs);
+    const end = lowerBound(stamps, toMs + 1);
+    if (end <= start) continue;
+    // A break precedes index i when an invalid sample or a silent gap lies between i-1 and i.
+    const breakBefore = new Uint8Array(end - start);
+    for (let index = start + 1; index < end; index += 1) {
+      const silent = stamps[index] - stamps[index - 1] > tolerance;
+      const invalidBetween = lowerBound(invalid, stamps[index - 1] + 1) < lowerBound(invalid, stamps[index]);
+      if (silent || invalidBetween) breakBefore[index - start] = 1;
     }
-    if (channel.length > 0) coveredToMs = Math.max(coveredToMs, Date.parse(channel.at(-1)!.captured_at));
-    samples = samples.concat(
-      channel.length > maximumPointsPerChannel
-        ? reduceAnnotatedChannel(channel, window, maximumPointsPerChannel)
-        : channel,
-    );
+    let indices: number[];
+    if (end - start <= maximumPointsPerChannel) {
+      indices = Array.from({ length: end - start }, (_, offset) => start + offset);
+    } else {
+      // #1813: reduce on the numeric columns (first, min, max, last per bucket plus both sides of
+      // every break) so only display points become objects; materializing every raw sample of a
+      // wide viewport made each zoom commit a long task.
+      const bucketCount = Math.max(1, Math.floor(maximumPointsPerChannel / 4));
+      const firstMs = stamps[start];
+      const widthMs = Math.max(1, (stamps[end - 1] - firstMs + 1) / bucketCount);
+      const keep = new Set<number>();
+      let bucket = -1;
+      let minIndex = start;
+      let maxIndex = start;
+      let lastIndex = start;
+      const flush = () => {
+        if (bucket < 0) return;
+        keep.add(minIndex);
+        keep.add(maxIndex);
+        keep.add(lastIndex);
+      };
+      for (let index = start; index < end; index += 1) {
+        const current = Math.min(bucketCount - 1, Math.floor((stamps[index] - firstMs) / widthMs));
+        if (current !== bucket) {
+          flush();
+          bucket = current;
+          keep.add(index);
+          minIndex = index;
+          maxIndex = index;
+        } else {
+          if (values[index] < values[minIndex]) minIndex = index;
+          if (values[index] > values[maxIndex]) maxIndex = index;
+        }
+        lastIndex = index;
+        if (breakBefore[index - start] === 1) {
+          keep.add(index - 1);
+          keep.add(index);
+        }
+      }
+      flush();
+      indices = [...keep].sort((left, right) => left - right);
+    }
+    for (const index of indices) {
+      const sample = sampleFrom(identity, `raw:${key}:${stamps[index]}`, stamps[index], values[index], "valid");
+      samples.push(index > start && breakBefore[index - start] === 1 ? markSegmentStart(sample) : sample);
+    }
+    coveredToMs = Math.max(coveredToMs, stamps[end - 1]);
   }
   return { fromMs, toMs, coveredToMs: Math.min(Math.max(coveredToMs, fromMs), nowMs), channels, samples };
 }
