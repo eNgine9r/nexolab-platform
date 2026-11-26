@@ -45,24 +45,33 @@ A wildcard listener cannot share a port with a specific-address bind, so the LAN
 
 ### Phase 3 — backend on loopback and Docker DNS (container recreation, approval required)
 
-- Change only these values; images, volumes and credentials are unchanged:
-  - `CENTRAL_BIND_ADDRESS=127.0.0.1`, so the API, MQTT and MinIO publish on loopback;
-  - Dashboard on `127.0.0.1:3010`;
-  - Edge `CENTRAL_MQTT_HOST=central-mqtt`, `CENTRAL_MQTT_PORT=1883` over `nexolab-standalone-runtime`, with the same `CENTRAL_BRIDGE_CLIENT_ID` and `cleansession false`;
-  - Device Agent central URLs `http://telemetry-service:8082`;
-  - HTTPS external UI private origin `http://127.0.0.1:8082`;
-  - Tailscale serve targets → the gateway or loopback.
+**Ordering:** Phase 3 runs strictly after the Phase 2 `execute` is green. Same-origin LAN builds load photos through the authenticated API (#1740), so the object-storage public URL no longer serves LAN browsers. `check` refuses while the LAN dashboard still reports the pre-Stage-2 build `CWBsCWWebOZGHa5YyWp18` (`--pre-stage2-build`).
+
+- **Switch** (`wp2c-stage3-backend.py execute`). Images, volumes and credentials are unchanged:
+  - Telemetry API, central MQTT, MinIO and dashboard **add** a `127.0.0.1` publish next to the existing `172.18.48.66` publish (dual publish, same ports; the dashboard keeps host port 3000). Tailscale serve, the LAN gateway and the HTTPS gateway keep working through the switch; only container recreation is disruptive.
+  - Edge `CENTRAL_MQTT_HOST=central-mqtt`, `CENTRAL_MQTT_PORT=1883` over `nexolab-standalone-runtime`, with the same `CENTRAL_BRIDGE_CLIENT_ID` and `cleansession false`.
+  - `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` stays unchanged; it changes in Phase 4.
 - Order:
   1. central MQTT, then wait;
   2. Telemetry Service, then wait for readiness;
   3. MinIO;
   4. Dashboard;
   5. Edge MQTT. The bridge queue is persisted, the client ID is unchanged, and it is recreated last.
-- Verify the full matrix below. Rollback: recreate from the phase-0 recorded configuration (same images and volumes) and restore the compatibility address.
+- **Tool:** `wp2c-stage3-backend.py` (see the [README](README.md#wp2c-stage-3-backend-on-loopback-wp2c-stage3-backendpy)).
+  - It derives each service from `docker inspect`, because the services come from different Compose projects and paths.
+  - It proves candidate and rollback with `docker compose config` and switches in the order above.
+  - On any failure it rolls back every attempted service in reverse and verifies the result.
+  - `check` and `execute` require a fresh #1428 backup receipt.
+- **Alias hazard:** on `nexolab-standalone-runtime` both brokers carry the alias `mqtt`. The bridge must target `central-mqtt:1883`. The tool refuses `mqtt` or an IP literal. `check` refuses if any running container other than the central broker carries `central-mqtt`, or any other than the Device Agent carries `edge-device-agent`.
+- **Owner step after the switch** (not done by the tool): retarget to loopback the `tailscale serve` targets, the LAN gateway upstreams and the HTTPS external UI private origin (`http://127.0.0.1:8082`). Verify each one.
 
 ### Phase 4 — retire the interim address
 
-- Disable `nexolab-compat-address.service`, remove `nxcompat0`, and remove the temporary gateway allow flag.
+- `wp2c-stage3-backend.py drop-compat --consumers-retargeted --object-storage-public-url http://127.0.0.1:9000`:
+  - removes only the `172.18.48.66` publishes and sets the object-storage public URL;
+  - is refused without the explicit acknowledgement that every consumer was retargeted;
+  - has its own fidelity proof and verified rollback, which restores the compatibility publishes.
+- Then disable `nexolab-compat-address.service`, remove `nxcompat0`, and remove the temporary gateway allow flag.
 - `boot-repair` (#1748) stays as a guard against endpoint loss.
 - Repeat the acceptance matrix, including a reboot.
 
