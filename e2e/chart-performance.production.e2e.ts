@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { expect, test, type Browser, type BrowserContext } from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 // Runs as its own Playwright project after every other dashboard spec (playwright.dashboard.config.ts):
 // it loads the shared stack heavily for minutes, which must not change what the other specs see.
@@ -150,6 +150,102 @@ function publishExplorerSample(equipmentId: string, channelId: string, value: nu
   );
 }
 
+interface PerfProbe {
+  frames: number[];
+  running: boolean;
+  longTasks: Array<[number, number]>;
+}
+
+/** Records long tasks from page start; frames are recorded only while an interaction is measured. */
+async function installPerfProbe(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    const perf = { longTasks: [] as Array<[number, number]>, frames: [] as number[], running: false };
+    Reflect.set(window, "__nexolabPerf1813", perf);
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) perf.longTasks.push([entry.startTime, entry.duration]);
+      }).observe({ type: "longtask", buffered: true });
+    } catch {
+      // Long-task timing is unavailable in this browser; frame timing still applies.
+    }
+  });
+}
+
+/**
+ * 10 wheel zoom steps and 3 drag pans on the first chart surface. Returns frame and long-task
+ * figures of the interaction and the wall-clock time of its last input.
+ */
+async function measureZoomPan(page: Page) {
+  const surface = page.getByTestId("chart-renderer-surface").first();
+  await surface.scrollIntoViewIfNeeded();
+  const box = (await surface.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
+  await page.evaluate(() => {
+    const perf = Reflect.get(window, "__nexolabPerf1813") as PerfProbe;
+    perf.frames = [];
+    perf.running = true;
+    const tick = (time: number) => {
+      if (!perf.running) return;
+      perf.frames.push(time);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const interactionStartedAt = await page.evaluate(() => performance.now());
+  for (let step = 0; step < 10; step += 1) {
+    await page.mouse.wheel(0, -240);
+    await page.waitForTimeout(40);
+  }
+  for (let pan = 0; pan < 3; pan += 1) {
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5, { steps: 12 });
+    await page.mouse.up({ button: "left" });
+  }
+  const lastInteractionAt = Date.now();
+  await page.waitForTimeout(600);
+  const interaction = await page.evaluate((since) => {
+    const perf = Reflect.get(window, "__nexolabPerf1813") as PerfProbe;
+    perf.running = false;
+    const gaps = perf.frames
+      .slice(1)
+      .map((time, index) => time - perf.frames[index])
+      .sort((a, b) => a - b);
+    const during = perf.longTasks.filter(([start]) => start >= since);
+    const durationMs = perf.frames.length > 1 ? perf.frames.at(-1)! - perf.frames[0] : 0;
+    return {
+      frames: perf.frames.length,
+      averageFps:
+        durationMs > 0 ? Math.round(((perf.frames.length - 1) * 1000 * 10) / durationMs) / 10 : null,
+      p95FrameMs: gaps.length ? Math.round(gaps[Math.floor(gaps.length * 0.95)] * 10) / 10 : null,
+      maxFrameMs: gaps.length ? Math.round(gaps.at(-1)! * 10) / 10 : null,
+      longTasks: during.length,
+      longTaskTotalMs: Math.round(during.reduce((sum, [, duration]) => sum + duration, 0)),
+      longTaskMaxMs: Math.round(Math.max(0, ...during.map(([, duration]) => duration))),
+    };
+  }, interactionStartedAt);
+  return { interaction, lastInteractionAt };
+}
+
+/** Time from the last input until the workspace reports viewport detail (null: none within 10 s). */
+async function viewportDetailLatency(page: Page, testId: string, lastInteractionAt: number) {
+  const workspace = page.getByTestId(testId);
+  if ((await workspace.count()) === 0) return { latencyMs: null, points: null };
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const points = await workspace.getAttribute("data-viewport-detail");
+    if (points !== "none") return { latencyMs: Date.now() - lastInteractionAt, points };
+    await page.waitForTimeout(100);
+  }
+  return { latencyMs: null, points: "none" };
+}
+
+async function heapMegabytes(page: Page): Promise<number | null> {
+  return page.evaluate(() => {
+    const memory = Reflect.get(performance, "memory") as { usedJSHeapSize?: number } | undefined;
+    return memory?.usedJSHeapSize ? Math.round(memory.usedJSHeapSize / 1_048_576) : null;
+  });
+}
+
 /**
  * #1813 browser performance evidence: Live Data with 24 channels x 24 h of 10 s history (207 384
  * PostgreSQL rows), once through the aggregated backend and once through the raw fallback that the
@@ -157,7 +253,9 @@ function publishExplorerSample(equipmentId: string, channelId: string, value: nu
  * acceptance evidence directory; the same spec runs unchanged on the pre-#1804 frontend for the
  * before/after comparison, so it only relies on long-standing selectors.
  */
-test("Live Data 24-channel 24 h history performance evidence (#1813)", async ({ browser }) => {
+test("Live Data and Saved Dashboard 24-channel 24 h history performance evidence (#1813, #1821)", async ({
+  browser,
+}) => {
   test.setTimeout(600_000);
   const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const nodeId = "edge-perf-1813";
@@ -198,21 +296,13 @@ ANALYZE telemetry_samples;
   );
   const query = `${keys.map((key) => `compare=${encodeURIComponent(key)}`).join("&")}&range=24h`;
   const results: Record<string, unknown>[] = [];
+  const dashboardId = randomUUID();
+  const dashboardName = `Perf 1821 ${suffix}`;
 
   try {
     for (const mode of ["aggregate-backend", "raw-fallback"] as const) {
       const context = await authenticatedContext(browser);
-      await context.addInitScript(() => {
-        const perf = { longTasks: [] as Array<[number, number]>, frames: [] as number[], running: false };
-        Reflect.set(window, "__nexolabPerf1813", perf);
-        try {
-          new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) perf.longTasks.push([entry.startTime, entry.duration]);
-          }).observe({ type: "longtask", buffered: true });
-        } catch {
-          // Long-task timing is unavailable in this browser; frame timing still applies.
-        }
-      });
+      await installPerfProbe(context);
       const page = await context.newPage();
       if (mode === "raw-fallback") {
         await page.route("**/api/v1/telemetry/history/aggregate**", (route) =>
@@ -263,80 +353,17 @@ ANALYZE telemetry_samples;
       const firstChartMs = Date.now() - startedAt;
       const ingestMs = await ingest;
 
-      const surface = page.getByTestId("chart-renderer-surface").first();
-      await surface.scrollIntoViewIfNeeded();
-      const box = (await surface.boundingBox())!;
-      await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
-      await page.evaluate(() => {
-        const perf = Reflect.get(window, "__nexolabPerf1813") as { frames: number[]; running: boolean };
-        perf.frames = [];
-        perf.running = true;
-        const tick = (time: number) => {
-          if (!perf.running) return;
-          perf.frames.push(time);
-          requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
-      const interactionStartedAt = await page.evaluate(() => performance.now());
-      for (let step = 0; step < 10; step += 1) {
-        await page.mouse.wheel(0, -240);
-        await page.waitForTimeout(40);
-      }
-      for (let pan = 0; pan < 3; pan += 1) {
-        await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
-        await page.mouse.down({ button: "left" });
-        await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5, { steps: 12 });
-        await page.mouse.up({ button: "left" });
-      }
-      const lastInteractionAt = Date.now();
-      await page.waitForTimeout(600);
-      const interaction = await page.evaluate((since) => {
-        const perf = Reflect.get(window, "__nexolabPerf1813") as {
-          frames: number[];
-          running: boolean;
-          longTasks: Array<[number, number]>;
-        };
-        perf.running = false;
-        const gaps = perf.frames
-          .slice(1)
-          .map((time, index) => time - perf.frames[index])
-          .sort((a, b) => a - b);
-        const during = perf.longTasks.filter(([start]) => start >= since);
-        const durationMs = perf.frames.length > 1 ? perf.frames.at(-1)! - perf.frames[0] : 0;
-        return {
-          frames: perf.frames.length,
-          averageFps:
-            durationMs > 0 ? Math.round(((perf.frames.length - 1) * 1000 * 10) / durationMs) / 10 : null,
-          p95FrameMs: gaps.length ? Math.round(gaps[Math.floor(gaps.length * 0.95)] * 10) / 10 : null,
-          maxFrameMs: gaps.length ? Math.round(gaps.at(-1)! * 10) / 10 : null,
-          longTasks: during.length,
-          longTaskTotalMs: Math.round(during.reduce((sum, [, duration]) => sum + duration, 0)),
-          longTaskMaxMs: Math.round(Math.max(0, ...during.map(([, duration]) => duration))),
-        };
-      }, interactionStartedAt);
-      const workspace = page.getByTestId("live-chart-workspace");
+      const { interaction, lastInteractionAt } = await measureZoomPan(page);
       // Scale-dependent detail: time from the end of the last pan until detailed measurements of the
-      // visible window are shown (raw columns: immediate; aggregated backend: one request).
-      let detailLatencyMs: number | null = null;
-      if ((await workspace.count()) > 0) {
-        for (let attempt = 0; attempt < 100; attempt += 1) {
-          if ((await workspace.getAttribute("data-viewport-detail")) !== "none") {
-            // From the final pan, including the 120 ms commit and any request.
-            detailLatencyMs = Date.now() - lastInteractionAt;
-            break;
-          }
-          await page.waitForTimeout(100);
-        }
-      }
-      const detail =
-        (await workspace.count()) > 0 ? await workspace.getAttribute("data-viewport-detail") : null;
+      // visible window are shown (raw columns: immediate; aggregated backend: one request), including
+      // the 120 ms commit and any request.
+      const detailResult = await viewportDetailLatency(page, "live-chart-workspace", lastInteractionAt);
+      const detail = detailResult.points;
+      const detailLatencyMs = detailResult.latencyMs;
+      const workspace = page.getByTestId("live-chart-workspace");
       const source =
         (await workspace.count()) > 0 ? await workspace.getAttribute("data-history-source") : null;
-      const heap = await page.evaluate(() => {
-        const memory = Reflect.get(performance, "memory") as { usedJSHeapSize?: number } | undefined;
-        return memory?.usedJSHeapSize ? Math.round(memory.usedJSHeapSize / 1_048_576) : null;
-      });
+      const heap = await heapMegabytes(page);
       const result = {
         mode,
         channels: channelCount,
@@ -361,6 +388,78 @@ ANALYZE telemetry_samples;
       expect(ingestMs).not.toBeNull();
       await context.close();
     }
+
+    // #1821: the same 24 series as one Saved Dashboard (observed series, 24 h). Saved Dashboards load
+    // raw history on every backend; after a zoom the visible window shows original measurements.
+    postgres(`
+INSERT INTO live_dashboards (
+  id, organization_id, name, description, owner_subject, refresh_seconds, time_window,
+  version, status, created_by, updated_by, created_at, updated_at
+)
+VALUES (
+  ${sqlString(dashboardId)}, ${sqlString(organizationId)}, ${sqlString(dashboardName)},
+  'Chart performance evidence', 'acceptance-fixture', 10, '24h', 1, 'active',
+  'acceptance-fixture', 'acceptance-fixture', NOW(), NOW()
+);
+INSERT INTO live_dashboard_items (
+  id, organization_id, dashboard_id, position, channel_ref_id, node_id, equipment_id, channel_id,
+  metric, native_unit, visualization, color, display_unit
+)
+SELECT gen_random_uuid()::text, ${sqlString(organizationId)}, ${sqlString(dashboardId)}, channel, NULL,
+       ${sqlString(nodeId)}, ${sqlString(equipmentId)}, 'perf-' || channel, 'temperature', 'degC', 'line',
+       NULL, 'degC'
+FROM generate_series(1, ${channelCount}) AS channel;
+`);
+    {
+      const context = await authenticatedContext(browser);
+      await installPerfProbe(context);
+      const page = await context.newPage();
+      const traffic = { history: 0, historyBytes: 0, failed: 0 };
+      page.on("requestfinished", async (request) => {
+        if (!new URL(request.url()).pathname.endsWith("/api/v1/telemetry/history")) return;
+        traffic.history += 1;
+        const sizes = await request.sizes().catch(() => null);
+        traffic.historyBytes += sizes?.responseBodySize ?? 0;
+      });
+      page.on("requestfailed", (request) => {
+        if (!new URL(request.url()).pathname.includes("/api/v1/telemetry/history")) return;
+        if (!/ERR_ABORTED|aborted/i.test(request.failure()?.errorText ?? "")) traffic.failed += 1;
+      });
+      await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText(dashboardName, { exact: true })).toBeVisible({ timeout: 60_000 });
+      const startedAt = Date.now();
+      await page
+        .locator("article")
+        .filter({ hasText: dashboardName })
+        .getByRole("button", { name: "Відкрити" })
+        .click();
+      await expect(page.getByTestId("saved-dashboard-chart-panel").first()).toBeVisible({ timeout: 240_000 });
+      await expect(page.getByText("Завантаження повної persisted history…")).toHaveCount(0, {
+        timeout: 240_000,
+      });
+      await expect(page.getByTestId("chart-renderer-host").first()).toBeVisible({ timeout: 60_000 });
+      const firstChartMs = Date.now() - startedAt;
+      const { interaction, lastInteractionAt } = await measureZoomPan(page);
+      const detail = await viewportDetailLatency(page, "saved-dashboard-chart-workspace", lastInteractionAt);
+      const result = {
+        mode: "saved-dashboard",
+        channels: channelCount,
+        range: "24h",
+        rowsPerChannel: 8_610,
+        firstChartMs,
+        historyRequests: traffic.history,
+        historyMegabytes: Math.round((traffic.historyBytes / 1_048_576) * 10) / 10,
+        failedHistoryRequests: traffic.failed,
+        heapMegabytes: await heapMegabytes(page),
+        viewportDetailPoints: detail.points,
+        viewportDetailAfterInteractionMs: detail.latencyMs,
+        interaction,
+      };
+      results.push(result);
+      console.log(`#1821 performance ${JSON.stringify(result)}`);
+      expect(traffic.failed).toBe(0);
+      await context.close();
+    }
   } finally {
     mkdirSync(evidenceDirectory, { recursive: true });
     writeFileSync(
@@ -368,6 +467,8 @@ ANALYZE telemetry_samples;
       `${JSON.stringify({ commit: process.env.GITHUB_SHA ?? null, results }, null, 2)}\n`,
     );
     postgres(`
+DELETE FROM live_dashboard_items WHERE dashboard_id = ${sqlString(dashboardId)};
+DELETE FROM live_dashboards WHERE id = ${sqlString(dashboardId)};
 DELETE FROM telemetry_latest WHERE equipment_id = ${sqlString(equipmentId)};
 DELETE FROM telemetry_samples WHERE equipment_id = ${sqlString(equipmentId)};
 ANALYZE telemetry_samples;
