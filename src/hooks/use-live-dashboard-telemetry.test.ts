@@ -265,6 +265,12 @@ describe("useLiveDashboardTelemetry persisted history", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 1_100));
 
-    expect(result.current.series[0]?.history.filter((item) => item.event_id === "tail")).toHaveLength(1);
+    // The hour of silence before the tail is a real source gap (#1805), so the tail may start a new
+    // segment; what matters here is that the replayed sample appears exactly once.
+    expect(
+      result.current.series[0]?.history.filter(
+        (item) => item.event_id.replace("nexolab-live-segment:", "") === "tail",
+      ),
+    ).toHaveLength(1);
   });
 });

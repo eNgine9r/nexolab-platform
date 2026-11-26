@@ -203,9 +203,10 @@ function buildSeries(
           sourceEventId: sample.event_id,
         };
       }),
-      // #1805: source gaps were decided on RAW history (segment markers). Re-deriving a tolerance
-      // from reduced points would break continuous data; invalid samples still break below.
-      { maximumSourceGapMs: Number.MAX_SAFE_INTEGER },
+      // #1805: reduced history already carries its source gaps as segment markers decided on RAW
+      // data. Re-deriving a tolerance from reduced points would break continuous data; invalid
+      // samples still break. Raw input (not annotated) keeps the cadence-derived detection.
+      source.continuityAnnotated ? { maximumSourceGapMs: Number.MAX_SAFE_INTEGER } : {},
     ).map((segment, index) =>
       segmentIndex > 0 && index === 0 && segment.points[0]
         ? {

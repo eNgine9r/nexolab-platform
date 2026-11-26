@@ -706,7 +706,7 @@ export function useLiveDashboardTelemetry({
     if (!dashboard) return [];
     return dashboard.items.map((item) => {
       const key = dashboardItemIdentity(item);
-      return { item, latest: latest[key] ?? null, history: history[key] ?? [] };
+      return { item, latest: latest[key] ?? null, history: history[key] ?? [], continuityAnnotated: true };
     });
   }, [dashboard, history, latest]);
 
