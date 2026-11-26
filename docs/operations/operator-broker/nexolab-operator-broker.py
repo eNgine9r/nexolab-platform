@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -1382,10 +1382,117 @@ def op_deploy_backend_loopback(broker: "Broker", args: dict) -> dict:
     assert_trusted(tool, broker.trusted_uid, directory=False)
     argv = ["/usr/bin/python3", "-I", "-B", str(tool), "prove", "--phase", "switch",
             "--workspace", str(home / STAGE3_WORKSPACE)]
+    if args.get("retain_env", "none") != "none":  # owner-acknowledged compat-address reference (approval-bound)
+        argv += ["--retain-env", args["retain_env"]]
     result = run_as_owner(broker, user, argv, 900)
     return {"phase": args["phase"], "ok": result.exit == 0, "exit": result.exit, "timed_out": result.timed_out,
             "markers": STAGE3_MARKERS.findall(result.output)[-20:], "output": result.output[-8000:],
             "deploy_user": user, "production_changed": False}
+
+
+# ----------------------------------------------------------------------------- Tailscale :8443 (#1784)
+INSPECTION_PORT = "8443"
+INSPECTION_GATEWAY = "http://127.0.0.1:80"
+INSPECTION_LOGIN = "unix:/run/nexolab-opera-inspection/login.sock"
+INSPECTION_PREVIOUS_ROOTS = ("http://127.0.0.1:3102", "http://127.0.0.1:3100")
+SERVE_BACKUP_DIR = Path("/var/lib/nexolab-operator/tailscale")
+PRE_STAGE2_BUILD = "CWBsCWWebOZGHa5YyWp18"
+
+
+def serve_status(broker: "Broker") -> tuple[dict, str]:
+    result = broker.runner(["tailscale", "serve", "status", "--json"], 20)
+    if result.exit != 0:
+        raise Rejected("precondition_failed", "tailscale serve status unavailable")
+    try:
+        status = json.loads(result.output)
+    except ValueError:
+        raise Rejected("precondition_failed", "tailscale serve status is not JSON") from None
+    host = next((k for k in (status.get("Web") or {}) if k.endswith(":" + INSPECTION_PORT)), "")
+    if not host:
+        raise Rejected("precondition_failed", f"no :{INSPECTION_PORT} serve configuration")
+    return status, host
+
+
+def inspection_handlers(status: dict, host: str) -> dict[str, str]:
+    handlers = ((status.get("Web") or {}).get(host) or {}).get("Handlers") or {}
+    return {path: (h or {}).get("Proxy", "") for path, h in handlers.items()}
+
+
+def probe_inspection(broker: "Broker", host: str) -> dict:
+    """HTTPS through Tailscale with SNI to the node's own tailnet address (read-only GETs)."""
+    name = host.rsplit(":", 1)[0]
+    ip_result = broker.runner(["tailscale", "ip", "-4"], 10)
+    address = ip_result.output.strip().splitlines()[0] if ip_result.exit == 0 and ip_result.output.strip() else ""
+    if not re.fullmatch(r"100\.\d{1,3}\.\d{1,3}\.\d{1,3}", address):
+        raise Rejected("precondition_failed", "tailnet IPv4 address unknown")
+    out = {}
+    for path in ("/", "/api/runtime-identity", "/api/v1/telemetry/latest"):
+        result = broker.runner(["curl", "-s", "-m", "10", "-o", "/dev/null", "-w", "%{http_code}", "--resolve",
+                                f"{name}:{INSPECTION_PORT}:{address}", f"https://{name}:{INSPECTION_PORT}{path}"], 20)
+        out[path] = result.output.strip()[-3:]
+    identity = broker.runner(["curl", "-s", "-m", "10", "--resolve", f"{name}:{INSPECTION_PORT}:{address}",
+                              f"https://{name}:{INSPECTION_PORT}/api/runtime-identity"], 20)
+    try:
+        out["identity_build"] = json.loads(identity.output).get("build_id")
+    except ValueError:
+        out["identity_build"] = None
+    return out
+
+
+def lan_dashboard_build(broker: "Broker") -> str | None:
+    result = broker.runner(["curl", "-s", "-m", "5", INSPECTION_GATEWAY + "/api/runtime-identity"], 10)
+    try:
+        return json.loads(result.output).get("build_id")
+    except ValueError:
+        return None
+
+
+def op_tailscale_inspection_route(broker: "Broker", args: dict) -> dict:
+    """apply: :8443 / and /api -> LAN gateway (only from the known broken shape), /inspection-login untouched;
+    verify through Tailscale HTTPS; restore the saved configuration on any failure. restore: newest backup."""
+    status, host = serve_status(broker)
+    before = inspection_handlers(status, host)
+    if args["action"] == "restore":
+        backups = sorted(SERVE_BACKUP_DIR.glob("serve-before-*.json")) if SERVE_BACKUP_DIR.is_dir() else []
+        if not backups:
+            raise Rejected("precondition_failed", "no saved serve configuration")
+        restored = broker.runner(["tailscale", "serve", "set-config", "--all", str(backups[-1])], 30)
+        after = inspection_handlers(*serve_status(broker))
+        return {"action": "restore", "backup": backups[-1].name, "exit": restored.exit, "before": before, "after": after}
+    expected = {"/": INSPECTION_PREVIOUS_ROOTS, "/inspection-login": (INSPECTION_LOGIN,)}
+    if set(before) != {"/", "/api", "/inspection-login"} or before["/inspection-login"] != INSPECTION_LOGIN \
+            or before["/"] not in expected["/"]:
+        raise Rejected("precondition_failed", f"unexpected :{INSPECTION_PORT} handlers {before}; nothing changed")
+    build = lan_dashboard_build(broker)
+    if not build or build == PRE_STAGE2_BUILD:
+        raise Rejected("precondition_failed", f"LAN gateway does not serve the Stage 2 same-origin build ({build})")
+    SERVE_BACKUP_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    backup = SERVE_BACKUP_DIR / f"serve-before-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}.json"
+    saved = broker.runner(["tailscale", "serve", "get-config", "--all"], 20)
+    if saved.exit != 0 or not saved.output.strip().startswith("{"):
+        raise Rejected("precondition_failed", "could not save the current serve configuration; nothing changed")
+    fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(saved.output)
+    actions = []
+    for path, target in (("/", INSPECTION_GATEWAY), ("/api", INSPECTION_GATEWAY + "/api")):
+        result = broker.runner(["tailscale", "serve", "--bg", "--yes", f"--https={INSPECTION_PORT}",
+                                f"--set-path={path}", target], 30)
+        actions.append({"path": path, "target": target, "exit": result.exit})
+    time.sleep(2)
+    after = inspection_handlers(*serve_status(broker))
+    probe = probe_inspection(broker, host)
+    ok = (after.get("/") == INSPECTION_GATEWAY and after.get("/api") == INSPECTION_GATEWAY + "/api"
+          and after.get("/inspection-login") == INSPECTION_LOGIN and probe.get("/") == "200"
+          and probe.get("/api/runtime-identity") == "200" and probe.get("identity_build") == build
+          and probe.get("/api/v1/telemetry/latest") not in ("502", "503", "000", "404"))
+    if ok:
+        return {"action": "apply", "ok": True, "before": before, "after": after, "probe": probe,
+                "backup": backup.name, "undo": "approved network.tailscale-inspection-route action=restore"}
+    restored = broker.runner(["tailscale", "serve", "set-config", "--all", str(backup)], 30)
+    final = inspection_handlers(*serve_status(broker))
+    return {"action": "apply", "ok": False, "before": before, "after": after, "probe": probe, "actions": actions,
+            "restored_exit": restored.exit, "restored": final == before, "final": final, "backup": backup.name}
 
 
 # ----------------------------------------------------------------------------- DR backup (#1775, #1428)
@@ -1512,7 +1619,13 @@ def production_ops() -> dict[str, Operation]:
                   op_wifi_profile_remove, {"profile": Name(WIFI_PROFILE_NAME)}, timeout=60),
         Operation("deploy.backend-loopback", "approved",
                   "Owner-approved WP2c Stage 3: phase=prove renders and proves the switch Compose files (no switch)",
-                  op_deploy_backend_loopback, {"phase": Enum(("prove",))}, timeout=1000),
+                  op_deploy_backend_loopback,
+                  {"phase": Enum(("prove",)), "retain_env": Enum(("none", "CORS_ALLOWED_ORIGINS"), "none")},
+                  timeout=1000),
+        Operation("network.tailscale-inspection-route", "approved",
+                  "Owner-approved #1784: route Tailscale :8443 / and /api through the LAN gateway (backup, verify, "
+                  "automatic restore) or restore the saved configuration",
+                  op_tailscale_inspection_route, {"action": Enum(("apply", "restore"))}, timeout=180),
         Operation("backup.health", "read", "DR backup units, config presence, bundle list, free space vs reserve",
                   op_backup_health),
         Operation("backup.start", "approved", "Owner-approved: start the installed DR backup unit once (#1630)",
