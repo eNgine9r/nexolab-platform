@@ -12226,7 +12226,7 @@
         "stage2_via_broker": "Artifact f916352c in operator inbox; deploy.lan-frontend in broker v1.2+/v1.3 (approval binds phase, artifact, current identity 7db6e1a8/CWBsCWWebOZGHa5YyWp18).",
         "stage2_prepare_2026_11_26": "approved prepare: stage OK, build failed (BuildKit FROM image ID, fixed in #1783/v1.4); workspace stage.json retained, so prepare resumes at build after the v1.4 upgrade with a new approval",
         "stage2_prepare_2026_11_26_green": "Broker v1.4 approved deploy.lan-frontend prepare (receipt seq 67): BASE_PROVEN node:22.23.1-bookworm-slim; offline build (no network/pull/cache) IMAGE_VERIFIED nexolab/dashboard:wp2c-stage2-c5bb48a1dad3-arm64 sha256:c02579b1 files=17627; COMPOSE_FIDELITY_PROVEN rollback+candidate; PREVIEW identity c5bb48a1/xRUAt2U9c3oug1ETWuLsT + Docker DNS/server API verified, preview removed; STAGE2_CHECK_PASS NO_WRITES; production unchanged (LAN dashboard 7db6e1a8/CWBs..., all endpoints 200, telemetry persisting). Bundle: runtime contract same-origin, no backend ports/host origins; only external URL loaded at runtime is the Telegram Mini App SDK on that optional route (onError handled).",
-        "stage3_prove": "PR #1792: Stage 3 prove mode + broker v1.6 deploy.backend-loopback phase=prove (real Compose fidelity proof, no switch)"
+        "stage3_prove": "PR #1792 merge 20a59719 (exact-head GREEN; real systemd: pinned Stage 3 tool runs as nexolab, STOP WRONG_NODE on runner; ACCEPTANCE_OK 1.6.0). Broker v1.6 payload ~/recovery-p0/broker-v1.6-20261126T102928Z installer c92234a8..."
       },
       "branch": "feat/1734-same-origin-runtime"
     },

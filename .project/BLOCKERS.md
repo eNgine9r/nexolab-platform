@@ -1,19 +1,24 @@
-## 2026-11-26 — Pending owner actions (resume point after any reboot; updated after v1.4)
+## 2026-11-26 — Pending owner actions (resume point after any reboot; updated evening)
 
-1. **Upgrade the Operator Broker to v1.4** (#1783). It fixes the Stage 2 build and adds image reference evidence. If any step fails, the installer restores v1.3 automatically:
+1. **Stage 2 activation (#1734), the critical approval.** `prepare` is GREEN (receipt 67). The switch recreates only the LAN dashboard container, with automatic verified rollback to `7db6e1a8`/`CWBs…`:
    ```
-   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.4-20261126T075330Z/install-operator-broker.sh > $T/i.sh && echo "6d3e1f2d0d4d7b5fb0281e554d323eb88e4a7aa1cedfd6350343e00c9280c39b  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.4-20261126T075330Z
+   sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=execute --arg artifact_sha256=f916352c726bd899754326b44a78b763d900b7fe03c55629d356433710289e1e --arg expect_current_source=7db6e1a801aa6c1a142febd4e91c79eef62d5beb --arg expect_current_build=CWBsCWWebOZGHa5YyWp18 --ttl-minutes 120 --reason "WP2c Stage 2 LAN dashboard activation"
    ```
-2. **New approval:** `deploy.lan-frontend` with `phase=prepare`, `artifact_sha256=f916352c726bd899754326b44a78b763d900b7fe03c55629d356433710289e1e`, `expect_current_source=7db6e1a801aa6c1a142febd4e91c79eef62d5beb` and `expect_current_build=CWBsCWWebOZGHa5YyWp18`. It resumes at `build`; no production change. `phase=execute` stays a separate approval.
-3. **SSD:**
-   - the agent runs the read-only `storage.image-references` on manifest B (`18c84854…`) and reports the evidence per image;
-   - only then is a `storage.remove-images` approval requested;
-   - `t2a` workspaces remain an owner decision.
-4. **#1428 DR-A:** after PR #1787 merges, follow `docs/operations/dr-site-activation-1428.md` (the agent stages the pinned package). Key generation and custody are owner only. The first backup needs a `backup.start` approval.
-5. **Wi-Fi (#1735):** the owner checks the router (MAC filter or block list, client limit, logs for `2C:CF:67:A6:09:3A`). Approval is needed for unlimited autoconnect retries, and for removing the open `me_mac` and `iPhone` profiles.
-6. **Tailscale `:8443` (#1784):** apply the prepared fix after Stage 2 execute (`docs/operations/network/tailscale-8443-inspection-fix.md`).
-7. **Reboot cause (#1399):** still undetermined. The heartbeat is running; the agent restarts it after a reboot.
-8. **Stage 3 (#1734):** after Stage 2 execute and #1428. The owner runs `plan` and `check` on the host first; `execute` needs exact approval.
+   Afterwards the agent verifies the LAN, the gateway, `:8444`, login, Live Data and telemetry. It then prepares the Tailscale `:8443` fix (#1784).
+2. **Upgrade the Operator Broker to v1.6** (#1790 guard fix, #1792 Stage 3 prove). If any step fails, the installer restores v1.4 automatically:
+   ```
+   T=$(mktemp -d); sudo cat /home/nexolab-dev/recovery-p0/broker-v1.6-20261126T102928Z/install-operator-broker.sh > $T/i.sh && echo "c92234a88df892044df0cb399964cf5ea7ca91f7a272817809d6a0c3c5266f68  $T/i.sh" | sha256sum -c - && bash $T/i.sh upgrade /home/nexolab-dev/recovery-p0/broker-v1.6-20261126T102928Z
+   ```
+   Then the approval `--op deploy.backend-loopback --arg phase=prove`: a real Compose fidelity proof for Stage 3, with no switch.
+3. **SSD manifest C** (`3c928c51…`, 20 images with no rollback, recovery or protection reference; evidence in `~/p0-evidence/image-references-manifest-b-20261126.json`). Removal needs specific authorization:
+   ```
+   sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op storage.remove-images --arg manifest_sha256=3c928c51d05d82bfc82f120e7efb215b211d0a54e144a534839c7e5e5adb1b7b --ttl-minutes 120 --reason "SSD manifest C"
+   ```
+   Kept: `issue-1638` and `1522` (current rollback chain), `issue-1625`/`1609`/`1603` (recorded rollback images), the `minio`/`minio-mc` `RELEASE` images (recovery catalog), and every protected, recovery or `-base` image.
+4. **#1428 DR:** follow `docs/operations/dr-1428-owner-checklist.md` (PR #1791) with the package `~/recovery-p0/dr-a-20261126T102935Z` (`SHA256SUMS` `aec18fc9…`). Key and custody are owner only. The first backup needs a `backup.start` approval.
+5. **Wi-Fi (#1735):** the owner checks the router (MAC filter or block list, client limit, logs for `2C:CF:67:A6:09:3A`). Unlimited autoconnect retries and removing the open `me_mac` and `iPhone` profiles each need approval.
+6. **Reboot cause (#1399):** still undetermined. The heartbeat is running; the agent restarts it after a reboot.
+7. **Stage 3 (#1734):** after Stage 2 execute and #1428, then `prove` → `check` → exact approval for `execute`.
 
 ## 2026-11-25 — Image builds blocked by CVE-2026-107494 (Product Owner decision pending, #1743)
 

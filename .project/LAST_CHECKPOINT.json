@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T08:10:50Z",
+  "timestamp": "2026-11-26T10:30:07Z",
   "actor": "claude",
-  "event": "v1.3 live; approved cleanup +6.2 GiB; Stage 2 prepare build failure fixed in broker v1.4 (#1783) and staged; manifest A withdrawn, B staged; #1784 and #1786 prepared",
+  "event": "Stage 2 prepare GREEN (offline build, preview, check); manifest B evidence -> manifest C; broker v1.5 (#1790) and v1.6 Stage 3 prove (#1792) merged; v1.6 and DR package staged",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: broker v1.4 upgrade + new deploy.lan-frontend prepare approval. Agent: run prepare, image-reference evidence on manifest B, merge #1785/#1787, stage DR-A package",
+  "next_action": "Owner: Stage 2 execute approval; broker v1.6 upgrade + prove approval; manifest C authorization; #1428 checklist. Agent: execute and verify Stage 2, then Tailscale :8443 fix",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

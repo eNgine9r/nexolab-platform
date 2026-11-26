@@ -8,6 +8,7 @@
   - `STAGE2_CHECK_PASS NO_WRITES`.
 
   **Production unchanged:** LAN dashboard still `7db6e1a8`/`CWBs…`; all endpoints 200; telemetry persisting. The bundle has same-origin API/WS, no backend ports and no host origins. Its only runtime internet reference is the optional Telegram Mini App SDK on that route. **Stage 2 activation awaits the separate `phase=execute` approval.**
+
 - **SSD evidence:** `storage.image-references` on manifest B (complete, 120,370 files).
   - **Keep:** `issue-1625`, `1609` and `1603` (recorded rollback images of older releases), and the `minio`/`minio-mc` `RELEASE` images (referenced by the recovery catalog `recovery-cc27b609eea2`).
   - **Manifest C** (`3c928c51…`): 20 images with no rollback, recovery or protection reference. Removal needs specific owner authorization.
