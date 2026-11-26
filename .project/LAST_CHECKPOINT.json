@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-26T10:30:07Z",
+  "timestamp": "2026-11-26T11:05:47Z",
   "actor": "claude",
-  "event": "Stage 2 prepare GREEN (offline build, preview, check); manifest B evidence -> manifest C; broker v1.5 (#1790) and v1.6 Stage 3 prove (#1792) merged; v1.6 and DR package staged",
+  "event": "WP2c Stage 2 live (owner-approved execute GREEN, verified); Stage 3 prove CORS finding; dev memory root cause (#1794); broker v1.7 merged and staged",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
@@ -5586,7 +5586,7 @@
       }
     }
   ],
-  "next_action": "Owner: Stage 2 execute approval; broker v1.6 upgrade + prove approval; manifest C authorization; #1428 checklist. Agent: execute and verify Stage 2, then Tailscale :8443 fix",
+  "next_action": "Owner: Stage 2 browser acceptance; broker v1.7 upgrade + :8443 apply and Stage 3 prove approvals; memory drop-in decision. Agent: run approvals, verify, #1428",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
