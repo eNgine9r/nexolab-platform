@@ -794,9 +794,21 @@ export function LiveTelemetryExplorer({
               </p>
             </div>
           </div>
-        ) : telemetry.historyStatus === "loading" && !(historyProgress && historyProgress.loaded > 0) ? (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">
-            Завантаження history window за одним ingestion watermark…
+        ) : telemetry.historyStatus === "loading" &&
+          // #1824: stay on the placeholder until a loaded channel has drawable points; an empty first
+          // channel must not report the whole selection as empty while others still load.
+          !(historyProgress && historyProgress.loaded > 0 && telemetry.historySamples.length > 0) ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400"
+          >
+            <span>
+              Завантаження history window за одним ingestion watermark…
+              {historyProgress
+                ? ` Завантажено каналів: ${historyProgress.loaded} з ${historyProgress.total}.`
+                : null}
+            </span>
           </div>
         ) : telemetry.historyStatus === "error" ? (
           <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-8 text-center">
