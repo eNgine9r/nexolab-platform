@@ -262,6 +262,12 @@ export function DashboardLiveView({
       ),
     [chartGroups, dashboard.id, effectiveDomain, telemetry.intervalStatistics, telemetry.series],
   );
+  // Exact statistics state the range they were computed for (a sliding live window answered by the
+  // server may be up to 30 s older than the view, P0 charts).
+  const statisticsRange = useMemo(() => {
+    const computed = statisticsRows.find((row) => row.statistics !== null)?.statistics;
+    return computed ? { fromMs: computed.fromMs, toMs: computed.toMs } : effectiveDomain;
+  }, [effectiveDomain, statisticsRows]);
   const densityCounts = useMemo(() => {
     const visibleRows = buildDashboardStatisticsRows(
       dashboard.id,
@@ -780,6 +786,7 @@ export function DashboardLiveView({
       <div
         className="space-y-5"
         data-testid="saved-dashboard-chart-workspace"
+        data-history-source={telemetry.historySource ?? "raw"}
         data-viewport-detail={telemetry.viewportDetailPoints ? `${telemetry.viewportDetailPoints}` : "none"}
       >
         {chartGroups.map((group) => (
@@ -800,8 +807,8 @@ export function DashboardLiveView({
 
       <DashboardIntervalStatistics
         rows={statisticsRows}
-        fromMs={effectiveDomain.fromMs}
-        toMs={effectiveDomain.toMs}
+        fromMs={statisticsRange.fromMs}
+        toMs={statisticsRange.toMs}
         isViewport={viewportDomain !== null}
         displayTimeZone={displayTimeZone}
       />

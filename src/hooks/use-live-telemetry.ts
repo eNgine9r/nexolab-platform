@@ -401,17 +401,20 @@ export function useLiveTelemetry({
       });
   }, []);
   /** A cached exact range that a sliding live window may show instead of (from, to), if any. */
-  const recentCompatibleRange = useCallback((fromMs: number, toMs: number) => {
-    const now = Date.now();
-    return [...fetchedRangesRef.current]
-      .reverse()
-      .find(
-        (range) =>
-          range.toMs - range.fromMs === toMs - fromMs &&
-          Math.abs(range.fromMs - fromMs) <= SERVER_STATISTICS_REFRESH_MS &&
-          now - range.at < SERVER_STATISTICS_REFRESH_MS,
-      );
-  }, []);
+  const recentCompatibleRange = useCallback(
+    (fromMs: number, toMs: number, maximumAgeMs: number = SERVER_STATISTICS_REFRESH_MS) => {
+      const now = Date.now();
+      return [...fetchedRangesRef.current]
+        .reverse()
+        .find(
+          (range) =>
+            range.toMs - range.fromMs === toMs - fromMs &&
+            Math.abs(range.fromMs - fromMs) <= SERVER_STATISTICS_REFRESH_MS &&
+            now - range.at < maximumAgeMs,
+        );
+    },
+    [],
+  );
   const scheduleServerStatistics = useCallback(
     (fromMs: number, toMs: number) => {
       const rangeKey = `${fromMs}|${toMs}`;
@@ -420,7 +423,9 @@ export function useLiveTelemetry({
       if ([...statsInFlightRef.current.values()].some((range) => compatible(range, [fromMs, toMs]))) return;
       const failedAt = statsFailedAtRef.current.get(rangeKey);
       if (failedAt !== undefined && Date.now() - failedAt < 10_000) return;
-      if (recentCompatibleRange(fromMs, toMs)) return;
+      // Refreshed halfway through the reuse period, so a sliding window never runs out of numbers
+      // (a refresh only after 30 s left the rows empty until the new answer arrived).
+      if (recentCompatibleRange(fromMs, toMs, SERVER_STATISTICS_REFRESH_MS / 2)) return;
       pendingStatsRef.current.set(rangeKey, [fromMs, toMs]);
       if (statsTimerRef.current !== null) return;
       statsTimerRef.current = setTimeout(() => {

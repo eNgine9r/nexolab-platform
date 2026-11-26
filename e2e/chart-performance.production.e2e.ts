@@ -413,14 +413,23 @@ SELECT gen_random_uuid()::text, ${sqlString(organizationId)}, ${sqlString(dashbo
        NULL, 'degC'
 FROM generate_series(1, ${channelCount}) AS channel;
 `);
-    {
+    // P0 charts: through the aggregated backend, and through the raw path the current site backend
+    // uses (aggregate endpoint answered 404).
+    for (const dashboardMode of ["saved-dashboard-aggregate", "saved-dashboard-raw"] as const) {
       const context = await authenticatedContext(browser);
       await installPerfProbe(context);
       const page = await context.newPage();
-      const traffic = { history: 0, historyBytes: 0, failed: 0 };
+      if (dashboardMode === "saved-dashboard-raw") {
+        await page.route("**/api/v1/telemetry/history/aggregate**", (route) =>
+          route.fulfill({ status: 404, contentType: "application/json", body: '{"detail":"Not Found"}' }),
+        );
+      }
+      const traffic = { history: 0, aggregate: 0, historyBytes: 0, failed: 0 };
       page.on("requestfinished", async (request) => {
-        if (!new URL(request.url()).pathname.endsWith("/api/v1/telemetry/history")) return;
-        traffic.history += 1;
+        const pathname = new URL(request.url()).pathname;
+        if (!pathname.includes("/api/v1/telemetry/history")) return;
+        if (pathname.endsWith("/history/aggregate")) traffic.aggregate += 1;
+        else traffic.history += 1;
         const sizes = await request.sizes().catch(() => null);
         traffic.historyBytes += sizes?.responseBodySize ?? 0;
       });
@@ -456,14 +465,21 @@ FROM generate_series(1, ${channelCount}) AS channel;
       const firstChartMs = Date.now() - startedAt;
       const { interaction, lastInteractionAt } = await measureZoomPan(page);
       const detail = await viewportDetailLatency(page, "saved-dashboard-chart-workspace", lastInteractionAt);
+      const dashboardWorkspace = page.getByTestId("saved-dashboard-chart-workspace");
+      const historySource =
+        (await dashboardWorkspace.count()) > 0
+          ? await dashboardWorkspace.getAttribute("data-history-source")
+          : null;
       const result = {
-        mode: "saved-dashboard",
+        mode: dashboardMode,
+        historySource,
         channels: channelCount,
         range: "24h",
         rowsPerChannel: 8_610,
         firstSeriesMs,
         firstChartMs,
         historyRequests: traffic.history,
+        aggregateRequests: traffic.aggregate,
         historyMegabytes: Math.round((traffic.historyBytes / 1_048_576) * 10) / 10,
         failedHistoryRequests: traffic.failed,
         heapMegabytes: await heapMegabytes(page),
