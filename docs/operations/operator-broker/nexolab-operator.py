@@ -22,7 +22,7 @@ import uuid
 SOCKET = "/run/nexolab-operator/broker.sock"
 
 
-def call(op: str, args: dict, *, approval_id: str | None = None, path: str = SOCKET, timeout: float = 1800) -> dict:
+def call(op: str, args: dict, *, approval_id: str | None = None, path: str = SOCKET, timeout: float = 3600) -> dict:
     request = {"v": 1, "op": op, "args": args, "request_id": str(uuid.uuid4()), "ts": time.time()}
     if approval_id:
         request["approval_id"] = approval_id
@@ -46,7 +46,7 @@ def parse_args(items: list[str]) -> dict:
         key, sep, value = item.partition("=")
         if not sep or not key:
             raise SystemExit(f"argument must be key=value: {item!r}")
-        args[key] = int(value) if re.fullmatch(r"-?\d+", value) and key != "boot" else value
+        args[key] = int(value) if re.fullmatch(r"-?\d{1,9}", value) and key != "boot" else value  # hashes stay strings
     return args
 
 
