@@ -314,6 +314,10 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     # synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
     "scripts/nexolab-dr-offdevice-copy.py",
     "tests/test_ci_dr_offdevice_copy.py",
+    # #1786 DR-A site activation: read-only site config renderer (docker inspect only); synthetic tests
+    # run by the Core `unittest discover -p 'test_ci_*.py'` step. No site mutation.
+    "scripts/nexolab-dr-site-config.py",
+    "tests/test_ci_dr_site_config.py",
     # #1632 isolated restore + verification receipt: source-only tooling (never run against
     # production); synthetic tests run by the Core `unittest discover -p 'test_ci_*.py'` step.
     # The rehearsal driver is an opt-in, Docker-only local script with synthetic data.
