@@ -1,3 +1,19 @@
+## 2026-11-26 (P0 charts, continued) — every chart surface optimized; consolidated frontend RC built, not deployed
+
+- **Merged (exact-head GREEN, no open review threads):**
+  - #1821 (PR #1822): Saved Dashboard viewport detail from raw display columns and cached exact statistics.
+  - #1825 (PR #1826): Energy raw statistics built in time order. Pi CPU, one meter at 7 d: 2 331 → 145 ms.
+  - #1827 (PR #1828): Overview without a raw re-sort per live sample or a rebuild per zoom, plus viewport detail. Pi CPU, 8 probes × 24 h: 401 ms + 911 ms per sample → 48 ms per flush + about 400 ms per 5 s; zoom commit 911 → 17 ms.
+  - #1829 (PR #1830): Refrigeration lanes built once and clipped per zoom (about 350 ms per zoom commit before).
+  - #1824 (PR #1831): progressive history. Series complete in order, and Live Data and Saved Dashboards show them as they load.
+- **Browser evidence (CI, 24 series × 24 h, current backend, raw):**
+  - Live Data: first channel 1.96 s, complete 9.7 s.
+  - Saved Dashboard: first series 1.49 s, complete 8.6 s, against 11.4 s with nothing shown before. Zoom/pan 57–59 fps, no long tasks; viewport detail ≈ 3 900 original measurements 0.63 s after the last pan.
+  - The 2/3/5 s full-load targets still need the aggregated backend (DR #1428).
+- **Consolidated frontend-only RC** (LAN + Tailscale `:8444`): source `f3c12ac4`. The details and the single owner approval package are in `docs/operations/chart-p0-release-candidate.md`. **Not deployed.**
+- HTTPS `:443` (`:3105`, source `7db6e1a8`) has no broker operation and stays unchanged unless the owner runs the guarded HTTPS procedure.
+- **Not verified:** a Pi browser, an operator PC, 60 fps on real hardware. No Modbus, hardware, site or data change.
+
 ## 2026-11-26 (P0 charts, #1813) — aggregated history, viewport detail, exact statistics; frontend RC staged, not deployed
 
 - **#1813 merged in #1817 (`10150491`):**
