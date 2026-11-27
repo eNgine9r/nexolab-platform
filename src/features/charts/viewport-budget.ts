@@ -79,6 +79,11 @@ export function subscribeChartPlotWidth(listener: () => void): () => void {
 
 let msPerPoint: number | null = null;
 let measurements = 0;
+let publishedAggregate = CHART_AUTO_AGGREGATE_POINTS;
+/** A measured total replaces the published one only when it differs by more than this share. */
+const AGGREGATE_HYSTERESIS = 0.25;
+/** Published totals are multiples of this, so render-time noise never yields a new budget. */
+const AGGREGATE_STEP = 480;
 
 /** Records one full chart render (all series rebuilt) of `points` rendered points. */
 export function recordChartRenderCost(points: number, durationMs: number): void {
@@ -91,18 +96,32 @@ export function recordChartRenderCost(points: number, durationMs: number): void 
 /**
  * Page-wide rendered-points target from the measured render cost: what fits one frame, bounded to
  * [½, 2.5] × the accepted Raspberry Pi target. Unmeasured devices keep the accepted target.
+ *
+ * Stable by construction (#1844 review): the published total moves only when the measured one
+ * differs by more than 25 %, and then to a multiple of 480 points. Ordinary render-time variation
+ * therefore never changes a budget, so a refreshed detail can never feed a new measurement that
+ * refreshes it again.
  */
 export function adaptiveAggregatePoints(): number {
-  if (msPerPoint === null || measurements < MIN_MEASUREMENTS || !(msPerPoint > 0))
-    return CHART_AUTO_AGGREGATE_POINTS;
-  const fitting = Math.round(CHART_RENDER_TARGET_MS / msPerPoint);
-  return Math.min(CHART_ADAPTIVE_AGGREGATE_MAX, Math.max(CHART_ADAPTIVE_AGGREGATE_MIN, fitting));
+  if (msPerPoint === null || measurements < MIN_MEASUREMENTS || !(msPerPoint > 0)) return publishedAggregate;
+  const fitting = Math.min(
+    CHART_ADAPTIVE_AGGREGATE_MAX,
+    Math.max(CHART_ADAPTIVE_AGGREGATE_MIN, CHART_RENDER_TARGET_MS / msPerPoint),
+  );
+  if (Math.abs(fitting - publishedAggregate) > publishedAggregate * AGGREGATE_HYSTERESIS) {
+    publishedAggregate = Math.min(
+      CHART_ADAPTIVE_AGGREGATE_MAX,
+      Math.max(CHART_ADAPTIVE_AGGREGATE_MIN, Math.round(fitting / AGGREGATE_STEP) * AGGREGATE_STEP),
+    );
+  }
+  return publishedAggregate;
 }
 
 /** Test seam: forget measured cost and reported widths. */
 export function resetChartViewportBudgetState(): void {
   msPerPoint = null;
   measurements = 0;
+  publishedAggregate = CHART_AUTO_AGGREGATE_POINTS;
   plotWidths.clear();
   publishedWidth = CHART_DEFAULT_PLOT_WIDTH_PX;
 }

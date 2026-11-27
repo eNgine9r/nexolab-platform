@@ -100,9 +100,21 @@ describe("#1844 adaptive viewport point budget", () => {
     expect(adaptiveAggregatePoints()).toBe(CHART_ADAPTIVE_AGGREGATE_MIN);
 
     resetChartViewportBudgetState();
-    // 4 000 points in 10 ms: 16 ms fits 6 400.
+    // 4 000 points in 10 ms: 16 ms fits 6 400, published as a multiple of 480.
     for (let index = 0; index < 4; index += 1) recordChartRenderCost(4_000, 10);
-    expect(adaptiveAggregatePoints()).toBe(6_400);
+    expect(adaptiveAggregatePoints()).toBe(6_240);
+  });
+
+  it("does not change the budget on ordinary render-time variation (review)", () => {
+    for (let index = 0; index < 4; index += 1) recordChartRenderCost(4_000, 10);
+    const published = adaptiveAggregatePoints();
+    const budgets = new Set<number>();
+    for (let index = 0; index < 40; index += 1) {
+      recordChartRenderCost(4_000, index % 2 === 0 ? 10 : 11);
+      expect(adaptiveAggregatePoints()).toBe(published);
+      budgets.add(resolveViewportPointBudget({ mode: "auto", seriesCount: 6, plotWidthPx: 1_280 }));
+    }
+    expect(budgets.size).toBe(1);
   });
 });
 
