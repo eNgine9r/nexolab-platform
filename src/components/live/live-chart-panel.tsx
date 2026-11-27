@@ -20,6 +20,7 @@ export function LiveChartPanel({
   onResetView,
   onToggleSeries,
   onSoloSeries,
+  onShowAllSeries,
 }: {
   group: LiveChartGroup;
   rangeLabel: string;
@@ -30,6 +31,7 @@ export function LiveChartPanel({
   onResetView: () => void;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
+  onShowAllSeries?: () => void;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
@@ -47,6 +49,7 @@ export function LiveChartPanel({
       inspection={inspection}
       onToggleSeries={onToggleSeries}
       onSoloSeries={onSoloSeries}
+      onShowAllSeries={onShowAllSeries}
       onResetZoom={() => {
         adapter.resetZoom();
         onResetView();

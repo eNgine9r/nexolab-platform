@@ -140,13 +140,20 @@ export interface ChartXDomain {
   toMs: number;
 }
 
+/**
+ * #1868: every analog measurement line is SOLID; sensors are told apart by colour, name and the
+ * interactive legend (markers only where a single isolated measurement needs one). Dashed/dotted
+ * styles stay reserved for references that are not measurements (thresholds, events, setpoints).
+ * The palette applies to every surface, including dashboards saved before this change (their
+ * style was never stored; it always came from this palette).
+ */
 export const CHART_SERIES_TOKENS = [
   { color: "#00C6E0", dashStyle: "solid", markerShape: "circle" },
-  { color: "#7ED321", dashStyle: "dashed", markerShape: "diamond" },
-  { color: "#0077FF", dashStyle: "dotted", markerShape: "triangle" },
+  { color: "#7ED321", dashStyle: "solid", markerShape: "diamond" },
+  { color: "#0077FF", dashStyle: "solid", markerShape: "triangle" },
   { color: "#A855F7", dashStyle: "solid", markerShape: "rect" },
-  { color: "#F5B301", dashStyle: "dashed", markerShape: "circle" },
-  { color: "#14B8A6", dashStyle: "dotted", markerShape: "diamond" },
+  { color: "#F5B301", dashStyle: "solid", markerShape: "circle" },
+  { color: "#14B8A6", dashStyle: "solid", markerShape: "diamond" },
   { color: "#F97316", dashStyle: "solid", markerShape: "triangle" },
-  { color: "#F43F5E", dashStyle: "dashed", markerShape: "rect" },
+  { color: "#F43F5E", dashStyle: "solid", markerShape: "rect" },
 ] as const;

@@ -895,6 +895,10 @@ export function LiveTelemetryExplorer({
                     return next;
                   });
                 }}
+                onShowAllSeries={() => {
+                  setHiddenSeriesKeys(new Set());
+                  setSoloSeriesKey(null);
+                }}
                 onSoloSeries={(seriesKey) => {
                   setSoloSeriesKey((current) => (current === seriesKey ? null : seriesKey));
                 }}

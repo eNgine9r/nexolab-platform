@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chartSeriesKey, type ChartSeriesIdentity } from "./domain";
+import { CHART_SERIES_TOKENS, chartSeriesKey, type ChartSeriesIdentity } from "./domain";
 import { CANONICAL_CHART_TIME_RANGES } from "./time-ranges";
 
 describe("chart domain contracts", () => {
@@ -29,5 +29,12 @@ describe("chart domain contracts", () => {
       "custom",
     ]);
     expect(CANONICAL_CHART_TIME_RANGES.find((range) => range.id === "custom")?.durationMs).toBeNull();
+  });
+});
+
+describe("#1868 solid measurement lines", () => {
+  it("every palette token draws a solid line (colour and legend tell series apart)", () => {
+    for (const token of CHART_SERIES_TOKENS) expect(token.dashStyle).toBe("solid");
+    expect(new Set(CHART_SERIES_TOKENS.map((token) => token.color)).size).toBe(CHART_SERIES_TOKENS.length);
   });
 });

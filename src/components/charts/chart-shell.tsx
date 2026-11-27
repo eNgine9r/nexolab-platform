@@ -103,6 +103,7 @@ export function ChartShell({
   legend,
   onToggleSeries,
   onSoloSeries,
+  onShowAllSeries,
   onResetZoom,
   onExportImage,
   formatTimestamp,
@@ -118,6 +119,8 @@ export function ChartShell({
   legend?: ReactNode;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
+  /** #1868: one shared "show all" that ends hide and solo, on every chart surface. */
+  onShowAllSeries?: () => void;
   onResetZoom: () => void;
   /** When provided, shows a button that saves the visible plot as PNG (local renderer only). */
   onExportImage?: () => void;
@@ -194,6 +197,7 @@ export function ChartShell({
     locale === "uk"
       ? {
           resetZoom: "Скинути масштаб",
+          showAll: "Повернути всі",
           exportImage: "Зберегти PNG",
           legend: "Легенда графіка",
           hide: "Приховати",
@@ -225,6 +229,7 @@ export function ChartShell({
         }
       : {
           resetZoom: "Reset zoom",
+          showAll: "Show all",
           exportImage: "Save PNG",
           legend: "Chart legend",
           hide: "Hide",
@@ -357,6 +362,16 @@ export function ChartShell({
                 className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 {copy.exportImage}
+              </button>
+            ) : null}
+            {onShowAllSeries && series.some((item) => !item.visible) ? (
+              <button
+                type="button"
+                onClick={onShowAllSeries}
+                data-testid="chart-show-all-series"
+                className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                {copy.showAll}
               </button>
             ) : null}
             <button

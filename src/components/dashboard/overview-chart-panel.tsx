@@ -19,6 +19,7 @@ export function OverviewChartPanel({
   onResetView,
   onToggleSeries,
   onSoloSeries,
+  onShowAllSeries,
 }: {
   group: OverviewChartGroup;
   rangeLabel: string;
@@ -29,6 +30,7 @@ export function OverviewChartPanel({
   onResetView: () => void;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
+  onShowAllSeries?: () => void;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
@@ -46,6 +48,7 @@ export function OverviewChartPanel({
         inspection={inspection}
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}
+        onShowAllSeries={onShowAllSeries}
         onResetZoom={() => {
           adapter.resetZoom();
           onXDomainChange(resetDomain);

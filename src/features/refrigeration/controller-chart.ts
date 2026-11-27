@@ -119,6 +119,8 @@ function seriesFromSamples(
     identity,
     name,
     colorToken: token.color,
+    // #1868: the setpoint is a configured reference, not a measurement, so it keeps the dashed
+    // reference style; every measured controller value is solid.
     dashStyle: first.metric === EMBRACO_METRICS.setpoint ? "dashed" : token.dashStyle,
     markerShape: token.markerShape,
     ...refrigerationSeriesFreshness(online, ordered, now),

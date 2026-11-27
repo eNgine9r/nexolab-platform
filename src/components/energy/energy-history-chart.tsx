@@ -233,6 +233,10 @@ export function EnergyHistoryChart({
           resetRevision={resetRevision}
           onToggle={toggleSeries}
           onSolo={(key) => setSoloSeriesKey((current) => (current === key ? null : key))}
+          onShowAll={() => {
+            setHiddenSeriesKeys(new Set());
+            setSoloSeriesKey(null);
+          }}
           onReset={resetZoom}
           onCursor={(next) => setSharedCursorMs(next?.timestampMs ?? null)}
           onDomainChange={changeDomain}
@@ -291,6 +295,7 @@ function EnergyChartPanel({
   resetRevision,
   onToggle,
   onSolo,
+  onShowAll,
   onReset,
   onCursor,
   onDomainChange,
@@ -307,6 +312,7 @@ function EnergyChartPanel({
   resetRevision: number;
   onToggle: (key: string) => void;
   onSolo: (key: string) => void;
+  onShowAll: () => void;
   onReset: () => void;
   onCursor: (inspection: ChartCursorInspection | null) => void;
   onDomainChange: (domain: ChartXDomain) => void;
@@ -338,6 +344,7 @@ function EnergyChartPanel({
       locale="uk"
       onToggleSeries={onToggle}
       onSoloSeries={onSolo}
+      onShowAllSeries={onShowAll}
       onResetZoom={onReset}
     >
       <ChartRendererHost

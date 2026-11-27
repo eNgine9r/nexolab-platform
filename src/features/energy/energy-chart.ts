@@ -278,7 +278,8 @@ export function buildEnergyChartScene({
             : group.metric.id === "electrical.power.active"
               ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
               : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
-        dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
+        // #1868: measurement lines are solid; metrics are told apart by colour and legend.
+        dashStyle: "solid" as const,
         markerShape: "circle" as const,
         ...(historical
           ? historicalSeriesFreshness(newestSampleValidity(group.samples))
