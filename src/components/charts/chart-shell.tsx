@@ -197,7 +197,7 @@ export function ChartShell({
     locale === "uk"
       ? {
           resetZoom: "Скинути масштаб",
-          showAll: "Показати всі",
+          showAll: "Повернути всі",
           exportImage: "Зберегти PNG",
           legend: "Легенда графіка",
           hide: "Приховати",

@@ -491,7 +491,7 @@ describe("#1868 one shared show-all control", () => {
         <div>plot</div>
       </ChartShell>,
     );
-    expect(screen.queryByRole("button", { name: "Показати всі" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Повернути всі" })).toBeNull();
     const soloed = scene.series.map((series, index) => ({ ...series, visible: index === 0 }));
     rerender(
       <ChartShell
@@ -509,7 +509,7 @@ describe("#1868 one shared show-all control", () => {
         <div>plot</div>
       </ChartShell>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Показати всі" }));
+    fireEvent.click(screen.getByRole("button", { name: "Повернути всі" }));
     expect(onShowAllSeries).toHaveBeenCalledTimes(1);
   });
 });
