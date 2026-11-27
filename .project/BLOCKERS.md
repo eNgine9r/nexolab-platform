@@ -1,3 +1,29 @@
+## 2026-11-27 — Reconciliation: current blockers (this section supersedes older entries where they differ)
+
+Older entries below are kept as history. Where they disagree with this section, this section is current.
+
+### Open now
+
+- **SSD headroom for `:443` (new).** Free 20.37 GiB (21 870 964 736 bytes) after the `84cf45e7` LAN build. The HTTPS artifact `fa34da0d` unpacks to 621 796 345 bytes (593 MiB, 19 025 files), and the v2 tool needs the 20 GiB reserve left _after_ extraction, so `prepare` would refuse by about 216 MiB. The owner package (`docs/operations/unified-charts-release-candidate.md`, _SSD headroom_) frees regenerable data only: build cache ~2.1–2.4 GiB and two test virtualenvs ~0.63 GiB. 25 GiB is not reachable without deciding on old release directories and workspaces, which is the release-retention policy work.
+- **#1874 — Tailscale `:8444` bypasses the LAN gateway.** Pages answer 200, but `/api` is a Next.js 404 and the WebSocket does not upgrade, so a browser on `:8444` gets no data. `:8444` proxies straight to the dashboard on the compat address; `:8443` and the LAN use the gateway `:80`. The documented retarget to `127.0.0.1:80` is a Stage 3 consumer step. Owner decision: retarget now or keep `:8444` pages-only until Stage 3. Network configuration is not changed by the agent.
+- **#1428 DR (hard gate for any backend, migration or protected cutover).** Real encrypted backup, off-device copy, independent isolated restore and key custody are unproven. Owner checklist `docs/operations/dr-1428-owner-checklist.md`.
+- **Stage 3 backend (`docs/operations/infrastructure-sprint-closeout.md`).** `prove` GREEN; `check`/`execute` wait for the #1428 A2 receipt.
+- **CVE exception expiry.** The approved CVE-2026-107494 and CVE-2026-124709 exceptions (#1743/#1744) expire on 2026-12-15 with no automatic extension; any image build after that needs fixed packages or a new decision. The "pending decision" entry of 2026-11-25 below is superseded.
+- **Backend image hold.** `nexolab/telemetry-service:issue-1615-1e5537cb-arm64` (stale ×0.1 temperature) must never be activated.
+- **Owner browser acceptance** of `84cf45e7` on LAN and `:8443`, and of `:443` after activation. Viewer login at `:8443/inspection-login` from an approved workstation.
+- **Hardware and site evidence.** Embraco scale ×0.01 is provisional (not calibrated); operator-PC 60 FPS; offline boot and reboot cause (#1399, #1409).
+- **Access control (#1526, #1528, #1530).** Page-level grants are not independently enforced.
+- **Broker gap.** The broker cannot read or recover `nexolab-google-oauth-stage.service`.
+
+### Superseded or resolved (kept below as history)
+
+- **Frontend identity and activation entries** for #1532–#1537, #1544–#1550, #1558, #1560 (both), #1562, #1564, #1569, #1573, #1575 (frontend part), #1577, #1579, #1581, #1583, #1585 (both), #1588 (both), #1590, #1592 (both), #1607, #1609, #1611, #1613, #1625 and the frontend parts of #1621/#1622. Their source is merged into `main` and shipped in later frontend releases. Production now: LAN, `:8443`, `:8444` = `84cf45e7` / `hZgwiFnOtHT1zzeKaTCMl`; `:443` = `47e9dd94` / `30zMx48UZ8ATG5QCPdL_Z`. Their backend, hardware and browser gates are carried in _Open now_.
+- **#1594** workflow registration — resolved (merged).
+- **CVE-2026-124709 drift** — resolved on 2026-11-23.
+- **2026-11-27 `:443` OAuth outage** — resolved by the owner; the "still open" frontend line there (`7db6e1a8` → `210b478b`) is superseded by the identities above.
+- **2026-11-26 owner package:** item 2 (`:8443` routing) and item 5 (manifest C, 20 images removed) are done. Items 1, 3, 4 and 6 are carried in _Open now_.
+- **2026-11-10 capacity hard blocker (7.2 GiB free) and #1553** — superseded by later cleanups; the current headroom is the SSD item in _Open now_. The overlapping LAN route was replaced by the WP2c LAN gateway.
+
 ## 2026-11-27 — `:443` OAuth down after reboot (resolved by the owner); `:443` frontend step pending
 
 - **Root cause:** the oauth2-proxy unit `nexolab-google-oauth-stage.service` is static (no `[Install]`). After the 00:11 reboot it was not started, and the gateway `:18790` answered `503 Authentication unavailable`.

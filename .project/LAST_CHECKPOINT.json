@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T17:05:00Z",
+  "timestamp": "2026-11-27T17:45:00Z",
   "actor": "claude",
-  "event": "Unified Chart Experience 84cf45e7 deployed to LAN, :8443, :8444 (STAGE2_FRONTEND_GREEN, build hZgwiFnOtHT1zzeKaTCMl); :443 still 47e9dd94 pending owner v2 tool step",
+  "event": "LAN/:8443/:8444 on 84cf45e7; :443 47e9dd94 pending owner SSD+HTTPS package (artifact unpacks 593 MiB, shortfall ~216 MiB); #1874 :8444 API defect recorded; BLOCKERS reconciled; product updates paused for DR/storage/backend priorities",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
