@@ -398,7 +398,7 @@ export function NotesAndAudit({
           <FileClock className="h-4 w-4 text-cyan-300" />
           <h2 className="text-sm font-semibold text-white">Незмінний журнал аудиту</h2>
         </div>
-        <div className="scrollbar-thin mt-4 max-h-[390px] space-y-2 overflow-y-auto">
+        <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
           {!auditReadable ? (
             <Empty label="Журнал аудиту доступний користувачам із відповідним правом." />
           ) : audit.length === 0 ? (
