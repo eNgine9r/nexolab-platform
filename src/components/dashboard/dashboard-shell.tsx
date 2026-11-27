@@ -7,7 +7,6 @@ import { ArrowUpRight, ChevronRight, Settings2 } from "lucide-react";
 
 import { readCameraInventory } from "@/features/cameras/domain";
 import { hasPermission } from "@/features/security/security-session";
-import { useSessionListReadModel } from "@/features/test-sessions/use-session-list-read-model";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
 import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
@@ -23,7 +22,7 @@ import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
 import { TemperatureVisibilityDialog } from "./temperature-visibility-dialog";
-import { activeSessionsKpi, OVERVIEW_SESSION_QUERY, SessionsPanel } from "./sessions-panel";
+import { activeSessionsKpi, SessionsPanel, useActiveSessionCounts } from "./sessions-panel";
 import { canSeePlatformDestination, Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
@@ -79,16 +78,15 @@ export function DashboardShell() {
       visibleChannelIds: temperatureVisibility.visibleChannelIds,
     }),
   });
-  const sessionsModel = useSessionListReadModel({
+  const sessionCounts = useActiveSessionCounts({
     enabled: security.mode === "live" && securityReady,
     organizationId,
-    query: OVERVIEW_SESSION_QUERY,
   });
   const kpis =
     telemetry.mode === "live"
       ? telemetry.kpis.map((item) =>
           item.icon === "session"
-            ? activeSessionsKpi(item, sessionsModel.value?.items ?? null, sessionsModel.error !== null)
+            ? activeSessionsKpi(item, sessionCounts.counts, sessionCounts.failed)
             : item,
         )
       : telemetry.kpis;

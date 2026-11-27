@@ -9,38 +9,87 @@ import { AlertTriangle, Clock3, LoaderCircle } from "lucide-react";
 
 import { useSessionListReadModel } from "@/features/test-sessions/use-session-list-read-model";
 import type { DashboardKpiValue } from "@/lib/telemetry/dashboard-state";
-import type { LaboratorySession } from "@/lib/sessions/types";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 /** One query for the Overview list and its KPI: the read-model cache serves both from one request. */
 export const OVERVIEW_SESSION_QUERY = { nodeId: "edge-01", limit: 50 } as const;
 
+export interface ActiveSessionCounts {
+  running: number;
+  paused: number;
+  ready: number;
+}
+
+const COUNT_QUERY_LIMIT = 1;
+
 /**
- * #1845: the "Active sessions" KPI from the same session list the Overview panel shows (it used to
- * say "Session API not connected" next to a running session). Active = running or paused; sessions
- * that are only ready are named separately. Unknown stays "—" with the reason, never a guess.
+ * #1845 review: exact totals per state from the server (`count` of a state-filtered page is the
+ * total match count), not a count of the newest 50 sessions. Three cached one-row queries.
+ */
+export function useActiveSessionCounts({
+  enabled,
+  organizationId,
+}: {
+  enabled: boolean;
+  organizationId: string | null;
+}): { counts: ActiveSessionCounts | null; failed: boolean } {
+  const nodeId = OVERVIEW_SESSION_QUERY.nodeId;
+  const running = useSessionListReadModel({
+    enabled,
+    organizationId,
+    query: { nodeId, state: "running", limit: COUNT_QUERY_LIMIT },
+  });
+  const paused = useSessionListReadModel({
+    enabled,
+    organizationId,
+    query: { nodeId, state: "paused", limit: COUNT_QUERY_LIMIT },
+  });
+  const ready = useSessionListReadModel({
+    enabled,
+    organizationId,
+    query: { nodeId, state: "ready", limit: COUNT_QUERY_LIMIT },
+  });
+  const failed = running.error !== null || paused.error !== null || ready.error !== null;
+  if (!running.value || !paused.value || !ready.value) return { counts: null, failed };
+  return {
+    counts: { running: running.value.count, paused: paused.value.count, ready: ready.value.count },
+    failed,
+  };
+}
+
+/**
+ * #1845: the "Active sessions" KPI from the session API (it used to say "Session API not
+ * connected" next to a running session). Active = running or paused; ready sessions are named
+ * separately. Its status badge follows the session API, not telemetry, and a failed refresh is
+ * always stated. Unknown stays "—" with the reason, never a guess.
  */
 export function activeSessionsKpi<T extends Pick<DashboardKpiValue, "value" | "detail" | "trend">>(
   base: T,
-  items: readonly Pick<LaboratorySession, "state">[] | null,
+  counts: ActiveSessionCounts | null,
   failed: boolean,
-): Omit<T, "value" | "detail" | "trend"> & Pick<DashboardKpiValue, "value" | "detail" | "trend"> {
-  if (items === null) {
+): Omit<T, "value" | "detail" | "trend" | "badge" | "badgeTone"> &
+  Pick<DashboardKpiValue, "value" | "detail" | "trend" | "badge" | "badgeTone"> {
+  if (counts === null) {
     return {
       ...base,
       value: "—",
       detail: failed ? "Список сесій недоступний" : "Завантаження сесій…",
       trend: "дані не симулюються",
+      badge: failed ? "error" : "offline",
+      badgeTone: failed ? "error" : "offline",
     };
   }
-  const running = items.filter((item) => item.state === "running").length;
-  const paused = items.filter((item) => item.state === "paused").length;
-  const ready = items.filter((item) => item.state === "ready").length;
   return {
     ...base,
-    value: String(running + paused),
-    detail: `Виконується: ${running} · призупинено: ${paused}`,
-    trend: ready > 0 ? `готові до запуску: ${ready}` : failed ? "останній відомий стан" : "вузол edge-01",
+    value: String(counts.running + counts.paused),
+    detail: `Виконується: ${counts.running} · призупинено: ${counts.paused}`,
+    trend: failed
+      ? "оновлення не вдалося; останній відомий стан"
+      : counts.ready > 0
+        ? `готові до запуску: ${counts.ready}`
+        : "вузол edge-01",
+    badge: failed ? "stale" : "live",
+    badgeTone: failed ? "stale" : "live",
   };
 }
 

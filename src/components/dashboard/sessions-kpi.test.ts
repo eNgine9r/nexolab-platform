@@ -16,24 +16,30 @@ const BASE: DashboardKpiValue = {
 };
 
 describe("#1845 Overview active sessions KPI", () => {
-  it("counts the running session the panel lists (was a dash with 'Session API not connected')", () => {
-    const kpi = activeSessionsKpi(BASE, [{ state: "running" }, { state: "completed" }], false);
-    expect(kpi.value).toBe("1");
-    expect(kpi.detail).toBe("Виконується: 1 · призупинено: 0");
+  it("counts the running session (was a dash with 'Session API not connected')", () => {
+    const kpi = activeSessionsKpi(BASE, { running: 1, paused: 0, ready: 0 }, false);
+    expect(kpi).toMatchObject({ value: "1", detail: "Виконується: 1 · призупинено: 0", badgeTone: "live" });
   });
 
   it("counts paused sessions as active and names ready ones separately", () => {
-    const kpi = activeSessionsKpi(BASE, [{ state: "paused" }, { state: "ready" }, { state: "ready" }], false);
+    const kpi = activeSessionsKpi(BASE, { running: 0, paused: 1, ready: 2 }, false);
     expect(kpi.value).toBe("1");
     expect(kpi.trend).toBe("готові до запуску: 2");
   });
 
-  it("says zero only when the list is known, and never guesses when it is not", () => {
-    expect(activeSessionsKpi(BASE, [], false).value).toBe("0");
+  it("states a failed refresh before anything else, with its own badge (review)", () => {
+    const kpi = activeSessionsKpi(BASE, { running: 1, paused: 0, ready: 2 }, true);
+    expect(kpi.trend).toBe("оновлення не вдалося; останній відомий стан");
+    expect(kpi).toMatchObject({ badge: "stale", badgeTone: "stale" });
+  });
+
+  it("says zero only when the totals are known, and never guesses when they are not", () => {
+    expect(activeSessionsKpi(BASE, { running: 0, paused: 0, ready: 0 }, false).value).toBe("0");
     expect(activeSessionsKpi(BASE, null, false)).toMatchObject({ value: "—", detail: "Завантаження сесій…" });
     expect(activeSessionsKpi(BASE, null, true)).toMatchObject({
       value: "—",
       detail: "Список сесій недоступний",
+      badgeTone: "error",
     });
   });
 });
