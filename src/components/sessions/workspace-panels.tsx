@@ -378,7 +378,7 @@ export function NotesAndAudit({
             </button>
           </div>
         )}
-        <div className="scrollbar-thin mt-4 max-h-80 space-y-2 overflow-y-auto">
+        <div className="mt-4 max-h-80 scrollbar-thin space-y-2 overflow-y-auto">
           {notes.length === 0 ? (
             <Empty label="Приміток немає" />
           ) : (
