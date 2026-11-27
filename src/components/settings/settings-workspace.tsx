@@ -86,13 +86,13 @@ const coreSections: readonly SectionItem[] = [
   {
     id: "data-collection",
     title: "Збір даних",
-    description: "Фізичний інтервал read-only опитування.",
+    description: "Як часто система опитує прилади (лише читання).",
     icon: SlidersHorizontal,
   },
   {
     id: "system",
     title: "Система",
-    description: "LOCAL_LAN runtime, діагностика та safety boundary.",
+    description: "Стан локальної системи, діагностика та межі безпеки.",
     icon: MonitorCog,
   },
 ];
@@ -100,7 +100,7 @@ const coreSections: readonly SectionItem[] = [
 const monitoringSection: SectionItem = {
   id: "monitoring",
   title: "Моніторинг",
-  description: "Канали XJP60D для постійного read-only збору.",
+  description: "Канали XJP60D для постійного збору даних (лише читання).",
   icon: Eye,
 };
 
@@ -174,8 +174,7 @@ const statusCopy: Record<
 > = {
   ready: {
     title: "Конфігурація готова",
-    description:
-      "Клієнтська LOCAL_LAN конфігурація узгоджена. Фактична доступність runtime та hardware перевіряється окремо.",
+    description: "Налаштування інтерфейсу узгоджені. Доступність сервера та приладів перевіряється окремо.",
     icon: CheckCircle2,
     className: "border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-200",
   },
@@ -240,8 +239,8 @@ export function SettingsWorkspace({
                 </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-400 sm:text-base">
-                Оберіть задачу, яку потрібно налаштувати. Presentation preferences не змінюють фізичне
-                опитування, а операційні дії залишаються в межах чинних дозволів і LOCAL_LAN safety rules.
+                Оберіть задачу, яку потрібно налаштувати. Налаштування відображення не змінюють опитування
+                приладів, а операційні дії обмежені вашими дозволами та правилами безпеки.
               </p>
             </div>
             <div className={`rounded-2xl border px-4 py-3 ${status.className}`} role="status">
@@ -465,7 +464,7 @@ function GeneralSection({
           <div>
             <h3 className="text-base font-semibold text-white">Основні параметри</h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Зберігаються лише в цьому браузері та не змінюють acquisition.
+              Зберігаються лише в цьому браузері та не змінюють опитування приладів.
             </p>
           </div>
           <button
@@ -593,13 +592,13 @@ function MonitoringSection({
         id="monitoring-heading"
         icon={MonitorCog}
         title="Безперервний моніторинг XJP60D"
-        description="Виберіть канали, які NEXOLAB повинен постійно опитувати в read-only режимі."
+        description="Виберіть канали, які NEXOLAB повинен постійно опитувати (лише читання)."
       />
       <div className="mt-5 rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-5">
         <h3 className="text-sm font-medium text-white">Канали постійного збору</h3>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Зміна цього списку керує лише persisted eligibility для read-only polling. Вона не виконує Modbus
-          write і не змінює параметри контролера.
+          Цей список лише визначає, які канали опитуються. Запис у прилади (Modbus write) не виконується,
+          параметри контролера не змінюються.
         </p>
         {error ? (
           <div
@@ -652,7 +651,7 @@ function SystemSection({
           id="system-heading"
           icon={MonitorCog}
           title="Стан системи"
-          description="Sanitized LOCAL_LAN runtime diagnostics без секретів і внутрішніх credentials."
+          description="Діагностика локальної системи без секретів і паролів."
         />
         <div
           aria-label="Підсумок runtime configuration"
@@ -719,7 +718,7 @@ function SystemSection({
           Ефективні дозволи
         </summary>
         <p className="mt-2 text-xs leading-5 text-slate-500">
-          Це read-only пояснення фактичного доступу, а не редактор RBAC.
+          Тут показано ваш фактичний доступ; змінити права тут не можна.
         </p>
         <div className="mt-4 space-y-3">
           {permissionGroups.map((group) => {

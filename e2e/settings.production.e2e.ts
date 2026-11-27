@@ -202,7 +202,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(cadence.getByText(/Доступ лише для перегляду/)).toBeVisible();
       await expect(cadence.getByText("Dixell XJP60D", { exact: true }).first()).toBeVisible();
       await expect(cadence.getByText("LE-01MP / енергомоніторинг", { exact: true }).first()).toBeVisible();
-      await expect(cadence.getByText(/Refresh графіків.*не змінюють фізичне/)).toBeVisible();
+      await expect(cadence.getByText(/Оновлення графіків.*на опитування не впливають/)).toBeVisible();
 
       const bodyText = await page.locator("body").innerText();
       expect(bodyText).not.toContain(viewerToken);

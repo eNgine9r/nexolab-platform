@@ -80,7 +80,7 @@ describe("AcquisitionCadencePanel", () => {
     render(<AcquisitionCadencePanel controller={value} canManage />);
 
     expect(screen.getByRole("heading", { name: "Фізичний інтервал опитування" })).toBeVisible();
-    expect(screen.getByText(/Refresh графіків.*не змінюють фізичне опитування/)).toBeVisible();
+    expect(screen.getByText(/Оновлення графіків.*на опитування не впливають/)).toBeVisible();
     expect(screen.getByText("Registry revision: 7")).toBeVisible();
 
     const xjpCard = screen.getByText("Dixell XJP60D", { exact: true }).closest("article");

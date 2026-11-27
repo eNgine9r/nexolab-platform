@@ -99,8 +99,8 @@ export function SettingsScreen() {
   if (security.mode === "demo") {
     return (
       <SettingsModeGate
-        title="Налаштування потребують перевіреної live session"
-        message="Сторінка навмисно не підміняє identity, organization або runtime configuration демонстраційними значеннями. Увімкніть live mode і локальну операторську автентифікацію."
+        title="Потрібен вхід у локальну систему"
+        message="Налаштування показують лише реальні дані й ніколи не підставляють демонстраційні значення. Увійдіть у локальну систему NEXOLAB."
       />
     );
   }

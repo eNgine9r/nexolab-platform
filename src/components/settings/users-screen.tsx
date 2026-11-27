@@ -195,7 +195,7 @@ export function UsersScreen() {
   if (security.mode === "demo") {
     return (
       <UsersGate
-        title="Користувачі доступні лише в local live mode"
+        title="Користувачі доступні лише після входу в локальну систему"
         message="Users & Access працює з локальною PostgreSQL identity authority і не використовує demo accounts."
       />
     );

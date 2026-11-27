@@ -280,9 +280,8 @@ export function AcquisitionCadencePanel({
             </div>
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-400">
-            Цей параметр змінює частоту реальних read-only Modbus запитів Device Agent. Refresh графіків,
-            вибір 24 год / 7 днів, Saved Dashboard та відкриття інших браузерів не змінюють фізичне
-            опитування.
+            Цей параметр змінює, як часто система опитує прилади (лише читання). Оновлення графіків, вибір 24
+            год / 7 днів, збережені панелі та інші браузери на опитування не впливають.
           </p>
         </div>
         <button
@@ -332,7 +331,7 @@ export function AcquisitionCadencePanel({
       ) : null}
 
       {controller.isLoading && !configuration ? (
-        <p className="mt-6 text-sm text-slate-500">Завантаження persisted cadence policy…</p>
+        <p className="mt-6 text-sm text-slate-500">Завантаження налаштувань опитування…</p>
       ) : configuration ? (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-slate-500">
