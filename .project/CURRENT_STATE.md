@@ -1,3 +1,12 @@
+## 2026-11-27 — Unified Chart Experience 84cf45e7 on all four interfaces; #1878 compact legend in progress
+
+- **`:443`:** the broker build-cache cleanup (owner approval) freed 20.35 → 22.46 GiB; the venvs were kept. The owner ran the v2 tool: `HTTPS_FRONTEND_GREEN`.
+  - Verified: `:3105` = `84cf45e7` / `hUzaQBG5v2tGcLVYrU3qL`; 6 routes 200; 23/23 chunks 200; public `:443` 302; telemetry ready; 21.8 GiB free.
+  - Authenticated browser acceptance on all interfaces is still the owner's; `:8444` data is broken (#1874).
+- **#1878 (branch `feat/1878-compact-legend`):** one shared `ChartSeriesLegend` (approved Saved Dashboard design) for every `ChartShell` surface.
+  - The card legend with text buttons is removed. Rows: colour, name, value/unit, EyeOff/Eye and Focus icons; latest ↔ cursor header; search above 4 series; instrument grouping on Saved Dashboards; stale/quality shown as text.
+  - Browser evidence (`issue-1878-*.png`) is captured by the e2e suites for Overview, Live, multi-axis Live (desktop + 360 px), Saved Dashboards (360/1440/1920) and Energy. Refrigeration and Test Sessions use the same `ChartShell` legend; their browser fixtures have no plotted controller/session series, so they are covered by component tests only.
+
 ## 2026-11-27 — `:443` waits for SSD headroom; `:8444` API defect #1874; blockers reconciled
 
 - **`:443`:** free 20.37 GiB; artifact `fa34da0d` unpacks to 593 MiB, so the v2 tool would refuse by ~216 MiB. The one-session owner package frees only regenerable data (build cache, two test venvs, ~2.7 GiB), gates at 21.5 GiB, then runs `plan`/`prepare`/`execute`. Details in `docs/operations/unified-charts-release-candidate.md`.

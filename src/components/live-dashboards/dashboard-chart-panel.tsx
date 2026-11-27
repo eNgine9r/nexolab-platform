@@ -4,12 +4,12 @@ import { useMemo } from "react";
 
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { downloadChartPng } from "@/components/charts/chart-png-export";
+import type { ChartLegendGroup } from "@/components/charts/chart-series-legend";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { inspectChartAtTimestamp } from "@/features/charts/inspection";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import type { SavedDashboardChartGroup } from "@/features/live-dashboards/chart";
-import { DashboardChartLegend } from "./dashboard-chart-legend";
 
 export function DashboardChartPanel({
   group,
@@ -42,6 +42,12 @@ export function DashboardChartPanel({
         : inspectChartAtTimestamp(group.scene, sharedCursorMs, { withinObservedSpan: true }),
     [group.scene, sharedCursorMs],
   );
+  const legendGroups = useMemo(() => {
+    const byKey = new Map<string, ChartLegendGroup>();
+    for (const [seriesKey, instrument] of group.instruments)
+      byKey.set(seriesKey, { key: instrument.key, label: instrument.label, secondary: instrument.node });
+    return byKey;
+  }, [group.instruments]);
   const unitLabel = group.nativeUnits.join(" · ") || "без одиниць";
 
   return (
@@ -54,14 +60,7 @@ export function DashboardChartPanel({
         series={group.scene.series}
         requestedWindow={resetDomain}
         inspection={inspection}
-        legend={
-          <DashboardChartLegend
-            group={group}
-            inspection={inspection}
-            onToggleSeries={onToggleSeries}
-            onSoloSeries={onSoloSeries}
-          />
-        }
+        legendGroups={legendGroups}
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}
         onShowAllSeries={onShowAllSeries}

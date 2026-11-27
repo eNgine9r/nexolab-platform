@@ -234,12 +234,12 @@ it("Only this clears stale Solo and Hide overrides, including a repeat selection
     raw_status: null,
   }));
   setup({ historySamples: samples });
-  await waitFor(() => expect(screen.getAllByRole("button", { name: "Приховати" })).toHaveLength(2));
-  fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: /^Приховати / })).toHaveLength(2));
+  fireEvent.click(screen.getAllByRole("button", { name: /^Лише / })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
-  expect(screen.getByRole("button", { name: "Приховати" })).toHaveAttribute("aria-pressed", "true");
-  fireEvent.click(screen.getByRole("button", { name: "Приховати" }));
+  expect(screen.getByRole("button", { name: /^Приховати / })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: /^Приховати / }));
   expect(screen.getByTestId("visible-energy-series")).toBeEmptyDOMElement();
   fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
@@ -335,8 +335,8 @@ it("removing the Solo parameter reveals the remaining selected series", async ()
     raw_status: null,
   }));
   setup({ historySamples: samples });
-  await waitFor(() => expect(screen.getAllByRole("button", { name: "Лише цей" })).toHaveLength(2));
-  fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: /^Лише / })).toHaveLength(2));
+  fireEvent.click(screen.getAllByRole("button", { name: /^Лише / })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Прибрати W1 · Напруга" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
 });

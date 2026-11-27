@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
+import { captureCompactLegend } from "./chart-legend-evidence";
+
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
@@ -573,13 +575,31 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
         }),
     ).toBe(true);
 
-    await page.getByRole("button", { name: "Приховати" }).first().click();
-    await expect(page.getByRole("button", { name: "Показати" }).first()).toBeVisible();
+    await captureCompactLegend(page, page.locator("body"), evidenceDirectory, "live-explorer-desktop");
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Приховати / })
+      .first()
+      .click();
+    await expect(
+      page
+        .getByTestId("chart-series-legend")
+        .getByRole("button", { name: /^Показати / })
+        .first(),
+    ).toBeVisible();
     await expect(summary).toContainText("Видимих серій 7");
     await expect(summary).toContainText("Осей 2");
-    await page.getByRole("button", { name: "Показати" }).first().click();
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Показати / })
+      .first()
+      .click();
     await expect(summary).toContainText("Видимих серій 8");
-    await page.getByRole("button", { name: "Лише цей" }).first().click();
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
     await expect(summary).toContainText("Видимих серій 1");
     await expect(summary).toContainText("Осей 1");
     await expect(inspector.getByRole("row")).toHaveCount(2);
