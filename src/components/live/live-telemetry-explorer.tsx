@@ -166,7 +166,7 @@ function statusMessage(status: LiveTelemetryStatus): {
   if (status === "live") {
     return {
       title: "Живий потік підключено",
-      detail: "Latest inventory і WebSocket updates синхронізовані.",
+      detail: "Поточні значення оновлюються в реальному часі.",
       tone: "border-emerald-300/15 bg-emerald-400/[0.06] text-emerald-100",
       icon: Radio,
     };
@@ -174,7 +174,7 @@ function statusMessage(status: LiveTelemetryStatus): {
   if (status === "connecting") {
     return {
       title: "Підключення до телеметрії",
-      detail: "Спочатку встановлюється authenticated WebSocket coverage, потім REST snapshot.",
+      detail: "Встановлюється захищене з’єднання, потім завантажуються поточні значення.",
       tone: "border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-100",
       icon: Signal,
     };
@@ -946,7 +946,7 @@ export function LiveTelemetryExplorer({
               Знайдіть канал за назвою або ID. Усі умови зберігаються в URL.
             </p>
             <p role="status" aria-live="polite" className="mt-1 text-xs text-cyan-200">
-              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} / 8
+              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} / {LIVE_SELECTION_LIMIT}
             </p>
           </div>
           <button
