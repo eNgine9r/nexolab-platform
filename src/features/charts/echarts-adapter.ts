@@ -650,8 +650,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return null;
-    // A single-axis finder converts one coordinate (#1866: an [x, y] pair is not a time on it).
-    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel[0]);
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return null;
     const domain = this.scene.interactionDomain ?? this.scene.xDomain;
