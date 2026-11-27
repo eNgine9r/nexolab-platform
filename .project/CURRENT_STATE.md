@@ -1,3 +1,16 @@
+## 2026-11-27 — #1863: consecutive guarded HTTPS releases (v2 tool), `:443` still 210b478b
+
+- **The block:** the v1 HTTPS tool refused 210b478b → 47e9dd94 because it supported only a first activation. Nothing changed live.
+- **v2 (PR #1864), described in `docs/operations/chart-system-2-release-candidate.md`:**
+  - one fixed managed drop-in and a release stack holding exact drop-in bytes;
+  - rollback to the immediate predecessor;
+  - checks before any change, against the recorded state and systemd's loaded `DropInPaths`;
+  - a transition record and `recover`, plus a lock;
+  - root-owned drop-ins written via a no-follow directory descriptor;
+  - a read-only stack preflight in `plan`.
+- **Tests:** 24 regression tests with a lexical-order systemd model. An independent review over three rounds found P1s, which are fixed. No real-systemd CI test exists, because runners have no user systemd session.
+- **Next:** the owner installs the checksum-pinned tool and runs plan → prepare → execute with the staged ZIP `c48df0cb…`.
+
 ## 2026-11-27 — #1845 follow-ups merged (#1848–#1852); not deployed
 
 - **Operator copy, merged** (developer terms replaced with plain Ukrainian, every safety statement kept):
