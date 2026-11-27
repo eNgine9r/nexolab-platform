@@ -20,6 +20,7 @@ import { inspectChartAtTimestamp } from "./inspection";
 import { chartPointBudget } from "./point-budget";
 import { buildChartYAxisModel, displayUnit, type ChartYAxisModel } from "./units";
 import { recordChartRenderCost } from "./viewport-budget";
+import { chartProfile } from "./chart-profile";
 import { chartYScaleKey, computeChartYAxisBounds, type ChartYAxisBounds } from "./y-axis-bounds";
 
 registerEChartsModules([
@@ -671,7 +672,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.options?.onCursor(null);
       return;
     }
-    this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
+    const scene = this.scene;
+    this.options?.onCursor(
+      chartProfile("adapter.inspection", () => inspectChartAtTimestamp(scene, timestampMs)),
+    );
   }
 
   private queueCursor(timestampMs: number | null): void {
@@ -942,7 +946,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   setScene(scene: ChartRendererScene): void {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
-    const signature = sceneDataSignature(scene);
+    const signature = chartProfile("adapter.signature", () => sceneDataSignature(scene));
     const unchangedData = this.scene !== null && signature === this.renderedSignature;
     if (this.scene && windowReplaced(this.scene, scene)) {
       // An explicit range selection replaced the whole window: a gesture on the old window is void.
@@ -958,7 +962,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const pendingWindow = this.pendingZoomDomain ?? this.pendingPrimaryDragDomain;
     const rendered = pendingWindow ? { ...scene, xDomain: pendingWindow } : scene;
     const axisModel = buildChartYAxisModel(rendered.series);
-    const yBounds = this.computeYBounds(rendered, axisModel);
+    const yBounds = chartProfile("adapter.yBounds", () => this.computeYBounds(rendered, axisModel));
     const offScaleKey = [...yBounds.values()]
       .flatMap((axis) => axis.offScaleThresholds.map((threshold) => threshold.id))
       .sort()
@@ -968,9 +972,12 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       // Only the visible window moved (zoom, pan, shared domain, live-follow tick without new
       // data). Merge the window and the fitted Y bounds into the existing chart; series data is
       // not rebuilt.
-      this.instance.setOption(
-        { ...xWindowOption(rendered), ...yWindowOption(axisModel, yBounds) },
-        { notMerge: false, lazyUpdate: false },
+      const instance = this.instance;
+      chartProfile("adapter.windowSetOption", () =>
+        instance.setOption(
+          { ...xWindowOption(rendered), ...yWindowOption(axisModel, yBounds) },
+          { notMerge: false, lazyUpdate: false },
+        ),
       );
       this.publishYBounds();
       return;
@@ -986,11 +993,15 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       0,
     );
     const startedAt = performance.now();
-    this.instance.setOption(rendererOption(rendered, axisModel, yBounds), {
-      notMerge: false,
-      lazyUpdate: false,
-      replaceMerge: ["series", "yAxis"],
-    });
+    const instance = this.instance;
+    const option = chartProfile("adapter.buildOption", () => rendererOption(rendered, axisModel, yBounds));
+    chartProfile("adapter.fullSetOption", () =>
+      instance.setOption(option, {
+        notMerge: false,
+        lazyUpdate: false,
+        replaceMerge: ["series", "yAxis"],
+      }),
+    );
     const renderMs = performance.now() - startedAt;
     this.fullRenders += 1;
     // A rebuilt option drops the previous axis pointer; the next shared value is shown again.

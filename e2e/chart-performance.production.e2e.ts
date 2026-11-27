@@ -228,6 +228,80 @@ async function measureZoomPan(page: Page) {
 }
 
 /** Time from the last input until the workspace reports viewport detail (null: none within 10 s). */
+/**
+ * #1867: deep zoom as an operator does it — wheel steps with a pause after each (so every step
+ * commits and loads detail), then pans — with opt-in stage timing of the chart pipeline.
+ */
+async function measureDeepZoom(page: Page) {
+  const surface = page.getByTestId("chart-renderer-surface").first();
+  await surface.scrollIntoViewIfNeeded();
+  const box = (await surface.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.5);
+  await page.evaluate(() => {
+    Reflect.set(window, "__nexolabChartProfile", {});
+    Reflect.set(window, "__nexolabChartProfileEnabled", true);
+    const perf = Reflect.get(window, "__nexolabPerf1813") as PerfProbe;
+    perf.frames = [];
+    perf.running = true;
+    const tick = (time: number) => {
+      if (!perf.running) return;
+      perf.frames.push(time);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const startedAt = await page.evaluate(() => performance.now());
+  const stepMs: number[] = [];
+  for (let step = 0; step < 12; step += 1) {
+    const before = Date.now();
+    await page.mouse.wheel(0, -360);
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    stepMs.push(Date.now() - before);
+    await page.waitForTimeout(250);
+  }
+  for (let pan = 0; pan < 4; pan += 1) {
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.5, { steps: 10 });
+    await page.mouse.up({ button: "left" });
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(500);
+  const result = await page.evaluate((since) => {
+    const perf = Reflect.get(window, "__nexolabPerf1813") as PerfProbe;
+    perf.running = false;
+    Reflect.set(window, "__nexolabChartProfileEnabled", false);
+    const gaps = perf.frames
+      .slice(1)
+      .map((time, index) => time - perf.frames[index])
+      .sort((a, b) => a - b);
+    const during = perf.longTasks.filter(([start]) => start >= since);
+    const durationMs = perf.frames.length > 1 ? perf.frames.at(-1)! - perf.frames[0] : 0;
+    const table = Reflect.get(window, "__nexolabChartProfile") as Record<
+      string,
+      { count: number; totalMs: number; maxMs: number }
+    >;
+    const surfaces = [...document.querySelectorAll<HTMLElement>('[data-testid="chart-renderer-surface"]')];
+    return {
+      averageFps:
+        durationMs > 0 ? Math.round(((perf.frames.length - 1) * 1000 * 10) / durationMs) / 10 : null,
+      p95FrameMs: gaps.length ? Math.round(gaps[Math.floor(gaps.length * 0.95)] * 10) / 10 : null,
+      maxFrameMs: gaps.length ? Math.round(gaps.at(-1)! * 10) / 10 : null,
+      longTasks: during.length,
+      longTaskMaxMs: Math.round(Math.max(0, ...during.map(([, duration]) => duration))),
+      drawnPoints: surfaces.reduce((total, item) => total + Number(item.dataset.chartRenderedPoints ?? 0), 0),
+      stages: Object.fromEntries(
+        Object.entries(table).map(([stage, entry]) => [
+          stage,
+          { count: entry.count, totalMs: Math.round(entry.totalMs), maxMs: Math.round(entry.maxMs) },
+        ]),
+      ),
+    };
+  }, startedAt);
+  stepMs.sort((a, b) => a - b);
+  return { ...result, stepP50Ms: stepMs[Math.floor(stepMs.length / 2)], stepMaxMs: stepMs.at(-1) };
+}
+
 /** #1844: points actually drawn by every mounted chart, and its last full render cost. */
 async function renderedPoints(page: Page) {
   return page.evaluate(() => {
@@ -425,6 +499,7 @@ ANALYZE telemetry_samples;
         viewportDetailAfterInteractionMs: detailLatencyMs,
         rendered: await renderedPoints(page),
         interaction,
+        deepZoom: await measureDeepZoom(page),
       };
       results.push(result);
       console.log(`#1813 performance ${JSON.stringify(result)}`);

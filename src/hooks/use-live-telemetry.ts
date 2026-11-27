@@ -1,6 +1,7 @@
 "use client";
 
 import { useViewportPointBudget } from "@/hooks/use-viewport-point-budget";
+import { chartProfile } from "@/features/charts/chart-profile";
 import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
 import {
@@ -524,12 +525,14 @@ export function useLiveTelemetry({
       const identities = loadedIdentitiesRef.current;
       const budget = detailPointsPerChannelRef.current;
       const aggregated = aggregatedChannelsRef.current;
-      const rawDetail = columnsViewportDetail(
-        identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),
-        intervalColumnsRef.current,
-        domain,
-        budget,
-        sourceGapMsFor,
+      const rawDetail = chartProfile("live.columnsViewportDetail", () =>
+        columnsViewportDetail(
+          identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),
+          intervalColumnsRef.current,
+          domain,
+          budget,
+          sourceGapMsFor,
+        ),
       );
       setViewportDetail(rawDetail.channels.size > 0 ? rawDetail : null);
       const adapter = historyAdapterRef.current;

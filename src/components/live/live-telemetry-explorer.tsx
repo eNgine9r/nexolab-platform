@@ -1,5 +1,6 @@
 "use client";
 
+import { chartProfile } from "@/features/charts/chart-profile";
 import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
@@ -386,18 +387,20 @@ export function LiveTelemetryExplorer({
   );
   const groups = useMemo(
     () =>
-      buildLiveChartGroups({
-        selectedIdentities: selected,
-        historySamples: displayHistory,
-        status: telemetry.status,
-        xDomain: effectiveDomain,
-        hiddenSeriesKeys,
-        soloSeriesKey,
-        displayNames: commissionedNames,
-        latestSamples: latestByKey,
-        cadenceObservations: telemetry.cadenceObservations,
-        now: telemetry.clock,
-      }),
+      chartProfile("live.buildGroups", () =>
+        buildLiveChartGroups({
+          selectedIdentities: selected,
+          historySamples: displayHistory,
+          status: telemetry.status,
+          xDomain: effectiveDomain,
+          hiddenSeriesKeys,
+          soloSeriesKey,
+          displayNames: commissionedNames,
+          latestSamples: latestByKey,
+          cadenceObservations: telemetry.cadenceObservations,
+          now: telemetry.clock,
+        }),
+      ),
     [
       commissionedNames,
       effectiveDomain,
@@ -422,7 +425,9 @@ export function LiveTelemetryExplorer({
   const statisticsRows = useMemo(
     () =>
       historyComplete
-        ? buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics)
+        ? chartProfile("live.statisticsRows", () =>
+            buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
+          )
         : [],
     // historySamples changes whenever raw history or live tail is recorded, so stats stay current.
     // eslint-disable-next-line react-hooks/exhaustive-deps
