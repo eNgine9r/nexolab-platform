@@ -12936,7 +12936,7 @@
     {
       "issue": 1844,
       "title": "Adaptive viewport point budget and evidence-preserving detail",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Chart System 2.0 WP2: detail budget from plot width, visible series and measured render cost; drawn points published.",
       "depends_on": [
@@ -12949,6 +12949,36 @@
         ".project/"
       ],
       "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false,
+        "merged": "PR #1847 merge 4a66c3df (exact-head GREEN incl. Authenticated Dashboard Acceptance; 3 Codex findings fixed)",
+        "site_acceptance": "not deployed"
+      }
+    },
+    {
+      "issue": 1845,
+      "title": "Operator-facing monitoring audit and simplification — Live Data and Overview",
+      "lifecycle": "in_progress",
+      "priority": "high",
+      "scope": "Chart System 2.0 WP3: Live Data operator copy, one selection limit, real active-session KPI, counter denominators; follow-ups #1848-#1853.",
+      "depends_on": [
+        1844
+      ],
+      "branch": "feat/1845-live-overview-ux",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        ".project/"
+      ],
+      "evidence": {
+        "follow_up_issues": [
+          1848,
+          1849,
+          1850,
+          1851,
+          1852,
+          1853
+        ],
         "site_cutover": false,
         "hardware_verified": false
       }
