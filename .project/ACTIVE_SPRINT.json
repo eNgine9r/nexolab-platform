@@ -12930,7 +12930,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1846 merge 25d6820e (exact-head GREEN incl. Authenticated Dashboard Acceptance)",
-        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
+        "site_acceptance": "deployed 2026-11-27 on all four interfaces (LAN/:8443/:8444 aZLeJ3e4oo4Xd5wTt-uRU, :443 30zMx48UZ8ATG5QCPdL_Z); owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
@@ -12953,7 +12953,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1847 merge 4a66c3df (exact-head GREEN incl. Authenticated Dashboard Acceptance; 3 Codex findings fixed)",
-        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
+        "site_acceptance": "deployed 2026-11-27 on all four interfaces (LAN/:8443/:8444 aZLeJ3e4oo4Xd5wTt-uRU, :443 30zMx48UZ8ATG5QCPdL_Z); owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
@@ -12984,7 +12984,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1854 merge 47e9dd94 (exact-head GREEN incl. Authenticated Dashboard, Refrigeration and DR browser; 4 Codex findings fixed)",
-        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
+        "site_acceptance": "deployed 2026-11-27 on all four interfaces (LAN/:8443/:8444 aZLeJ3e4oo4Xd5wTt-uRU, :443 30zMx48UZ8ATG5QCPdL_Z); owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
@@ -13131,7 +13131,27 @@
         "hardware_verified": false,
         "merged": "PR #1864 merge dbeaeb95 (exact-head GREEN, all Codex threads resolved; independent review 3 rounds)",
         "tool_sha256": "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07",
-        "site_acceptance": "pending owner install + execute on :443"
+        "site_acceptance": ":443 activated by owner 2026-11-27: 3105 47e9dd94/30zMx48UZ8ATG5QCPdL_Z, routes+chunks 200, OAuth 302"
+      }
+    },
+    {
+      "issue": 1866,
+      "title": "Eliminate hover flicker and isolate cursor inspection from chart rendering",
+      "lifecycle": "in_progress",
+      "priority": "critical",
+      "scope": "Single cursor source, no shared-cursor echo, no series emphasis, stable inspector layout, indexed inspection.",
+      "depends_on": [
+        1843
+      ],
+      "branch": "fix/1866-cursor-flicker",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        ".project/"
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false
       }
     }
   ],

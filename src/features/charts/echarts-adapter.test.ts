@@ -316,8 +316,8 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS }] });
     await nextAnimationFrame();
-    expect(instance.convertFinders.at(-1)).toEqual({ xAxisIndex: 0 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({
@@ -340,6 +340,8 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
 
     adapter.resize();
+    // #1866: the shared cursor is shown in plots the mouse is not over.
+    container.dispatchEvent(new MouseEvent("mouseleave"));
     adapter.setSharedCursor(BENCHMARK_START_MS);
     adapter.dispose();
     expect(instance.resizeCount).toBe(1);
@@ -380,7 +382,10 @@ describe("ECharts renderer adapter lifecycle", () => {
     for (let index = 0; index < 120; index += 1) {
       container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 120 }));
     }
+    // #1866: the mouse alone never commits a cursor; ECharts' axis-pointer event is the one source.
+    expect(onCursor).not.toHaveBeenCalled();
     const latestTimestamp = BENCHMARK_START_MS + 200;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 100 }] });
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
     expect(onCursor).not.toHaveBeenCalled();
 
@@ -397,10 +402,17 @@ describe("ECharts renderer adapter lifecycle", () => {
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(2);
 
+    container.dispatchEvent(new MouseEvent("mouseleave"));
+    expect(onCursor).toHaveBeenCalledTimes(3);
+    expect(onCursor).toHaveBeenLastCalledWith(null);
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 300 }] });
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(4);
+
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 210, clientY: 120 }));
     adapter.dispose();
     await nextAnimationFrame();
-    expect(onCursor).toHaveBeenCalledTimes(2);
+    expect(onCursor).toHaveBeenCalledTimes(4);
   });
 
   it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", async () => {
@@ -431,6 +443,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 20, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 20 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
 
@@ -452,12 +465,14 @@ describe("ECharts renderer adapter lifecycle", () => {
       toMs: scene.xDomain.toMs,
     });
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 81 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
     instance.handlers.get("dataZoom")?.({ start: 30, end: 90 });
     container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 90 }] });
     await nextAnimationFrame();
     expect(onXDomainChange).toHaveBeenCalledTimes(2);
     expect(onXDomainChange).toHaveBeenLastCalledWith({
@@ -468,6 +483,7 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 100 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 3);
 
@@ -1001,6 +1017,73 @@ describe("#1843 Y axes fitted to the visible window", () => {
     expect(option.graphic.find((item) => item.id === "y-off-scale-above")?.style.text).toContain(
       "Аварійна межа",
     );
+    adapter.dispose();
+  });
+});
+
+describe("#1866 cursor without flicker", () => {
+  function setup() {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const container = document.createElement("div");
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(createBenchmarkScene(3));
+    return { instance, onCursor, adapter, container };
+  }
+
+  it("a linked plot updates its inspector from a shared cursor, once per value", async () => {
+    const { instance, onCursor, adapter } = setup();
+    // The real ECharts emits updateAxisPointer synchronously from dispatchAction.
+    instance.dispatchAction = (action: object) => {
+      instance.actions.push(action);
+      const value = (action as { value?: number }).value;
+      if (value !== undefined) instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value }] });
+    };
+    adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    // The same shared value again is not re-dispatched (no loop through the parent state).
+    adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
+    await nextAnimationFrame();
+    expect(
+      instance.actions.filter((action) => (action as { type: string }).type === "updateAxisPointer"),
+    ).toHaveLength(1);
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    adapter.dispose();
+  });
+
+  it("does not dispatch the shared cursor back into the plot under the mouse", async () => {
+    const { instance, adapter, container } = setup();
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 40, clientY: 50 }));
+    adapter.setSharedCursor(BENCHMARK_START_MS + 40);
+    expect(instance.actions).toHaveLength(0);
+    // A keyboard step on the hovered plot is explicit and shown.
+    adapter.setSharedCursor(BENCHMARK_START_MS + 60, { explicit: true });
+    expect(instance.actions).toHaveLength(1);
+    container.dispatchEvent(new MouseEvent("mouseleave"));
+    adapter.setSharedCursor(BENCHMARK_START_MS + 80);
+    expect(instance.actions).toHaveLength(2);
+    adapter.dispose();
+  });
+
+  it("disables series emphasis so hovering one line never dims the others", () => {
+    const { instance, adapter, container } = setup();
+    const series = (instance.options.at(-1) as { series: Array<{ type: string; emphasis?: object }> }).series;
+    for (const line of series.filter((item) => item.type === "line"))
+      expect(line.emphasis).toEqual({ disabled: true });
+    // Cursor moves never rebuild the chart.
+    const renders = container.dataset.chartFullRenders;
+    for (let index = 0; index < 50; index += 1)
+      container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 50 }));
+    expect(container.dataset.chartFullRenders).toBe(renders);
+    expect(instance.options).toHaveLength(1);
     adapter.dispose();
   });
 });

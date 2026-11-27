@@ -40,7 +40,8 @@ export interface ChartRendererAdapter {
     seriesKey: string,
     points: readonly { segmentId: string; point: ChartSeries["segments"][number]["points"][number] }[],
   ): void;
-  setSharedCursor(timestampMs: number | null): void;
+  /** `explicit`: a keyboard step on this plot, shown even while the mouse is over it (#1866). */
+  setSharedCursor(timestampMs: number | null, options?: { explicit?: boolean }): void;
   setSharedXDomain(domain: ChartXDomain): void;
   resize(): void;
   resetZoom(): void;

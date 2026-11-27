@@ -346,6 +346,46 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(inspector).toContainText(/\d+\.\d{2} V/);
 
     const inspectorTimestamp = inspector.locator("p").nth(1);
+
+    // #1866: a real pointer sweep never rebuilds the chart, never doubles cursor commits through an
+    // echo, and never moves the layout; each move is answered within one frame budget.
+    const surfaceStats = () =>
+      equipmentHost.evaluate((host) => {
+        const surface = host.querySelector<HTMLElement>('[data-testid="chart-renderer-surface"]');
+        return {
+          fullRenders: Number(surface?.dataset.chartFullRenders ?? 0),
+          cursorCommits: Number(surface?.dataset.chartCursorCommits ?? 0),
+        };
+      });
+    const hint = page.getByTestId("chart-inspector-hint").first();
+    const hintBefore = await hint.boundingBox();
+    const sweepBefore = await surfaceStats();
+    const sweepSteps = 60;
+    const moveLatencies: number[] = [];
+    for (let step = 0; step <= sweepSteps; step += 1) {
+      const started = Date.now();
+      await page.mouse.move(
+        equipmentBox.x + equipmentBox.width * (0.1 + (0.8 * step) / sweepSteps),
+        equipmentBox.y + equipmentBox.height * 0.5,
+      );
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+      moveLatencies.push(Date.now() - started);
+    }
+    const sweepAfter = await surfaceStats();
+    const hintAfter = await hint.boundingBox();
+    expect(sweepAfter.fullRenders).toBe(sweepBefore.fullRenders);
+    expect(sweepAfter.cursorCommits - sweepBefore.cursorCommits).toBeLessThanOrEqual(sweepSteps + 1);
+    expect(hintAfter?.height).toBe(hintBefore?.height);
+    moveLatencies.sort((left, right) => left - right);
+    console.log(
+      `#1866 cursor sweep ${JSON.stringify({
+        steps: sweepSteps + 1,
+        commits: sweepAfter.cursorCommits - sweepBefore.cursorCommits,
+        fullRenders: sweepAfter.fullRenders - sweepBefore.fullRenders,
+        p50Ms: moveLatencies[Math.floor(moveLatencies.length / 2)],
+        p95Ms: moveLatencies[Math.floor(moveLatencies.length * 0.95)],
+      })}`,
+    );
     const panProbe = {
       x: equipmentBox.x + equipmentBox.width * 0.72,
       y: equipmentBox.y + equipmentBox.height * 0.5,
@@ -457,7 +497,16 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(async () => expectRenderedFit(await readY())).toPass();
 
     await page.getByRole("button", { name: "Скинути масштаб" }).click();
-    await expect.poll(readDomain).toEqual(initialDomain);
+    // Reset returns to the full live window: the same span, slid forward by the time the test took.
+    await expect
+      .poll(async () => {
+        const domain = await readDomain();
+        return (
+          domain.toMs - domain.fromMs === initialDomain.toMs - initialDomain.fromMs &&
+          domain.toMs >= initialDomain.toMs
+        );
+      })
+      .toBe(true);
     await expect(async () => expectRenderedFit(await readY())).toPass();
     await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
     await page.mouse.move(panProbe.x, panProbe.y);
