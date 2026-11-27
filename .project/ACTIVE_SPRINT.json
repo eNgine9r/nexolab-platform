@@ -12930,7 +12930,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1846 merge 25d6820e (exact-head GREEN incl. Authenticated Dashboard Acceptance)",
-        "site_acceptance": "not deployed",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
@@ -12953,7 +12953,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1847 merge 4a66c3df (exact-head GREEN incl. Authenticated Dashboard Acceptance; 3 Codex findings fixed)",
-        "site_acceptance": "not deployed",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
@@ -12984,7 +12984,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1854 merge 47e9dd94 (exact-head GREEN incl. Authenticated Dashboard, Refrigeration and DR browser; 4 Codex findings fixed)",
-        "site_acceptance": "not deployed",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     }

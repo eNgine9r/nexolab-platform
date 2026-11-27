@@ -2,7 +2,7 @@
 
 One consolidated **frontend-only** release for every operator interface, built from `main` @ `47e9dd943484e58b252dfbf1d1149cf8ecf19d69`. The baseline is the production release `210b478b` (P0 charts). The backend is unchanged and stays gated by DR #1428.
 
-**Status: built, verified and staged. Not deployed.** Activation needs the owner package below.
+**Status (2026-11-27):** deployed to LAN, Tailscale `:8443` and `:8444`. The main HTTPS `:443` is pending the owner-run tool step (step 4 of the package).
 
 ## Contents
 
@@ -81,3 +81,18 @@ The agent then:
 - Ingestion during the load was 0.27–0.39 s.
 - These numbers come from GitHub runners, not from a Pi or operator PC. 60 FPS on real hardware is **not verified**.
 - The 2/3/5 s full-window targets for the raw path still need the aggregated backend, which is gated by DR #1428.
+
+## Deployment record (2026-11-27)
+
+| Step                    | Result                                                                                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Baseline                | LAN, `:8443` and `:8444` served `210b478b` / `nCkLRk-U9EkiJ3PmhdBuA`; `:3105` served `210b478b` / `EyZllf1uoZnxieohz2NxC`; public `:443` answered 302. Both release ZIP SHA-256 values matched.                                                        |
+| Build-cache cleanup     | 21.01 → 23.09 GiB free. Volumes unchanged, 18 in-use images kept.                                                                                                                                                                                      |
+| Manifest C              | A fresh scan covered 120 393 files and was complete: 0 rollback and 0 protected references (4 mentions only in old #1513/#1518 staging workspaces). The removal deleted 20 of 20 images: 23.08 → 25.08 GiB free, volumes unchanged.                    |
+| `prepare`               | `STAGE_VERIFIED` `47e9dd94` / `aZLeJ3e4oo4Xd5wTt-uRU` (17 632 files). The image was compared file by file. `STAGE2_CHECK_PASS NO_WRITES`, and the live identity was unchanged.                                                                         |
+| `execute`               | `ROLLBACK_IDENTITY_VERIFIED 210b478bed76`, `STAGE2_PREFLIGHT_PASS`, `STAGE2_FRONTEND_GREEN`                                                                                                                                                            |
+| Identities              | LAN, `:8443` and `:8444` report `47e9dd94` / `aZLeJ3e4oo4Xd5wTt-uRU`. `:3105` is unchanged (`210b478b`).                                                                                                                                               |
+| Routes                  | `/`, `/live`, `/energy`, `/refrigeration`, `/sessions` and `/alerts` answer 200 on all three interfaces. All 23 referenced static chunks answer 200.                                                                                                   |
+| Auth, API and WebSocket | Public `:443` and the OAuth gateway answer 302. On the LAN and `:8443`, the API answers 401 without a token and the WebSocket upgrade answers 101.                                                                                                     |
+| Telemetry, 5 minutes    | Ready throughout. Ingestion lag 0.16–0.62 s, `last_persisted_at` advancing, queue 0. All 13 containers are running (12 healthy; MinIO has no healthcheck by design). 1.9 GiB of memory available, no throttling, no failed units, about 21.7 GiB free. |
+| Rollback                | Not needed. The approval stays unused and expires.                                                                                                                                                                                                     |
