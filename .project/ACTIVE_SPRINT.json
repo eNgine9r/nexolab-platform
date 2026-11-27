@@ -13153,7 +13153,7 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1869 merge cfbdb63c (exact-head GREEN, Codex threads resolved)",
-        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN); :443 pending owner; browser acceptance pending"
+        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN) and :443 (owner HTTPS_FRONTEND_GREEN; :3105 84cf45e7/hUzaQBG5v2tGcLVYrU3qL verified); authenticated browser acceptance pending"
       }
     },
     {
@@ -13173,7 +13173,7 @@
       ],
       "evidence": {
         "merged": "PR #1870 merge b4e29668 (exact-head GREEN)",
-        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN); :443 pending owner; browser acceptance pending",
+        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN) and :443 (owner HTTPS_FRONTEND_GREEN; :3105 84cf45e7/hUzaQBG5v2tGcLVYrU3qL verified); authenticated browser acceptance pending",
         "site_cutover": false,
         "hardware_verified": false
       }
@@ -13195,7 +13195,30 @@
       ],
       "evidence": {
         "merged": "PR #1871 merge 84cf45e7 (exact-head GREEN)",
-        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN); :443 pending owner; browser acceptance pending",
+        "site_acceptance": "deployed 2026-11-27 to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN) and :443 (owner HTTPS_FRONTEND_GREEN; :3105 84cf45e7/hUzaQBG5v2tGcLVYrU3qL verified); authenticated browser acceptance pending",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1878,
+      "title": "Use the compact Saved Dashboard series legend on every chart surface",
+      "lifecycle": "in_progress",
+      "priority": "high",
+      "scope": "Shared ChartSeriesLegend for every ChartShell surface; residual #1868 defect",
+      "depends_on": [
+        1868
+      ],
+      "branch": "feat/1878-compact-legend",
+      "permitted_paths": [
+        "src/components/charts/",
+        "src/components/live-dashboards/",
+        "src/components/energy/",
+        "e2e/",
+        "docs/ux/",
+        ".project/"
+      ],
+      "evidence": {
         "site_cutover": false,
         "hardware_verified": false
       }

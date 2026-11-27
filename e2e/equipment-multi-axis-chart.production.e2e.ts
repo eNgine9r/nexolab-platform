@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
+import { captureCompactLegend } from "./chart-legend-evidence";
+
 import { installOpenSocketEvidence } from "./websocket-open-evidence";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
@@ -245,14 +247,27 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
       await expect(inspector).toContainText(channel.unit);
     }
 
-    await page.getByRole("button", { name: "Приховати" }).first().click();
+    await captureCompactLegend(page, page.locator("body"), evidenceDirectory, "live-multi-axis-desktop");
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Приховати / })
+      .first()
+      .click();
     await expect(summary).toContainText("Видимих серій 2");
     await expect(summary).toContainText("Осей 2");
-    await page.getByRole("button", { name: "Показати" }).first().click();
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Показати / })
+      .first()
+      .click();
     await expect(summary).toContainText("Видимих серій 3");
     await expect(summary).toContainText("Осей 3");
 
-    await page.getByRole("button", { name: "Лише цей" }).first().click();
+    await page
+      .getByTestId("chart-series-legend")
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
     await expect(summary).toContainText("Видимих серій 1");
     await expect(summary).toContainText("Осей 1");
     await expect(inspector.getByRole("row")).toHaveCount(2);
@@ -264,6 +279,8 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
     ]) {
       await page.setViewportSize(viewport);
       await assertNoPageOverflow(page);
+      if (viewport.width === 360)
+        await captureCompactLegend(page, page.locator("body"), evidenceDirectory, "live-multi-axis-360");
     }
 
     await expect.poll(() => page.evaluate(() => window.__nexolabOpenSocketEvidence.active)).toBe(1);

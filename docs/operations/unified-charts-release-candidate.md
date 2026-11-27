@@ -2,7 +2,7 @@
 
 A consolidated **frontend-only** release built from `main` @ `84cf45e728edbe408a8881ee2ba7243f5e9eb977`, on top of production `47e9dd94` (Chart System 2.0). It also ships the merged operator-copy follow-ups #1848–#1852. The backend is unchanged and stays gated by DR #1428.
 
-**Status (2026-11-27):** deployed to LAN, Tailscale `:8443` and `:8444`. The main HTTPS `:443` is pending the owner-run v2 tool step (see _Main HTTPS `:443`_ below).
+**Status (2026-11-27):** deployed on all four interfaces: LAN, Tailscale `:8443` and `:8444` (`hZgwiFnOtHT1zzeKaTCMl`), and the main HTTPS `:443` (`hUzaQBG5v2tGcLVYrU3qL`, owner-run v2 tool, `HTTPS_FRONTEND_GREEN`).
 
 ## Contents
 
@@ -134,3 +134,12 @@ Reaching 25 GiB therefore needs the release-retention decision. The owner packag
 3. A 21.5 GiB gate.
 4. `:443` `plan`/`prepare`/`execute` (command above).
 5. The read-only listing.
+
+## `:443` activation (2026-11-27)
+
+| Step         | Result                                                                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SSD          | Broker `storage.cleanup-regenerable build_cache=all-unused` (owner approval): 20.35 → 22.46 GiB, volumes unchanged, 18 in-use images kept. The venvs were not needed and were kept.                                            |
+| Activation   | Owner ran the v2 tool: `HTTPS_FRONTEND_GREEN`.                                                                                                                                                                                 |
+| Verification | `:3105` reports `84cf45e7` / `hUzaQBG5v2tGcLVYrU3qL`. `/`, `/live`, `/energy`, `/refrigeration`, `/sessions`, `/alerts` 200; 23/23 static chunks 200. Public `:443` 302. Telemetry ready, ingestion lag 0.11 s. 21.8 GiB free. |
+| Rollback     | `rollback --expect-current-source 84cf45e728edbe408a8881ee2ba7243f5e9eb977 --expect-current-build hUzaQBG5v2tGcLVYrU3qL` returns to `47e9dd94`.                                                                                |

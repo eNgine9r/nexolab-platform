@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
+import { captureCompactLegend } from "./chart-legend-evidence";
+
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
@@ -816,7 +818,8 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     for (const width of [360, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(host).toBeVisible();
-      await expect(panel.getByTestId("saved-dashboard-legend")).toBeVisible();
+      await expect(panel.getByTestId("chart-series-legend")).toBeVisible();
+      await captureCompactLegend(page, panel, evidenceDirectory, `saved-dashboard-${width}`);
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);

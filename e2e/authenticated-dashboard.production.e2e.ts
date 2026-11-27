@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
+import { captureCompactLegend } from "./chart-legend-evidence";
+
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const otherOrganizationId = requiredEnvironment("NEXOLAB_DASHBOARD_OTHER_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
@@ -349,9 +351,16 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
         historyRequestsBeforeInteraction,
       );
 
-      await panel.getByRole("button", { name: "Приховати" }).first().click();
-      await expect(panel.getByRole("button", { name: "Показати" })).toHaveCount(1);
-      await panel.getByRole("button", { name: "Лише цей" }).first().click();
+      await captureCompactLegend(page, panel, evidenceDirectory, "overview-desktop");
+      await panel
+        .getByRole("button", { name: /^Приховати / })
+        .first()
+        .click();
+      await expect(panel.getByRole("button", { name: /^Показати / })).toHaveCount(1);
+      await panel
+        .getByRole("button", { name: /^Лише / })
+        .first()
+        .click();
 
       await host.scrollIntoViewIfNeeded();
       const box = await host.boundingBox();

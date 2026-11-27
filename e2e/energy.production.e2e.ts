@@ -4,6 +4,8 @@ import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+
+import { captureCompactLegend } from "./chart-legend-evidence";
 import { kyivInput } from "../src/features/energy/energy-export-time";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
@@ -647,9 +649,16 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
     await expect(chart.getByTestId("chart-inspector")).toContainText("3.1 A");
     await expect(chart.getByText(/Напруга/).first()).toBeVisible();
 
+    await captureCompactLegend(page, chart, evidenceDirectory, "energy-desktop");
     const legend = chart.getByLabel("Легенда графіка");
-    await legend.getByRole("button", { name: "Приховати" }).first().click();
-    await legend.getByRole("button", { name: "Лише цей" }).first().click();
+    await legend
+      .getByRole("button", { name: /^Приховати / })
+      .first()
+      .click();
+    await legend
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
     await chart.getByRole("button", { name: "Скинути масштаб" }).click();
 
     await page.setViewportSize({ width: 1920, height: 1080 });
@@ -723,20 +732,23 @@ test("energy comparison explains the final meter and supports keyboard-only sele
     );
     await page.getByRole("button", { name: "7 днів" }).click();
     const legend = page.getByTestId("energy-history-chart").getByLabel("Легенда графіка");
-    await expect(legend.getByRole("button", { name: "Лише цей" }).first()).toBeVisible();
-    await legend.getByRole("button", { name: "Лише цей" }).first().click();
+    await expect(legend.getByRole("button", { name: /^Лише / }).first()).toBeVisible();
+    await legend
+      .getByRole("button", { name: /^Лише / })
+      .first()
+      .click();
     const before = await readAcquisitionMetrics();
     for (const width of [320, 390, 1280, 1536, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       const only = page.getByRole("button", { name: "Показати лише лічильник SDM120M" });
       await only.focus();
       await page.keyboard.press("Enter");
-      await expect(legend.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(1);
-      await expect(legend.getByRole("button", { name: "Показати", exact: true })).toHaveCount(0);
-      await legend.getByRole("button", { name: "Приховати", exact: true }).click();
-      await expect(legend.getByRole("button", { name: "Показати", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: /^Приховати / })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: /^Показати / })).toHaveCount(0);
+      await legend.getByRole("button", { name: /^Приховати / }).click();
+      await expect(legend.getByRole("button", { name: /^Показати / })).toHaveCount(1);
       await only.click();
-      await expect(legend.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: /^Приховати / })).toHaveCount(1);
       const finalToggle = page.getByRole("button", { name: "Виключити лічильник SDM120M з порівняння" });
       await expect(finalToggle).toBeDisabled();
       await expect(finalToggle).toHaveAccessibleDescription(/Для порівняння потрібен хоча б один лічильник/);
@@ -796,7 +808,7 @@ test("energy nine-axis selection synchronizes panels, preserves zoom and traps m
     const chart = page.getByTestId("energy-history-chart");
     const hosts = chart.getByTestId("chart-renderer-host");
     await expect(hosts).toHaveCount(2);
-    await expect(chart.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(9);
+    await expect(chart.getByRole("button", { name: /^Приховати / })).toHaveCount(9);
     const domains = () =>
       hosts.evaluateAll((elements) =>
         elements.map((host) => ({
@@ -817,7 +829,7 @@ test("energy nine-axis selection synchronizes panels, preserves zoom and traps m
     const zoomed = await domains();
     expect(zoomed[0]).toEqual(zoomed[1]);
     await page.getByRole("button", { name: "Прибрати W1 · Частота" }).click();
-    await expect(chart.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(8);
+    await expect(chart.getByRole("button", { name: /^Приховати / })).toHaveCount(8);
     expect((await domains())[0]).toEqual(zoomed[0]);
     await hosts.first().focus();
     await hosts.first().press("End");

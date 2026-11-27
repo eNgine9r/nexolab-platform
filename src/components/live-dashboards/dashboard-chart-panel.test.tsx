@@ -89,7 +89,7 @@ describe("saved Live Dashboard chart inspection and legend", () => {
     }
     render(<View />);
     const [left, right] = screen.getAllByTestId("saved-dashboard-chart-panel");
-    expect(within(right).getByTestId("saved-dashboard-legend")).toHaveTextContent(/0(?:[.,]0+)? °C/);
+    expect(within(right).getByTestId("chart-series-legend")).toHaveTextContent(/0(?:[.,]0+)? °C/);
     fireEvent.click(within(left).getByRole("button", { name: "Навести курсор" }));
     for (const panel of [left, right]) {
       expect(within(panel).getByTestId("chart-inspector-timestamp")).toHaveAttribute(
@@ -97,7 +97,7 @@ describe("saved Live Dashboard chart inspection and legend", () => {
         new Date(xDomain.fromMs + 2000).toISOString(),
       );
     }
-    expect(within(right).getByTestId("saved-dashboard-legend")).toHaveTextContent("Немає даних");
+    expect(within(right).getByTestId("chart-series-legend")).toHaveTextContent("Немає даних");
   });
 
   it("filters a 24-series legend by device or channel and keeps existing visibility actions", () => {
@@ -117,7 +117,7 @@ describe("saved Live Dashboard chart inspection and legend", () => {
         onSoloSeries={solo}
       />,
     );
-    const legend = screen.getByTestId("saved-dashboard-legend");
+    const legend = screen.getByTestId("chart-series-legend");
     expect(within(legend).getByRole("region", { name: "W5" })).toBeVisible();
     expect(within(legend).getByRole("region", { name: "W6" })).toBeVisible();
     expect(within(legend).getAllByRole("button", { name: /^Приховати / })).toHaveLength(24);

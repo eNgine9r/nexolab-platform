@@ -89,8 +89,8 @@ describe("ChartShell accessibility contract", () => {
       "Range 15 min. 1 series visible. Axes 1. Units °C. State Live.",
     );
     expect(screen.getByLabelText("Chart legend")).toHaveTextContent("valid · Live");
-    fireEvent.click(screen.getByRole("button", { name: "Hide" }));
-    fireEvent.click(screen.getByRole("button", { name: "Solo" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Hide / }));
+    fireEvent.click(screen.getByRole("button", { name: /^Solo / }));
     expect(toggle).toHaveBeenCalledTimes(1);
     expect(solo).toHaveBeenCalledTimes(1);
   });
@@ -297,8 +297,11 @@ describe("ChartShell accessibility contract", () => {
     );
 
     expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Приховати" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Лише цей" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Приховати / })).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Лише / })).toBeVisible();
+    // #1878: icon controls only, no textual card buttons.
+    expect(screen.queryByRole("button", { name: "Приховати" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Лише цей" })).toBeNull();
     expect(screen.getByLabelText("Легенда графіка")).toHaveTextContent("Актуально");
     expect(screen.getByTestId("chart-inspector")).toHaveTextContent("Точні значення");
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Період 1г");
