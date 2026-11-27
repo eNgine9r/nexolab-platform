@@ -878,6 +878,21 @@ def phase_rollback(host: Host, current: tuple[str, str] | None = None) -> bool:
     return True
 
 
+def installed_config_is(host: Host, target: dict) -> bool:
+    """The disk holds exactly the target's managed drop-in, byte for byte, and systemd applies it last
+    after a reload (#1863 review: an interrupted restore may have installed the predecessor's)."""
+    try:
+        expected = [Path(target["dropin"])] if target["dropin"] else []
+        if managed_dropins() != expected:
+            return False
+        if target["dropin"] and text_sha256(read_nofollow(Path(target["dropin"]))) != target["dropin_sha256"]:
+            return False
+        check_effective(host, target)
+    except ReleaseError:
+        return False
+    return True
+
+
 def phase_recover(host: Host) -> bool:
     """Completes an interrupted execute/rollback recorded in transition.json.
 
@@ -898,6 +913,7 @@ def phase_recover(host: Host) -> bool:
         if (
             recorded
             and recorded.get("stack") == record["stack_after"]
+            and installed_config_is(host, target)
             and wait_identity(host, LIVE_PORT, target["source"], target["build"])
         ):
             transition_file().unlink()

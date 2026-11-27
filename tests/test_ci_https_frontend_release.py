@@ -538,6 +538,20 @@ class ConsecutiveReleases(unittest.TestCase):
         self.execute(self.c, (SOURCE, BUILD))
         self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
 
+    def test_recover_does_not_confirm_when_an_interrupted_restore_installed_the_predecessor(self):
+        # Review: state names C, C still runs, but B's drop-in was already installed before a kill.
+        self.execute(self.b, OLD)
+        self.crash_after_state_write()
+        record = json.loads(self.module.transition_file().read_text())
+        self.module.install_config(record["from"])
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual([(e["source"], e["build"]) for e in self.state()["stack"]], [OLD, (SOURCE, BUILD)])
+        self.assertFalse(self.module.transition_file().exists())
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+
     def test_nothing_to_recover_has_its_own_marker(self):
         self.assertTrue(self.module.phase_recover(self.systemd.host()))
         self.assertIn("HTTPS_FRONTEND_NOTHING_TO_RECOVER", self.systemd.log_lines)
