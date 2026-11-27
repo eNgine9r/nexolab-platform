@@ -9,7 +9,7 @@ One consolidated **frontend-only** release of the modernised charts for every op
 | Tailscale `:8443`                     | routed to the LAN gateway (#1784)                                | LAN (same-origin)     | the same broker operation             |
 | Main HTTPS `:443` (Funnel, OAuth)     | user unit `nexolab-external-ui-1569.service` on `127.0.0.1:3105` | HTTPS (Funnel origin) | owner-run guarded tool (#1837)        |
 
-**Not deployed.** Activation needs the single owner package below. The backend stays unchanged and is gated by DR #1428.
+**Deployed on 2026-11-27 to LAN, Tailscale `:8443` and `:8444`** (see _Deployment record_). The main HTTPS `:443` is pending the owner-run tool step. The backend stays unchanged and is gated by DR #1428.
 
 ## What the release contains
 
@@ -116,6 +116,37 @@ After the switch, the agent verifies:
 - memory and disk.
 
 An HTTPS rollback later needs one owner command: `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py rollback`.
+
+## Deployment record (2026-11-27)
+
+### Blockers found after the 00:11 reboot, and how they were resolved
+
+- **`:443` answered `503 Authentication unavailable`.**
+  - Chain: Funnel `:443` → the loopback gateway `:18790` → the oauth2-proxy system unit `nexolab-google-oauth-stage.service` (`127.0.0.1:4180`) → `:3105`.
+  - The oauth2-proxy unit is static (no `[Install]`). It had been started by hand, so it did not start after the reboot. Nothing listened on 4180, and `/oauth2/start` answered 502.
+  - The Operator Broker can neither read nor start that unit.
+  - **Fix (owner):** `systemctl start` of the same unit with the same configuration, so authentication is unchanged. The owner also added `systemctl add-wants multi-user.target`, so the unit now starts at boot. Result: the gateway and the public `:443` answer 302.
+- **Disk.** The LAN build needs free space of at least the 20 GiB reserve plus 3 GiB; 22.23 GiB was free.
+  - The owner approved `storage.cleanup-regenerable build_cache=all-unused`. It removed only the unused Docker build cache and trimmed the journal to 200M.
+  - Result: 22.23 → 25.53 GiB free. Volumes are unchanged, the 18 in-use images were kept, and the rollback artifact `f916352c…` (`c5bb48a1`) was kept.
+- **Which service owns `:3105`.** The user unit `nexolab-external-ui-1569.service` of `nexolab` (cgroup `user@1000.service/app.slice`) serves `7db6e1a8` / `fLvuDhT8Ol-bCkGGhHBI4`. That is the unit the HTTPS tool controls.
+  - The system unit `nexolab-external-ui-1560.service` serves `:3104` (`lab.nexolab`, `08f1c8a4`) and is not part of this release.
+
+### LAN, `:8443` and `:8444`: deployed
+
+| Step              | Result                                                                                                                                                                                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare`         | `STAGE_VERIFIED` source `210b478b`, build `nCkLRk-U9EkiJ3PmhdBuA` (17 630 runtime files). The image was compared file by file with the artifact. `STAGE2_CHECK_PASS NO_WRITES`, and the live identity was unchanged.                                                                                     |
+| `execute`         | `ROLLBACK_IDENTITY_VERIFIED c5bb48a1dad3 xRUAt2U9c3oug1ETWuLsT`, `STAGE2_PREFLIGHT_PASS`, `STAGE2_FRONTEND_GREEN`                                                                                                                                                                                        |
+| Identities        | The LAN gateway, `:8443` and `:8444` report `210b478b` / `nCkLRk-U9EkiJ3PmhdBuA`. `:3105` is unchanged (`7db6e1a8`).                                                                                                                                                                                     |
+| Routes            | `/`, `/live`, `/energy` and `/refrigeration` answer 200 on all three interfaces. All 23 referenced static chunks answer 200 on each interface.                                                                                                                                                           |
+| API and WebSocket | On the LAN and `:8443`, `/api/v1/telemetry/latest` without a token answers 401 (authentication is enforced). `/api/v1/telemetry/live` answers the WebSocket upgrade with 101. On `:8444`, `/api` answers 404, as before: that port serves the dashboard container directly, and `:8443` is the API path. |
+| Telemetry         | Database and MQTT were ready throughout. Ingestion lag was 0.08–0.42 s, `last_persisted_at` kept advancing and the queue stayed at 0, before and after the switch.                                                                                                                                       |
+| Rollback          | It was not needed. The `phase=rollback` approval stays unused and expires after 12 h.                                                                                                                                                                                                                    |
+
+### Main HTTPS `:443`: pending the owner-run tool
+
+The preconditions hold: the OAuth gate answers 302, and `:3105` = unit 1569 at `7db6e1a8` / `fLvuDhT8Ol-bCkGGhHBI4`. The remaining step is the tool step of the owner package above (install, SHA-256 `9e38bbe5…`, then `plan` → `prepare` → `execute`). The disk is sufficient: the tool needs at least 20 GiB free after the ~0.58 GiB release.
 
 ## Browser acceptance on the deployed system (owner, real history)
 

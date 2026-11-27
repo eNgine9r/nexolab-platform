@@ -1,3 +1,26 @@
+## 2026-11-27 — P0 charts final release deployed to LAN, Tailscale `:8443` and `:8444`; `:443` pending the owner tool step
+
+- **Post-reboot blockers resolved** (details: `docs/operations/chart-p0-release-candidate.md`, _Deployment record_):
+  - **`:443` returned 503.** The oauth2-proxy unit `nexolab-google-oauth-stage.service` is static and had been started by hand, so it stayed down after the 00:11 reboot. The owner restarted the same unit with no authentication change and added it to `multi-user.target`. `:443` answers 302 again.
+  - **Disk.** The owner-approved `storage.cleanup-regenerable build_cache=all-unused` freed space: 22.23 → 25.53 GiB. Volumes, in-use images and rollback artifacts were kept.
+  - **`:3105` ownership.** It is served by the user unit `nexolab-external-ui-1569.service`, which the HTTPS tool controls. The system unit 1560 is the separate `:3104` (`lab.nexolab`) instance.
+- **Deployed via the broker `deploy.lan-frontend`:**
+  - `prepare`: `STAGE2_CHECK_PASS NO_WRITES`;
+  - `execute`: `STAGE2_FRONTEND_GREEN`;
+  - the LAN gateway, `:8443` and `:8444` all report `210b478b` / `nCkLRk-U9EkiJ3PmhdBuA`.
+- **Post-checks:**
+  - routes and all static chunks answer 200;
+  - the API enforces authentication (401 without a token);
+  - the WebSocket upgrade answers 101;
+  - ingestion lag 0.08–0.42 s with `last_persisted_at` advancing, and the containers are healthy over a 5-minute window.
+- **Rollback was not needed.** Its approval stays unused and expires.
+- **`:443` is pending.** It still serves `7db6e1a8`. The owner runs the guarded tool (#1837): install, then `plan` → `prepare` → `execute` with artifact `b26a73c7…` and build `EyZllf1uoZnxieohz2NxC`.
+- **Not verified:**
+  - an authenticated browser on the deployed system (owner acceptance checklist in the release doc);
+  - an operator PC;
+  - 60 fps on real hardware.
+- The backend stays gated by DR #1428. No Modbus, hardware or data change.
+
 ## 2026-11-27 — P0 charts: final consolidated frontend release for all interfaces built and staged, not deployed
 
 - **Merged** (exact-head GREEN, every review thread resolved):

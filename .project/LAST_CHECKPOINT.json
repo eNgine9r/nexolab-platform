@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T00:30:00Z",
+  "timestamp": "2026-11-27T06:40:00Z",
   "actor": "claude",
-  "event": "P0 charts final: #1833/#1835/#1837/#1839 merged; final release source 210b478b built (LAN 9df9592e build nCkLRk-U9EkiJ3PmhdBuA; HTTPS b26a73c7 build EyZllf1uoZnxieohz2NxC), verified, staged; not deployed; owner package in docs/operations/chart-p0-release-candidate.md",
+  "event": "P0 charts final release 210b478b deployed to LAN/:8443/:8444 via broker deploy.lan-frontend (STAGE2_CHECK_PASS, STAGE2_FRONTEND_GREEN, build nCkLRk-U9EkiJ3PmhdBuA); post-reboot :443 OAuth 503 fixed by owner (static oauth2-proxy unit started + add-wants); SSD 22.23->25.53 GiB via approved regenerable cleanup; :443 still 7db6e1a8, pending owner-run HTTPS tool (artifact b26a73c7, build EyZllf1uoZnxieohz2NxC); backend gated by DR #1428",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
