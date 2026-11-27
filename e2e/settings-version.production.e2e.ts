@@ -43,7 +43,7 @@ test("administrator reads the offline version workspace while non-admin is denie
     await expect(versionLink).toHaveAttribute("href", "/settings/system/version");
     await versionLink.click();
     await expect(admin.page.getByRole("heading", { name: "Системна версія" })).toBeVisible();
-    await expect(admin.page.getByText(/Runtime не має canonical packaged version evidence/)).toBeVisible();
+    await expect(admin.page.getByText(/Система не має підтвердження встановленої версії/)).toBeVisible();
     await expect(admin.page.getByText(/Інших validated packages у локальному catalog немає/)).toBeVisible();
 
     const adminResponse = await admin.page.request.get(`${apiBaseUrl}/api/v1/system/version`, {

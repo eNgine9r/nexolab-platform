@@ -480,7 +480,7 @@ export function AlertsWorkspace({
                   <ContextRow label="Вузол" value={selected.node_id} />
                   <ContextRow label="Сесія" value={selected.session_id ?? "Без сесії"} />
                   <ContextRow label="Етап" value={selected.stage_id ?? "Без етапу"} />
-                  <ContextRow label="Binding" value={selected.binding_id ?? "Без binding"} />
+                  <ContextRow label="Прив’язка" value={selected.binding_id ?? "Без прив’язки"} />
                   <ContextRow label="Rule version" value={selected.rule_version_id} />
                 </div>
 

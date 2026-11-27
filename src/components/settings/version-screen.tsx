@@ -168,7 +168,7 @@ export function VersionScreen() {
     return (
       <VersionGate
         title="Local API недоступний"
-        message="Version management потребує LOCAL_LAN Telemetry Service."
+        message="Керування версіями потребує локального сервера телеметрії."
       />
     );
   }
@@ -260,9 +260,9 @@ export function VersionScreen() {
                   </p>
                   <h1 className="mt-1 text-2xl font-semibold">Системна версія</h1>
                   <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-                    LOCAL_LAN monitoring не залежить від GitHub. Remote revision може стати кандидатом лише
-                    після GREEN main CI та відповідності validated local package; браузер не виконує shell і
-                    не отримує GitHub credentials.
+                    Моніторинг працює без GitHub. Нова версія може стати кандидатом лише після успішних
+                    перевірок і збігу з перевіреним локальним пакетом; браузер не виконує команд і не отримує
+                    облікових даних GitHub.
                   </p>
                 </div>
                 <button
@@ -340,8 +340,8 @@ export function VersionScreen() {
                       </div>
                     ) : (
                       <Notice>
-                        Runtime не має canonical packaged version evidence. Mutation заблокована до bootstrap
-                        або import останньої відомої версії.
+                        Система не має підтвердження встановленої версії. Зміни заблоковано до первинної
+                        реєстрації або імпорту останньої відомої версії.
                       </Notice>
                     )}
                   </div>
@@ -745,7 +745,7 @@ function UpdateCheckSummary({
       ) : null}
       {check.automaticActivationOperationId ? (
         <div className="mt-1 rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100">
-          02:00 scheduler передав validated package у version manager. Operation ID:{" "}
+          Нічна перевірка (02:00) передала перевірений пакет на встановлення. Ідентифікатор операції:{" "}
           {check.automaticActivationOperationId}
         </div>
       ) : null}
@@ -882,7 +882,7 @@ function updateBlockReason(reason: string | null): string {
     case "github_unavailable":
       return "GitHub/origin недоступний; runtime не змінено";
     case "repository_mismatch":
-      return "configured origin не є canonical NEXOLAB repository";
+      return "налаштоване джерело не є офіційним репозиторієм NEXOLAB";
     case "branch_mismatch":
       return "update discovery дозволений лише з main";
     case "tracked_worktree_dirty":

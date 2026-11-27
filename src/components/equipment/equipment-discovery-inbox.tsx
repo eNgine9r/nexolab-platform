@@ -212,12 +212,13 @@ export function EquipmentDiscoveryInbox({
         <div>
           <div className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-cyan-300 uppercase">
             <Radar className="h-4 w-4" />
-            LOCAL_LAN discovery inbox
+            Виявлення в локальній мережі
           </div>
           <h2 className="mt-2 text-xl font-semibold text-white">Нові пристрої</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-            Виявлення працює тільки в явно дозволених приватних CIDR і виконує лише TCP connect-перевірки без
-            передачі application payload. Знайдений пристрій не стає acquisition target автоматично.
+            Пошук працює лише в дозволених діапазонах локальної мережі й тільки перевіряє, чи пристрій
+            відповідає; команди приладу не надсилаються. Знайдений пристрій не починає опитуватися
+            автоматично.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -268,8 +269,8 @@ export function EquipmentDiscoveryInbox({
             {!overview.policy.enabled ? (
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2 text-sm text-amber-100">
                 <Ban className="mt-0.5 h-4 w-4 shrink-0" />
-                Discovery вимкнено fail-closed: налаштуйте явний EQUIPMENT_DISCOVERY_ALLOWED_CIDRS у LOCAL_LAN
-                runtime.
+                Пошук вимкнено, бо не задано дозволені діапазони мережі. Адміністратор може задати їх у
+                параметрі EQUIPMENT_DISCOVERY_ALLOWED_CIDRS.
               </div>
             ) : (
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">

@@ -147,7 +147,7 @@ export function SessionWizard() {
       .catch((nextError: unknown) => {
         if (controller.signal.aborted) return;
         setBindingOptionsError(
-          nextError instanceof Error ? nextError : new Error("Не вдалося завантажити session contract."),
+          nextError instanceof Error ? nextError : new Error("Не вдалося завантажити параметри сесії."),
         );
         setBindingOptionsStatus("error");
       });
@@ -214,15 +214,13 @@ export function SessionWizard() {
           selectedBindings.length === 0 ||
           selectedBindings.length !== selectedKeyCount)
       ) {
-        throw new Error(
-          "Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.",
-        );
+        throw new Error("Вибір каналів застарів або більше не дозволений для сесій. Оновіть вибір.");
       }
 
       if (operation.current.selectionKeys) {
         if (!sameSelection(operation.current.selectionKeys, form.selectedTelemetryKeys)) {
           throw new Error(
-            "Draft уже створено з попереднім telemetry selection. Повторіть операцію з початковим вибором без зміни каналів.",
+            "Чернетку вже створено з попереднім вибором каналів. Повторіть операцію з тим самим вибором.",
           );
         }
       } else {
@@ -233,9 +231,7 @@ export function SessionWizard() {
         operation.current.bindingSnapshot ??
         resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
       if (frozenBindings.length !== operation.current.selectionKeys.length) {
-        throw new Error(
-          "Збережений telemetry selection більше не доступний у поточному локальному inventory.",
-        );
+        throw new Error("Збережені канали більше не доступні в системі.");
       }
 
       if (!frozenBindings.every(isWizardBindingValid)) {
@@ -457,7 +453,7 @@ export function SessionWizard() {
         </div>
         <div className="mt-5 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-4 text-[10px] leading-5 text-slate-400">
           <ShieldCheck className="mr-2 inline h-4 w-4 text-cyan-300" />
-          Реальний draft і стабільні idempotency keys для повторної доставки.
+          Буде створено реальну чернетку; повтор не створить дубліката.
         </div>
       </aside>
 
@@ -508,8 +504,8 @@ export function SessionWizard() {
               <p className="mt-1 text-[10px] leading-5 text-slate-400">{error.message}</p>
               {createdSessionId && (
                 <p className="mt-2 font-mono text-[9px] text-cyan-300">
-                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі та початковий telemetry
-                  selection.
+                  Чернетка {createdSessionId} уже існує; повтор використає той самий вибір каналів без
+                  дублювання.
                 </p>
               )}
             </div>
@@ -545,7 +541,7 @@ export function SessionWizard() {
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              {createdSessionId ? "Повторити без дублювання" : "Створити реальний draft"}
+              {createdSessionId ? "Повторити без дублювання" : "Створити чернетку"}
             </button>
           )}
         </div>
