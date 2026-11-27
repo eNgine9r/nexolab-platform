@@ -448,8 +448,13 @@ export function useLiveDashboardTelemetry({
     pointsPerSeriesRef.current = pointsPerSeries;
   }, [pointsPerSeries]);
   useEffect(() => {
+    if (detailPointsPerSeriesRef.current === detailPointsPerSeries) return;
     detailPointsPerSeriesRef.current = detailPointsPerSeries;
-  }, [detailPointsPerSeries]);
+    // #1844 review: a resize of an already zoomed chart re-sizes its committed detail.
+    if (!detailDomainRef.current) return;
+    setViewportDetail(computeViewportDetail(dashboardItemsRef.current));
+    requestAggregateDetail();
+  }, [computeViewportDetail, detailPointsPerSeries, requestAggregateDetail]);
 
   const flush = useCallback(() => {
     setLatest({ ...latestRef.current });

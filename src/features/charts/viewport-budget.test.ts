@@ -105,3 +105,20 @@ describe("#1844 adaptive viewport point budget", () => {
     expect(adaptiveAggregatePoints()).toBe(6_400);
   });
 });
+
+describe("#1844 review: aggregate detail never exceeds the API bucket limit", () => {
+  it("caps buckets at the server's 2 000 even when the budget asks for more", async () => {
+    const { aggregateBucketCount, AGGREGATE_MAX_BUCKETS } =
+      await import("@/features/live/live-aggregate-history");
+    const budget = resolveViewportPointBudget({
+      mode: "auto",
+      seriesCount: 1,
+      plotWidthPx: 4_608,
+      aggregatePoints: CHART_ADAPTIVE_AGGREGATE_MAX,
+    });
+    expect(budget).toBeGreaterThan(8_000);
+    expect(aggregateBucketCount(budget)).toBe(AGGREGATE_MAX_BUCKETS);
+    expect(aggregateBucketCount(240)).toBe(60);
+    expect(aggregateBucketCount(1)).toBe(1);
+  });
+});

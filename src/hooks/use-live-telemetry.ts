@@ -341,8 +341,15 @@ export function useLiveTelemetry({
   // its own budget, so resizing never re-requests history.
   const detailPointsPerChannel = useViewportPointBudget(densityMode, Math.max(1, selectedKeys.length));
   const detailPointsPerChannelRef = useRef(detailPointsPerChannel);
+  const setDetailViewportRef = useRef<((domain: { fromMs: number; toMs: number } | null) => void) | null>(
+    null,
+  );
   useEffect(() => {
+    if (detailPointsPerChannelRef.current === detailPointsPerChannel) return;
     detailPointsPerChannelRef.current = detailPointsPerChannel;
+    // #1844 review: a resize of an already zoomed chart re-sizes its committed detail.
+    const committed = committedDetailDomainRef.current;
+    if (committed) setDetailViewportRef.current?.(committed);
   }, [detailPointsPerChannel]);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
   // #1813: aggregate-mode channels have no raw columns in the browser; their exact statistics come
@@ -514,8 +521,10 @@ export function useLiveTelemetry({
   // request. Aggregated channels: one cancellable request; a newer viewport aborts the older one.
   const [viewportDetail, setViewportDetail] = useState<ViewportDetail | null>(null);
   const detailControllerRef = useRef<AbortController | null>(null);
+  const committedDetailDomainRef = useRef<{ fromMs: number; toMs: number } | null>(null);
   const setDetailViewport = useCallback(
     (domain: { fromMs: number; toMs: number } | null) => {
+      committedDetailDomainRef.current = domain;
       detailControllerRef.current?.abort();
       detailControllerRef.current = null;
       if (!domain || !(domain.toMs > domain.fromMs)) {
@@ -573,6 +582,9 @@ export function useLiveTelemetry({
     },
     [sourceGapMsFor],
   );
+  useEffect(() => {
+    setDetailViewportRef.current = setDetailViewport;
+  }, [setDetailViewport]);
 
   const setSelectedKeys = useCallback((keys: string[]) => {
     setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));
