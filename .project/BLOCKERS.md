@@ -4,7 +4,7 @@ Older entries below are kept as history. Where they disagree with this section, 
 
 ### Open now
 
-- **SSD headroom (resolved for `:443`, still tight).** The owner-approved build-cache cleanup freed 2.1 GiB and `:443` was activated (`84cf45e7`). Free is 21.8 GiB against the 20 GiB reserve; every LAN build needs about 23 GiB. Retention policy #1876 and disk automation #1877 are the follow-ups.
+- **SSD headroom blocks the next LAN release.** Free 21.29 GiB (22 857 244 672 bytes) after staging the `0b07c693` candidate; Stage 2 `prepare` needs 23 GiB. Build cache is empty. Safe regenerable sources (two test venvs, superseded inbox ZIPs still downloadable from GitHub) give about 1.2 GiB. The rest needs the release-retention policy (#1876). Disk automation is #1877.
 - **#1874 — Tailscale `:8444` bypasses the LAN gateway.** Pages answer 200, but `/api` is a Next.js 404 and the WebSocket does not upgrade, so a browser on `:8444` gets no data. `:8444` proxies straight to the dashboard on the compat address; `:8443` and the LAN use the gateway `:80`. The documented retarget to `127.0.0.1:80` is a Stage 3 consumer step. Owner decision: retarget now or keep `:8444` pages-only until Stage 3. Network configuration is not changed by the agent.
 - **#1428 DR (hard gate for any backend, migration or protected cutover).** Real encrypted backup, off-device copy, independent isolated restore and key custody are unproven. Owner checklist `docs/operations/dr-1428-owner-checklist.md`.
 - **Stage 3 backend (`docs/operations/infrastructure-sprint-closeout.md`).** `prove` GREEN; `check`/`execute` wait for the #1428 A2 receipt.

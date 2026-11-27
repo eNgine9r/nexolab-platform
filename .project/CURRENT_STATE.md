@@ -1,3 +1,10 @@
+## 2026-11-27 — #1878 merged; release candidate 0b07c693 staged, LAN blocked by SSD
+
+- **#1878 (PR #1879, merge `0b07c693`):** one shared compact `ChartSeriesLegend` on every chart surface. Energy's old card-legend overrides were removed.
+- **Release candidate:** LAN `ba539baa…` (`EbyMPXd60YY5pAvkTzEvC`) and HTTPS `5665ccf9…` (`Xvkh7UYHlK25RwKbhiH4g`), staged in the inbox. Details in `docs/operations/compact-legend-release-candidate.md`.
+- **Gate:** the LAN `prepare` needs 23 GiB free; 21.29 GiB are free. Safe regenerable sources reach only ~22.5 GiB, so the release waits for retention policy #1876. Production stays `84cf45e7` on all four interfaces.
+- **Next:** storage stabilization (#1876, #1877), DR #1428, telemetry retention #1551; product updates paused.
+
 ## 2026-11-27 — Unified Chart Experience 84cf45e7 on all four interfaces; #1878 compact legend in progress
 
 - **`:443`:** the broker build-cache cleanup (owner approval) freed 20.35 → 22.46 GiB; the venvs were kept. The owner ran the v2 tool: `HTTPS_FRONTEND_GREEN`.
