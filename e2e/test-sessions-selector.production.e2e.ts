@@ -145,7 +145,7 @@ test("creates a Test Sessions draft with exactly the canonical selector subset",
     await expect(page.getByText("1 selected validated series", { exact: true })).toBeVisible();
     await expect(page.getByText("No fallback to the full 34-series contract", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Створити реальний draft" }).click();
+    await page.getByRole("button", { name: "Створити чернетку" }).click();
     await page.waitForURL(/\/sessions\/[0-9a-f-]{36}$/);
     const sessionId = page.url().split("/").pop();
     expect(sessionId).toBeTruthy();

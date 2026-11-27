@@ -153,15 +153,15 @@ export function ReportTelemetrySelector({
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Поточний inventory недоступний. Report eligibility не втрачено: показуємо persisted session
-              bindings без непідтвердженої taxonomy.
+              Список каналів зараз недоступний. Звіт усе одно можна сформувати: показано канали, збережені в
+              сесії.
             </p>
           </div>
           <button
             type="button"
             onClick={inventory.retry}
             className="icon-button shrink-0"
-            aria-label="Повторити inventory"
+            aria-label="Повторити завантаження каналів"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -170,7 +170,7 @@ export function ReportTelemetrySelector({
 
       {model.hierarchy.leafCount === 0 ? (
         <div className="rounded-xl border border-amber-300/20 bg-amber-400/[0.05] p-4 text-[11px] text-amber-100">
-          У вибраній сесії немає persisted telemetry bindings. Selector-aware report generation недоступна.
+          У вибраній сесії немає збережених каналів, тому вибір каналів для звіту недоступний.
         </div>
       ) : (
         <TelemetryPointSelector
@@ -183,8 +183,8 @@ export function ReportTelemetrySelector({
       )}
 
       <p className="text-[10px] leading-5 text-slate-500" data-testid="report-telemetry-selection-count">
-        У звіт увійде {committedPointKeys.length} з {model.hierarchy.leafCount} persisted telemetry points.
-        Вибір змінює лише immutable report evidence і не впливає на фізичне опитування.
+        У звіт увійде {committedPointKeys.length} з {model.hierarchy.leafCount} збережених каналів. Вибір
+        змінює лише immutable report evidence і не впливає на фізичне опитування.
       </p>
     </div>
   );
