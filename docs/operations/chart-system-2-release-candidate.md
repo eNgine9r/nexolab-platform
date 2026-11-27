@@ -121,7 +121,7 @@ On 2026-11-27 the v1 tool refused `execute` 210b478b → 47e9dd94 with `999-http
 ### Owner command (one session, checksum-pinned)
 
 ```bash
-cd /home/nexolab-dev/nexolab-platform && git fetch -q origin && git checkout -q origin/main -- docs/operations/https-frontend-release/nexolab-https-frontend-release.py
+cd /home/nexolab-dev/nexolab-platform   # the agent keeps this checkout on merged main
 echo "adbcccc654d6a1c43cc934f462b5cc80cde994b890aad56927f347b3a3da3874  docs/operations/https-frontend-release/nexolab-https-frontend-release.py" | sha256sum -c - &&
 sudo install -o root -g root -m 0755 docs/operations/https-frontend-release/nexolab-https-frontend-release.py \
   /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py &&
