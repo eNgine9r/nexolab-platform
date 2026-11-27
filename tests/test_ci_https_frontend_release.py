@@ -35,9 +35,11 @@ def load():
     return module
 
 
-def build_artifact(path: Path, *, https: bool = True, tamper: bool = False, extra_member=None) -> str:
+def build_artifact(
+    path: Path, *, https: bool = True, tamper: bool = False, extra_member=None, source: str = SOURCE, build: str = BUILD
+) -> str:
     files = {
-        ".next/BUILD_ID": f"{BUILD}\n".encode(),
+        ".next/BUILD_ID": f"{build}\n".encode(),
         ".next/server/app.js": b"server",
         "node_modules/next/dist/bin/next": b"#!/usr/bin/env node\n",
         "public/logo.svg": b"<svg/>",
@@ -59,9 +61,9 @@ def build_artifact(path: Path, *, https: bool = True, tamper: bool = False, extr
     members = {
         "frontend-runtime.tar.gz": tar_bytes.getvalue(),
         "frontend-runtime-files-sha256.txt": runtime_hashes.encode(),
-        "frontend-source-sha.txt": f"{SOURCE}\n".encode(),
-        "frontend-build-id.txt": f"{BUILD}\n".encode(),
-        "frontend-public-contract.txt": f"status=PASS\nbuild_id={BUILD}\n".encode(),
+        "frontend-source-sha.txt": f"{source}\n".encode(),
+        "frontend-build-id.txt": f"{build}\n".encode(),
+        "frontend-public-contract.txt": f"status=PASS\nbuild_id={build}\n".encode(),
         "frontend-runtime-contract.txt": (
             "runtime_mode=live\n"
             f"api_base_url={'https://edge.example.test' if https else 'same-origin'}\n"
@@ -226,159 +228,312 @@ class ExtractionAndUnit(unittest.TestCase):
         self.assertTrue(self.module.DROPIN_PREFIX > "99-release-")
 
 
-class Execute(unittest.TestCase):
+C_SOURCE = "0" * 40  # sorts BEFORE "a…" and "b…": adverse lexical order for hash-named drop-ins
+C_BUILD = "Build_C-123456"
+BASE_RELEASE = "/opt/nexolab-external/releases/old-release"
+OTHER_DROPIN = "/home/nexolab/.config/systemd/user/nexolab-external-ui-1569.service.d/99-release-old.conf"
+
+
+class FakeSystemd:
+    """The user unit as systemd sees it: drop-ins applied in lexical order, the last one wins, and
+    DropInPaths/effective values change only on daemon-reload. The live identity is the identity
+    file of the effective WorkingDirectory release (OLD for the base unit)."""
+
+    def __init__(self, module, unit_dir: Path):
+        self.module = module
+        self.unit_dir = unit_dir
+        self.loaded: list[Path] = []
+        self.live = OLD
+        self.fail_start: set[str] = set()
+        self.public_status = 302
+        self.calls: list[list[str]] = []
+        self.log_lines: list[str] = []
+        self.restart_hook = None
+
+    def effective(self):
+        working, execstart = BASE_RELEASE, (
+            f"/usr/bin/node {BASE_RELEASE}/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3105"
+        )
+        for path in self.loaded:
+            for line in path.read_text().splitlines():
+                if line.startswith("WorkingDirectory="):
+                    working = line.split("=", 1)[1]
+                elif line.startswith("ExecStart=") and line != "ExecStart=":
+                    execstart = line.split("=", 1)[1]
+        return working, execstart
+
+    def run(self, argv):
+        self.calls.append(argv)
+        out = ""
+        if argv[:4] == ["systemctl", "--user", "-M", "nexolab@"]:
+            command = argv[4]
+            if command == "daemon-reload":
+                self.loaded = sorted(self.unit_dir.glob("*.conf")) if self.unit_dir.is_dir() else []
+            elif command == "show":
+                working, execstart = self.effective()
+                paths = " ".join([OTHER_DROPIN, *map(str, self.loaded)])
+                out = (
+                    f"WorkingDirectory={working}\n"
+                    f"ExecStart={{ path=/usr/bin/node ; argv[]={execstart} ; ignore_errors=no }}\n"
+                    "Environment=NODE_ENV=production\n"
+                    f"DropInPaths={paths}\n"
+                )
+            elif command == "restart":
+                if self.restart_hook:
+                    self.restart_hook()
+                working, _ = self.effective()
+                if working == BASE_RELEASE:
+                    self.live = OLD
+                else:
+                    identity = json.loads((Path(working) / ".nexolab-runtime-identity.json").read_text())
+                    source, build = identity["source_commit"], identity["build_id"]
+                    self.live = (None, None) if source in self.fail_start else (source, build)
+        return mock.Mock(returncode=0, stdout=out, stderr="")
+
+    def http_get(self, url, timeout):
+        if url.endswith("/api/runtime-identity"):
+            source, build = self.live
+            return (200, json.dumps({"source_commit": source, "build_id": build})) if source else (502, "")
+        if url.startswith("https://"):
+            return self.public_status, ""
+        return 200, ""
+
+    def host(self, free=40 * 1024**3):
+        clock = {"t": 0.0}
+
+        def sleep(seconds):
+            clock["t"] += seconds
+
+        return self.module.Host(
+            run=self.run,
+            http_get=self.http_get,
+            free_bytes=lambda path: free,
+            sleep=sleep,
+            now=lambda: clock["t"],
+            log=self.log_lines.append,
+        )
+
+
+class ConsecutiveReleases(unittest.TestCase):
+    """#1863: guarded A -> B -> C upgrades with rollback to the immediate predecessor."""
+
     def setUp(self):
         self.module = load()
         self.dir = tempfile.TemporaryDirectory()
         base = Path(self.dir.name)
+        self.home = base / "home"
+        self.unit_dir = self.home / ".config" / "systemd" / "user" / f"{self.module.UNIT}.d"
         self.module.RELEASES_DIR = base / "releases"
         self.module.RELEASES_DIR.mkdir()
         self.module.STATE_DIR = base / "state"
-        self.zip = base / "artifact.zip"
-        self.digest = build_artifact(self.zip)
-        self.dropin = base / "home" / "unit.d" / "999-https-release-aaaaaaaaaaaa.conf"
         self.patches = [
-            mock.patch.object(self.module, "dropin_path", lambda source: self.dropin),
             mock.patch.object(self.module.os, "chown", lambda *args: None),
             mock.patch.object(
-                self.module.pwd, "getpwnam", lambda name: mock.Mock(pw_uid=os.getuid(), pw_gid=os.getgid(), pw_dir=str(base / "home"))
+                self.module.pwd,
+                "getpwnam",
+                lambda name: mock.Mock(pw_uid=os.getuid(), pw_gid=os.getgid(), pw_dir=str(self.home)),
             ),
         ]
         for patch in self.patches:
             patch.start()
-        release = self.module.release_directory(SOURCE, BUILD)
-        self.module.extract_runtime(self.zip, release, FakeHost(self.module).as_host())
-        (release / ".nexolab-https-prepared").write_text(f"{self.digest}\n")
+        self.systemd = FakeSystemd(self.module, self.unit_dir)
+        self.b = self.prepare(base / "b.zip", SOURCE, BUILD)
+        self.c = self.prepare(base / "c.zip", C_SOURCE, C_BUILD)
 
     def tearDown(self):
         for patch in self.patches:
             patch.stop()
         self.dir.cleanup()
 
-    def expectation(self):
-        return self.module.Expectation(self.digest, SOURCE, BUILD)
+    def prepare(self, zip_path, source, build):
+        digest = build_artifact(zip_path, source=source, build=build)
+        release = self.module.release_directory(source, build)
+        self.module.extract_runtime(zip_path, release, self.systemd.host())
+        self.module.write_identity(release, source, build)
+        (release / ".nexolab-https-prepared").write_text(f"{digest}\n")
+        return zip_path, self.module.Expectation(digest, source, build)
 
-    def test_switches_and_verifies_identity_routes_and_oauth_gate(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertEqual(fake.live, (SOURCE, BUILD))
-        self.assertTrue(self.dropin.is_file())
-        self.assertTrue(any(line.startswith("HTTPS_FRONTEND_GREEN") for line in fake.log_lines))
-        state = json.loads((self.module.STATE_DIR / "state.json").read_text())
-        self.assertEqual(state["previous"], list(OLD))
+    def execute(self, release, current, **host):
+        zip_path, expected = release
+        return self.module.phase_execute(zip_path, expected, current, self.systemd.host(**host))
 
-    def test_failed_start_rolls_back_and_verifies_the_previous_identity(self):
-        fake = FakeHost(self.module, new_starts=False)
-        fake.dropin = str(self.dropin)
+    def state(self):
+        return json.loads((self.module.STATE_DIR / "state.json").read_text())
+
+    def managed(self):
+        return sorted(path.name for path in self.unit_dir.glob("999-https-release*.conf"))
+
+    def test_a_to_b_to_c_and_rollback_to_each_immediate_predecessor(self):
+        self.execute(self.b, OLD)
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+        self.assertEqual(self.managed(), ["999-https-release.conf"])
+        self.assertEqual([(e["source"], e["build"]) for e in self.state()["stack"]], [OLD, (SOURCE, BUILD), (C_SOURCE, C_BUILD)])
+        # C -> B (not to the base A), then B -> A.
+        self.assertTrue(self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD)))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertTrue(self.module.phase_rollback(self.systemd.host()))
+        self.assertEqual(self.systemd.live, OLD)
+        self.assertEqual(self.managed(), [])
+        with self.assertRaisesRegex(self.module.ReleaseError, "no recorded predecessor"):
+            self.module.phase_rollback(self.systemd.host())
+
+    def test_upgrades_over_a_v1_hash_named_dropin_with_adverse_lexical_order(self):
+        # Production on 2026-11-27: v1 left 999-https-release-<b12>.conf and a v1 state.
+        legacy = self.unit_dir / f"999-https-release-{SOURCE[:12]}.conf"
+        self.unit_dir.mkdir(parents=True)
+        release_b = self.module.release_directory(SOURCE, BUILD)
+        working, execstart = self.systemd.effective()
+        legacy.write_text(self.module.render_dropin(execstart.split(), working, release_b, 3105))
+        legacy_bytes = legacy.read_text()
+        self.module.STATE_DIR.mkdir()
+        (self.module.STATE_DIR / "state.json").write_text(
+            json.dumps({"dropin": str(legacy), "previous": list(OLD), "release": str(release_b), "target": [SOURCE, BUILD]})
+        )
+        self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "daemon-reload"])
+        self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "restart", self.module.UNIT])
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        # C's hash ("000…") sorts before B's: a hash-named C drop-in would LOSE to B's. The fixed name
+        # replaces B's file instead, so C is effective.
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+        self.assertEqual(self.managed(), ["999-https-release.conf"])
+        # Rollback restores B's v1 drop-in byte for byte, at its own path.
+        self.assertTrue(self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD)))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual(legacy.read_text(), legacy_bytes)
+        self.assertEqual(self.managed(), [legacy.name])
+
+    def test_failed_start_of_c_restores_b_exactly_and_keeps_the_stack(self):
+        self.execute(self.b, OLD)
+        before_bytes = (self.unit_dir / "999-https-release.conf").read_text()
+        before_state = self.state()
+        self.systemd.fail_start.add(C_SOURCE)
         with self.assertRaises(self.module.ReleaseError):
-            self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertFalse(self.dropin.exists())
-        self.assertEqual(fake.live, OLD)
-        self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual((self.unit_dir / "999-https-release.conf").read_text(), before_bytes)
+        self.assertEqual(self.state(), before_state)
+        self.assertFalse(self.module.transition_file().exists())
+        self.assertTrue(any("ROLLED_BACK_VERIFIED" in line for line in self.systemd.log_lines))
 
-    def test_open_public_gate_is_a_failure_and_rolls_back(self):
-        fake = FakeHost(self.module, public_status=200)
-        fake.dropin = str(self.dropin)
+    def test_open_public_gate_and_failed_state_write_restore_the_predecessor(self):
+        self.execute(self.b, OLD)
+        self.systemd.public_status = 200
         with self.assertRaisesRegex(self.module.ReleaseError, "OAuth"):
-            self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertEqual(fake.live, OLD)
-
-    def test_unexpected_live_identity_changes_nothing(self):
-        fake = FakeHost(self.module)
-        fake.live = ("c" * 40, "Other-12345")
-        with self.assertRaisesRegex(self.module.ReleaseError, "nothing changed"):
-            self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertFalse(self.dropin.exists())
-        self.assertFalse(any("restart" in call for call in fake.calls))
-
-    def test_refuses_a_second_execute_over_an_installed_dropin(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        installed = self.dropin.read_text()
-        restarts = sum(1 for call in fake.calls if "restart" in call)
-        with self.assertRaisesRegex(self.module.ReleaseError, "already installed"):
-            self.module.phase_execute(self.zip, self.expectation(), (SOURCE, BUILD), fake.as_host())
-        self.assertEqual(self.dropin.read_text(), installed)
-        self.assertEqual(sum(1 for call in fake.calls if "restart" in call), restarts)
-        self.assertTrue(self.module.phase_rollback(fake.as_host()))
-        self.assertEqual(fake.live, OLD)
-
-    def test_a_systemctl_timeout_during_activation_rolls_back(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        original = fake.run
-
-        def run(argv):
-            if "restart" in argv and Path(self.dropin).exists():
-                raise self.module.subprocess.TimeoutExpired(argv, 180)
-            return original(argv)
-
-        host = fake.as_host()
-        host.run = run
-        with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
-            self.module.phase_execute(self.zip, self.expectation(), OLD, host)
-        self.assertFalse(self.dropin.exists())
-        self.assertEqual(fake.live, OLD)
-        self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
-        # A failed attempt never becomes the recorded installed release.
-        self.assertFalse((self.module.STATE_DIR / "state.json").exists())
-
-    def test_a_failed_state_write_rolls_back_instead_of_stranding_the_release(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        # The restore cannot repair an OAuth outage; it is named instead of hidden.
+        self.assertTrue(any("OAUTH_GATE_NOT_VERIFIED" in line for line in self.systemd.log_lines))
+        self.systemd.public_status = 302
         with mock.patch.object(self.module, "write_state", side_effect=OSError("disk full")):
             with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
-                self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertFalse(self.dropin.exists())
-        self.assertEqual(fake.live, OLD)
-        self.assertIn("HTTPS_FRONTEND_ROLLED_BACK_VERIFIED", fake.log_lines)
+                self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual(len(self.state()["stack"]), 2)
 
-    def test_a_failed_dropin_installation_is_removed_and_verified(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        calls = {"n": 0}
+    def test_interrupted_switch_is_recovered_and_blocks_other_operations(self):
+        self.execute(self.b, OLD)
 
-        def chown(path, uid, gid):
-            calls["n"] += 1
-            if calls["n"] == 2:  # the drop-in file itself
-                raise OSError("I/O error")
+        def power_loss():
+            raise KeyboardInterrupt  # not caught by the tool: the process dies mid-switch
 
-        with mock.patch.object(self.module.os, "chown", chown):
-            with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
-                self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertFalse(self.dropin.exists())
-        self.assertEqual(fake.live, OLD)
+        self.systemd.restart_hook = power_loss
+        with self.assertRaises(KeyboardInterrupt):
+            self.execute(self.c, (SOURCE, BUILD))
+        self.systemd.restart_hook = None
+        self.assertTrue(self.module.transition_file().exists())
+        with self.assertRaisesRegex(self.module.ReleaseError, "run `recover`"):
+            self.execute(self.c, (SOURCE, BUILD))
+        with self.assertRaisesRegex(self.module.ReleaseError, "run `recover`"):
+            self.module.phase_rollback(self.systemd.host())
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertFalse(self.module.transition_file().exists())
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
 
-    def test_execute_refuses_modified_release_files_despite_a_prepared_marker(self):
+    def test_recover_confirms_a_switch_that_completed_before_the_interruption(self):
+        self.execute(self.b, OLD)
+        original = self.module.transition_file
+
+        with mock.patch.object(self.module.Path, "unlink", autospec=True, side_effect=lambda self, missing_ok=False: None):
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertTrue(original().exists())
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+        self.assertFalse(original().exists())
+
+    def test_refuses_unexpected_tampered_or_unrecorded_state(self):
+        # Unrecorded managed drop-in, no state.
+        self.unit_dir.mkdir(parents=True)
+        stray = self.unit_dir / "999-https-release-ffffffffffff.conf"
+        stray.write_text("[Service]\n")
+        with self.assertRaisesRegex(self.module.ReleaseError, "unrecorded managed drop-in"):
+            self.execute(self.b, OLD)
+        stray.unlink()
+        self.execute(self.b, OLD)
+        # Tampered managed drop-in.
+        managed = self.unit_dir / "999-https-release.conf"
+        original = managed.read_text()
+        managed.write_text(original + "# edited\n")
+        with self.assertRaisesRegex(self.module.ReleaseError, "modified outside this tool"):
+            self.execute(self.c, (SOURCE, BUILD))
+        managed.write_text(original)
+        # An extra managed drop-in next to the recorded one.
+        stray.write_text("[Service]\n")
+        with self.assertRaisesRegex(self.module.ReleaseError, "managed drop-ins"):
+            self.execute(self.c, (SOURCE, BUILD))
+        stray.unlink()
+        # Wrong expected current identity: nothing changes, no restart.
+        restarts = sum(1 for call in self.systemd.calls if "restart" in call)
+        with self.assertRaisesRegex(self.module.ReleaseError, "nothing changed"):
+            self.execute(self.c, OLD)
+        with self.assertRaisesRegex(self.module.ReleaseError, "nothing changed"):
+            self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD))
+        self.assertEqual(sum(1 for call in self.systemd.calls if "restart" in call), restarts)
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+
+    def test_disk_reserve_tampered_artifact_and_concurrency_are_refused(self):
+        with self.assertRaisesRegex(self.module.ReleaseError, "20 GiB"):
+            self.execute(self.b, OLD, free=10 * 1024**3)
+        zip_path, expected = self.b
+        with self.assertRaises(self.module.ReleaseError):
+            self.module.phase_execute(
+                zip_path, self.module.Expectation("0" * 64, expected.source, expected.build), OLD, self.systemd.host()
+            )
         release = self.module.release_directory(SOURCE, BUILD)
-        (release / ".next" / "server" / "app.js").write_bytes(b"modified")
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
+        app = release / ".next" / "server" / "app.js"
+        app.write_bytes(b"modified")
         with self.assertRaisesRegex(self.module.ReleaseError, "does not match the artifact"):
-            self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertFalse(self.dropin.exists())
-        self.assertFalse(any("restart" in call for call in fake.calls))
+            self.execute(self.b, OLD)
+        app.write_bytes(b"server")
+        with self.module.StateLock():
+            with self.assertRaisesRegex(self.module.ReleaseError, "another release operation"):
+                self.execute(self.b, OLD)
+        self.assertEqual(self.managed(), [])
+        self.assertFalse(any("restart" in call for call in self.systemd.calls))
 
-    def test_refuses_another_release_while_one_is_installed(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        other = self.dropin.with_name("999-https-release-cccccccccccc.conf")
-        with mock.patch.object(self.module, "dropin_path", lambda source: other):
-            with self.assertRaisesRegex(self.module.ReleaseError, "already installed"):
-                self.module.phase_execute(self.zip, self.expectation(), (SOURCE, BUILD), fake.as_host())
-        self.assertFalse(other.exists())
-        state = json.loads((self.module.STATE_DIR / "state.json").read_text())
-        self.assertEqual(state["dropin"], str(self.dropin))
+    def test_a_systemctl_timeout_restores_and_the_v1_refusal_is_gone(self):
+        self.execute(self.b, OLD)
+        original = self.systemd.run
 
-    def test_rollback_command_uses_the_recorded_state(self):
-        fake = FakeHost(self.module)
-        fake.dropin = str(self.dropin)
-        self.module.phase_execute(self.zip, self.expectation(), OLD, fake.as_host())
-        self.assertTrue(self.module.phase_rollback(fake.as_host()))
-        self.assertEqual(fake.live, OLD)
+        def run(argv):
+            if "restart" in argv and "999-https-release.conf" in (self.unit_dir / "999-https-release.conf").name:
+                working, _ = self.systemd.effective()
+                if C_SOURCE[:12] in working:
+                    raise self.module.subprocess.TimeoutExpired(argv, 180)
+            return original(argv)
+
+        host = self.systemd.host()
+        host.run = run
+        with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
+            self.module.phase_execute(self.c[0], self.c[1], (SOURCE, BUILD), host)
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        # The 2026-11-27 refusal ("already installed; run rollback first") no longer happens.
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
 
 
 if __name__ == "__main__":

@@ -8,27 +8,36 @@ OWNER-RUN with sudo. The agent prepares and verifies the artifact; it never runs
     sudo python3 -I nexolab-https-frontend-release.py prepare  (same arguments)
     sudo python3 -I nexolab-https-frontend-release.py execute  (same arguments) \\
         --expect-current-source SHA --expect-current-build ID
-    sudo python3 -I nexolab-https-frontend-release.py rollback
+    sudo python3 -I nexolab-https-frontend-release.py rollback --expect-current-source SHA --expect-current-build ID
+    sudo python3 -I nexolab-https-frontend-release.py recover
 
 plan      read-only: verifies the artifact and prints what prepare/execute would change.
 prepare   verifies the ZIP SHA-256, its internal checksums and the HTTPS contract, extracts the
           runtime into a NEW release directory (never overwriting one), verifies every runtime
           file hash, writes the runtime identity, keeps >= 20 GiB free, and proves the release in an
           isolated preview on 127.0.0.1:3127. The live service is not touched.
-execute   requires the prepared release and the expected live identity on :3105, records the
-          rollback state, adds one systemd drop-in to the user unit that points it at the new
-          release, restarts it and verifies the identity, the routes and the anonymous OAuth gate.
-          Any failure removes the drop-in, restarts and verifies the previous identity.
-rollback  removes the drop-in this tool added and verifies the previous identity.
+execute   consecutive upgrades A -> B -> C (#1863). Requires the prepared release, the expected live
+          identity on :3105 and a consistent recorded release stack (the managed drop-in on disk is
+          exactly the recorded one, byte for byte). It records the transition, replaces the ONE
+          managed drop-in `999-https-release.conf` (fixed name: its precedence never depends on a
+          source hash; a legacy `999-https-release-<sha12>.conf` is migrated), restarts and verifies
+          the identity, the routes and the anonymous OAuth gate. Any failure re-installs the exact
+          previous drop-in bytes, restarts and verifies the previous identity, routes and gate.
+rollback  returns to the IMMEDIATE predecessor recorded in the stack (C -> B, then B -> A), with
+          the same verification; it fails closed when the live identity is not the recorded top.
+recover   completes an interrupted execute/rollback (power loss, kill): restores the recorded
+          "from" configuration, or confirms the switch when it had already been recorded GREEN.
 
 Markers: HTTPS_FRONTEND_PLAN, HTTPS_FRONTEND_PREPARE_PASS, HTTPS_FRONTEND_GREEN,
-HTTPS_FRONTEND_ROLLED_BACK_VERIFIED, HTTPS_FRONTEND_FAILED. Previous releases and drop-ins are
-never deleted. Nothing outside the release directory, the drop-in and the state directory changes.
+HTTPS_FRONTEND_ROLLED_BACK_VERIFIED, HTTPS_FRONTEND_RECOVERED_VERIFIED, HTTPS_FRONTEND_FAILED.
+Release directories are never deleted; every replaced drop-in is kept byte for byte in the state.
+Nothing outside the release directory, the managed drop-in and the state directory changes.
 """
 
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -56,6 +65,11 @@ PUBLIC_URL = "https://nexolab-edge-01.tail7f9b04.ts.net"
 MIN_FREE_BYTES = 20 * 1024**3
 # Sorts after every existing "99-..." release drop-in, so this one decides ExecStart/WorkingDirectory.
 DROPIN_PREFIX = "999-https-release-"
+# #1863: one fixed managed drop-in name, so its precedence never depends on a source hash. "999-"
+# sorts after the historic "99-release-*" drop-ins; the post-reload DropInPaths check proves it.
+MANAGED_DROPIN = "999-https-release.conf"
+MANAGED_GLOB = "999-https-release*.conf"
+STATE_SCHEMA = 2
 IDENTITY_SCHEMA = "nexolab-runtime-identity-v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -345,9 +359,23 @@ def render_dropin(argv: list[str], working_directory: str, release: Path, port: 
     )
 
 
-def dropin_path(source: str) -> Path:
+def unit_dropin_dir() -> Path:
     home = Path(pwd.getpwnam(SERVICE_USER).pw_dir)
-    return home / ".config" / "systemd" / "user" / f"{UNIT}.d" / f"{DROPIN_PREFIX}{source[:12]}.conf"
+    return home / ".config" / "systemd" / "user" / f"{UNIT}.d"
+
+
+def dropin_path(source: str) -> Path:  # noqa: ARG001 - kept for the v1 call sites; one fixed name
+    """The single managed drop-in (#1863); the source no longer takes part in its name."""
+    return unit_dropin_dir() / MANAGED_DROPIN
+
+
+def managed_dropins() -> list[Path]:
+    directory = unit_dropin_dir()
+    return sorted(directory.glob(MANAGED_GLOB)) if directory.is_dir() else []
+
+
+def text_sha256(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def identity_at(host: Host, port: int) -> tuple[str | None, str | None]:
@@ -456,18 +484,119 @@ def write_journal(state: dict) -> None:
     """A timestamped record of every attempt, written before anything changes."""
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
-    (STATE_DIR / f"journal-{stamp}.json").write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    path = STATE_DIR / f"journal-{stamp}.json"
+    index = 1
+    while path.exists():
+        path = STATE_DIR / f"journal-{stamp}-{index}.json"
+        index += 1
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+
+
+def _atomic_write(path: Path, payload: dict) -> None:
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    with temporary.open("w") as handle:
+        handle.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
 
 
 def write_state(state: dict) -> None:
-    """The installed release, written atomically and only after it is verified GREEN (review)."""
-    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-    temporary = STATE_DIR / "state.json.tmp"
-    with temporary.open("w") as handle:
-        handle.write(json.dumps(state, indent=2, sort_keys=True) + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temporary, STATE_DIR / "state.json")
+    """The release stack, written atomically and only after the switch is verified GREEN (review)."""
+    _atomic_write(STATE_DIR / "state.json", state)
+
+
+def transition_file() -> Path:
+    return STATE_DIR / "transition.json"
+
+
+class StateLock:
+    """One execute/rollback/recover at a time (#1863): a second invocation is refused, not queued."""
+
+    def __enter__(self) -> "StateLock":
+        STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self.handle = (STATE_DIR / "lock").open("w")
+        try:
+            fcntl.flock(self.handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            self.handle.close()
+            raise ReleaseError("another release operation is running; nothing changed") from error
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        fcntl.flock(self.handle, fcntl.LOCK_UN)
+        self.handle.close()
+
+
+def entry(source: str, build: str, dropin: Path | None, text: str | None) -> dict:
+    return {
+        "source": source,
+        "build": build,
+        "dropin": str(dropin) if dropin else None,
+        "dropin_text": text,
+        "dropin_sha256": text_sha256(text) if text is not None else None,
+    }
+
+
+def load_stack(live: tuple[str | None, str | None]) -> list[dict]:
+    """The recorded release stack, proven consistent with the disk and the live service.
+
+    No state: the unit runs its base configuration, so no managed drop-in may exist. A v1 state
+    (#1837: dropin/previous/target) is converted, keeping the v1 drop-in bytes. The top entry must be
+    the live identity and the only managed drop-in on disk must be the top's, byte for byte; any
+    unrecorded, extra or modified managed drop-in is refused (nothing is deleted to "fix" it).
+    """
+    state_path = STATE_DIR / "state.json"
+    on_disk = managed_dropins()
+    if not state_path.is_file():
+        if on_disk:
+            raise ReleaseError(f"unrecorded managed drop-in {on_disk[0]}; nothing changed")
+        if live[0] is None or live[1] is None:
+            raise ReleaseError("the live service reports no identity; nothing changed")
+        return [entry(live[0], live[1], None, None)]
+    state = json.loads(state_path.read_text())
+    if state.get("schema") == STATE_SCHEMA:
+        stack = state["stack"]
+    elif {"dropin", "previous", "target"} <= set(state):
+        legacy = Path(state["dropin"])
+        if not legacy.is_file():
+            raise ReleaseError(f"recorded drop-in {legacy} is missing; nothing changed")
+        stack = [
+            entry(state["previous"][0], state["previous"][1], None, None),
+            entry(state["target"][0], state["target"][1], legacy, legacy.read_text()),
+        ]
+    else:
+        raise ReleaseError("unrecognised release state; nothing changed")
+    if not stack:
+        raise ReleaseError("empty release stack; nothing changed")
+    top = stack[-1]
+    if (top["source"], top["build"]) != tuple(live):
+        raise ReleaseError(f"live identity {live} != recorded release {top['source']}/{top['build']}; nothing changed")
+    expected = [Path(top["dropin"])] if top["dropin"] else []
+    if on_disk != expected:
+        raise ReleaseError(f"managed drop-ins {on_disk} != recorded {expected}; nothing changed")
+    if top["dropin"] and text_sha256(Path(top["dropin"]).read_text()) != top["dropin_sha256"]:
+        raise ReleaseError(f"{top['dropin']} was modified outside this tool; nothing changed")
+    return stack
+
+
+def install_config(target: dict) -> None:
+    """Exactly the target's managed drop-in (or none): every other managed drop-in is removed."""
+    for path in managed_dropins():
+        if target["dropin"] is None or path != Path(target["dropin"]):
+            path.unlink()
+    if target["dropin"] is None:
+        return
+    user = pwd.getpwnam(SERVICE_USER)
+    path = Path(target["dropin"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    os.chown(path.parent, user.pw_uid, user.pw_gid)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(target["dropin_text"])
+    os.chown(temporary, user.pw_uid, user.pw_gid)
+    temporary.chmod(0o644)
+    os.replace(temporary, path)
 
 
 def restart(host: Host) -> None:
@@ -477,19 +606,78 @@ def restart(host: Host) -> None:
             raise ReleaseError(f"systemctl --user {' '.join(args)} failed: {result.stderr.strip()}")
 
 
-def restore(host: Host, dropin: Path, previous: tuple[str, str]) -> bool:
-    if dropin.exists():
-        dropin.unlink()
+def check_effective(host: Host, target: dict) -> None:
+    """After daemon-reload: the target's drop-in is the LAST one applied and the only managed one."""
+    reload = user_systemctl(host, "daemon-reload")
+    if reload.returncode != 0:
+        raise ReleaseError(f"systemctl --user daemon-reload failed: {reload.stderr.strip()}")
+    paths = show(host, "DropInPaths").get("DropInPaths", "").split()
+    managed = [path for path in paths if Path(path).name.startswith("999-https-release")]
+    if target["dropin"] is None:
+        if managed:
+            raise ReleaseError(f"a managed drop-in is still applied: {managed}")
+        return
+    if managed != [target["dropin"]] or paths[-1] != target["dropin"]:
+        raise ReleaseError(f"the release drop-in is not the last one applied: {paths}")
+
+
+def verify_live(host: Host, target: dict, require_gate: bool = True) -> None:
+    if not wait_identity(host, LIVE_PORT, target["source"], target["build"]):
+        raise ReleaseError(f"{target['source']}/{target['build']} did not report its identity on :3105")
+    failures = routes_ok(host, LIVE_PORT)
+    if failures:
+        raise ReleaseError(f"routes failed after the switch: {', '.join(failures)}")
+    status, _ = host.http_get(f"{PUBLIC_URL}/", 15.0)
+    if status not in (302, 401, 403):
+        message = f"anonymous public request answered {status}, expected the OAuth gate (302)"
+        if require_gate:
+            raise ReleaseError(message)
+        # Restoring the predecessor cannot repair an OAuth outage outside the frontend; it is named,
+        # never hidden, and the owner investigates the gate separately.
+        host.log(f"HTTPS_FRONTEND_OAUTH_GATE_NOT_VERIFIED {message}")
+
+
+def switch(host: Host, target: dict, require_gate: bool = True) -> None:
+    install_config(target)
+    check_effective(host, target)
+    restart(host)
+    verify_live(host, target, require_gate)
+
+
+def restore(host: Host, target: dict) -> bool:
+    """Back to `target` (the configuration before the attempt): exact bytes, identity, routes, gate."""
     try:
-        restart(host)
+        switch(host, target, require_gate=False)
     except Exception as error:  # noqa: BLE001 - report, never raise from recovery
-        host.log(f"HTTPS_FRONTEND_FAILED restart during rollback: {error}")
+        host.log(f"HTTPS_FRONTEND_FAILED restore to {target['source']}/{target['build']}: {error}")
         return False
-    ok = wait_identity(host, LIVE_PORT, previous[0], previous[1])
-    host.log(
-        "HTTPS_FRONTEND_ROLLED_BACK_VERIFIED" if ok else "HTTPS_FRONTEND_FAILED rollback identity not verified"
-    )
-    return ok
+    host.log(f"HTTPS_FRONTEND_ROLLED_BACK_VERIFIED source={target['source']} build={target['build']}")
+    return True
+
+
+def transition(host: Host, kind: str, stack: list[dict], target: dict, new_stack: list[dict]) -> None:
+    """Journal + transition record, switch, then the new stack; any failure restores the top."""
+    current = stack[-1]
+    record = {"kind": kind, "from": current, "to": target, "stack_before": stack, "stack_after": new_stack}
+    write_journal(record)
+    _atomic_write(transition_file(), record)
+    try:
+        switch(host, target)
+        # Inside the recovery boundary: without a recorded stack the switch is not kept (review).
+        write_state({"schema": STATE_SCHEMA, "stack": new_stack})
+    except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, restores
+        host.log(f"HTTPS_FRONTEND_FAILED {error}; restoring {current['source']}/{current['build']}")
+        if restore(host, current):
+            transition_file().unlink(missing_ok=True)
+        if isinstance(error, ReleaseError):
+            raise
+        raise ReleaseError(f"activation failed: {error}") from error
+    transition_file().unlink(missing_ok=True)
+
+
+def refuse_pending_transition() -> None:
+    if transition_file().is_file():
+        raise ReleaseError("an interrupted release operation is recorded: run `recover` first; nothing changed")
 
 
 def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str], host: Host) -> dict:
@@ -500,68 +688,68 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
         raise ReleaseError("release is not prepared from this artifact: run prepare first")
     # The installed files are re-proven at activation too, not only trusted through the marker.
     verify_release_files(zip_path, release)
-    live = identity_at(host, LIVE_PORT)
-    if live != current:
-        raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
-    unit = show(host, "WorkingDirectory", "ExecStart")
-    dropin_text = render_dropin(execstart_argv(unit.get("ExecStart", "")), unit.get("WorkingDirectory", ""), release, LIVE_PORT)
-    dropin = dropin_path(expected.source)
-    # One release drop-in of this tool at a time: overwriting or stacking one would lose the drop-in
-    # the recorded previous identity depends on, and a later rollback would activate an older
-    # underlying release (review). Roll back first.
-    installed = sorted(dropin.parent.glob(f"{DROPIN_PREFIX}*.conf")) if dropin.parent.is_dir() else []
-    if installed:
-        raise ReleaseError(f"{installed[0]} is already installed; run rollback first; nothing changed")
-    user = pwd.getpwnam(SERVICE_USER)
-    state = {"dropin": str(dropin), "previous": list(current), "release": str(release), "target": [expected.source, expected.build]}
-    write_journal(state)
-    try:
-        # Installing the drop-in is inside the recovery boundary: a partial write or a failed
-        # chown/chmod removes it again instead of leaving it for a later restart (review).
-        dropin.parent.mkdir(parents=True, exist_ok=True)
-        os.chown(dropin.parent, user.pw_uid, user.pw_gid)
-        dropin.write_text(dropin_text)
-        os.chown(dropin, user.pw_uid, user.pw_gid)
-        dropin.chmod(0o644)
-        reload = user_systemctl(host, "daemon-reload")
-        if reload.returncode != 0:
-            raise ReleaseError(f"systemctl --user daemon-reload failed: {reload.stderr.strip()}")
-        paths = show(host, "DropInPaths").get("DropInPaths", "").split()
-        if not paths or paths[-1] != str(dropin):
-            raise ReleaseError(f"the release drop-in is not the last one applied: {paths}")
-        restart(host)
-        if not wait_identity(host, LIVE_PORT, expected.source, expected.build):
-            raise ReleaseError("new release did not report its identity on :3105")
-        failures = routes_ok(host, LIVE_PORT)
-        if failures:
-            raise ReleaseError(f"routes failed after the switch: {', '.join(failures)}")
-        status, _ = host.http_get(f"{PUBLIC_URL}/", 15.0)
-        if status not in (302, 401, 403):
-            raise ReleaseError(f"anonymous public request answered {status}, expected the OAuth gate (302)")
-        # Inside the recovery boundary: without a rollback record the release is not kept (review).
-        write_state(state)
-    except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, rolls back
-        host.log(f"HTTPS_FRONTEND_FAILED {error}; rolling back")
-        restore(host, dropin, current)
-        if isinstance(error, ReleaseError):
-            raise
-        raise ReleaseError(f"activation failed: {error}") from error
-    host.log(f"HTTPS_FRONTEND_GREEN source={expected.source} build={expected.build} dropin={dropin}")
-    return {"dropin": str(dropin)}
+    if host.free_bytes(RELEASES_DIR) < MIN_FREE_BYTES:
+        raise ReleaseError("less than the protected 20 GiB free; nothing changed")
+    with StateLock():
+        refuse_pending_transition()
+        live = identity_at(host, LIVE_PORT)
+        if live != current:
+            raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
+        stack = load_stack(live)
+        if (expected.source, expected.build) == current:
+            raise ReleaseError("the target release is already live; nothing changed")
+        unit = show(host, "WorkingDirectory", "ExecStart")
+        text = render_dropin(
+            execstart_argv(unit.get("ExecStart", "")), unit.get("WorkingDirectory", ""), release, LIVE_PORT
+        )
+        target = entry(expected.source, expected.build, dropin_path(expected.source), text)
+        transition(host, "execute", stack, target, [*stack, target])
+    host.log(f"HTTPS_FRONTEND_GREEN source={expected.source} build={expected.build} dropin={target['dropin']}")
+    return {"dropin": target["dropin"]}
 
 
-def phase_rollback(host: Host) -> bool:
-    state_file = STATE_DIR / "state.json"
-    if not state_file.is_file():
-        raise ReleaseError("no recorded release state: nothing to roll back")
-    state = json.loads(state_file.read_text())
-    previous = tuple(state["previous"])
-    return restore(host, Path(state["dropin"]), (previous[0], previous[1]))
+def phase_rollback(host: Host, current: tuple[str, str] | None = None) -> bool:
+    """To the immediate predecessor; fails closed unless the live identity is the recorded top."""
+    with StateLock():
+        refuse_pending_transition()
+        live = identity_at(host, LIVE_PORT)
+        if current is not None and live != current:
+            raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
+        stack = load_stack(live)
+        if len(stack) < 2:
+            raise ReleaseError("no recorded predecessor: nothing to roll back")
+        previous = stack[-2]
+        transition(host, "rollback", stack, previous, stack[:-1])
+    host.log(f"HTTPS_FRONTEND_ROLLED_BACK_VERIFIED source={previous['source']} build={previous['build']}")
+    return True
+
+
+def phase_recover(host: Host) -> bool:
+    """Completes an interrupted execute/rollback recorded in transition.json."""
+    with StateLock():
+        if not transition_file().is_file():
+            host.log("HTTPS_FRONTEND_RECOVERED_VERIFIED nothing to recover")
+            return True
+        record = json.loads(transition_file().read_text())
+        state_path = STATE_DIR / "state.json"
+        recorded = json.loads(state_path.read_text()) if state_path.is_file() else None
+        after = record["stack_after"]
+        target = record["to"]
+        # The switch completed and its stack was written: only the transition record is left.
+        if recorded and recorded.get("stack") == after and identity_at(host, LIVE_PORT) == (target["source"], target["build"]):
+            transition_file().unlink()
+            host.log(f"HTTPS_FRONTEND_RECOVERED_VERIFIED switch had completed: {target['source']}/{target['build']}")
+            return True
+        if not restore(host, record["from"]):
+            return False
+        transition_file().unlink()
+        host.log(f"HTTPS_FRONTEND_RECOVERED_VERIFIED restored {record['from']['source']}/{record['from']['build']}")
+        return True
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("phase", choices=("plan", "prepare", "execute", "rollback"))
+    parser.add_argument("phase", choices=("plan", "prepare", "execute", "rollback", "recover"))
     parser.add_argument("--artifact", type=Path)
     parser.add_argument("--expect-zip-sha256")
     parser.add_argument("--expect-source")
@@ -574,8 +762,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     host = Host()
     try:
+        if args.phase == "recover":
+            return 0 if phase_recover(host) else 1
         if args.phase == "rollback":
-            return 0 if phase_rollback(host) else 1
+            current = (
+                (args.expect_current_source, args.expect_current_build)
+                if args.expect_current_source and args.expect_current_build
+                else None
+            )
+            return 0 if phase_rollback(host, current) else 1
         if not (args.artifact and args.expect_zip_sha256 and args.expect_source and args.expect_build):
             raise ReleaseError("--artifact, --expect-zip-sha256, --expect-source and --expect-build are required")
         expected = Expectation(args.expect_zip_sha256, args.expect_source, args.expect_build)
