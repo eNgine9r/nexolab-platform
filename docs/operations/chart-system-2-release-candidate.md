@@ -122,10 +122,10 @@ On 2026-11-27 the v1 tool refused `execute` 210b478b → 47e9dd94 with `999-http
 
 ```bash
 cd /home/nexolab-dev/nexolab-platform   # the agent keeps this checkout on merged main
-echo "adbcccc654d6a1c43cc934f462b5cc80cde994b890aad56927f347b3a3da3874  docs/operations/https-frontend-release/nexolab-https-frontend-release.py" | sha256sum -c - &&
+echo "ab4b47e47bbafe8e6145a5a3db11362a652f31a6f66f29e49c7e2f887e588e8a  docs/operations/https-frontend-release/nexolab-https-frontend-release.py" | sha256sum -c - &&
 sudo install -o root -g root -m 0755 docs/operations/https-frontend-release/nexolab-https-frontend-release.py \
   /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py &&
-echo "adbcccc654d6a1c43cc934f462b5cc80cde994b890aad56927f347b3a3da3874  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py" | sha256sum -c - &&
+echo "ab4b47e47bbafe8e6145a5a3db11362a652f31a6f66f29e49c7e2f887e588e8a  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py" | sha256sum -c - &&
 H=(--artifact /home/nexolab-dev/operator-inbox/c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18.zip
    --expect-zip-sha256 c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18
    --expect-source 47e9dd943484e58b252dfbf1d1149cf8ecf19d69 --expect-build 30zMx48UZ8ATG5QCPdL_Z) &&

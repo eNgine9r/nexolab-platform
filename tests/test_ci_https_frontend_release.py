@@ -515,6 +515,29 @@ class ConsecutiveReleases(unittest.TestCase):
         self.assertTrue(self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD)))
         self.assertEqual(self.systemd.live, (SOURCE, BUILD))
 
+    def test_a_failed_state_fsync_after_the_rename_restores_the_previous_stack(self):
+        # Review: os.replace installed the new stack, then the directory fsync failed.
+        self.execute(self.b, OLD)
+        real = self.module.fsync_directory
+        calls = {"n": 0}
+
+        def fail_once_on_state_dir(path):
+            # 1st: the transition record; 2nd: the new stack, already renamed into place.
+            if path == self.module.STATE_DIR:
+                calls["n"] += 1
+                if calls["n"] == 2:
+                    raise OSError("I/O error")
+            return real(path)
+
+        with mock.patch.object(self.module, "fsync_directory", fail_once_on_state_dir):
+            with self.assertRaisesRegex(self.module.ReleaseError, "activation failed"):
+                self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual([(e["source"], e["build"]) for e in self.state()["stack"]], [OLD, (SOURCE, BUILD)])
+        self.assertFalse(self.module.transition_file().exists())
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+
     def test_nothing_to_recover_has_its_own_marker(self):
         self.assertTrue(self.module.phase_recover(self.systemd.host()))
         self.assertIn("HTTPS_FRONTEND_NOTHING_TO_RECOVER", self.systemd.log_lines)

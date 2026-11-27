@@ -810,7 +810,15 @@ def transition(
     except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, restores
         host.log(f"HTTPS_FRONTEND_FAILED {error}; restoring {current['source']}/{current['build']}")
         if restore(host, current):
-            transition_file().unlink(missing_ok=True)
+            # The new stack may already be on disk (e.g. the directory fsync failed after the
+            # rename): the durable stack goes back with the configuration (review). Only then is the
+            # record removed; if this write fails too, `recover` finishes it.
+            try:
+                write_state({"schema": STATE_SCHEMA, "stack": stack})
+            except Exception as state_error:  # noqa: BLE001 - keep the record for `recover`
+                host.log(f"HTTPS_FRONTEND_FAILED restoring the recorded stack: {state_error}; run recover")
+            else:
+                transition_file().unlink(missing_ok=True)
         if isinstance(error, ReleaseError):
             raise
         raise ReleaseError(f"activation failed: {error}") from error
