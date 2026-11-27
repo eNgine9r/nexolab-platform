@@ -1,3 +1,20 @@
+## 2026-11-27 — #1845 follow-ups merged (#1848–#1852); not deployed
+
+- **Operator copy, merged** (developer terms replaced with plain Ukrainian, every safety statement kept):
+  - #1848, PR #1857: equipment, commissioning and instrumentation;
+  - #1849, PR #1858: Settings and version management;
+  - #1850, PR #1859: Sessions, Reports and Alerts;
+  - #1851, PR #1860: Refrigeration configuration, Energy and Cameras.
+- **#1852 part 1 (PR #1861):** a commissioned channel name stands alone as the Live series name; chart title «Обладнання …». Friendly _equipment_ names remain open, because the Live page needs a registry read and that changes the request budget.
+- **#1853:** analysed on the issue and left as backlog.
+  - `/lockers` is admin-only and labelled «Заплановано», so operators get no false expectation.
+  - The status categories need the registry lifecycle state on the Overview.
+- Every PR was merged at an exact-head GREEN, including the browser acceptance suites.
+- **Production unchanged:**
+  - LAN, `:8443` and `:8444` serve `47e9dd94`;
+  - `:443` serves `210b478b` until the owner runs the HTTPS tool step.
+- **Next:** these copy changes ship in the next consolidated frontend release.
+
 ## 2026-11-27 — Chart System 2.0 deployed to LAN, :8443 and :8444; :443 pending the owner tool step
 
 - **Disk (owner-approved):** the build-cache cleanup took free space from 21.01 to 23.09 GiB. SSD manifest C was re-scanned (0 rollback or protected references) and its 20 of 20 images removed, giving 25.08 GiB free. Volumes and rollback images are unchanged.

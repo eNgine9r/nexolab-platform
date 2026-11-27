@@ -12987,6 +12987,129 @@
         "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build aZLeJ3e4oo4Xd5wTt-uRU (STAGE2_FRONTEND_GREEN); :443 pending owner HTTPS tool; owner browser acceptance pending",
         "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
+    },
+    {
+      "issue": 1848,
+      "title": "Operator copy: equipment, commissioning, instrumentation",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "#1845 follow-up; text/presentation only.",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "merged": "PR #1857 (exact-head GREEN incl. browser acceptance)",
+        "site_acceptance": "not deployed (production LAN/:8443/:8444 = 47e9dd94)",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1849,
+      "title": "Operator copy: Settings and version management",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "#1845 follow-up; text/presentation only.",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "merged": "PR #1858 (exact-head GREEN incl. browser acceptance)",
+        "site_acceptance": "not deployed (production LAN/:8443/:8444 = 47e9dd94)",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1850,
+      "title": "Operator copy: Sessions, Reports and Alerts scope",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "#1845 follow-up; text/presentation only.",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "merged": "PR #1859 (exact-head GREEN incl. browser acceptance)",
+        "site_acceptance": "not deployed (production LAN/:8443/:8444 = 47e9dd94)",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1851,
+      "title": "Operator copy: Refrigeration configuration, Energy and Cameras",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "#1845 follow-up; text/presentation only.",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "merged": "PR #1860 (exact-head GREEN incl. browser acceptance)",
+        "site_acceptance": "not deployed (production LAN/:8443/:8444 = 47e9dd94)",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1852,
+      "title": "Friendly sensor and equipment names (part 1: channel names)",
+      "lifecycle": "needs_validation",
+      "priority": "medium",
+      "scope": "#1845 follow-up; text/presentation only.",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "merged": "PR #1861 (exact-head GREEN incl. browser acceptance)",
+        "site_acceptance": "not deployed (production LAN/:8443/:8444 = 47e9dd94)",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1853,
+      "title": "Navigation by grants and distinct channel status categories",
+      "lifecycle": "queued",
+      "priority": "medium",
+      "scope": "Analysis on the issue: /lockers is admin-only and labelled planned (no operator false expectation); status categories need the registry lifecycle state on Overview (request-budget change).",
+      "depends_on": [
+        1845
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/"
+      ],
+      "evidence": {
+        "site_cutover": false
+      }
     }
   ],
   "maintenance_actions": [

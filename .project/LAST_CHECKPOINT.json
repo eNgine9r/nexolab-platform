@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T11:00:00Z",
+  "timestamp": "2026-11-27T14:30:00Z",
   "actor": "claude",
-  "event": "Chart System 2.0 47e9dd94 deployed to LAN/:8443/:8444 (STAGE2_FRONTEND_GREEN, build aZLeJ3e4oo4Xd5wTt-uRU) after approved cleanup + manifest C removal (25.08 GiB free); :443 still 210b478b pending owner HTTPS tool (c48df0cb, 30zMx48UZ8ATG5QCPdL_Z); next: #1848-#1853",
+  "event": "#1848-#1851 merged (PRs #1857-#1860), #1852 part 1 merged (PR #1861), #1853 analysed (backlog); not deployed. Production: LAN/:8443/:8444 47e9dd94, :443 210b478b pending owner HTTPS tool (c48df0cb).",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
