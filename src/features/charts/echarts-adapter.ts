@@ -349,7 +349,9 @@ function rendererOption(
           }
         : {}),
       itemStyle: { color: series.colorToken },
-      emphasis: { focus: "series" as const, lineStyle: { width: 3 } },
+      // #1866: hovering a line must not dim or highlight other channels (the "focus: series" blur
+      // flashed every other line on each pointer move across overlapping series).
+      emphasis: { disabled: true },
       ...(thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0)
         ? {
             markLine: {
@@ -576,6 +578,13 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private cursorAnimationFrame: number | null = null;
   private pendingCursorTimestampMs: number | null | undefined;
   private lastCommittedCursorTimestampMs: number | null | undefined;
+  /** #1866: the pointer is over this plot, so its own mouse position is the only cursor source. */
+  private pointerInside = false;
+  /** #1866: set while this adapter dispatches a shared cursor, so its own echo is ignored. */
+  private dispatchingCursor = false;
+  private lastSharedCursorMs: number | null | undefined;
+  private cursorCommits = 0;
+  private fullRenders = 0;
   private renderedSignature: string | null = null;
   private zoomCommitTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingZoomDomain: ChartRendererScene["xDomain"] | null = null;
@@ -658,6 +667,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private commitCursor(timestampMs: number | null): void {
     if (timestampMs === this.lastCommittedCursorTimestampMs) return;
     this.lastCommittedCursorTimestampMs = timestampMs;
+    this.cursorCommits += 1;
+    if (this.container) this.container.dataset.chartCursorCommits = String(this.cursorCommits);
     if (timestampMs === null || !this.scene) {
       this.options?.onCursor(null);
       return;
@@ -841,9 +852,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
+      this.pointerInside = false;
       this.queueCursor(null);
       return;
     }
+    this.pointerInside = true;
     const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
@@ -851,6 +864,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   };
 
   private readonly handleContainerLeave = () => {
+    this.pointerInside = false;
     if (this.primaryDragActive || this.rangeSelectionDragActive) return;
     this.cancelPendingCursor();
     this.commitCursor(null);
@@ -858,6 +872,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleAxisPointer = (event: unknown) => {
     if (!this.scene || this.primaryDragActive || this.rangeSelectionDragActive) return;
+    // #1866: two cursor sources (the mouse position and ECharts' own axis-pointer event, plus the
+    // echo of a shared cursor this adapter dispatched) alternated between neighbouring timestamps
+    // and made the inspected values flicker. Under the mouse only the mouse counts; echoes never.
+    if (this.pointerInside || this.dispatchingCursor) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.queueCursor(timestampMs);
@@ -979,9 +997,13 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       replaceMerge: ["series", "yAxis"],
     });
     const renderMs = performance.now() - startedAt;
+    this.fullRenders += 1;
+    // A rebuilt option drops the previous axis pointer; the next shared value is shown again.
+    this.lastSharedCursorMs = undefined;
     recordChartRenderCost(drawnPoints, renderMs);
     if (this.container) {
       this.container.dataset.chartRenderedPoints = String(drawnPoints);
+      this.container.dataset.chartFullRenders = String(this.fullRenders);
       this.container.dataset.chartRenderMs = renderMs.toFixed(1);
     }
     this.publishYBounds();
@@ -1030,15 +1052,24 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   setSharedCursor(timestampMs: number | null): void {
     if (!this.instance) return;
-    if (timestampMs === null) {
-      this.instance.dispatchAction({ type: "hideTip" });
-      return;
+    // #1866: the plot under the mouse already shows its own pointer; re-dispatching the shared value
+    // back into it (and the same value again) only repainted and echoed.
+    if (this.pointerInside || timestampMs === this.lastSharedCursorMs) return;
+    this.lastSharedCursorMs = timestampMs;
+    this.dispatchingCursor = true;
+    try {
+      if (timestampMs === null) {
+        this.instance.dispatchAction({ type: "hideTip" });
+        return;
+      }
+      this.instance.dispatchAction({
+        type: "updateAxisPointer",
+        xAxisIndex: 0,
+        value: timestampMs,
+      });
+    } finally {
+      this.dispatchingCursor = false;
     }
-    this.instance.dispatchAction({
-      type: "updateAxisPointer",
-      xAxisIndex: 0,
-      value: timestampMs,
-    });
   }
 
   setSharedXDomain(domain: ChartRendererScene["xDomain"]): void {
@@ -1105,6 +1136,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.yBoundsContext = null;
     this.renderedOffScaleKey = "";
     this.lastCommittedCursorTimestampMs = undefined;
+    this.pointerInside = false;
+    this.lastSharedCursorMs = undefined;
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
     this.pendingPrimaryDragDomain = null;

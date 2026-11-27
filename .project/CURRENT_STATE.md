@@ -1,3 +1,16 @@
+## 2026-11-27 — Chart System 2.0 on all four interfaces; #1866 cursor flicker in progress
+
+- **`:443` (owner, v2 tool #1863):** `:3105` serves `47e9dd94` / `30zMx48UZ8ATG5QCPdL_Z`.
+  - Routes and 18 of 18 static chunks answer 200.
+  - Public `:443` and the OAuth gateway answer 302.
+  - Ingestion lag 0.10 s; 21.0 GiB free.
+  - LAN, `:8443` and `:8444` serve `47e9dd94` / `aZLeJ3e4oo4Xd5wTt-uRU`.
+- **#1866 (in progress):** cursor flicker. Mechanisms found in source:
+  - two cursor sources alternated under the mouse (mouse position and ECharts' axis-pointer event), plus the echo of the shared cursor dispatched back into the source plot;
+  - `emphasis: focus series` dimmed the other lines on hover;
+  - the inspector hint changed height;
+  - inspection sorted the cadence deltas and scanned every point on each commit.
+
 ## 2026-11-27 — #1863: consecutive guarded HTTPS releases (v2 tool), `:443` still 210b478b
 
 - **The block:** the v1 HTTPS tool refused 210b478b → 47e9dd94 because it supported only a first activation. Nothing changed live.

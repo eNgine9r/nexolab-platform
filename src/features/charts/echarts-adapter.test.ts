@@ -380,27 +380,40 @@ describe("ECharts renderer adapter lifecycle", () => {
     for (let index = 0; index < 120; index += 1) {
       container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 120 }));
     }
-    const latestTimestamp = BENCHMARK_START_MS + 200;
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    // #1866: under the mouse, ECharts' own axis-pointer event (and shared-cursor echoes) never
+    // compete with the mouse position: alternating sources made the inspected values flicker.
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 200 }] });
     expect(onCursor).not.toHaveBeenCalled();
 
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
-    expect(onCursor).toHaveBeenLastCalledWith(expect.objectContaining({ timestampMs: latestTimestamp }));
+    expect(onCursor).toHaveBeenLastCalledWith(
+      expect.objectContaining({ timestampMs: BENCHMARK_START_MS + 119 }),
+    );
 
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 119, clientY: 120 }));
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
 
     adapter.setScene(scene);
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 119, clientY: 120 }));
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(2);
+
+    // Away from the mouse (touch, keyboard or another linked plot), the axis pointer drives it.
+    container.dispatchEvent(new MouseEvent("mouseleave"));
+    expect(onCursor).toHaveBeenCalledTimes(3);
+    expect(onCursor).toHaveBeenLastCalledWith(null);
+    const latestTimestamp = BENCHMARK_START_MS + 200;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(4);
+    expect(onCursor).toHaveBeenLastCalledWith(expect.objectContaining({ timestampMs: latestTimestamp }));
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 210, clientY: 120 }));
     adapter.dispose();
     await nextAnimationFrame();
-    expect(onCursor).toHaveBeenCalledTimes(2);
+    expect(onCursor).toHaveBeenCalledTimes(4);
   });
 
   it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", async () => {
@@ -1001,6 +1014,68 @@ describe("#1843 Y axes fitted to the visible window", () => {
     expect(option.graphic.find((item) => item.id === "y-off-scale-above")?.style.text).toContain(
       "Аварійна межа",
     );
+    adapter.dispose();
+  });
+});
+
+describe("#1866 cursor without flicker", () => {
+  function setup() {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const container = document.createElement("div");
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(createBenchmarkScene(3));
+    return { instance, onCursor, adapter, container };
+  }
+
+  it("never re-commits its own shared-cursor dispatch (no echo loop)", async () => {
+    const { instance, onCursor, adapter } = setup();
+    // The real ECharts emits updateAxisPointer synchronously from dispatchAction.
+    instance.dispatchAction = (action: object) => {
+      instance.actions.push(action);
+      const value = (action as { value?: number }).value;
+      if (value !== undefined) instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value }] });
+    };
+    adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
+    await nextAnimationFrame();
+    expect(onCursor).not.toHaveBeenCalled();
+    // The same shared value again is not re-dispatched.
+    adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
+    expect(
+      instance.actions.filter((action) => (action as { type: string }).type === "updateAxisPointer"),
+    ).toHaveLength(1);
+    adapter.dispose();
+  });
+
+  it("does not dispatch the shared cursor back into the plot under the mouse", async () => {
+    const { instance, adapter, container } = setup();
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 40, clientY: 50 }));
+    adapter.setSharedCursor(BENCHMARK_START_MS + 40);
+    expect(instance.actions).toHaveLength(0);
+    container.dispatchEvent(new MouseEvent("mouseleave"));
+    adapter.setSharedCursor(BENCHMARK_START_MS + 80);
+    expect(instance.actions).toHaveLength(1);
+    adapter.dispose();
+  });
+
+  it("disables series emphasis so hovering one line never dims the others", () => {
+    const { instance, adapter, container } = setup();
+    const series = (instance.options.at(-1) as { series: Array<{ type: string; emphasis?: object }> }).series;
+    for (const line of series.filter((item) => item.type === "line"))
+      expect(line.emphasis).toEqual({ disabled: true });
+    // Cursor moves never rebuild the chart.
+    const renders = container.dataset.chartFullRenders;
+    for (let index = 0; index < 50; index += 1)
+      container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 50 }));
+    expect(container.dataset.chartFullRenders).toBe(renders);
+    expect(instance.options).toHaveLength(1);
     adapter.dispose();
   });
 });

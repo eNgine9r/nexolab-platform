@@ -473,7 +473,7 @@ export function ChartShell({
                 )}
               </p>
             </div>
-            <p className="mt-2 min-h-4 text-slate-500">
+            <p className="mt-2 line-clamp-2 h-8 text-slate-500" data-testid="chart-inspector-hint">
               {inspection ? copy.inspectorNearest : copy.inspectorEmpty}
             </p>
             <div className="mt-3 overflow-x-auto">

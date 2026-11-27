@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T17:00:00Z",
+  "timestamp": "2026-11-27T13:40:00Z",
   "actor": "claude",
-  "event": "#1863 v2 HTTPS release tool (consecutive upgrades, exact predecessor rollback, recover) in PR #1864; :443 still 210b478b pending owner install + execute of c48df0cb (47e9dd94 / 30zMx48UZ8ATG5QCPdL_Z); LAN/:8443/:8444 47e9dd94",
+  "event": "Chart System 2.0 47e9dd94 on all four interfaces (:443 via v2 tool, owner); #1866 cursor flicker fix in progress",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
