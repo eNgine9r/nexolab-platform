@@ -1,3 +1,23 @@
+## 2026-11-27 — Chart System 2.0 (#1843, #1844, #1845) merged; release 47e9dd94 built and staged, not deployed
+
+- **#1843 (PR #1846):** Y axes fitted to the visible window. Modes: Auto, Full period and Manual. Off-scale thresholds are named, and the header shows the visible interval.
+- **#1844 (PR #1847):** an adaptive viewport point budget.
+  - It follows plot width, visible series and measured render cost, with hysteresis.
+  - Aggregate detail is capped at the API's 2 000 buckets.
+  - A resize refreshes detail without a reload.
+- **#1845 (PR #1854):** Live Data and Overview operator copy.
+  - One selection limit (24).
+  - A real active-session KPI from per-state server totals.
+  - Counter denominators.
+  - Follow-ups: #1848–#1853.
+- **Release:**
+  - Source `47e9dd94`, run 45979028259.
+  - LAN ZIP `a7e8fbac…` (build `aZLeJ3e4oo4Xd5wTt-uRU`) and HTTPS ZIP `c48df0cb…` (build `30zMx48UZ8ATG5QCPdL_Z`). Both are verified and staged in `~/operator-inbox`.
+  - Details, measurements and the owner package: `docs/operations/chart-system-2-release-candidate.md`.
+- **Production** stays `210b478b` on all interfaces.
+- **Disk:** 21.0 GiB free. The LAN build needs 23 GiB, so the package adds the build-cache cleanup and SSD manifest C, which was re-scanned with no rollback references.
+- **Not verified:** a real-site authenticated browser audit, an operator PC, and 60 fps on real hardware.
+
 ## 2026-11-27 — P0 charts final release in production on all four interfaces; Chart System 2.0 started (#1843)
 
 - **Production acceptance (technical):**

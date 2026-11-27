@@ -12930,7 +12930,8 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1846 merge 25d6820e (exact-head GREEN incl. Authenticated Dashboard Acceptance)",
-        "site_acceptance": "not deployed"
+        "site_acceptance": "not deployed",
+        "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
     {
@@ -12952,13 +12953,14 @@
         "site_cutover": false,
         "hardware_verified": false,
         "merged": "PR #1847 merge 4a66c3df (exact-head GREEN incl. Authenticated Dashboard Acceptance; 3 Codex findings fixed)",
-        "site_acceptance": "not deployed"
+        "site_acceptance": "not deployed",
+        "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     },
     {
       "issue": 1845,
       "title": "Operator-facing monitoring audit and simplification — Live Data and Overview",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Chart System 2.0 WP3: Live Data operator copy, one selection limit, real active-session KPI, counter denominators; follow-ups #1848-#1853.",
       "depends_on": [
@@ -12980,7 +12982,10 @@
           1853
         ],
         "site_cutover": false,
-        "hardware_verified": false
+        "hardware_verified": false,
+        "merged": "PR #1854 merge 47e9dd94 (exact-head GREEN incl. Authenticated Dashboard, Refrigeration and DR browser; 4 Codex findings fixed)",
+        "site_acceptance": "not deployed",
+        "release_candidate": "source 47e9dd94: LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z; docs/operations/chart-system-2-release-candidate.md"
       }
     }
   ],

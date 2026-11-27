@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T06:40:00Z",
+  "timestamp": "2026-11-27T10:30:00Z",
   "actor": "claude",
-  "event": "P0 charts final release 210b478b deployed to LAN/:8443/:8444 via broker deploy.lan-frontend (STAGE2_CHECK_PASS, STAGE2_FRONTEND_GREEN, build nCkLRk-U9EkiJ3PmhdBuA); post-reboot :443 OAuth 503 fixed by owner (static oauth2-proxy unit started + add-wants); SSD 22.23->25.53 GiB via approved regenerable cleanup; :443 still 7db6e1a8, pending owner-run HTTPS tool (artifact b26a73c7, build EyZllf1uoZnxieohz2NxC); backend gated by DR #1428",
+  "event": "Chart System 2.0: #1843 (PR #1846), #1844 (PR #1847), #1845 (PR #1854) merged; release 47e9dd94 built and staged (LAN a7e8fbac build aZLeJ3e4oo4Xd5wTt-uRU, HTTPS c48df0cb build 30zMx48UZ8ATG5QCPdL_Z); not deployed; owner package in docs/operations/chart-system-2-release-candidate.md; production remains 210b478b on all interfaces",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
