@@ -164,6 +164,7 @@ export function DashboardLiveView({
   telemetry,
   density,
   densityResolution,
+  detailPointsPerSeries,
   onDensityChange,
   canManage,
   onBack,
@@ -174,6 +175,8 @@ export function DashboardLiveView({
   telemetry: LiveDashboardTelemetryModel;
   density: ChartDensityMode;
   densityResolution: ChartPointBudgetResolution;
+  /** #1844: points per series of zoomed viewport detail. */
+  detailPointsPerSeries?: number;
   onDensityChange: (mode: ChartDensityMode) => void;
   canManage: boolean;
   onBack: () => void;
@@ -232,6 +235,7 @@ export function DashboardLiveView({
         cadenceObservations: telemetry.cadenceObservations ?? EMPTY_CADENCE_OBSERVATIONS,
         alerts: alertEvents.alerts,
         pointsPerSeries: densityResolution.perSeries,
+        detailPointsPerSeries,
       }),
     [
       dashboard.id,
@@ -243,6 +247,7 @@ export function DashboardLiveView({
       telemetry.status,
       alertEvents.alerts,
       densityResolution.perSeries,
+      detailPointsPerSeries,
     ],
   );
   // The clock only flips silent series to stale; it never rebuilds scenes (see series-freshness.ts).

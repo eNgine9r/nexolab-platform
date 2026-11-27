@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewportPointBudget } from "@/hooks/use-viewport-point-budget";
 import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
 import {
@@ -336,6 +337,13 @@ export function useLiveTelemetry({
   useEffect(() => {
     pointsPerChannelRef.current = pointsPerChannel;
   }, [pointsPerChannel]);
+  // #1844: zoomed detail follows the plot width and measured render cost; the base load keeps
+  // its own budget, so resizing never re-requests history.
+  const detailPointsPerChannel = useViewportPointBudget(densityMode, Math.max(1, selectedKeys.length));
+  const detailPointsPerChannelRef = useRef(detailPointsPerChannel);
+  useEffect(() => {
+    detailPointsPerChannelRef.current = detailPointsPerChannel;
+  }, [detailPointsPerChannel]);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
   // #1813: aggregate-mode channels have no raw columns in the browser; their exact statistics come
   // from the server (same semantics). Requests are batched (a timer started by the first request,
@@ -515,7 +523,7 @@ export function useLiveTelemetry({
         return;
       }
       const identities = loadedIdentitiesRef.current;
-      const budget = pointsPerChannelRef.current;
+      const budget = detailPointsPerChannelRef.current;
       const aggregated = aggregatedChannelsRef.current;
       const rawDetail = columnsViewportDetail(
         identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),

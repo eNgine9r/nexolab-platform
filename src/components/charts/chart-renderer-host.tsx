@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
 import { chartPointBudget } from "@/features/charts/point-budget";
 import { chartInspectionTimestamps, inspectChartAtTimestamp } from "@/features/charts/inspection";
 import type { ChartRendererAdapter, ChartRendererScene } from "@/features/charts/renderer-adapter";
+import { CHART_GRID_INSETS } from "@/features/charts/echarts-adapter";
+import { reportChartPlotWidth } from "@/features/charts/viewport-budget";
 
 import { useChartView } from "./chart-view-context";
 
@@ -34,6 +36,7 @@ export function ChartRendererHost({
   const displayTimeZone = useDisplayTimeZone();
   const { yScale, reportVisibleDomain } = useChartView();
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartId = useId();
   const callbacksRef = useRef({ onCursor, onXDomainChange, onRangeSelectionChange });
 
   useEffect(() => {
@@ -52,13 +55,21 @@ export function ChartRendererHost({
       onXDomainChange: (domain) => callbacksRef.current.onXDomainChange(domain),
       onRangeSelectionChange: (domain) => callbacksRef.current.onRangeSelectionChange?.(domain),
     });
-    const observer = new ResizeObserver(() => adapter.resize());
+    // #1844: the plot-area width sizes zoomed detail (about two points per pixel).
+    const reportWidth = () =>
+      reportChartPlotWidth(chartId, container.clientWidth - CHART_GRID_INSETS.left - CHART_GRID_INSETS.right);
+    reportWidth();
+    const observer = new ResizeObserver(() => {
+      adapter.resize();
+      reportWidth();
+    });
     observer.observe(container);
     return () => {
       observer.disconnect();
+      reportChartPlotWidth(chartId, null);
       adapter.dispose();
     };
-  }, [adapter, reducedMotion, renderer]);
+  }, [adapter, chartId, reducedMotion, renderer]);
 
   useEffect(() => {
     if (!adapter.isDisposed())
