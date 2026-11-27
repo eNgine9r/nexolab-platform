@@ -231,7 +231,6 @@ class ExtractionAndUnit(unittest.TestCase):
 C_SOURCE = "0" * 40  # sorts BEFORE "a…" and "b…": adverse lexical order for hash-named drop-ins
 C_BUILD = "Build_C-123456"
 BASE_RELEASE = "/opt/nexolab-external/releases/old-release"
-OTHER_DROPIN = "/home/nexolab/.config/systemd/user/nexolab-external-ui-1569.service.d/99-release-old.conf"
 
 
 class FakeSystemd:
@@ -271,7 +270,7 @@ class FakeSystemd:
                 self.loaded = sorted(self.unit_dir.glob("*.conf")) if self.unit_dir.is_dir() else []
             elif command == "show":
                 working, execstart = self.effective()
-                paths = " ".join([OTHER_DROPIN, *map(str, self.loaded)])
+                paths = " ".join(map(str, self.loaded))
                 out = (
                     f"WorkingDirectory={working}\n"
                     f"ExecStart={{ path=/usr/bin/node ; argv[]={execstart} ; ignore_errors=no }}\n"
@@ -324,6 +323,8 @@ class ConsecutiveReleases(unittest.TestCase):
         self.home = base / "home"
         self.unit_dir = self.home / ".config" / "systemd" / "user" / f"{self.module.UNIT}.d"
         self.unit_dir.mkdir(parents=True)  # the user unit's drop-in directory exists on the host
+        # A historic, unrelated release drop-in sorted with the others (as on the host).
+        (self.unit_dir / "99-release-old.conf").write_text("# historic drop-in\n[Service]\n")
         self.module.RELEASES_DIR = base / "releases"
         self.module.RELEASES_DIR.mkdir()
         self.module.STATE_DIR = base / "state"
@@ -535,7 +536,7 @@ class ConsecutiveReleases(unittest.TestCase):
         moved = self.unit_dir.with_name("moved.d")
         self.unit_dir.rename(moved)
         self.unit_dir.symlink_to(target, target_is_directory=True)
-        with self.assertRaisesRegex(self.module.ReleaseError, "symlink"):
+        with self.assertRaisesRegex(self.module.ReleaseError, "not a plain directory"):
             self.execute(self.c, (SOURCE, BUILD))
         self.assertEqual(list(target.iterdir()), [])
 

@@ -68,7 +68,6 @@ DROPIN_PREFIX = "999-https-release-"
 # #1863: one fixed managed drop-in name, so its precedence never depends on a source hash. "999-"
 # sorts after the historic "99-release-*" drop-ins; the post-reload DropInPaths check proves it.
 MANAGED_DROPIN = "999-https-release.conf"
-MANAGED_GLOB = "999-https-release*.conf"
 STATE_SCHEMA = 2
 IDENTITY_SCHEMA = "nexolab-runtime-identity-v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -369,10 +368,37 @@ def dropin_path(source: str) -> Path:  # noqa: ARG001 - kept for the v1 call sit
     return unit_dropin_dir() / MANAGED_DROPIN
 
 
+def open_directory_nofollow(path: Path) -> int:
+    """A descriptor of `path`, walked from "/" one component at a time with O_NOFOLLOW (#1863
+    review): a symlink anywhere fails, and later renames of any component cannot redirect what is
+    done through the returned descriptor (no check-then-use race)."""
+    if not path.is_absolute():
+        raise ReleaseError(f"{path} is not absolute")
+    descriptor = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in path.parts[1:]:
+            try:
+                child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            except OSError as error:
+                raise ReleaseError(f"{path}: {part} is not a plain directory ({error.strerror}); nothing changed") from error
+            os.close(descriptor)
+            descriptor = child
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
 def managed_dropins() -> list[Path]:
     directory = unit_dropin_dir()
-    refuse_symlinks(directory)
-    return sorted(directory.glob(MANAGED_GLOB)) if directory.is_dir() else []
+    if not directory.exists() and not directory.is_symlink():
+        return []
+    descriptor = open_directory_nofollow(directory)
+    try:
+        names = sorted(name for name in os.listdir(descriptor) if MANAGED_NAME.fullmatch(name))
+    finally:
+        os.close(descriptor)
+    return [directory / name for name in names]
 
 
 def text_sha256(text: str) -> str:
@@ -382,22 +408,14 @@ def text_sha256(text: str) -> str:
 MANAGED_NAME = re.compile(r"^999-https-release(-[0-9a-f]{12})?\.conf$")
 
 
-def refuse_symlinks(path: Path) -> None:
-    """Root writes and reads under the service account's home (#1863 review): no component of the
-    path from that home down may be a symlink, so `nexolab` cannot redirect a root write."""
-    home = Path(pwd.getpwnam(SERVICE_USER).pw_dir)
-    current = path
-    while True:
-        if current.is_symlink():
-            raise ReleaseError(f"{current} is a symlink; nothing changed")
-        if current == home or current.parent == current:
-            return
-        current = current.parent
-
-
 def read_nofollow(path: Path) -> str:
-    refuse_symlinks(path)
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    directory = open_directory_nofollow(path.parent)
+    try:
+        descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+    except OSError as error:
+        raise ReleaseError(f"cannot read {path} ({error.strerror}); nothing changed") from error
+    finally:
+        os.close(directory)
     with os.fdopen(descriptor, "r") as handle:
         return handle.read()
 
@@ -645,34 +663,47 @@ def load_stack(live: tuple[str | None, str | None]) -> list[dict]:
 def install_config(target: dict) -> None:
     """Exactly the target's managed drop-in (or none): every other managed drop-in is removed.
 
-    #1863 review: the drop-in is ROOT-owned (0644 is enough for the user manager to read it) and is
-    written through an O_EXCL|O_NOFOLLOW temporary with a random name, fsynced, then renamed, so the
-    service account can neither redirect the write through a symlink nor alter the file later."""
+    #1863 review: everything is done relative to ONE descriptor of the unit's drop-in directory,
+    opened component by component with O_NOFOLLOW, so the service account cannot redirect a root
+    write by swapping a directory for a symlink. The drop-in is ROOT-owned 0644 (readable by the user
+    manager, not modifiable by the service account), written through an O_EXCL|O_NOFOLLOW temporary
+    with a random name, fsynced, renamed within the same directory, and the directory is fsynced."""
     directory = unit_dropin_dir()
-    refuse_symlinks(directory)
-    for path in managed_dropins():
-        if target["dropin"] is None or path != Path(target["dropin"]):
-            path.unlink()
-    if target["dropin"] is None:
-        if directory.is_dir():
-            fsync_directory(directory)
+    if not directory.exists() and not directory.is_symlink() and target["dropin"] is not None:
+        parent = open_directory_nofollow(directory.parent)
+        try:
+            os.mkdir(directory.name, 0o755, dir_fd=parent)
+        finally:
+            os.close(parent)
+    if not directory.exists() and not directory.is_symlink():
         return
-    path = Path(target["dropin"])
-    if not directory.is_dir():
-        directory.mkdir(mode=0o755)  # the user unit's directory already exists on the host
-    temporary = directory / f".{MANAGED_DROPIN}.{os.urandom(8).hex()}.tmp"
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+    descriptor = open_directory_nofollow(directory)
     try:
-        with os.fdopen(descriptor, "w") as handle:
-            handle.write(target["dropin_text"])
-            handle.flush()
-            os.fchmod(handle.fileno(), 0o644)
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        keep = Path(target["dropin"]).name if target["dropin"] else None
+        for name in os.listdir(descriptor):
+            if MANAGED_NAME.fullmatch(name) and name != keep:
+                os.unlink(name, dir_fd=descriptor)
+        if keep is not None:
+            temporary = f".{MANAGED_DROPIN}.{os.urandom(8).hex()}.tmp"
+            handle_fd = os.open(
+                temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=descriptor
+            )
+            try:
+                with os.fdopen(handle_fd, "w") as handle:
+                    handle.write(target["dropin_text"])
+                    handle.flush()
+                    os.fchmod(handle.fileno(), 0o644)
+                    os.fsync(handle.fileno())
+                os.replace(temporary, keep, src_dir_fd=descriptor, dst_dir_fd=descriptor)
+            except BaseException:
+                try:
+                    os.unlink(temporary, dir_fd=descriptor)
+                except FileNotFoundError:
+                    pass
+                raise
+        os.fsync(descriptor)
     finally:
-        if temporary.exists():
-            temporary.unlink()
-    fsync_directory(directory)
+        os.close(descriptor)
 
 
 def check_current_effective(host: Host, top: dict) -> None:
