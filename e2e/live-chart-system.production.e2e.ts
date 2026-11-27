@@ -497,7 +497,16 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(async () => expectRenderedFit(await readY())).toPass();
 
     await page.getByRole("button", { name: "Скинути масштаб" }).click();
-    await expect.poll(readDomain).toEqual(initialDomain);
+    // Reset returns to the full live window: the same span, slid forward by the time the test took.
+    await expect
+      .poll(async () => {
+        const domain = await readDomain();
+        return (
+          domain.toMs - domain.fromMs === initialDomain.toMs - initialDomain.fromMs &&
+          domain.toMs >= initialDomain.toMs
+        );
+      })
+      .toBe(true);
     await expect(async () => expectRenderedFit(await readY())).toPass();
     await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
     await page.mouse.move(panProbe.x, panProbe.y);
