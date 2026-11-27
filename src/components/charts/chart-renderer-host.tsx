@@ -8,6 +8,8 @@ import { chartPointBudget } from "@/features/charts/point-budget";
 import { chartInspectionTimestamps, inspectChartAtTimestamp } from "@/features/charts/inspection";
 import type { ChartRendererAdapter, ChartRendererScene } from "@/features/charts/renderer-adapter";
 
+import { useChartView } from "./chart-view-context";
+
 export function ChartRendererHost({
   adapter,
   scene,
@@ -30,6 +32,7 @@ export function ChartRendererHost({
   onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
 }) {
   const displayTimeZone = useDisplayTimeZone();
+  const { yScale, reportVisibleDomain } = useChartView();
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({ onCursor, onXDomainChange, onRangeSelectionChange });
 
@@ -63,8 +66,16 @@ export function ChartRendererHost({
         ...scene,
         interactionDomain,
         displayTimeZone: scene.displayTimeZone ?? displayTimeZone,
+        yScale: scene.yScale ?? yScale,
       });
-  }, [adapter, displayTimeZone, interactionDomain, scene]);
+  }, [adapter, displayTimeZone, interactionDomain, scene, yScale]);
+
+  // #1843: the header names the interval actually shown, not only the selected period.
+  const { fromMs: visibleFromMs, toMs: visibleToMs } = scene.xDomain;
+  const { fromMs: fullFromMs, toMs: fullToMs } = interactionDomain;
+  useEffect(() => {
+    reportVisibleDomain({ fromMs: visibleFromMs, toMs: visibleToMs }, { fromMs: fullFromMs, toMs: fullToMs });
+  }, [fullFromMs, fullToMs, reportVisibleDomain, visibleFromMs, visibleToMs]);
 
   useEffect(() => {
     if (!adapter.isDisposed()) adapter.setSharedCursor(sharedCursorMs);

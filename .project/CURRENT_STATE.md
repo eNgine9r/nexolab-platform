@@ -1,3 +1,17 @@
+## 2026-11-27 — P0 charts final release in production on all four interfaces; Chart System 2.0 started (#1843)
+
+- **Production acceptance (technical):**
+  - The owner ran the guarded HTTPS tool. `127.0.0.1:3105` now serves `210b478b` / `EyZllf1uoZnxieohz2NxC`, and `/`, `/live`, `/energy` and `/refrigeration` answer 200.
+  - Anonymous `:443` answers 302 to `/oauth2/start`.
+  - LAN, `:8443` and `:8444` serve `210b478b` / `nCkLRk-U9EkiJ3PmhdBuA`.
+  - Ingestion lag was 0.18 s.
+  - The owner's authenticated browser acceptance is still open.
+- **#1843 (WP1, in progress):** Y axes fitted to the visible window.
+  - **Mechanism, confirmed in source:** `scale: true` with an x-only `dataZoom` and `filterMode: "none"` made ECharts use the whole period for Y.
+  - **Fix:** per-axis bounds are computed from the drawn measurements in the window, including the line entering and leaving it. Hidden series are excluded.
+  - **Axis behaviour:** nice ticks and display-resolution minimum span; hysteresis against jitter; full-period and manual modes; distant thresholds named off-scale.
+  - **Header:** shows the actual visible interval.
+
 ## 2026-11-27 — P0 charts final release deployed to LAN, Tailscale `:8443` and `:8444`; `:443` pending the owner tool step
 
 - **Post-reboot blockers resolved** (details: `docs/operations/chart-p0-release-candidate.md`, _Deployment record_):

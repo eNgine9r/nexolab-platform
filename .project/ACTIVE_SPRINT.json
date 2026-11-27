@@ -12692,7 +12692,7 @@
         "merged": "PR #1822 merge a52b3c03 (exact-head GREEN; review P1 fixed)",
         "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12719,7 +12719,7 @@
         "merged": "PR #1826 merge d2f56222 (exact-head GREEN)",
         "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12746,7 +12746,7 @@
         "merged": "PR #1828 merge c1762b2b (exact-head GREEN; review P2 fixed)",
         "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12773,7 +12773,7 @@
         "merged": "PR #1830 merge da676dd9 (exact-head GREEN)",
         "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12801,7 +12801,7 @@
         "merged": "PR #1831 merge f3c12ac4 (exact-head GREEN; review P2 x2 fixed)",
         "release_candidate": "consolidated frontend RC source f3c12ac4 (docs/operations/chart-p0-release-candidate.md)",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12827,7 +12827,7 @@
         "merged": "PR #1834 merge 0ebc5d61 (exact-head GREEN)",
         "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12853,7 +12853,7 @@
         "merged": "PR #1836 merge 210b478b (exact-head GREEN)",
         "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12879,7 +12879,7 @@
         "merged": "PR #1838 merge 14fd15fc (exact-head GREEN)",
         "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
         "hardware_verified": false
       }
@@ -12905,8 +12905,29 @@
         "merged": "PR #1840 merge 28c148ac (exact-head GREEN)",
         "release_candidate": "final release source 210b478b: LAN 9df9592e, HTTPS b26a73c7",
         "site_cutover": false,
-        "site_acceptance": "owner_frontend_release_pending",
+        "site_acceptance": "deployed 2026-11-27: LAN/:8443/:8444 build nCkLRk-U9EkiJ3PmhdBuA (STAGE2_FRONTEND_GREEN), :443 build EyZllf1uoZnxieohz2NxC (owner tool); owner browser acceptance pending",
         "browser_evidence": "docs/operations/chart-p0-release-candidate.md",
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1843,
+      "title": "Fit Y axes to the visible time window without losing measurement evidence",
+      "lifecycle": "in_progress",
+      "priority": "critical",
+      "scope": "Chart System 2.0 WP1: per-axis Y bounds from the visible window (auto), full period, manual; off-scale thresholds; visible interval in the header.",
+      "depends_on": [
+        1839
+      ],
+      "branch": "feat/1843-adaptive-y-axis",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/",
+        ".project/"
+      ],
+      "evidence": {
+        "site_cutover": false,
         "hardware_verified": false
       }
     }

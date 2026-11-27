@@ -3,6 +3,7 @@ import {
   AriaComponent,
   AxisPointerComponent,
   DataZoomComponent,
+  GraphicComponent,
   GridComponent,
   LegendComponent,
   MarkAreaComponent,
@@ -17,7 +18,8 @@ import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene
 import { formatChartAxisTimestamp } from "./format";
 import { inspectChartAtTimestamp } from "./inspection";
 import { chartPointBudget } from "./point-budget";
-import { buildChartYAxisModel, displayUnit } from "./units";
+import { buildChartYAxisModel, displayUnit, type ChartYAxisModel } from "./units";
+import { chartYScaleKey, computeChartYAxisBounds, type ChartYAxisBounds } from "./y-axis-bounds";
 
 registerEChartsModules([
   LineChart,
@@ -26,6 +28,7 @@ registerEChartsModules([
   AriaComponent,
   AxisPointerComponent,
   DataZoomComponent,
+  GraphicComponent,
   GridComponent,
   LegendComponent,
   MarkAreaComponent,
@@ -191,6 +194,65 @@ function windowReplaced(previous: ChartRendererScene, next: ChartRendererScene):
   return Math.abs(after.fromMs - before.fromMs) > duration * 0.1;
 }
 
+function intervalDecimals(interval: number): number {
+  const text = String(Number(interval.toPrecision(6)));
+  const dot = text.indexOf(".");
+  return dot < 0 ? 0 : Math.min(text.length - dot - 1, 12);
+}
+
+function offScaleText(bounds: readonly ChartYAxisBounds[], direction: "above" | "below"): string {
+  const arrow = direction === "above" ? "▲" : "▼";
+  const where = direction === "above" ? "вище шкали" : "нижче шкали";
+  return bounds
+    .flatMap((axis) => axis.offScaleThresholds.filter((threshold) => threshold.direction === direction))
+    .map((threshold) => `${arrow} ${threshold.label}: ${threshold.value} (${where})`)
+    .join("   ");
+}
+
+/**
+ * #1843: explicit Y bounds per visible axis (fitted to the visible window by default) and the
+ * off-scale threshold notices. Merged by axis id, so the fast zoom/pan path updates only these.
+ */
+function yWindowOption(axisModel: ChartYAxisModel, bounds: ReadonlyMap<string, ChartYAxisBounds>) {
+  const all = [...bounds.values()];
+  return {
+    yAxis: axisModel.visibleAxes.map((axis) => {
+      const axisBounds = bounds.get(axis.id);
+      if (!axisBounds) return { id: axis.id, min: null, max: null, interval: null };
+      const decimals = intervalDecimals(axisBounds.interval);
+      return {
+        id: axis.id,
+        min: axisBounds.min,
+        max: axisBounds.max,
+        interval: axisBounds.interval,
+        axisLabel: {
+          color: "#94A3B8",
+          hideOverlap: true,
+          formatter: (value: number) => Number(value).toFixed(decimals),
+        },
+      };
+    }),
+    graphic: [
+      {
+        id: "y-off-scale-above",
+        type: "text",
+        left: CHART_GRID_INSETS.left + 4,
+        top: 6,
+        silent: true,
+        style: { text: offScaleText(all, "above"), fill: "#F5B301", fontSize: 11 },
+      },
+      {
+        id: "y-off-scale-below",
+        type: "text",
+        left: CHART_GRID_INSETS.left + 4,
+        bottom: 36,
+        silent: true,
+        style: { text: offScaleText(all, "below"), fill: "#F5B301", fontSize: 11 },
+      },
+    ],
+  };
+}
+
 /** The parts of the option that depend on the visible window only (#1810 fast path). */
 function xWindowOption(scene: ChartRendererScene) {
   const interactionDomain = scene.interactionDomain ?? scene.xDomain;
@@ -211,14 +273,24 @@ function xWindowOption(scene: ChartRendererScene) {
   };
 }
 
-function rendererOption(scene: ChartRendererScene): EChartsCoreOption {
+function rendererOption(
+  scene: ChartRendererScene,
+  axisModel: ChartYAxisModel,
+  yBounds: ReadonlyMap<string, ChartYAxisBounds>,
+): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
-  const axisModel = buildChartYAxisModel(scene.series);
+  const offScaleIds = new Set(
+    [...yBounds.values()].flatMap((axis) => axis.offScaleThresholds.map((threshold) => threshold.id)),
+  );
   const legendNames = visibleSeries.map((series) => series.name);
   const events = canonicalEvents(scene.events ?? []);
   const lineSeries = visibleSeries.flatMap((series, visibleSeriesIndex) => {
     const seriesKey = chartSeriesKey(series.identity);
-    const thresholds = scene.thresholds?.filter((threshold) => threshold.seriesKey === seriesKey) ?? [];
+    // Off-scale thresholds are named in the plot corner instead of drawn outside the grid (#1843).
+    const thresholds =
+      scene.thresholds?.filter(
+        (threshold) => threshold.seriesKey === seriesKey && !offScaleIds.has(threshold.id),
+      ) ?? [];
     // #1810: ONE line series per channel. Continuity breaks are explicit null points between
     // segments (connectNulls: false), so a gap still breaks the line, but the renderer no longer
     // creates one ECharts series per segment (hundreds per channel when a history has many
@@ -372,6 +444,8 @@ function rendererOption(scene: ChartRendererScene): EChartsCoreOption {
     ];
   });
 
+  const yWindow = yWindowOption(axisModel, yBounds);
+  const yWindowById = new Map(yWindow.yAxis.map((axis) => [axis.id, axis] as const));
   return {
     // #1810: telemetry updates and zoom/pan must not tween. Animated transitions on every
     // setOption were the visible flicker and lag of zoom, pan and live updates.
@@ -429,6 +503,7 @@ function rendererOption(scene: ChartRendererScene): EChartsCoreOption {
             axisLine: { show: true, lineStyle: { color: "rgba(148,163,184,.42)" } },
             axisTick: { show: true },
             axisLabel: { color: "#94A3B8", hideOverlap: true },
+            ...yWindowById.get(axis.id),
             splitLine: {
               show: visibleIndex === 0,
               lineStyle: { color: "rgba(148,163,184,.10)" },
@@ -457,8 +532,30 @@ function rendererOption(scene: ChartRendererScene): EChartsCoreOption {
         preventDefaultMouseMove: true,
       },
     ],
+    graphic: yWindow.graphic,
     series: lineSeries,
   };
+}
+
+/** Extents ECharts actually applied to each Y axis (real instance only; test doubles lack it). */
+function renderedYExtents(instance: EChartsInstancePort): Array<[number, number]> | null {
+  const model = (instance as unknown as { getModel?: () => unknown }).getModel?.() as
+    | {
+        getComponent(
+          type: string,
+          index: number,
+        ): { axis?: { scale?: { getExtent(): number[] } } } | undefined;
+      }
+    | undefined;
+  if (!model) return null;
+  const extents: Array<[number, number]> = [];
+  for (let index = 0; ; index += 1) {
+    const component = model.getComponent("yAxis", index);
+    if (!component) break;
+    const extent = component.axis?.scale?.getExtent();
+    if (extent) extents.push([extent[0], extent[1]]);
+  }
+  return extents;
 }
 
 export class EChartsRendererAdapter implements ChartRendererAdapter {
@@ -482,6 +579,53 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private zoomCommitTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingZoomDomain: ChartRendererScene["xDomain"] | null = null;
   private programmaticZoom = false;
+  private yBounds = new Map<string, ChartYAxisBounds>();
+  private yBoundsContext: string | null = null;
+  private renderedOffScaleKey = "";
+
+  /**
+   * #1843: Y bounds for the rendered window. The previous bounds are kept while the data still
+   * fills them (no jitter from live samples or small pans); a new period, another Y mode or a
+   * hidden/shown series starts afresh.
+   */
+  private computeYBounds(rendered: ChartRendererScene, axisModel: ChartYAxisModel) {
+    const fullDomain = rendered.interactionDomain ?? rendered.xDomain;
+    const context = [
+      chartYScaleKey(rendered.yScale),
+      fullDomain.toMs - fullDomain.fromMs,
+      rendered.series
+        .map((series) => `${chartSeriesKey(series.identity)}:${series.visible ? 1 : 0}`)
+        .join(","),
+    ].join("|");
+    const previous = context === this.yBoundsContext ? this.yBounds : undefined;
+    this.yBounds = computeChartYAxisBounds({
+      series: rendered.series,
+      axisModel,
+      visibleDomain: rendered.xDomain,
+      fullDomain,
+      scale: rendered.yScale,
+      thresholds: rendered.thresholds,
+      previous,
+    });
+    this.yBoundsContext = context;
+    return this.yBounds;
+  }
+
+  private publishYBounds(): void {
+    if (!this.container || !this.instance) return;
+    this.container.dataset.chartYBounds = JSON.stringify(
+      [...this.yBounds.values()].map((axis) => ({
+        axisId: axis.axisId,
+        min: axis.min,
+        max: axis.max,
+        dataMin: axis.dataMin,
+        dataMax: axis.dataMax,
+        offScale: axis.offScaleThresholds.map((threshold) => threshold.id),
+      })),
+    );
+    const extents = renderedYExtents(this.instance);
+    if (extents) this.container.dataset.chartYRendered = JSON.stringify(extents);
+  }
 
   private cancelPendingZoomCommit(): void {
     if (this.zoomCommitTimer !== null) clearTimeout(this.zoomCommitTimer);
@@ -790,6 +934,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       // An explicit range selection replaced the whole window: a gesture on the old window is void.
       this.cancelPendingZoomCommit();
       this.pendingPrimaryDragDomain = null;
+      this.yBoundsContext = null;
     }
     this.scene = scene;
     this.lastCommittedCursorTimestampMs = undefined;
@@ -798,18 +943,32 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     // would write the pre-gesture window back and undo the user's zoom.
     const pendingWindow = this.pendingZoomDomain ?? this.pendingPrimaryDragDomain;
     const rendered = pendingWindow ? { ...scene, xDomain: pendingWindow } : scene;
-    if (unchangedData) {
+    const axisModel = buildChartYAxisModel(rendered.series);
+    const yBounds = this.computeYBounds(rendered, axisModel);
+    const offScaleKey = [...yBounds.values()]
+      .flatMap((axis) => axis.offScaleThresholds.map((threshold) => threshold.id))
+      .sort()
+      .join(",");
+    // A threshold that moved into or out of the fitted scale changes the drawn mark lines.
+    if (unchangedData && offScaleKey === this.renderedOffScaleKey) {
       // Only the visible window moved (zoom, pan, shared domain, live-follow tick without new
-      // data). Merge the window into the existing chart; series data is not rebuilt.
-      this.instance.setOption(xWindowOption(rendered), { notMerge: false, lazyUpdate: false });
+      // data). Merge the window and the fitted Y bounds into the existing chart; series data is
+      // not rebuilt.
+      this.instance.setOption(
+        { ...xWindowOption(rendered), ...yWindowOption(axisModel, yBounds) },
+        { notMerge: false, lazyUpdate: false },
+      );
+      this.publishYBounds();
       return;
     }
     this.renderedSignature = signature;
-    this.instance.setOption(rendererOption(rendered), {
+    this.renderedOffScaleKey = offScaleKey;
+    this.instance.setOption(rendererOption(rendered, axisModel, yBounds), {
       notMerge: false,
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],
     });
+    this.publishYBounds();
   }
 
   appendLiveTail(seriesKey: string, additions: readonly { segmentId: string; point: ChartPoint }[]): void {
@@ -926,6 +1085,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.cancelPendingCursor();
     this.cancelPendingZoomCommit();
     this.renderedSignature = null;
+    this.yBounds = new Map();
+    this.yBoundsContext = null;
+    this.renderedOffScaleKey = "";
     this.lastCommittedCursorTimestampMs = undefined;
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
