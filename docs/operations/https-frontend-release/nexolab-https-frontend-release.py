@@ -371,11 +371,43 @@ def dropin_path(source: str) -> Path:  # noqa: ARG001 - kept for the v1 call sit
 
 def managed_dropins() -> list[Path]:
     directory = unit_dropin_dir()
+    refuse_symlinks(directory)
     return sorted(directory.glob(MANAGED_GLOB)) if directory.is_dir() else []
 
 
 def text_sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+MANAGED_NAME = re.compile(r"^999-https-release(-[0-9a-f]{12})?\.conf$")
+
+
+def refuse_symlinks(path: Path) -> None:
+    """Root writes and reads under the service account's home (#1863 review): no component of the
+    path from that home down may be a symlink, so `nexolab` cannot redirect a root write."""
+    home = Path(pwd.getpwnam(SERVICE_USER).pw_dir)
+    current = path
+    while True:
+        if current.is_symlink():
+            raise ReleaseError(f"{current} is a symlink; nothing changed")
+        if current == home or current.parent == current:
+            return
+        current = current.parent
+
+
+def read_nofollow(path: Path) -> str:
+    refuse_symlinks(path)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(descriptor, "r") as handle:
+        return handle.read()
+
+
+def fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def identity_at(host: Host, port: int) -> tuple[str | None, str | None]:
@@ -423,6 +455,11 @@ def phase_plan(zip_path: Path, expected: Expectation, host: Host) -> dict:
 
 
 def phase_prepare(zip_path: Path, expected: Expectation, host: Host) -> dict:
+    with StateLock():
+        return _prepare(zip_path, expected, host)
+
+
+def _prepare(zip_path: Path, expected: Expectation, host: Host) -> dict:
     verify_artifact(zip_path, expected)
     release = release_directory(expected.source, expected.build)
     # A previous "prepared" marker never outlives a new preparation: it is recreated only after every
@@ -500,6 +537,7 @@ def _atomic_write(path: Path, payload: dict) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(temporary, path)
+    fsync_directory(path.parent)
 
 
 def write_state(state: dict) -> None:
@@ -539,6 +577,22 @@ def entry(source: str, build: str, dropin: Path | None, text: str | None) -> dic
     }
 
 
+def validate_entry(item: dict) -> None:
+    """Every recorded release: identity formats, a managed drop-in path inside the unit's drop-in
+    directory, and text matching its hash; root never writes to a path taken from a tampered state."""
+    if not SHA40.fullmatch(str(item.get("source"))) or not BUILD_ID.fullmatch(str(item.get("build"))):
+        raise ReleaseError("recorded release identity is malformed; nothing changed")
+    if item.get("dropin") is None:
+        if item.get("dropin_text") is not None:
+            raise ReleaseError("recorded release has drop-in text without a path; nothing changed")
+        return
+    path = Path(item["dropin"])
+    if path.parent != unit_dropin_dir() or not MANAGED_NAME.fullmatch(path.name):
+        raise ReleaseError(f"recorded drop-in {path} is not a managed drop-in of {UNIT}; nothing changed")
+    if not isinstance(item.get("dropin_text"), str) or text_sha256(item["dropin_text"]) != item.get("dropin_sha256"):
+        raise ReleaseError("recorded drop-in text does not match its hash; nothing changed")
+
+
 def load_stack(live: tuple[str | None, str | None]) -> list[dict]:
     """The recorded release stack, proven consistent with the disk and the live service.
 
@@ -562,41 +616,76 @@ def load_stack(live: tuple[str | None, str | None]) -> list[dict]:
         legacy = Path(state["dropin"])
         if not legacy.is_file():
             raise ReleaseError(f"recorded drop-in {legacy} is missing; nothing changed")
+        legacy_text = read_nofollow(legacy)
+        # The v1 drop-in must point at the v1 target release, not merely exist (review).
+        target_release = release_directory(state["target"][0], state["target"][1])
+        if f"WorkingDirectory={target_release}\n" not in legacy_text:
+            raise ReleaseError(f"{legacy} does not point at the recorded release {target_release}; nothing changed")
         stack = [
             entry(state["previous"][0], state["previous"][1], None, None),
-            entry(state["target"][0], state["target"][1], legacy, legacy.read_text()),
+            entry(state["target"][0], state["target"][1], legacy, legacy_text),
         ]
     else:
         raise ReleaseError("unrecognised release state; nothing changed")
     if not stack:
         raise ReleaseError("empty release stack; nothing changed")
+    for item in stack:
+        validate_entry(item)
     top = stack[-1]
     if (top["source"], top["build"]) != tuple(live):
         raise ReleaseError(f"live identity {live} != recorded release {top['source']}/{top['build']}; nothing changed")
     expected = [Path(top["dropin"])] if top["dropin"] else []
     if on_disk != expected:
         raise ReleaseError(f"managed drop-ins {on_disk} != recorded {expected}; nothing changed")
-    if top["dropin"] and text_sha256(Path(top["dropin"]).read_text()) != top["dropin_sha256"]:
+    if top["dropin"] and text_sha256(read_nofollow(Path(top["dropin"]))) != top["dropin_sha256"]:
         raise ReleaseError(f"{top['dropin']} was modified outside this tool; nothing changed")
     return stack
 
 
 def install_config(target: dict) -> None:
-    """Exactly the target's managed drop-in (or none): every other managed drop-in is removed."""
+    """Exactly the target's managed drop-in (or none): every other managed drop-in is removed.
+
+    #1863 review: the drop-in is ROOT-owned (0644 is enough for the user manager to read it) and is
+    written through an O_EXCL|O_NOFOLLOW temporary with a random name, fsynced, then renamed, so the
+    service account can neither redirect the write through a symlink nor alter the file later."""
+    directory = unit_dropin_dir()
+    refuse_symlinks(directory)
     for path in managed_dropins():
         if target["dropin"] is None or path != Path(target["dropin"]):
             path.unlink()
     if target["dropin"] is None:
+        if directory.is_dir():
+            fsync_directory(directory)
         return
-    user = pwd.getpwnam(SERVICE_USER)
     path = Path(target["dropin"])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    os.chown(path.parent, user.pw_uid, user.pw_gid)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(target["dropin_text"])
-    os.chown(temporary, user.pw_uid, user.pw_gid)
-    temporary.chmod(0o644)
-    os.replace(temporary, path)
+    if not directory.is_dir():
+        directory.mkdir(mode=0o755)  # the user unit's directory already exists on the host
+    temporary = directory / f".{MANAGED_DROPIN}.{os.urandom(8).hex()}.tmp"
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+    try:
+        with os.fdopen(descriptor, "w") as handle:
+            handle.write(target["dropin_text"])
+            handle.flush()
+            os.fchmod(handle.fileno(), 0o644)
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    fsync_directory(directory)
+
+
+def check_current_effective(host: Host, top: dict) -> None:
+    """Before any change (#1863 review): the LOADED unit already applies exactly the recorded top
+    drop-in, last; otherwise a later restore could not pass either, and nothing is touched."""
+    paths = show(host, "DropInPaths").get("DropInPaths", "").split()
+    managed = [path for path in paths if MANAGED_NAME.fullmatch(Path(path).name)]
+    if top["dropin"] is None:
+        if managed:
+            raise ReleaseError(f"systemd applies managed drop-ins {managed} that are not recorded; nothing changed")
+        return
+    if managed != [top["dropin"]] or paths[-1] != top["dropin"]:
+        raise ReleaseError(f"systemd does not apply {top['dropin']} last: {paths}; nothing changed")
 
 
 def restart(host: Host) -> None:
@@ -612,7 +701,7 @@ def check_effective(host: Host, target: dict) -> None:
     if reload.returncode != 0:
         raise ReleaseError(f"systemctl --user daemon-reload failed: {reload.stderr.strip()}")
     paths = show(host, "DropInPaths").get("DropInPaths", "").split()
-    managed = [path for path in paths if Path(path).name.startswith("999-https-release")]
+    managed = [path for path in paths if MANAGED_NAME.fullmatch(Path(path).name)]
     if target["dropin"] is None:
         if managed:
             raise ReleaseError(f"a managed drop-in is still applied: {managed}")
@@ -655,14 +744,16 @@ def restore(host: Host, target: dict) -> bool:
     return True
 
 
-def transition(host: Host, kind: str, stack: list[dict], target: dict, new_stack: list[dict]) -> None:
+def transition(
+    host: Host, kind: str, stack: list[dict], target: dict, new_stack: list[dict], require_gate: bool = True
+) -> None:
     """Journal + transition record, switch, then the new stack; any failure restores the top."""
     current = stack[-1]
     record = {"kind": kind, "from": current, "to": target, "stack_before": stack, "stack_after": new_stack}
     write_journal(record)
     _atomic_write(transition_file(), record)
     try:
-        switch(host, target)
+        switch(host, target, require_gate)
         # Inside the recovery boundary: without a recorded stack the switch is not kept (review).
         write_state({"schema": STATE_SCHEMA, "stack": new_stack})
     except Exception as error:  # noqa: BLE001 - any failure, including a systemctl timeout, restores
@@ -696,6 +787,7 @@ def phase_execute(zip_path: Path, expected: Expectation, current: tuple[str, str
         if live != current:
             raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
         stack = load_stack(live)
+        check_current_effective(host, stack[-1])
         if (expected.source, expected.build) == current:
             raise ReleaseError("the target release is already live; nothing changed")
         unit = show(host, "WorkingDirectory", "ExecStart")
@@ -716,32 +808,45 @@ def phase_rollback(host: Host, current: tuple[str, str] | None = None) -> bool:
         if current is not None and live != current:
             raise ReleaseError(f"live identity {live} != expected current {current}; nothing changed")
         stack = load_stack(live)
+        check_current_effective(host, stack[-1])
         if len(stack) < 2:
             raise ReleaseError("no recorded predecessor: nothing to roll back")
         previous = stack[-2]
-        transition(host, "rollback", stack, previous, stack[:-1])
+        # An explicit rollback must stay possible during an OAuth outage outside the frontend; the
+        # gate is then reported (HTTPS_FRONTEND_OAUTH_GATE_NOT_VERIFIED), never hidden (review).
+        transition(host, "rollback", stack, previous, stack[:-1], require_gate=False)
     host.log(f"HTTPS_FRONTEND_ROLLED_BACK_VERIFIED source={previous['source']} build={previous['build']}")
     return True
 
 
 def phase_recover(host: Host) -> bool:
-    """Completes an interrupted execute/rollback recorded in transition.json."""
+    """Completes an interrupted execute/rollback recorded in transition.json.
+
+    The switch counts as completed only when its stack was written AND the target reports its
+    identity within the normal start timeout; otherwise the "from" configuration is restored and the
+    durable stack is set back to the one before the attempt, atomically, before the record is removed.
+    """
     with StateLock():
         if not transition_file().is_file():
-            host.log("HTTPS_FRONTEND_RECOVERED_VERIFIED nothing to recover")
+            host.log("HTTPS_FRONTEND_NOTHING_TO_RECOVER")
             return True
         record = json.loads(transition_file().read_text())
+        for item in (record["from"], record["to"], *record["stack_before"], *record["stack_after"]):
+            validate_entry(item)
         state_path = STATE_DIR / "state.json"
         recorded = json.loads(state_path.read_text()) if state_path.is_file() else None
-        after = record["stack_after"]
         target = record["to"]
-        # The switch completed and its stack was written: only the transition record is left.
-        if recorded and recorded.get("stack") == after and identity_at(host, LIVE_PORT) == (target["source"], target["build"]):
+        if (
+            recorded
+            and recorded.get("stack") == record["stack_after"]
+            and wait_identity(host, LIVE_PORT, target["source"], target["build"])
+        ):
             transition_file().unlink()
             host.log(f"HTTPS_FRONTEND_RECOVERED_VERIFIED switch had completed: {target['source']}/{target['build']}")
             return True
         if not restore(host, record["from"]):
             return False
+        write_state({"schema": STATE_SCHEMA, "stack": record["stack_before"]})
         transition_file().unlink()
         host.log(f"HTTPS_FRONTEND_RECOVERED_VERIFIED restored {record['from']['source']}/{record['from']['build']}")
         return True

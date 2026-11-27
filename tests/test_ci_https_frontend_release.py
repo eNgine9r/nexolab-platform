@@ -323,6 +323,7 @@ class ConsecutiveReleases(unittest.TestCase):
         base = Path(self.dir.name)
         self.home = base / "home"
         self.unit_dir = self.home / ".config" / "systemd" / "user" / f"{self.module.UNIT}.d"
+        self.unit_dir.mkdir(parents=True)  # the user unit's drop-in directory exists on the host
         self.module.RELEASES_DIR = base / "releases"
         self.module.RELEASES_DIR.mkdir()
         self.module.STATE_DIR = base / "state"
@@ -382,7 +383,6 @@ class ConsecutiveReleases(unittest.TestCase):
     def test_upgrades_over_a_v1_hash_named_dropin_with_adverse_lexical_order(self):
         # Production on 2026-11-27: v1 left 999-https-release-<b12>.conf and a v1 state.
         legacy = self.unit_dir / f"999-https-release-{SOURCE[:12]}.conf"
-        self.unit_dir.mkdir(parents=True)
         release_b = self.module.release_directory(SOURCE, BUILD)
         working, execstart = self.systemd.effective()
         legacy.write_text(self.module.render_dropin(execstart.split(), working, release_b, 3105))
@@ -454,20 +454,116 @@ class ConsecutiveReleases(unittest.TestCase):
         self.execute(self.c, (SOURCE, BUILD))
         self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
 
+    def crash_after_state_write(self):
+        """Power loss after the stack was written but before transition.json was removed."""
+        real = self.module.write_state
+
+        def write_then_die(state):
+            real(state)
+            raise KeyboardInterrupt
+
+        with mock.patch.object(self.module, "write_state", write_then_die):
+            with self.assertRaises(KeyboardInterrupt):
+                self.execute(self.c, (SOURCE, BUILD))
+        self.assertTrue(self.module.transition_file().exists())
+
     def test_recover_confirms_a_switch_that_completed_before_the_interruption(self):
         self.execute(self.b, OLD)
-        original = self.module.transition_file
-
-        with mock.patch.object(self.module.Path, "unlink", autospec=True, side_effect=lambda self, missing_ok=False: None):
-            self.execute(self.c, (SOURCE, BUILD))
-        self.assertTrue(original().exists())
+        self.crash_after_state_write()
         self.assertTrue(self.module.phase_recover(self.systemd.host()))
         self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
-        self.assertFalse(original().exists())
+        self.assertFalse(self.module.transition_file().exists())
+        self.assertEqual(len(self.state()["stack"]), 3)
+
+    def test_recover_restores_the_stack_when_the_new_release_is_not_up_after_reboot(self):
+        # Review P1-2: the stack said C, but after the reboot C does not start.
+        self.execute(self.b, OLD)
+        self.crash_after_state_write()
+        self.systemd.fail_start.add(C_SOURCE)
+        self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "restart", self.module.UNIT])
+        self.assertEqual(self.systemd.live, (None, None))
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertEqual([(e["source"], e["build"]) for e in self.state()["stack"]], [OLD, (SOURCE, BUILD)])
+        self.assertFalse(self.module.transition_file().exists())
+        # Consistent again: the next upgrade works.
+        self.systemd.fail_start.clear()
+        self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+
+    def test_interrupted_rollback_is_recovered_to_the_release_it_started_from(self):
+        self.execute(self.b, OLD)
+        self.execute(self.c, (SOURCE, BUILD))
+
+        def power_loss():
+            raise KeyboardInterrupt
+
+        self.systemd.restart_hook = power_loss
+        with self.assertRaises(KeyboardInterrupt):
+            self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD))
+        self.systemd.restart_hook = None
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
+        self.assertEqual(len(self.state()["stack"]), 3)
+        self.assertTrue(self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD)))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+
+    def test_nothing_to_recover_has_its_own_marker(self):
+        self.assertTrue(self.module.phase_recover(self.systemd.host()))
+        self.assertIn("HTTPS_FRONTEND_NOTHING_TO_RECOVER", self.systemd.log_lines)
+
+    def test_a_later_unmanaged_dropin_is_refused_before_any_change(self):
+        # Review P1-3: e.g. `systemctl edit` writes override.conf, which sorts after 999-*.
+        self.execute(self.b, OLD)
+        (self.unit_dir / "override.conf").write_text("[Service]\nEnvironment=X=1\n")
+        self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "daemon-reload"])
+        restarts = sum(1 for call in self.systemd.calls if "restart" in call)
+        with self.assertRaisesRegex(self.module.ReleaseError, "does not apply .* last.*nothing changed"):
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(sum(1 for call in self.systemd.calls if "restart" in call), restarts)
+        self.assertFalse(self.module.transition_file().exists())
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+
+    def test_dropins_are_root_owned_and_symlinks_are_refused(self):
+        with mock.patch.object(self.module.os, "chown") as chown:
+            self.execute(self.b, OLD)
+        # Review P1-1: nothing under the service account's home is chowned to it.
+        self.assertFalse(any(str(self.home) in str(call.args[0]) for call in chown.call_args_list))
+        self.assertEqual((self.unit_dir / "999-https-release.conf").stat().st_mode & 0o777, 0o644)
+        target = Path(self.dir.name) / "elsewhere"
+        target.mkdir()
+        moved = self.unit_dir.with_name("moved.d")
+        self.unit_dir.rename(moved)
+        self.unit_dir.symlink_to(target, target_is_directory=True)
+        with self.assertRaisesRegex(self.module.ReleaseError, "symlink"):
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(list(target.iterdir()), [])
+
+    def test_rollback_works_during_an_oauth_outage_and_says_so(self):
+        self.execute(self.b, OLD)
+        self.execute(self.c, (SOURCE, BUILD))
+        self.systemd.public_status = 502
+        self.assertTrue(self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD)))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        self.assertTrue(any("OAUTH_GATE_NOT_VERIFIED" in line for line in self.systemd.log_lines))
+
+    def test_a_tampered_lower_stack_entry_is_refused(self):
+        self.execute(self.b, OLD)
+        self.execute(self.c, (SOURCE, BUILD))
+        state = self.state()
+        state["stack"][1]["dropin_text"] += "ExecStartPre=/bin/sh -c id\n"
+        (self.module.STATE_DIR / "state.json").write_text(json.dumps(state))
+        with self.assertRaisesRegex(self.module.ReleaseError, "does not match its hash"):
+            self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD))
+        state["stack"][1]["dropin"] = "/etc/systemd/system/evil.conf"
+        state["stack"][1]["dropin_sha256"] = self.module.text_sha256(state["stack"][1]["dropin_text"])
+        (self.module.STATE_DIR / "state.json").write_text(json.dumps(state))
+        with self.assertRaisesRegex(self.module.ReleaseError, "not a managed drop-in"):
+            self.module.phase_rollback(self.systemd.host(), (C_SOURCE, C_BUILD))
+        self.assertEqual(self.systemd.live, (C_SOURCE, C_BUILD))
 
     def test_refuses_unexpected_tampered_or_unrecorded_state(self):
         # Unrecorded managed drop-in, no state.
-        self.unit_dir.mkdir(parents=True)
         stray = self.unit_dir / "999-https-release-ffffffffffff.conf"
         stray.write_text("[Service]\n")
         with self.assertRaisesRegex(self.module.ReleaseError, "unrecorded managed drop-in"):
@@ -520,10 +616,8 @@ class ConsecutiveReleases(unittest.TestCase):
         original = self.systemd.run
 
         def run(argv):
-            if "restart" in argv and "999-https-release.conf" in (self.unit_dir / "999-https-release.conf").name:
-                working, _ = self.systemd.effective()
-                if C_SOURCE[:12] in working:
-                    raise self.module.subprocess.TimeoutExpired(argv, 180)
+            if "restart" in argv and C_SOURCE[:12] in self.systemd.effective()[0]:
+                raise self.module.subprocess.TimeoutExpired(argv, 180)
             return original(argv)
 
         host = self.systemd.host()
