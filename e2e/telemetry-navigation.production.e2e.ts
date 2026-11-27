@@ -131,6 +131,19 @@ function overviewSessionReadCount(requests: ApiReadEvidence[]): number {
   });
 }
 
+/** #1845: exact per-state totals for the Overview "Активних сесій" KPI (one-row, state-filtered). */
+function overviewSessionCountReadCount(requests: ApiReadEvidence[]): number {
+  return apiReadCount(requests, (request) => {
+    const parsed = new URL(request.url);
+    return (
+      parsed.pathname === "/api/v1/sessions" &&
+      parsed.searchParams.get("node_id") === "edge-01" &&
+      parsed.searchParams.get("limit") === "1" &&
+      ["running", "paused", "ready"].includes(parsed.searchParams.get("state") ?? "")
+    );
+  });
+}
+
 function sessionsRouteReadCount(requests: ApiReadEvidence[]): number {
   return apiReadCount(requests, (request) => {
     const parsed = new URL(request.url);
@@ -578,6 +591,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     );
     const overviewSessionReads = overviewSessionReadCount(requests.apiReads);
     const sessionsRouteReads = sessionsRouteReadCount(requests.apiReads);
+    const overviewSessionCountReads = overviewSessionCountReadCount(requests.apiReads);
     const liveDashboardInventoryReads = apiReadCount(
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
@@ -643,7 +657,9 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(overviewSessionReads).toBeLessThanOrEqual(
       warmBaselineCounts.overviewSessions + overviewSessionRefreshDeltas.length,
     );
-    expect(sessionListReads).toBe(overviewSessionReads + sessionsRouteReads);
+    // Three cached state totals per Overview session refresh at most, never a polling loop.
+    expect(overviewSessionCountReads).toBeLessThanOrEqual(3 * overviewSessionReads);
+    expect(sessionListReads).toBe(overviewSessionReads + sessionsRouteReads + overviewSessionCountReads);
     expect(liveDashboardInventoryReads).toBe(0);
     expect(activeAlertReads).toBe(acknowledgedAlertReads);
     expect(activeAlertReads).toBeLessThanOrEqual(initialActiveAlertReads + overviewAlertRefreshDeltas.length);
