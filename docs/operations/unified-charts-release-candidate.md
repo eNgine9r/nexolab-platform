@@ -95,3 +95,42 @@ sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.p
 ```
 
 Expected: `plan` shows the stack with rollback target `47e9dd943484/30zMx48UZ8ATG5QCPdL_Z`; `execute` ends `HTTPS_FRONTEND_GREEN`. On failure the tool restores `47e9dd94` itself.
+
+## SSD headroom for `:443` (2026-11-27)
+
+After the LAN build, 21 870 964 736 bytes (20.37 GiB) are free.
+
+| Item             | Value                                                                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fa34da0d` ZIP   | 220 468 469 bytes; `frontend-runtime.tar.gz` inside it is 220 275 585 bytes                                                                    |
+| Unpacked runtime | 621 796 345 bytes (593 MiB) in 19 025 tar members, about 645 MiB with 4 KiB blocks. Measured by streaming the tar headers; nothing was written |
+| v2 tool rule     | free − unpacked ≥ 20 GiB before extraction, and ≥ 20 GiB after it                                                                              |
+| Shortfall now    | about 216 MiB, so `prepare` would refuse with nothing extracted                                                                                |
+
+**Safe sources** (regenerable, no image, volume, backup, release directory, rollback artifact or telemetry data):
+
+- Docker build cache from the LAN build: about 2.1–2.4 GiB (`docker builder prune --all --force`, the command behind the broker's `build_cache=all-unused`).
+- Two Python test virtualenvs in Commander workspaces (#1445, #1615): about 0.63 GiB. Removed only if the directory is a bare venv.
+
+Expected: about 23.1 GiB free before `:443`, about 22.5 GiB after it.
+
+**Checked and not proposed:**
+
+| Candidate                                                                                          | Reason                                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard `wp2c-stage2-210b478b`                                                                   | `previous_image_id` / `baseline_image_id` in archived Stage 2 workspaces (broker scan E `441ebf2e…`, 120 407 files, complete) |
+| `telemetry-service:issue-1615-1e5537cb`                                                            | 7 rollback-context references                                                                                                 |
+| `telemetry-service:staged-2552b7ef`                                                                | `OLD_IMAGE` in #1583 backend activation scripts: a likely backend rollback image while #1428 is open                          |
+| `telemetry-service:staged-eb6302b0`                                                                | Only build-log references, but small unique size; deferred to the retention policy                                            |
+| Dashboard images #1603/#1609/#1625, #1522, #1638                                                   | Recorded rollback or baseline images                                                                                          |
+| `/opt/nexolab-external/releases` (8 GiB), Commander workspaces (51 GiB), release ZIPs in the inbox | Release and evidence artifacts; they need a retention policy before any removal                                               |
+
+Reaching 25 GiB therefore needs the release-retention decision. The owner package collects a read-only listing of the HTTPS release directories and the v2 stack for it.
+
+**Owner package:** the agent's local file `~/.cache/nexolab-chart-p0/owner-package-443-ssd.sh`, run in one session:
+
+1. Build cache.
+2. Venvs.
+3. A 21.5 GiB gate.
+4. `:443` `plan`/`prepare`/`execute` (command above).
+5. The read-only listing.

@@ -1,3 +1,10 @@
+## 2026-11-27 — `:443` waits for SSD headroom; `:8444` API defect #1874; blockers reconciled
+
+- **`:443`:** free 20.37 GiB; artifact `fa34da0d` unpacks to 593 MiB, so the v2 tool would refuse by ~216 MiB. The one-session owner package frees only regenerable data (build cache, two test venvs, ~2.7 GiB), gates at 21.5 GiB, then runs `plan`/`prepare`/`execute`. Details in `docs/operations/unified-charts-release-candidate.md`.
+- **#1874:** `:8444` proxies to the dashboard directly, so the same-origin API and WebSocket fail there. Owner decision; no network change by the agent.
+- **`.project/BLOCKERS.md`:** a reconciliation section lists what is open now and which older entries are superseded.
+- **Next (after `:443`):** product updates paused. Priorities: DR #1428, automatic disk-space management, release retention, telemetry retention (#1551), optimized backend preparation.
+
 ## 2026-11-27 — Unified Chart Experience 84cf45e7 live on LAN, `:8443`, `:8444`; `:443` pending owner step
 
 - **Deployed (owner approvals, broker):** cleanup 21.65 → 23.75 GiB, `STAGE2_CHECK_PASS NO_WRITES`, `STAGE2_FRONTEND_GREEN`.
