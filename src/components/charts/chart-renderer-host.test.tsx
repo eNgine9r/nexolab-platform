@@ -144,13 +144,13 @@ describe("ChartRendererHost", () => {
     const firstTimestamp = scene.series[0].segments[0].points[0].timestampMs;
     const lastTimestamp = scene.series.at(-1)!.segments.at(-1)!.points.at(-1)!.timestampMs;
     fireEvent.keyDown(host, { key: "Home" });
-    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(firstTimestamp);
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(firstTimestamp, { explicit: true });
     expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: firstTimestamp });
     fireEvent.keyDown(host, { key: "End" });
-    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(lastTimestamp);
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(lastTimestamp, { explicit: true });
     expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: lastTimestamp });
     fireEvent.keyDown(host, { key: "Escape" });
-    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(null);
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(null, { explicit: true });
     expect(onCursor).toHaveBeenLastCalledWith(null);
   });
 });
