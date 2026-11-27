@@ -13114,7 +13114,7 @@
     {
       "issue": 1863,
       "title": "Consecutive guarded HTTPS frontend upgrades with exact predecessor rollback",
-      "lifecycle": "review",
+      "lifecycle": "needs_validation",
       "priority": "critical",
       "scope": "v2 HTTPS release tool; owner-run activation of 47e9dd94 on :443.",
       "depends_on": [
@@ -13128,7 +13128,10 @@
       ],
       "evidence": {
         "site_cutover": false,
-        "hardware_verified": false
+        "hardware_verified": false,
+        "merged": "PR #1864 merge dbeaeb95 (exact-head GREEN, all Codex threads resolved; independent review 3 rounds)",
+        "tool_sha256": "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07",
+        "site_acceptance": "pending owner install + execute on :443"
       }
     }
   ],

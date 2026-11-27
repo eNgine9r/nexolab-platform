@@ -121,10 +121,9 @@ On 2026-11-27 the v1 tool refused `execute` 210b478b → 47e9dd94 with `999-http
 ### Owner command (one session, checksum-pinned)
 
 ```bash
-cd /home/nexolab-dev/nexolab-platform   # the agent keeps this checkout on merged main
-echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  docs/operations/https-frontend-release/nexolab-https-frontend-release.py" | sha256sum -c - &&
-sudo install -o root -g root -m 0755 docs/operations/https-frontend-release/nexolab-https-frontend-release.py \
-  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py &&
+T=/home/nexolab-dev/nexolab-platform/docs/operations/https-frontend-release/nexolab-https-frontend-release.py  # merged main checkout (0700 home: read with sudo)
+echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  $T" | sudo sha256sum -c - &&
+sudo install -o root -g root -m 0755 "$T" /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py &&
 echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py" | sha256sum -c - &&
 H=(--artifact /home/nexolab-dev/operator-inbox/c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18.zip
    --expect-zip-sha256 c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18
