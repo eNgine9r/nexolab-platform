@@ -13137,7 +13137,7 @@
     {
       "issue": 1866,
       "title": "Eliminate hover flicker and isolate cursor inspection from chart rendering",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "critical",
       "scope": "Single cursor source, no shared-cursor echo, no series emphasis, stable inspector layout, indexed inspection.",
       "depends_on": [
@@ -13150,6 +13150,52 @@
         ".project/"
       ],
       "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false,
+        "merged": "PR #1869 merge cfbdb63c (exact-head GREEN, Codex threads resolved)",
+        "site_acceptance": "staged in 84cf45e7, not deployed"
+      }
+    },
+    {
+      "issue": 1867,
+      "title": "Remove detailed zoom/pan stalls under adaptive point density",
+      "lifecycle": "needs_validation",
+      "priority": "critical",
+      "scope": "Unified Chart Experience",
+      "depends_on": [
+        1866
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/"
+      ],
+      "evidence": {
+        "merged": "PR #1870 merge b4e29668 (exact-head GREEN)",
+        "site_acceptance": "staged in 84cf45e7, not deployed",
+        "site_cutover": false,
+        "hardware_verified": false
+      }
+    },
+    {
+      "issue": 1868,
+      "title": "Unify chart controls, legend and solid measurement lines",
+      "lifecycle": "needs_validation",
+      "priority": "high",
+      "scope": "Unified Chart Experience",
+      "depends_on": [
+        1866
+      ],
+      "branch": null,
+      "permitted_paths": [
+        "src/",
+        "e2e/",
+        "docs/"
+      ],
+      "evidence": {
+        "merged": "PR #1871 merge 84cf45e7 (exact-head GREEN)",
+        "site_acceptance": "staged in 84cf45e7, not deployed",
         "site_cutover": false,
         "hardware_verified": false
       }

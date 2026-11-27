@@ -1,3 +1,19 @@
+## 2026-11-27 — Unified Chart Experience (#1866, #1867, #1868) merged; release 84cf45e7 staged, not deployed
+
+- **#1866 (PR #1869):** cursor without flicker.
+  - One cursor source under the mouse, no echo into the hovered plot, no series emphasis, a fixed inspector hint and indexed inspection.
+  - Browser sweep: 0 rebuilds, p95 35 ms per move.
+- **#1867 (PR #1870):** deep zoom profiled in the browser.
+  - Mechanism: two group builds and two renders per committed step. Now one of each.
+  - Chart work −31 % (raw) and −24 % (aggregate); FPS 49→52 and 46→48.
+- **#1868 (PR #1871):**
+  - solid measurement lines on every surface (setpoint dashed as a reference);
+  - a shared «Повернути всі»;
+  - the contract in `docs/ux/chart-interaction-contract.md`.
+- **Release:** `84cf45e7`, LAN `a30e461d…`, HTTPS `fa34da0d…`. Details in `docs/operations/unified-charts-release-candidate.md`.
+- **Disk:** 20.6 GiB free; the owner package frees about 2.5 GiB for the 23 GiB LAN build. Manifest D has rollback references and is not proposed.
+- **Production:** `47e9dd94` on all four interfaces.
+
 ## 2026-11-27 — Chart System 2.0 on all four interfaces; #1866 cursor flicker in progress
 
 - **`:443` (owner, v2 tool #1863):** `:3105` serves `47e9dd94` / `30zMx48UZ8ATG5QCPdL_Z`.
