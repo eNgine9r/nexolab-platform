@@ -44,6 +44,7 @@ import os
 import pwd
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -411,13 +412,23 @@ MANAGED_NAME = re.compile(r"^999-https-release(-[0-9a-f]{12})?\.conf$")
 def read_nofollow(path: Path) -> str:
     directory = open_directory_nofollow(path.parent)
     try:
-        descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+        # O_NONBLOCK: a FIFO planted by the service account cannot hang the root tool (review).
+        descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
     except OSError as error:
         raise ReleaseError(f"cannot read {path} ({error.strerror}); nothing changed") from error
     finally:
         os.close(directory)
-    with os.fdopen(descriptor, "r") as handle:
-        return handle.read()
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ReleaseError(f"{path} is not a regular file; nothing changed")
+        with os.fdopen(descriptor, "r") as handle:
+            descriptor = -1
+            return handle.read()
+    except OSError as error:
+        raise ReleaseError(f"cannot read {path} ({error.strerror}); nothing changed") from error
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
 
 
 def fsync_directory(path: Path) -> None:
@@ -467,6 +478,15 @@ def phase_plan(zip_path: Path, expected: Expectation, host: Host) -> dict:
     argv = execstart_argv(unit.get("ExecStart", ""))
     dropin = render_dropin(argv, unit.get("WorkingDirectory", ""), release, LIVE_PORT)
     live = identity_at(host, LIVE_PORT)
+    # Read-only preflight of the release stack (#1863): a v1 state or drop-in that execute would
+    # refuse is reported here, before prepare, without changing anything.
+    stack = load_stack(live)
+    check_current_effective(host, stack[-1])
+    host.log(
+        "HTTPS_FRONTEND_STACK "
+        + " -> ".join(f"{item['source'][:12]}/{item['build']}" for item in stack)
+        + f" (rollback target after execute: {stack[-1]['source'][:12]}/{stack[-1]['build']})"
+    )
     host.log(f"HTTPS_FRONTEND_PLAN live={live[0]}/{live[1]} release={release} exists={release.exists()}")
     host.log(f"drop-in {dropin_path(expected.source)}:\n{dropin}")
     return {"contract": contract, "release": str(release), "dropin": dropin, "live": live}

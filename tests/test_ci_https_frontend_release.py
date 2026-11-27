@@ -395,6 +395,12 @@ class ConsecutiveReleases(unittest.TestCase):
         self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "daemon-reload"])
         self.systemd.run(["systemctl", "--user", "-M", "nexolab@", "restart", self.module.UNIT])
         self.assertEqual(self.systemd.live, (SOURCE, BUILD))
+        # The read-only plan reports the migrated stack and changes nothing.
+        before = sorted(path.name for path in self.unit_dir.iterdir())
+        self.module.phase_plan(self.c[0], self.c[1], self.systemd.host())
+        stack_line = next(line for line in self.systemd.log_lines if line.startswith("HTTPS_FRONTEND_STACK"))
+        self.assertIn(f"{OLD[0][:12]}/{OLD[1]} -> {SOURCE[:12]}/{BUILD}", stack_line)
+        self.assertEqual(sorted(path.name for path in self.unit_dir.iterdir()), before)
         # C's hash ("000…") sorts before B's: a hash-named C drop-in would LOSE to B's. The fixed name
         # replaces B's file instead, so C is effective.
         self.execute(self.c, (SOURCE, BUILD))
@@ -539,6 +545,19 @@ class ConsecutiveReleases(unittest.TestCase):
         with self.assertRaisesRegex(self.module.ReleaseError, "not a plain directory"):
             self.execute(self.c, (SOURCE, BUILD))
         self.assertEqual(list(target.iterdir()), [])
+
+    def test_a_fifo_or_directory_in_place_of_the_dropin_is_refused_without_hanging(self):
+        self.execute(self.b, OLD)
+        managed = self.unit_dir / "999-https-release.conf"
+        managed.unlink()
+        os.mkfifo(managed)
+        with self.assertRaisesRegex(self.module.ReleaseError, "not a regular file"):
+            self.execute(self.c, (SOURCE, BUILD))
+        managed.unlink()
+        managed.mkdir()
+        with self.assertRaisesRegex(self.module.ReleaseError, "not a regular file|cannot read"):
+            self.execute(self.c, (SOURCE, BUILD))
+        self.assertEqual(self.systemd.live, (SOURCE, BUILD))
 
     def test_rollback_works_during_an_oauth_outage_and_says_so(self):
         self.execute(self.b, OLD)
