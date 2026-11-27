@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-11-27T15:30:00Z",
+  "timestamp": "2026-11-27T17:05:00Z",
   "actor": "claude",
-  "event": "#1866/#1867/#1868 merged; release 84cf45e7 built+staged (LAN a30e461d build hZgwiFnOtHT1zzeKaTCMl, HTTPS fa34da0d build hUzaQBG5v2tGcLVYrU3qL); production 47e9dd94 on all four interfaces; owner package in docs/operations/unified-charts-release-candidate.md",
+  "event": "Unified Chart Experience 84cf45e7 deployed to LAN, :8443, :8444 (STAGE2_FRONTEND_GREEN, build hZgwiFnOtHT1zzeKaTCMl); :443 still 47e9dd94 pending owner v2 tool step",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
