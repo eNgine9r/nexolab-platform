@@ -96,3 +96,49 @@ The agent then:
 | Auth, API and WebSocket | Public `:443` and the OAuth gateway answer 302. On the LAN and `:8443`, the API answers 401 without a token and the WebSocket upgrade answers 101.                                                                                                     |
 | Telemetry, 5 minutes    | Ready throughout. Ingestion lag 0.16–0.62 s, `last_persisted_at` advancing, queue 0. All 13 containers are running (12 healthy; MinIO has no healthcheck by design). 1.9 GiB of memory available, no throttling, no failed units, about 21.7 GiB free. |
 | Rollback                | Not needed. The approval stays unused and expires.                                                                                                                                                                                                     |
+
+## Main HTTPS `:443`: v2 release tool (#1863)
+
+On 2026-11-27 the v1 tool refused `execute` 210b478b → 47e9dd94 with `999-https-release-210b478bed76.conf is already installed; run rollback first; nothing changed`. v1 supported only a first activation. Nothing changed live: `:3105` still serves `210b478b` / `EyZllf1uoZnxieohz2NxC`.
+
+### What v2 does
+
+- **Consecutive upgrades A → B → C.** There is one fixed managed drop-in, `999-https-release.conf`, so its precedence never depends on the lexical order of hashes. The v1 hash-named drop-in and the v1 `state.json` are migrated, keeping their exact bytes.
+- **Rollback goes to the immediate predecessor.** The state is a release stack holding each release's identity and exact drop-in bytes: from 47e9dd94, rollback returns to 210b478b, never further.
+- **Checks before any change:**
+  - the live identity equals the recorded top;
+  - the drop-ins on disk and systemd's loaded `DropInPaths` contain exactly the recorded drop-in, last;
+  - the disk reserve holds;
+  - the artifact and the prepared files are re-verified.
+- **Recovery and locking:**
+  - a journal and an atomic transition record are written before the switch;
+  - any failure restores the predecessor's exact drop-in and verifies its identity and routes;
+  - `recover` completes an interrupted switch;
+  - a lock allows only one operation at a time.
+- **Hardening:** the drop-in is root-owned and written through a directory descriptor opened without following symlinks.
+- **`plan` is a read-only preflight.** It prints `HTTPS_FRONTEND_STACK …` with the rollback target.
+
+### Owner command (one session, checksum-pinned)
+
+```bash
+cd /home/nexolab-dev/nexolab-platform   # the agent keeps this checkout on merged main
+echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  docs/operations/https-frontend-release/nexolab-https-frontend-release.py" | sha256sum -c - &&
+sudo install -o root -g root -m 0755 docs/operations/https-frontend-release/nexolab-https-frontend-release.py \
+  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py &&
+echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py" | sha256sum -c - &&
+H=(--artifact /home/nexolab-dev/operator-inbox/c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18.zip
+   --expect-zip-sha256 c48df0cbdd8882b5534f34f81a6f7641bac6b6883a02e04ab6cd128af2f0ac18
+   --expect-source 47e9dd943484e58b252dfbf1d1149cf8ecf19d69 --expect-build 30zMx48UZ8ATG5QCPdL_Z) &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py plan "${H[@]}" &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py prepare "${H[@]}" &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py execute "${H[@]}" \
+  --expect-current-source 210b478bed76d5a7cdbe7c5398cebb3d0091224f --expect-current-build EyZllf1uoZnxieohz2NxC
+```
+
+- `plan` must print `HTTPS_FRONTEND_STACK … -> 210b478bed76/EyZllf1uoZnxieohz2NxC`.
+- `prepare` re-verifies the already prepared release file by file; nothing is rebuilt.
+- `execute` must end with `HTTPS_FRONTEND_GREEN`. On any failure it restores 210b478b itself (`HTTPS_FRONTEND_ROLLED_BACK_VERIFIED`).
+- A later rollback to 210b478b uses `… rollback --expect-current-source 47e9dd943484e58b252dfbf1d1149cf8ecf19d69 --expect-current-build 30zMx48UZ8ATG5QCPdL_Z`.
+- After an interruption (power loss), run `… recover`.
+
+**Not verified in CI:** an isolated real systemd user-unit precedence test, because GitHub runners have no user systemd session. Precedence is modelled in the tests and enforced on the host by the `DropInPaths` checks before and after `daemon-reload`.

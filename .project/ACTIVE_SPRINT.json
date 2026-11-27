@@ -13110,6 +13110,26 @@
       "evidence": {
         "site_cutover": false
       }
+    },
+    {
+      "issue": 1863,
+      "title": "Consecutive guarded HTTPS frontend upgrades with exact predecessor rollback",
+      "lifecycle": "review",
+      "priority": "critical",
+      "scope": "v2 HTTPS release tool; owner-run activation of 47e9dd94 on :443.",
+      "depends_on": [
+        1837
+      ],
+      "branch": "fix/1863-consecutive-https-releases",
+      "permitted_paths": [
+        "docs/operations/",
+        "tests/",
+        ".project/"
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false
+      }
     }
   ],
   "maintenance_actions": [
