@@ -145,7 +145,10 @@ export interface LiveTelemetryModel {
   /** #1813: detailed measurements for the visible window (null at full range). */
   viewportDetail?: ViewportDetail | null;
   /** #1813: request detail for the committed viewport; null returns to the full-range view. */
-  setDetailViewport?: (domain: { fromMs: number; toMs: number } | null) => void;
+  setDetailViewport?: (
+    domain: { fromMs: number; toMs: number } | null,
+    options?: { force?: boolean },
+  ) => void;
 }
 
 /** #1813: in aggregate mode, sliding live-window statistics are refreshed at most this often. */
@@ -513,8 +516,15 @@ export function useLiveTelemetry({
   // request. Aggregated channels: one cancellable request; a newer viewport aborts the older one.
   const [viewportDetail, setViewportDetail] = useState<ViewportDetail | null>(null);
   const detailControllerRef = useRef<AbortController | null>(null);
+  const detailRequestKeyRef = useRef<string | null>(null);
   const setDetailViewport = useCallback(
-    (domain: { fromMs: number; toMs: number } | null) => {
+    (domain: { fromMs: number; toMs: number } | null, options: { force?: boolean } = {}) => {
+      // #1867: the same window at the same budget is already shown (or loading); a second call (the
+      // explorer commits detail together with the zoom, then its effect repeats it) is a no-op
+      // instead of a second render and full chart rebuild.
+      const key = domain ? `${domain.fromMs}|${domain.toMs}|${detailPointsPerChannelRef.current}` : "none";
+      if (!options.force && key === detailRequestKeyRef.current) return;
+      detailRequestKeyRef.current = key;
       committedDetailDomainRef.current = domain;
       detailControllerRef.current?.abort();
       detailControllerRef.current = null;
@@ -580,7 +590,7 @@ export function useLiveTelemetry({
     detailPointsPerChannelRef.current = detailPointsPerChannel;
     // #1844 review: a resize of an already zoomed chart re-sizes its committed detail.
     const committed = committedDetailDomainRef.current;
-    if (committed) setDetailViewport(committed);
+    if (committed) setDetailViewport(committed, { force: true });
   }, [detailPointsPerChannel, setDetailViewport]);
 
   const setSelectedKeys = useCallback((keys: string[]) => {
@@ -914,6 +924,7 @@ export function useLiveTelemetry({
         }
         setHistorySource(aggregatedChannelsRef.current.size > 0 ? "aggregate" : "raw");
         setViewportDetail(null);
+        detailRequestKeyRef.current = null;
         // #1522: seed per-channel cadence from the persisted history that was
         // already requested for the selected channels; no additional requests.
         // Use the raw tail, never the chart-reduced series (bucket spacing would
