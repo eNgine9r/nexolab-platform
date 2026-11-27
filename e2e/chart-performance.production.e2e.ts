@@ -228,6 +228,21 @@ async function measureZoomPan(page: Page) {
 }
 
 /** Time from the last input until the workspace reports viewport detail (null: none within 10 s). */
+/** #1844: points actually drawn by every mounted chart, and its last full render cost. */
+async function renderedPoints(page: Page) {
+  return page.evaluate(() => {
+    const surfaces = [...document.querySelectorAll<HTMLElement>('[data-testid="chart-renderer-surface"]')];
+    return {
+      drawnPoints: surfaces.reduce(
+        (total, surface) => total + Number(surface.dataset.chartRenderedPoints ?? 0),
+        0,
+      ),
+      charts: surfaces.length,
+      maxSetOptionMs: Math.max(0, ...surfaces.map((surface) => Number(surface.dataset.chartRenderMs ?? 0))),
+    };
+  });
+}
+
 async function viewportDetailLatency(page: Page, testId: string, lastInteractionAt: number) {
   const workspace = page.getByTestId(testId);
   if ((await workspace.count()) === 0) return { latencyMs: null, points: null };
@@ -408,6 +423,7 @@ ANALYZE telemetry_samples;
         historySource: source,
         viewportDetailPoints: detail,
         viewportDetailAfterInteractionMs: detailLatencyMs,
+        rendered: await renderedPoints(page),
         interaction,
       };
       results.push(result);
@@ -511,6 +527,7 @@ FROM generate_series(1, ${channelCount}) AS channel;
         heapMegabytes: await heapMegabytes(page),
         viewportDetailPoints: detail.points,
         viewportDetailAfterInteractionMs: detail.latencyMs,
+        rendered: await renderedPoints(page),
         interaction,
       };
       results.push(result);

@@ -61,6 +61,8 @@ export interface SavedDashboardChartBuildOptions {
   now?: number;
   /** User-selected maximum rendered points per series (#1620); defaults to the surface budget. */
   pointsPerSeries?: number;
+  /** #1844: points per series of zoomed viewport detail (see useViewportPointBudget). */
+  detailPointsPerSeries?: number;
   /**
    * Canonical alert history (#1647). Only alerts matching a plotted series produce markers,
    * alarm regions and threshold lines; telemetry-sample alarm context never does.
@@ -181,9 +183,18 @@ function reduceTruthfully(
  */
 const ANNOTATED_HISTORY_BUDGET_FACTOR = 3;
 
-function chartBudget(source: LiveDashboardSeries, pointsPerSeries: number | undefined): number | undefined {
+function chartBudget(
+  source: LiveDashboardSeries,
+  pointsPerSeries: number | undefined,
+  detailPointsPerSeries: number | undefined,
+): number | undefined {
   if (!source.continuityAnnotated || !source.viewportDetail) return pointsPerSeries;
-  return (pointsPerSeries ?? chartPointBudget("saved-dashboard")) * ANNOTATED_HISTORY_BUDGET_FACTOR;
+  const base = pointsPerSeries ?? chartPointBudget("saved-dashboard");
+  // #1844: full-range points plus the (plot-width sized) detail, with room for kept evidence.
+  return Math.max(
+    base * ANNOTATED_HISTORY_BUDGET_FACTOR,
+    Math.ceil((base + (detailPointsPerSeries ?? base)) * 1.5),
+  );
 }
 
 function buildSeries(
@@ -195,7 +206,7 @@ function buildSeries(
   soloSeriesKey: string | null,
   perSeries: Pick<
     SavedDashboardChartBuildOptions,
-    "cadenceObservations" | "now" | "pointsPerSeries"
+    "cadenceObservations" | "now" | "pointsPerSeries" | "detailPointsPerSeries"
   > | null = null,
 ): ChartSeries {
   const identity = savedDashboardChartIdentity(dashboardId, source);
@@ -247,7 +258,10 @@ function buildSeries(
           perSeries.now ?? Date.now(),
         )
       : { freshness: savedDashboardChartFreshness(status) }),
-    segments: reduceTruthfully(segments, chartBudget(source, perSeries?.pointsPerSeries)),
+    segments: reduceTruthfully(
+      segments,
+      chartBudget(source, perSeries?.pointsPerSeries, perSeries?.detailPointsPerSeries),
+    ),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
     ...(identity.nativeUnit === "°C" && source.item.equipment_id === "EMBRACO-2"
@@ -300,7 +314,8 @@ export function buildSavedDashboardChartGroups(
       soloSeriesKey,
       options.now !== undefined ||
         options.cadenceObservations !== undefined ||
-        options.pointsPerSeries !== undefined
+        options.pointsPerSeries !== undefined ||
+        options.detailPointsPerSeries !== undefined
         ? options
         : null,
     ),

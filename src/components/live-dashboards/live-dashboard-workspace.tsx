@@ -24,6 +24,7 @@ import type {
 import { useLiveDashboardInventory } from "@/hooks/use-live-dashboard-inventory";
 import { type LiveDashboardConflict, useLiveDashboardLibrary } from "@/hooks/use-live-dashboard-library";
 import { useLiveDashboardTelemetry } from "@/hooks/use-live-dashboard-telemetry";
+import { useViewportPointBudget } from "@/hooks/use-viewport-point-budget";
 
 import { DashboardEditor } from "./dashboard-editor";
 import { DashboardLibrary } from "./dashboard-library";
@@ -71,8 +72,10 @@ export function LiveDashboardWorkspace({
     () => resolveChartPointBudget(density, plottedSeriesCount),
     [density, plottedSeriesCount],
   );
+  const detailPointsPerSeries = useViewportPointBudget(density, plottedSeriesCount);
   const telemetry = useLiveDashboardTelemetry({
     pointsPerSeries: densityResolution.perSeries,
+    detailPointsPerSeries,
     dashboard: mode === "live" ? activeDashboard : null,
     organizationId,
     enabled: mode === "live" && activeDashboard !== null,
@@ -315,6 +318,7 @@ export function LiveDashboardWorkspace({
           telemetry={telemetry}
           density={density}
           densityResolution={densityResolution}
+          detailPointsPerSeries={detailPointsPerSeries}
           onDensityChange={(next) => {
             setDensity(next);
             storeChartDensity("saved-dashboard", next);

@@ -31,6 +31,16 @@ import type { TelemetryAdapter, TelemetryQuality, TelemetrySample } from "@/lib/
 
 /** #1813: points drawn per aggregated bucket (first, minimum, maximum, last). */
 export const POINTS_PER_BUCKET = 4;
+/** The server's `buckets` limit (telemetry-service MAX_AGGREGATE_BUCKETS); more is HTTP 422. */
+export const AGGREGATE_MAX_BUCKETS = 2_000;
+
+/**
+ * Buckets for a points budget, never above the API limit (#1844 review): an adaptive budget on a
+ * wide plot of a fast device may exceed 8 000 points; the request then asks for the maximum.
+ */
+export function aggregateBucketCount(maximumPointsPerChannel: number): number {
+  return Math.min(AGGREGATE_MAX_BUCKETS, Math.max(1, Math.ceil(maximumPointsPerChannel / POINTS_PER_BUCKET)));
+}
 /** Zoom detail covers the viewport plus this share of its width on each side, for smooth panning. */
 export const DETAIL_MARGIN_RATIO = 0.5;
 
@@ -317,7 +327,7 @@ export async function loadAggregatedLiveHistory(
   maximumPointsPerChannel: number,
   sourceGapMsFor: (channelKey: string) => number | undefined = () => undefined,
 ): Promise<AggregatedLiveHistoryResult> {
-  const buckets = Math.max(1, Math.ceil(maximumPointsPerChannel / POINTS_PER_BUCKET));
+  const buckets = aggregateBucketCount(maximumPointsPerChannel);
   const response = await fetchAggregatedSeries(adapter, identities.map(keyOf), window, buckets, {
     signal,
     statistics: true,
@@ -505,7 +515,7 @@ export async function aggregateViewportDetail(
     bounds?.toMs ?? Number.POSITIVE_INFINITY,
   );
   const window = { from: new Date(fromMs), to: new Date(Math.max(toMs, fromMs + 1)) };
-  const buckets = Math.max(1, Math.ceil(maximumPointsPerChannel / POINTS_PER_BUCKET));
+  const buckets = aggregateBucketCount(maximumPointsPerChannel);
   const response = await fetchAggregatedSeries(adapter, identities.map(keyOf), window, buckets, { signal });
   const channels = new Set<string>();
   let samples: TelemetrySample[] = [];

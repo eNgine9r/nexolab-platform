@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewportPointBudget } from "@/hooks/use-viewport-point-budget";
 import { createReconnectBackfillObserver } from "@/lib/telemetry/reconnect-backfill";
 import { isAggregateUnsupported } from "@/lib/telemetry/history-aggregate";
 import {
@@ -336,6 +337,11 @@ export function useLiveTelemetry({
   useEffect(() => {
     pointsPerChannelRef.current = pointsPerChannel;
   }, [pointsPerChannel]);
+  // #1844: zoomed detail follows the plot width and measured render cost; the base load keeps
+  // its own budget, so resizing never re-requests history.
+  const detailPointsPerChannel = useViewportPointBudget(densityMode, Math.max(1, selectedKeys.length));
+  const detailPointsPerChannelRef = useRef(detailPointsPerChannel);
+  const committedDetailDomainRef = useRef<{ fromMs: number; toMs: number } | null>(null);
   const intervalColumnsRef = useRef<LiveIntervalColumns>({});
   // #1813: aggregate-mode channels have no raw columns in the browser; their exact statistics come
   // from the server (same semantics). Requests are batched (a timer started by the first request,
@@ -508,6 +514,7 @@ export function useLiveTelemetry({
   const detailControllerRef = useRef<AbortController | null>(null);
   const setDetailViewport = useCallback(
     (domain: { fromMs: number; toMs: number } | null) => {
+      committedDetailDomainRef.current = domain;
       detailControllerRef.current?.abort();
       detailControllerRef.current = null;
       if (!domain || !(domain.toMs > domain.fromMs)) {
@@ -515,7 +522,7 @@ export function useLiveTelemetry({
         return;
       }
       const identities = loadedIdentitiesRef.current;
-      const budget = pointsPerChannelRef.current;
+      const budget = detailPointsPerChannelRef.current;
       const aggregated = aggregatedChannelsRef.current;
       const rawDetail = columnsViewportDetail(
         identities.filter((identity) => !aggregated.has(liveChannelKey(identity))),
@@ -565,6 +572,13 @@ export function useLiveTelemetry({
     },
     [sourceGapMsFor],
   );
+  useEffect(() => {
+    if (detailPointsPerChannelRef.current === detailPointsPerChannel) return;
+    detailPointsPerChannelRef.current = detailPointsPerChannel;
+    // #1844 review: a resize of an already zoomed chart re-sizes its committed detail.
+    const committed = committedDetailDomainRef.current;
+    if (committed) setDetailViewport(committed);
+  }, [detailPointsPerChannel, setDetailViewport]);
 
   const setSelectedKeys = useCallback((keys: string[]) => {
     setSelectedKeysState([...new Set(keys)].slice(0, LIVE_SELECTION_LIMIT));

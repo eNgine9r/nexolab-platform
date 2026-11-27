@@ -12913,7 +12913,7 @@
     {
       "issue": 1843,
       "title": "Fit Y axes to the visible time window without losing measurement evidence",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "critical",
       "scope": "Chart System 2.0 WP1: per-axis Y bounds from the visible window (auto), full period, manual; off-scale thresholds; visible interval in the header.",
       "depends_on": [
@@ -12924,6 +12924,28 @@
         "src/",
         "e2e/",
         "docs/",
+        ".project/"
+      ],
+      "evidence": {
+        "site_cutover": false,
+        "hardware_verified": false,
+        "merged": "PR #1846 merge 25d6820e (exact-head GREEN incl. Authenticated Dashboard Acceptance)",
+        "site_acceptance": "not deployed"
+      }
+    },
+    {
+      "issue": 1844,
+      "title": "Adaptive viewport point budget and evidence-preserving detail",
+      "lifecycle": "in_progress",
+      "priority": "high",
+      "scope": "Chart System 2.0 WP2: detail budget from plot width, visible series and measured render cost; drawn points published.",
+      "depends_on": [
+        1843
+      ],
+      "branch": "feat/1844-adaptive-detail",
+      "permitted_paths": [
+        "src/",
+        "e2e/",
         ".project/"
       ],
       "evidence": {

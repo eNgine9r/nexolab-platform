@@ -19,6 +19,7 @@ import { formatChartAxisTimestamp } from "./format";
 import { inspectChartAtTimestamp } from "./inspection";
 import { chartPointBudget } from "./point-budget";
 import { buildChartYAxisModel, displayUnit, type ChartYAxisModel } from "./units";
+import { recordChartRenderCost } from "./viewport-budget";
 import { chartYScaleKey, computeChartYAxisBounds, type ChartYAxisBounds } from "./y-axis-bounds";
 
 registerEChartsModules([
@@ -963,11 +964,26 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     }
     this.renderedSignature = signature;
     this.renderedOffScaleKey = offScaleKey;
+    // #1844: the actual number of drawn points, and the measured cost of drawing them.
+    const drawnPoints = rendered.series.reduce(
+      (total, series) =>
+        series.visible
+          ? total + series.segments.reduce((sum, segment) => sum + segment.points.length, 0)
+          : total,
+      0,
+    );
+    const startedAt = performance.now();
     this.instance.setOption(rendererOption(rendered, axisModel, yBounds), {
       notMerge: false,
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],
     });
+    const renderMs = performance.now() - startedAt;
+    recordChartRenderCost(drawnPoints, renderMs);
+    if (this.container) {
+      this.container.dataset.chartRenderedPoints = String(drawnPoints);
+      this.container.dataset.chartRenderMs = renderMs.toFixed(1);
+    }
     this.publishYBounds();
   }
 

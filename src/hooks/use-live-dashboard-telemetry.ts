@@ -295,12 +295,15 @@ export function useLiveDashboardTelemetry({
   organizationId,
   enabled,
   pointsPerSeries = RENDERED_POINTS_PER_SERIES,
+  detailPointsPerSeries = pointsPerSeries,
 }: {
   dashboard: LiveDashboard | null;
   organizationId: string | null;
   enabled: boolean;
   /** Maximum rendered points per series after the user-selected density (#1620). */
   pointsPerSeries?: number;
+  /** #1844: points per series of zoomed viewport detail (plot width, render cost); never reloads. */
+  detailPointsPerSeries?: number;
 }): LiveDashboardTelemetryModel {
   const active = enabled && dashboard !== null && dashboard.status === "active";
   const scopeKey = active ? `${organizationId ?? DEFAULT_SCOPE}:${dashboard.id}:${dashboard.version}` : null;
@@ -355,6 +358,7 @@ export function useLiveDashboardTelemetry({
     return cadenceMs === null ? undefined : Math.max(LIVE_HISTORY_MIN_SOURCE_GAP_MS, cadenceMs * 3);
   }, []);
   const pointsPerSeriesRef = useRef(pointsPerSeries);
+  const detailPointsPerSeriesRef = useRef(detailPointsPerSeries);
   const computeViewportDetail = useCallback(
     (items: readonly LiveDashboardItem[]): Record<string, ViewportDetail> => {
       const domain = detailDomainRef.current;
@@ -369,7 +373,7 @@ export function useLiveDashboardTelemetry({
         if (!columns || !identity) continue;
         sources.push({ key, identity, columns, sourceGapMs: tailSourceGapMs(key) });
       }
-      return savedDashboardViewportDetail(sources, domain, pointsPerSeriesRef.current);
+      return savedDashboardViewportDetail(sources, domain, detailPointsPerSeriesRef.current);
     },
     [tailSourceGapMs],
   );
@@ -389,7 +393,7 @@ export function useLiveDashboardTelemetry({
       adapter,
       aggregated.map(([, identity]) => identity),
       committed,
-      pointsPerSeriesRef.current,
+      detailPointsPerSeriesRef.current,
       (channelKey) => {
         const entry = aggregated.find(([, identity]) => liveChannelKey(identity) === channelKey);
         return entry ? tailSourceGapMs(entry[0]) : undefined;
@@ -443,6 +447,14 @@ export function useLiveDashboardTelemetry({
   useEffect(() => {
     pointsPerSeriesRef.current = pointsPerSeries;
   }, [pointsPerSeries]);
+  useEffect(() => {
+    if (detailPointsPerSeriesRef.current === detailPointsPerSeries) return;
+    detailPointsPerSeriesRef.current = detailPointsPerSeries;
+    // #1844 review: a resize of an already zoomed chart re-sizes its committed detail.
+    if (!detailDomainRef.current) return;
+    setViewportDetail(computeViewportDetail(dashboardItemsRef.current));
+    requestAggregateDetail();
+  }, [computeViewportDetail, detailPointsPerSeries, requestAggregateDetail]);
 
   const flush = useCallback(() => {
     setLatest({ ...latestRef.current });
