@@ -37,8 +37,8 @@ export function LiveChartPanel({
 
   return (
     <ChartShell
-      title={`Live Data · ${group.equipmentId}`}
-      onExportImage={() => void downloadChartPng(adapter, `Live Data ${group.equipmentId}`)}
+      title={`Обладнання ${group.equipmentId}`}
+      onExportImage={() => void downloadChartPng(adapter, `Live ${group.equipmentId}`)}
       context={unitLabel}
       selectedRange={rangeLabel}
       locale="uk"
