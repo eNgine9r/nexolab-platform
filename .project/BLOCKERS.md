@@ -1,3 +1,12 @@
+## 2026-11-27 — `:443` OAuth down after reboot (resolved by the owner); `:443` frontend step pending
+
+- **Root cause:** the oauth2-proxy unit `nexolab-google-oauth-stage.service` is static (no `[Install]`). After the 00:11 reboot it was not started, and the gateway `:18790` answered `503 Authentication unavailable`.
+- **Resolution:** the owner started it and added it to `multi-user.target`. `:443` answers 302 again.
+- **Note:** the Operator Broker cannot read or start this unit. The next owner package for the broker could add `service.status` or recover access for it.
+- **Still open:**
+  - the main HTTPS `:443` frontend still serves `7db6e1a8`. The release step for `210b478b` is the owner-run tool (`docs/operations/chart-p0-release-candidate.md`).
+  - the owner's browser acceptance on all interfaces.
+
 ## 2026-11-26 — Owner action package (sprint closeout; full detail in docs/operations/infrastructure-sprint-closeout.md)
 
 1. **Stage 2 browser acceptance:** at the LAN address and Tailscale `:8444`, check login, Live Data, a chart and a photo, then log out. Problem → `sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py approve --op deploy.lan-frontend --arg phase=rollback …`.
