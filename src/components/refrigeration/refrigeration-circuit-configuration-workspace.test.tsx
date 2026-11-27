@@ -246,7 +246,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
     fireEvent.click(within(card).getByRole("button", { name: "Обрати сигнал" }));
 
     const link = await within(card).findByRole("link", {
-      name: "Відкрити canonical Instrumentation Registry",
+      name: "Відкрити реєстр приладів",
     });
     expect(link).toHaveAttribute("href", "/settings/instrumentation");
   });

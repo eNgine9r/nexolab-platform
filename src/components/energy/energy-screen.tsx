@@ -106,7 +106,7 @@ export function EnergyScreen() {
   if (security.mode === "demo") {
     return (
       <EnergyModeGate
-        title="Енергомоніторинг доступний лише в live mode"
+        title="Енергомоніторинг доступний лише після входу в локальну систему"
         message="Сторінка навмисно не показує демонстраційні значення як реальні покази енерголічильників. Налаштуйте локальний Telemetry Service і NEXT_PUBLIC_NEXOLAB_DATA_MODE=live."
       />
     );
@@ -141,8 +141,8 @@ export function EnergyScreen() {
             </div>
           </div>
           <p className="mt-5 text-sm leading-6 text-slate-400">
-            Поточне membership не містить permission `telemetry.read`. Енергетичні показники не
-            завантажувалися.
+            Ваш доступ в організації не включає перегляд телеметрії (`telemetry.read`). Енергетичні показники
+            не завантажувалися.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link

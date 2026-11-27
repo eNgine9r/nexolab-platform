@@ -51,8 +51,8 @@ export function CamerasWorkspace({ items, rejected }: CamerasWorkspaceProps) {
           Камери
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-          Лише перевірений локальний inventory і чесні стани доступності. Статична конфігурація або
-          декоративне зображення не вважаються доказом LIVE.
+          Лише перевірені локальні камери та їхній реальний стан. Налаштування чи статичне зображення не
+          вважаються ознакою живого потоку.
         </p>
       </header>
 
@@ -95,8 +95,8 @@ export function CamerasWorkspace({ items, rejected }: CamerasWorkspaceProps) {
           <VideoOff className="mx-auto h-10 w-10 text-cyan-300" />
           <h2 className="mt-4 text-lg font-semibold text-white">Камери не налаштовані</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">
-            У репозиторії немає перевіреного camera inventory або безпечного media gateway. NEXOLAB не показує
-            вигадані LIVE-потоки й не відкриває raw RTSP у браузері.
+            Перевірених камер і безпечного шлюзу відео ще не налаштовано. NEXOLAB не показує вигаданих живих
+            потоків і не відкриває RTSP напряму в браузері.
           </p>
         </div>
       ) : filtered.length === 0 ? (
