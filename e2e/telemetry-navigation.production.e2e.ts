@@ -657,8 +657,9 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(overviewSessionReads).toBeLessThanOrEqual(
       warmBaselineCounts.overviewSessions + overviewSessionRefreshDeltas.length,
     );
-    // Three cached state totals per Overview session refresh at most, never a polling loop.
-    expect(overviewSessionCountReads).toBeLessThanOrEqual(3 * overviewSessionReads);
+    // Three cached state totals per Overview session refresh (same 10 s cadence as the list; one
+    // interval may fire before the list's), never an unbounded loop.
+    expect(overviewSessionCountReads).toBeLessThanOrEqual(3 * (overviewSessionReads + 1));
     expect(sessionListReads).toBe(overviewSessionReads + sessionsRouteReads + overviewSessionCountReads);
     expect(liveDashboardInventoryReads).toBe(0);
     expect(activeAlertReads).toBe(acknowledgedAlertReads);

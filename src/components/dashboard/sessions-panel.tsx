@@ -21,6 +21,7 @@ export interface ActiveSessionCounts {
 }
 
 const COUNT_QUERY_LIMIT = 1;
+const SESSION_REFRESH_MS = 10_000;
 
 /**
  * #1845 review: exact totals per state from the server (`count` of a state-filtered page is the
@@ -49,6 +50,20 @@ export function useActiveSessionCounts({
     organizationId,
     query: { nodeId, state: "ready", limit: COUNT_QUERY_LIMIT },
   });
+  // #1845 review: refresh (and recover after a failure) with the list's 10 s cadence, so sessions
+  // started or finished elsewhere reach the KPI while Overview stays open.
+  const refreshRunning = running.retry;
+  const refreshPaused = paused.retry;
+  const refreshReady = ready.retry;
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = window.setInterval(() => {
+      refreshRunning();
+      refreshPaused();
+      refreshReady();
+    }, SESSION_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [enabled, refreshPaused, refreshReady, refreshRunning]);
   const failed = running.error !== null || paused.error !== null || ready.error !== null;
   if (!running.value || !paused.value || !ready.value) return { counts: null, failed };
   return {
@@ -108,7 +123,7 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
   );
 
   useEffect(() => {
-    const timer = window.setInterval(sessionsModel.retry, 10_000);
+    const timer = window.setInterval(sessionsModel.retry, SESSION_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [sessionsModel.retry]);
 
