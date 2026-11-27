@@ -1,3 +1,19 @@
+## 2026-11-27 — Chart System 2.0 deployed to LAN, :8443 and :8444; :443 pending the owner tool step
+
+- **Disk (owner-approved):** the build-cache cleanup took free space from 21.01 to 23.09 GiB. SSD manifest C was re-scanned (0 rollback or protected references) and its 20 of 20 images removed, giving 25.08 GiB free. Volumes and rollback images are unchanged.
+- **Broker `deploy.lan-frontend`:**
+  - `prepare` printed `STAGE2_CHECK_PASS NO_WRITES`, and `execute` printed `STAGE2_FRONTEND_GREEN`.
+  - LAN, `:8443` and `:8444` serve `47e9dd94` / `aZLeJ3e4oo4Xd5wTt-uRU`.
+- **Checks:**
+  - routes and static chunks answer 200;
+  - the API answers 401 without a token, the WebSocket 101, and OAuth on `:443` 302;
+  - ingestion lag was 0.16–0.62 s over 5 minutes, and the containers are healthy.
+- Rollback was not needed.
+- **Still open:**
+  - `:443` serves `210b478b` until the owner runs the HTTPS tool (artifact `c48df0cb…`, build `30zMx48UZ8ATG5QCPdL_Z`);
+  - owner browser acceptance.
+- The backend stays gated by DR #1428.
+
 ## 2026-11-27 — Chart System 2.0 (#1843, #1844, #1845) merged; release 47e9dd94 built and staged, not deployed
 
 - **#1843 (PR #1846):** Y axes fitted to the visible window. Modes: Auto, Full period and Manual. Off-scale thresholds are named, and the header shows the visible interval.
