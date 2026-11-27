@@ -104,7 +104,7 @@ describe("EquipmentDiscoveryInbox", () => {
     await screen.findByText("192.168.50.2");
     expect(repo.getOverview).toHaveBeenCalledTimes(1);
     expect(repo.startScan).not.toHaveBeenCalled();
-    expect(screen.getByText(/не стає acquisition target автоматично/i)).toBeInTheDocument();
+    expect(screen.getByText(/не починає опитуватися автоматично/i)).toBeInTheDocument();
   });
 
   it("starts only an explicit bounded policy scope", async () => {

@@ -75,7 +75,7 @@ export function EquipmentRegistryScreen() {
   if (security.mode === "demo") {
     return (
       <EquipmentRegistryModeGate
-        title="Реєстр обладнання доступний лише в live mode"
+        title="Реєстр обладнання доступний лише при підключенні до локальної системи NEXOLAB"
         message="Сторінка навмисно не підміняє відсутні equipment і climate catalog API демонстраційними активами. Налаштуйте локальний Telemetry Service і NEXT_PUBLIC_NEXOLAB_DATA_MODE=live."
       />
     );

@@ -562,7 +562,9 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     await waitFor(() =>
       expect(screen.getByText(/Acquisition activation: disabled by profile/)).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("button", { name: "Активувати read-only моніторинг" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Увімкнути моніторинг (лише читання)" }),
+    ).not.toBeInTheDocument();
     expect(getActivationPlan).not.toHaveBeenCalled();
   });
 
@@ -806,7 +808,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     runtimeFactory.create.mockReturnValue(runtime(repository));
 
     render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
-    const button = await screen.findByRole("button", { name: "Активувати read-only моніторинг" });
+    const button = await screen.findByRole("button", { name: "Увімкнути моніторинг (лише читання)" });
     await waitFor(() => expect(button).toBeEnabled());
     expect(screen.getByText((content) => content.includes("Modbus FC05"))).toBeInTheDocument();
     fireEvent.click(button);

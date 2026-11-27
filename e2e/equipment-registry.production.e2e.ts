@@ -516,9 +516,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
       await expect.poll(() => chamberARequestPending).toBe(true);
-      const progressiveSearch = page.getByPlaceholder(
-        "Код, inventory, business key, модель або серійний номер",
-      );
+      const progressiveSearch = page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер");
       await progressiveSearch.fill("REG-REF-ACTIVE");
       await expect(page.getByText("REG-REF-ACTIVE", { exact: true }).first()).toBeVisible();
       await expect(page.getByText(/Каталоги \d+\/\d+/, { exact: true })).toBeVisible();
@@ -542,7 +540,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         )
         .toBeGreaterThanOrEqual(minimumFocusedFixtureCount);
 
-      const fixtureSearch = page.getByPlaceholder("Код, inventory, business key, модель або серійний номер");
+      const fixtureSearch = page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер");
       for (const identifier of [
         "REG-REF-ACTIVE",
         "REG-REF-MAINT",
@@ -575,7 +573,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
     });
 
     await test.step("persist combined physical-sensor filters through the URL and reload", async () => {
-      const search = page.getByPlaceholder("Код, inventory, business key, модель або серійний номер");
+      const search = page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер");
       await search.fill("MET-SENSOR-EXP");
       await page.getByLabel("Категорія активу").selectOption("physical-sensor");
       await page.getByLabel("Кліматична камера").selectOption(chamberAId);
@@ -670,7 +668,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.getByRole("button", { name: /^Офлайн/ }).click();
       await expect.poll(() => new URL(page.url()).searchParams.get("risk")).toBe("offline");
       await page
-        .getByPlaceholder("Код, inventory, business key, модель або серійний номер")
+        .getByPlaceholder("Код, інвентарний номер, модель або серійний номер")
         .fill("REG-REF-RETIRED");
       await expect(page.getByText("REG-REF-RETIRED", { exact: true }).first()).toBeVisible();
       await page.getByRole("button", { name: "Очистити активні фільтри", exact: true }).click();
@@ -682,7 +680,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
 
     await test.step("inspect adjacent assets in a non-blocking desktop drawer with keyboard access", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await page.getByPlaceholder("Код, inventory, business key, модель або серійний номер").fill("REG-REF-");
+      await page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер").fill("REG-REF-");
       const activeRow = page
         .getByRole("row")
         .filter({ has: page.getByText("REG-REF-ACTIVE", { exact: true }) })
@@ -698,7 +696,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.keyboard.press("ArrowDown");
       await expect(page.getByRole("dialog", { name: "Паспорт REG-REF-MAINT" })).toBeVisible();
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
-      await page.getByPlaceholder("Код, inventory, business key, модель або серійний номер").fill("");
+      await page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер").fill("");
     });
 
     await test.step("remain bounded and overflow-safe at operator desktop widths", async () => {
@@ -718,14 +716,14 @@ test("renders and navigates the authenticated Equipment and metrology registry",
     });
 
     await test.step("keep viewer read-only across all Equipment asset categories", async () => {
-      const detailsSearch = page.getByPlaceholder("Код, inventory, business key, модель або серійний номер");
+      const detailsSearch = page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер");
 
       await detailsSearch.fill("MET-SENSOR-EXP");
       await page.getByRole("button", { name: "Переглянути паспорт MET-SENSOR-EXP" }).click();
       const sensorDialog = page.getByRole("dialog", { name: "Паспорт MET-SENSOR-EXP" });
       await expect(sensorDialog).toBeVisible();
       await expect(sensorDialog.getByText("MET-SN-EXP", { exact: true })).toBeVisible();
-      await expect(sensorDialog.getByText("Межа metrology contract", { exact: true })).toBeVisible();
+      await expect(sensorDialog.getByText("Межі метрологічних даних", { exact: true })).toBeVisible();
       await expect(sensorDialog.getByRole("button", { name: "Редагувати метадані" })).toHaveCount(0);
       await expect(sensorDialog.getByText("Доступ лише для перегляду.", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
@@ -753,9 +751,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
     });
 
     await test.step("navigate to the canonical refrigeration mutation workflow", async () => {
-      await page
-        .getByPlaceholder("Код, inventory, business key, модель або серійний номер")
-        .fill("REG-REF-ACTIVE");
+      await page.getByPlaceholder("Код, інвентарний номер, модель або серійний номер").fill("REG-REF-ACTIVE");
       const link = page.getByRole("link", { name: "Відкрити канонічну картку REG-REF-ACTIVE" });
       await expect(link).toHaveAttribute("href", `/refrigeration/${activeEquipmentId}`);
       await link.click();
@@ -816,7 +812,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
           await expect(engineerPage.getByRole("link", { name: "Реєстр" })).toBeVisible();
           await expect(engineerPage.getByRole("link", { name: "Підключення" })).toBeVisible();
           await expect(engineerPage.getByRole("link", { name: "Метрологія" })).toBeVisible();
-          await expect(engineerPage.getByText("LOCAL_LAN discovery inbox", { exact: true })).toBeVisible();
+          await expect(engineerPage.getByText("Виявлення в локальній мережі", { exact: true })).toBeVisible();
           await test.step("search and filter persisted RS-485 sessions without changing acquisition", async () => {
             const sessionSearch = engineerPage.getByRole("searchbox", { name: "Пошук підключень" });
             await expect(sessionSearch).toBeVisible();
@@ -862,15 +858,13 @@ test("renders and navigates the authenticated Equipment and metrology registry",
 
         await engineerPage.goto("/equipment", { waitUntil: "domcontentloaded" });
         await expect(engineerPage.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
-        const search = engineerPage.getByPlaceholder(
-          "Код, inventory, business key, модель або серійний номер",
-        );
+        const search = engineerPage.getByPlaceholder("Код, інвентарний номер, модель або серійний номер");
 
         await search.fill("MET-SENSOR-EDIT");
         await engineerPage.getByRole("button", { name: "Переглянути паспорт MET-SENSOR-EDIT" }).click();
         const sensorDialog = engineerPage.getByRole("dialog", { name: "Паспорт MET-SENSOR-EDIT" });
         await sensorDialog.getByRole("button", { name: "Редагувати метадані" }).click();
-        await expect(sensorDialog.getByText(/channel mapping залишаються read-only/)).toBeVisible();
+        await expect(sensorDialog.getByText(/прив’язка каналу тут не змінюються/)).toBeVisible();
         await expect(sensorDialog.getByLabel("Позиція сенсора", { exact: true })).toHaveCount(0);
         await sensorDialog.getByLabel("Серійний номер").fill("MET-SN-EDITED");
         await sensorDialog.getByLabel("Статус калібрування").selectOption("current");
@@ -883,9 +877,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         await engineerPage.getByRole("button", { name: "Переглянути паспорт met-edit-device:18" }).click();
         const meterDialog = engineerPage.getByRole("dialog", { name: "Паспорт met-edit-device:18" });
         await meterDialog.getByRole("button", { name: "Редагувати метадані" }).click();
-        await expect(
-          meterDialog.getByText(/Modbus Unit ID 18 і transport identity залишаються read-only/),
-        ).toBeVisible();
+        await expect(meterDialog.getByText(/Адреса Modbus 18 і підключення тут не змінюються/)).toBeVisible();
         await expect(meterDialog.getByLabel(/Modbus Unit ID/i)).toHaveCount(0);
         await meterDialog.getByLabel("Назва").fill("Metadata Edit Device Updated");
         await engineerPage.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
