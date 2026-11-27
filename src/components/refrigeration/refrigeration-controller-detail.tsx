@@ -132,8 +132,8 @@ export function RefrigerationControllerDetail({
           <LockedSetting label="Hysteresis" sample={value(EMBRACO_METRICS.hysteresis)} />
         </div>
         <div className="mt-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.05] p-3 text-[10px] leading-4 text-amber-100/80">
-          Керування буде окремим safety-gated Work Package після read-only acceptance. Старі або
-          offline-команди не повинні виконуватися із черги.
+          Керування контролером з’явиться окремо, після приймання режиму лише читання та перевірок безпеки.
+          Застарілі або відкладені команди з черги ніколи не виконуються.
         </div>
       </section>
     </div>

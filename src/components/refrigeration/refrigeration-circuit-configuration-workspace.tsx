@@ -338,7 +338,7 @@ export function RefrigerationCircuitConfigurationWorkspace({
               </p>
               <h2 className="mt-1 text-lg font-semibold text-white">Конфігурація холодильного контуру</h2>
               <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">
-                Refrigerant, calculation policy та semantic Signal→role bindings. Історія append-only;
+                Холодоагент, правила розрахунку та призначення сигналів ролям. Історія змін лише доповнюється;
                 контролер і Modbus тут не налаштовуються.
               </p>
             </div>
@@ -445,7 +445,7 @@ export function RefrigerationCircuitConfigurationWorkspace({
                 </div>
               </form>
             ) : (
-              <p className="mt-3 text-xs text-slate-500">Створення вимкнено у read-only режимі.</p>
+              <p className="mt-3 text-xs text-slate-500">Створення вимкнено: режим лише перегляду.</p>
             )}
           </div>
         </div>
@@ -722,7 +722,7 @@ function CircuitBindingsSection({
           <h3 className="mt-1 text-base font-semibold text-white">Точки холодильного контуру</h3>
         </div>
         {canManage ? (
-          <Field label="Effective time для наступної binding-операції">
+          <Field label="Час набуття чинності наступної зміни прив’язки">
             <input
               type="datetime-local"
               value={effectiveAt}
@@ -758,7 +758,7 @@ function CircuitBindingsSection({
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 text-xs text-slate-500">Canonical binding відсутній.</p>
+                <p className="mt-3 text-xs text-slate-500">Прив’язку не задано.</p>
               )}
               {roleHistory.length > 1 ? (
                 <p className="mt-2 text-[9px] text-slate-600">Історичних версій: {roleHistory.length}</p>
@@ -788,7 +788,7 @@ function CircuitBindingsSection({
                   {editing ? (
                     <div className="rounded-xl border border-cyan-300/12 bg-cyan-400/[0.035] p-2.5">
                       {candidateLoading ? (
-                        <p className="text-xs text-slate-500">Перевірка canonical candidates…</p>
+                        <p className="text-xs text-slate-500">Перевірка доступних сигналів…</p>
                       ) : candidates.length === 0 ? (
                         <div className="grid gap-2">
                           <p className="text-xs text-amber-200">
@@ -798,7 +798,7 @@ function CircuitBindingsSection({
                             href="/settings/instrumentation"
                             className="w-fit text-[10px] font-medium text-cyan-200 underline decoration-cyan-300/30 underline-offset-4"
                           >
-                            Відкрити canonical Instrumentation Registry
+                            Відкрити реєстр приладів
                           </Link>
                         </div>
                       ) : (

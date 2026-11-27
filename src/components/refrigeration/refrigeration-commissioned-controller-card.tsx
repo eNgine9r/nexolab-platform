@@ -39,8 +39,8 @@ export function RefrigerationCommissionedControllerCard({
       </dl>
 
       <p className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3 text-xs leading-5 text-slate-300">
-        Контролер додано до реєстру після bounded read-only перевірки. Production polling і live KPI ще не
-        активовані; значення контролера тут не підміняються mock-даними.
+        Контролер додано до реєстру після обмеженої перевірки читанням. Постійне опитування й показники ще не
+        увімкнено; значення контролера тут не підміняються демонстраційними даними.
       </p>
       <Link
         href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}

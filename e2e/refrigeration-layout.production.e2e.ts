@@ -1130,7 +1130,7 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await expect(configurationSection).toContainText("Max age: 60 s");
 
   const bindingsSection = workspace.locator("section").filter({ hasText: "Semantic Signal → role bindings" });
-  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:10");
+  await bindingsSection.getByLabel("Час набуття чинності наступної зміни прив’язки").fill("2026-09-18T10:10");
   const suctionCard = bindingsSection.locator("article").filter({ hasText: "Тиск кипіння / всмоктування" });
   await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
   await expect(suctionCard.getByRole("combobox")).toContainText(
@@ -1146,9 +1146,9 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await lifecycleSection.getByRole("button", { name: "Додати стан" }).click();
   await expect(lifecycleSection.getByText(/r2 · Неактивний/)).toBeVisible();
 
-  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:20");
+  await bindingsSection.getByLabel("Час набуття чинності наступної зміни прив’язки").fill("2026-09-18T10:20");
   await suctionCard.getByRole("button", { name: "Завершити binding" }).click();
-  await expect(suctionCard.getByText("Canonical binding відсутній.")).toBeVisible();
+  await expect(suctionCard.getByText("Прив’язку не задано.")).toBeVisible();
 
   const circuitsResponse = await page.request.get(`${apiBaseUrl}/api/v1/refrigeration/circuits`);
   expect(circuitsResponse.status()).toBe(200);
@@ -1387,7 +1387,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   const bindingsSection = circuitWorkspace
     .locator("section")
     .filter({ hasText: "Semantic Signal → role bindings" });
-  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:10");
+  await bindingsSection.getByLabel("Час набуття чинності наступної зміни прив’язки").fill("2026-09-18T10:10");
   const suctionCard = bindingsSection.locator("article").filter({ hasText: "Тиск кипіння / всмоктування" });
   await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
   await expect(suctionCard.getByRole("combobox")).toContainText(

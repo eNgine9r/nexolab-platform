@@ -134,7 +134,7 @@ describe("refrigeration controller binding failure states", () => {
 
       expect(screen.getByText("Danfoss AK-CC25 Pro")).toBeInTheDocument();
       expect(screen.getByText("Перевірено · моніторинг вимкнено")).toBeInTheDocument();
-      expect(screen.getByText(/Production polling і live KPI ще не активовані/)).toBeInTheDocument();
+      expect(screen.getByText(/Постійне опитування й показники ще не увімкнено/)).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
     },
   );

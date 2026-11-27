@@ -758,7 +758,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(page).toHaveURL(new RegExp(`/refrigeration/${activeEquipmentId}$`));
       await expect(page.getByText("Danfoss AK-CC25 Pro", { exact: true })).toBeVisible();
       await expect(page.getByText("Перевірено · моніторинг вимкнено", { exact: true })).toBeVisible();
-      await expect(page.getByText(/Production polling і live KPI ще не активовані/)).toBeVisible();
+      await expect(page.getByText(/Постійне опитування й показники ще не увімкнено/)).toBeVisible();
       await expect(page.getByRole("link", { name: "Відкрити картку підключення →" })).toHaveAttribute(
         "href",
         `/equipment/onboarding/${verifiedDanfossSessionId}`,
