@@ -3,8 +3,6 @@ import path from "node:path";
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-import { captureCompactLegend } from "./chart-legend-evidence";
-
 const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18082";
 const webBaseUrl = process.env.NEXOLAB_ACCEPTANCE_WEB_URL ?? "http://127.0.0.1:13000";
 const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "acceptance-evidence";
@@ -399,7 +397,6 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await page.getByRole("button", { name: "Графіки", exact: true }).click();
   const history = page.getByTestId("refrigeration-controller-history");
   await expect(history).toBeVisible();
-  await captureCompactLegend(page, history, evidenceDirectory, "refrigeration-controller");
   for (const period of ["1 година", "6 годин", "24 години", "7 днів", "Власний період"]) {
     await expect(history.getByRole("button", { name: period, exact: true })).toBeVisible();
   }

@@ -7,7 +7,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { chartSeriesKey } from "@/features/charts/domain";
+import { chartSeriesKey, type ChartCursorInspection } from "@/features/charts/domain";
 import { createBenchmarkScene } from "@/features/charts/fixtures";
 import { formatChartExactTimestamp } from "@/features/charts/format";
 
@@ -201,7 +201,7 @@ describe("ChartShell accessibility contract", () => {
     expect(within(inspector).getAllByRole("row")).toHaveLength(3);
   });
 
-  it("keeps the legend on latest telemetry while the inspector stays on the cursor snapshot", () => {
+  it("switches the shared legend to the cursor snapshot and back to latest telemetry (#1878)", () => {
     const scene = createBenchmarkScene(1);
     const sourceSeries = scene.series[0];
     const lastSegmentIndex = sourceSeries.segments.length - 1;
@@ -217,32 +217,41 @@ describe("ChartShell accessibility contract", () => {
     };
     const cursorPoint = { ...sourceSeries.segments[0].points[0], value: 25.7 };
 
-    render(
+    const view = (inspection: ChartCursorInspection | null) => (
       <ChartShell
         title="Fixture telemetry"
         context="Benchmark"
         selectedRange="15 min"
         series={[series]}
-        inspection={{
-          timestampMs: cursorPoint.timestampMs,
-          series: [
-            {
-              seriesKey: chartSeriesKey(series.identity),
-              point: cursorPoint,
-              freshness: series.freshness,
-            },
-          ],
-        }}
+        inspection={inspection}
         onToggleSeries={vi.fn()}
         onSoloSeries={vi.fn()}
         onResetZoom={vi.fn()}
       >
         <div>plot</div>
-      </ChartShell>,
+      </ChartShell>
+    );
+    const { rerender } = render(
+      view({
+        timestampMs: cursorPoint.timestampMs,
+        series: [
+          {
+            seriesKey: chartSeriesKey(series.identity),
+            point: cursorPoint,
+            freshness: series.freshness,
+          },
+        ],
+      }),
     );
 
-    expect(screen.getByText("9.88 °C", { exact: true })).toBeVisible();
+    const value = () => screen.getByTestId("chart-series-legend-value");
+    expect(screen.getByTestId("chart-series-legend-mode")).toHaveTextContent("At cursor");
+    expect(value()).toHaveTextContent("25.70 °C");
     expect(screen.getByTestId("chart-inspector")).toHaveTextContent("25.70 °C");
+
+    rerender(view(null));
+    expect(screen.getByTestId("chart-series-legend-mode")).toHaveTextContent("Latest measurements");
+    expect(value()).toHaveTextContent("9.88 °C");
   });
 
   it("renders a mutually exclusive placeholder when one series has no nearby sample", () => {
@@ -364,7 +373,8 @@ describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)"
     expect(notice).toHaveTextContent("K106 · 106-01: невідома якість");
     expect(screen.getAllByText("Немає валідних даних").length).toBeGreaterThan(0); // never "Актуально"
     expect(screen.queryByText("Актуально")).toBeNull();
-    expect(screen.getByText("— °C")).toBeInTheDocument(); // display unit, no stale value
+    // #1878: the legend states the quality instead of a stale number.
+    expect(screen.getByTestId("chart-series-legend-value")).toHaveTextContent("невідома якість");
     expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeInTheDocument();
   });
 

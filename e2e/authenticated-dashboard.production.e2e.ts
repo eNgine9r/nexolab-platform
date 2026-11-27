@@ -297,7 +297,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await expect(host).toBeVisible();
       await expect(panel.getByTestId("chart-accessible-summary")).toContainText("Історія температур XJP60D");
       await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
-      await expect(panel.locator("svg")).toHaveCount(0);
+      await expect(host.locator("svg")).toHaveCount(0);
 
       await expect.poll(() => sockets.sentTypes.includes("authenticate"), { timeout: 20_000 }).toBe(true);
       await expect
