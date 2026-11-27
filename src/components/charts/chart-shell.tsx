@@ -334,9 +334,10 @@ export function ChartShell({
                         <label key={side} className="flex items-center gap-1">
                           <span className="text-slate-500">{copy[side]}</span>
                           <input
-                            type="number"
+                            // Text, not number: a Ukrainian decimal comma ("30,5") must be accepted.
+                            type="text"
                             inputMode="decimal"
-                            step="any"
+                            pattern="-?[0-9]*([.,][0-9]+)?"
                             aria-label={`${copy[side]} ${unit}`}
                             defaultValue={manual?.[side] ?? ""}
                             onChange={(event) => setManualBound(axis.id, side, event.currentTarget.value)}
