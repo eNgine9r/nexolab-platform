@@ -340,6 +340,8 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
 
     adapter.resize();
+    // #1866: the shared cursor is shown in plots the mouse is not over.
+    container.dispatchEvent(new MouseEvent("mouseleave"));
     adapter.setSharedCursor(BENCHMARK_START_MS);
     adapter.dispose();
     expect(instance.resizeCount).toBe(1);
