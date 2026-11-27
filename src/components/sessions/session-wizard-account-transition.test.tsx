@@ -119,7 +119,7 @@ it.each(["create", "binding", "limits"] as const)(
       await waitFor(() => expect(next).toBeEnabled());
       fireEvent.click(next);
     }
-    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
     await waitFor(() => expect(mock[stage]).toHaveBeenCalledOnce());
     expect(mock.begin).toHaveBeenCalledOnce();
     const signal = mock[stage].mock.calls[0]!.at(-1) as AbortSignal;
@@ -153,7 +153,7 @@ it.each(["create", "binding", "limits"] as const)(
       await waitFor(() => expect(next).toBeEnabled());
       fireEvent.click(next);
     }
-    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
     await waitFor(() => expect(mock[stage]).toHaveBeenCalledOnce());
     const firstKey = mock[stage].mock.calls[0]!.at(-2);
     const originalCreatePayload = mock.create.mock.calls[0]![0];
@@ -164,10 +164,10 @@ it.each(["create", "binding", "limits"] as const)(
     expect(screen.getByText(/Відновлено незавершену форму/)).toBeVisible();
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }),
+        screen.getByRole("button", { name: /Створити чернетку|Повторити без дублювання/ }),
       ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Створити чернетку|Повторити без дублювання/ }));
     await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
     expect(mock[stage].mock.calls[1]!.at(-2)).toBe(firstKey);
     if (stage === "create") {
@@ -191,7 +191,7 @@ it.each([401, 403, 409, 422])(
       await waitFor(() => expect(next).toBeEnabled());
       fireEvent.click(next);
     }
-    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
     await screen.findByText(/Такий номер випробування вже існує|Сервер відхилив створення/);
     const oldKey = mock.create.mock.calls[0]!.at(-2);
     expect(screen.getByLabelText("Номер випробування")).toBeEnabled();
@@ -203,7 +203,7 @@ it.each([401, 403, 409, 422])(
       await waitFor(() => expect(next).toBeEnabled());
       fireEvent.click(next);
     }
-    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
     await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
     expect(mock.create.mock.calls[1]![0].session_number).toBe("CORRECTED-UNIQUE");
     expect(mock.create.mock.calls[1]!.at(-2)).not.toBe(oldKey);
@@ -220,14 +220,14 @@ it("keeps the original operation frozen after an uncertain creation failure", as
     await waitFor(() => expect(next).toBeEnabled());
     fireEvent.click(next);
   }
-  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
   await screen.findByText("network");
   expect(screen.getByRole("button", { name: "Назад" })).toBeDisabled();
   const oldKey = mock.create.mock.calls[0]!.at(-2);
-  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
   await screen.findByText("validation-rejected");
   expect(screen.getByRole("button", { name: "Назад" })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
   await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
   expect(mock.create.mock.calls[1]!.at(-2)).toBe(oldKey);
   expect(mock.create.mock.calls[2]!.at(-2)).toBe(oldKey);
@@ -268,16 +268,14 @@ it.each(["create", "created-id", "binding", "limits"] as const)(
         await waitFor(() => expect(next).toBeEnabled());
         fireEvent.click(next);
       }
-      fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+      fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
       await screen.findByText(/Не вдалося зберегти стан створення/);
       expect(mock[stage === "created-id" ? "binding" : stage]).not.toHaveBeenCalled();
       if (stage === "created-id")
         expect(screen.getByRole("button", { name: "Повторити без дублювання" })).toBeVisible();
       expect(mock.release).toHaveBeenCalledOnce();
       storage.mockRestore();
-      fireEvent.click(
-        screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Створити чернетку|Повторити без дублювання/ }));
       await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
       expect(mock.create).toHaveBeenCalledOnce();
       expect(mock.limits).toHaveBeenCalledOnce();
@@ -301,7 +299,7 @@ it.each([
     await waitFor(() => expect(next).toBeEnabled());
     fireEvent.click(next);
   }
-  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Створити чернетку" }));
   await screen.findByText(/Перевірте дані кроку/);
   expect(mock.create).not.toHaveBeenCalled();
   expect(mock.binding).not.toHaveBeenCalled();

@@ -111,9 +111,10 @@ export function MethodStep({ form, update }: WizardStepProps) {
       </Field>
       <div className="rounded-2xl border border-blue-300/10 bg-blue-400/[0.04] p-5 md:col-span-2">
         <ClipboardCheck className="h-5 w-5 text-cyan-300" />
-        <h3 className="mt-3 text-sm font-semibold text-white">Versioned method metadata</h3>
+        <h3 className="mt-3 text-sm font-semibold text-white">Параметри методики</h3>
         <p className="mt-1 text-[11px] leading-5 text-slate-400">
-          Sampling policy, register-profile versions, bindings і limits увійдуть до immutable start snapshot.
+          Частота вимірювань, версії профілів приладів, прив’язки каналів і межі буде зафіксовано незмінними
+          на момент старту.
         </p>
       </div>
     </div>
@@ -145,8 +146,8 @@ export function EquipmentStep({
           <h3 className="text-sm font-semibold text-white">Validated session telemetry</h3>
         </div>
         <p className="mt-2 text-[11px] leading-5 text-slate-400">
-          Доступні лише реальні канали inventory, які одночасно входять до server-authoritative Test Sessions
-          contract. Вибір не запускає фізичне опитування і не змінює acquisition scheduler.
+          Доступні лише реальні канали, які сервер дозволяє для сесій випробувань. Вибір не запускає
+          опитування приладів і не змінює його розклад.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-[9px] text-slate-500">
           <span className="rounded-full border border-white/[0.07] px-2.5 py-1">
@@ -161,15 +162,13 @@ export function EquipmentStep({
       {selectionStatus === "loading" && (
         <div className="flex min-h-44 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.02] text-[11px] text-slate-400">
           <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-cyan-300" />
-          Завантаження локального inventory та session contract…
+          Завантаження доступних каналів…
         </div>
       )}
 
       {selectionStatus === "error" && (
         <div className="rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-5">
-          <p className="text-[11px] font-semibold text-red-200">
-            Не вдалося завантажити доступні telemetry points
-          </p>
+          <p className="text-[11px] font-semibold text-red-200">Не вдалося завантажити доступні канали</p>
           <p className="mt-2 text-[10px] leading-5 text-slate-400">
             {selectionError?.message ?? "Невідома помилка локального API."}
           </p>
@@ -182,8 +181,8 @@ export function EquipmentStep({
 
       {selectionStatus === "ready" && eligibleCount === 0 && (
         <div className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.04] p-5 text-[10px] leading-5 text-slate-400">
-          У поточному локальному inventory немає каналів, що збігаються з валідованим Test Sessions contract.
-          Перехід далі заблоковано — fallback на всі 34 канали не виконується.
+          Немає каналів, дозволених для сесій випробувань. Перехід далі заблоковано — усі 34 канали
+          автоматично не підставляються.
         </div>
       )}
 
@@ -214,7 +213,7 @@ export function SamplingStep({ form, update }: WizardStepProps) {
         <Gauge className="h-5 w-5 text-cyan-300" />
         <p className="mt-3 text-sm font-semibold text-white">Fixed interval</p>
         <p className="mt-1 text-[10px] leading-5 text-slate-500">
-          Pause призупиняє workflow, але не telemetry collection.
+          Пауза призупиняє сесію, але не збір даних.
         </p>
       </div>
     </div>

@@ -83,8 +83,8 @@ export function InstrumentationRegistryScreen() {
   if (security.mode === "demo") {
     return (
       <RegistryGate
-        title="Реєстр потребує перевіреної live session"
-        message="Instrumentation Registry навмисно не підміняє Instrument, Signal або acceptance демонстраційними значеннями. Увімкніть LOCAL_LAN live mode і локальну операторську автентифікацію."
+        title="Потрібен вхід у локальну систему"
+        message="Реєстр приладів показує лише реальні дані й ніколи не підставляє демонстраційні значення. Увійдіть у локальну систему NEXOLAB."
       />
     );
   }
@@ -110,7 +110,7 @@ export function InstrumentationRegistryScreen() {
     return (
       <RegistryGate
         title="Організацію не вибрано"
-        message="Для Instrumentation Registry потрібне активне membership із перевіреної backend session."
+        message="Щоб відкрити реєстр приладів, оберіть організацію, до якої у вас є доступ."
         retry={security.retry}
       />
     );
@@ -119,8 +119,8 @@ export function InstrumentationRegistryScreen() {
   if (!repository) {
     return (
       <RegistryGate
-        title="Local API недоступний"
-        message="Не вдалося визначити локальний Telemetry Service для canonical Instrumentation Registry."
+        title="Локальний сервер недоступний"
+        message="Не вдалося підключитися до локального сервера телеметрії для реєстру приладів."
         retry={security.retry}
       />
     );

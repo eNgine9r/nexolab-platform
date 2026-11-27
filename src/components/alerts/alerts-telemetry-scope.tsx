@@ -61,7 +61,7 @@ export function AlertsTelemetryScope() {
         </div>
         <button type="button" className="secondary-button" onClick={inventory.retry}>
           <RefreshCw className={`h-4 w-4 ${inventory.status === "loading" ? "animate-spin" : ""}`} />
-          Оновити inventory
+          Оновити список каналів
         </button>
       </div>
 
@@ -78,7 +78,7 @@ export function AlertsTelemetryScope() {
         <div className="mt-4 grid min-h-28 place-items-center rounded-2xl border border-white/[0.06] bg-white/[0.02] text-[11px] text-slate-500">
           <span className="inline-flex items-center gap-2">
             <RefreshCw className="h-4 w-4 animate-spin text-cyan-300" />
-            Читання canonical inventory…
+            Завантаження списку каналів…
           </span>
         </div>
       ) : null}
@@ -90,10 +90,10 @@ export function AlertsTelemetryScope() {
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-semibold">Canonical inventory недоступний.</p>
+            <p className="font-semibold">Список каналів недоступний.</p>
             <p className="mt-1 text-amber-100/70">
-              {inventory.error?.message ?? "Telemetry selector тимчасово недоступний."} Поточний підтверджений
-              scope стрічки не розширюється автоматично.
+              {inventory.error?.message ?? "Вибір каналів тимчасово недоступний."} Поточний набір каналів
+              стрічки автоматично не розширюється.
             </p>
           </div>
         </div>
@@ -101,7 +101,7 @@ export function AlertsTelemetryScope() {
 
       {inventory.status === "ready" && model.hierarchy.leafCount === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] p-4 text-center text-[11px] text-slate-500">
-          У canonical inventory немає доступних точок. Поточний feed залишається у підтвердженому scope.
+          Немає доступних каналів. Стрічка тривог показує поточний набір каналів.
         </div>
       ) : null}
 

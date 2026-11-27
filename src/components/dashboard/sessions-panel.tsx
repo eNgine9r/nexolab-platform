@@ -157,7 +157,7 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
             href="/sessions/new"
             className="mt-3 inline-flex text-[10px] text-cyan-300 hover:text-cyan-200"
           >
-            Створити реальний draft →
+            Створити чернетку сесії →
           </Link>
         </div>
       </div>

@@ -115,9 +115,7 @@ describe("EquipmentAssetDetails metadata editing", () => {
     const { onClose } = renderDetails(true);
     fireEvent.click(screen.getByRole("button", { name: "Редагувати метадані" }));
 
-    expect(
-      screen.getByText(/Modbus Unit ID 12 і transport identity залишаються read-only/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Адреса Modbus 12 і підключення тут не змінюються/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Modbus Unit ID/i)).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Назва"), { target: { value: "Новий лічильник" } });

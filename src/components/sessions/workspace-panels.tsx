@@ -169,7 +169,7 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             <p className="mt-3 text-[9px] text-slate-500">
               {sample
                 ? `${sample.quality} · ${formatTime(sample.captured_at, displayTimeZone)}`
-                : "Немає attributed telemetry"}
+                : "Немає даних, прив’язаних до сесії"}
             </p>
           </div>
         ))}

@@ -316,7 +316,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
     await expect(page.getByTestId("live-selected-context")).toContainText(fixture.channels[0]);
     await expect(
-      page.getByRole("heading", { name: `Live Data · ${fixture.equipmentId}`, exact: true }),
+      page.getByRole("heading", { name: `Обладнання ${fixture.equipmentId}`, exact: true }),
     ).toBeVisible();
     const summary = page.getByTestId("chart-accessible-summary");
     await expect(summary).toHaveCount(1);

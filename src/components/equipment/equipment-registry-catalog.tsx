@@ -306,8 +306,8 @@ export function EquipmentRegistryCatalog({
             </div>
             <h1 className="mt-2 text-2xl font-semibold text-white">Обладнання та метрологія</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-              Масштабований read-only workspace холодильного обладнання, вимірювальних пристроїв і фізичних
-              датчиків. Відображаються лише дані, які фактично зберігає локальна NEXOLAB система.
+              Холодильне обладнання, вимірювальні прилади та датчики (лише перегляд). Відображаються лише
+              дані, які фактично зберігає локальна NEXOLAB система.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-400">
@@ -355,7 +355,7 @@ export function EquipmentRegistryCatalog({
             <input
               value={filters.search}
               onChange={(event) => updateFilter("search", event.target.value)}
-              placeholder="Код, inventory, business key, модель або серійний номер"
+              placeholder="Код, інвентарний номер, модель або серійний номер"
               className={inputClass}
             />
           </label>
