@@ -380,10 +380,10 @@ test("operator saves the analysis view and it is restored from PostgreSQL", asyn
       const rangesBeforeSixHours = ranges.length;
       await page.getByRole("button", { name: "6 годин", exact: true }).click();
       await expect.poll(() => ranges.slice(rangesBeforeSixHours).includes(SIX_HOURS_MS)).toBe(true);
-      await expect(page.getByText("Завантаження повної persisted history…")).toHaveCount(0);
+      await expect(page.getByText("Завантаження історії…")).toHaveCount(0);
       await densitySelect(page).selectOption(String(SAVED_DENSITY));
       await expect(densitySelect(page)).toHaveValue(String(SAVED_DENSITY));
-      await expect(page.getByText("Завантаження повної persisted history…")).toHaveCount(0);
+      await expect(page.getByText("Завантаження історії…")).toHaveCount(0);
 
       const hide = panel.getByRole("button", { name: /^Приховати / }).first();
       hiddenSeriesName = ((await hide.getAttribute("aria-label")) ?? (await hide.innerText())).replace(

@@ -488,7 +488,7 @@ FROM generate_series(1, ${channelCount}) AS channel;
         .click();
       await expect(page.getByTestId("saved-dashboard-chart-panel").first()).toBeVisible({ timeout: 240_000 });
       // #1824: first loaded series drawn ("N з M" progress) or, on older frontends, the whole load.
-      const loadingText = page.getByText("Завантаження повної persisted history…");
+      const loadingText = page.getByText("Завантаження історії…");
       let firstSeriesMs: number | null = null;
       for (let attempt = 0; attempt < 2_400 && firstSeriesMs === null; attempt += 1) {
         // allTextContents() never waits: the element is absent on older frontends and after loading.

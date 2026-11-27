@@ -33,14 +33,13 @@ export function LiveChartPanel({
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
-  const unitLabel = group.nativeUnits.map(displayUnit).join(" · ") || "no units";
-  const axisCount = group.nativeUnits.length;
+  const unitLabel = group.nativeUnits.map(displayUnit).join(" · ") || "без одиниць";
 
   return (
     <ChartShell
       title={`Live Data · ${group.equipmentId}`}
       onExportImage={() => void downloadChartPng(adapter, `Live Data ${group.equipmentId}`)}
-      context={`${unitLabel} · ${axisCount} dynamic Y ${axisCount === 1 ? "axis" : "axes"}`}
+      context={unitLabel}
       selectedRange={rangeLabel}
       locale="uk"
       series={group.scene.series}

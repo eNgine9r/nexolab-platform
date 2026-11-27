@@ -22,7 +22,7 @@ import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
 import { TemperatureVisibilityDialog } from "./temperature-visibility-dialog";
-import { SessionsPanel } from "./sessions-panel";
+import { activeSessionsKpi, SessionsPanel, useActiveSessionCounts } from "./sessions-panel";
 import { canSeePlatformDestination, Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
@@ -78,6 +78,18 @@ export function DashboardShell() {
       visibleChannelIds: temperatureVisibility.visibleChannelIds,
     }),
   });
+  const sessionCounts = useActiveSessionCounts({
+    enabled: security.mode === "live" && securityReady,
+    organizationId,
+  });
+  const kpis =
+    telemetry.mode === "live"
+      ? telemetry.kpis.map((item) =>
+          item.icon === "session"
+            ? activeSessionsKpi(item, sessionCounts.counts, sessionCounts.failed)
+            : item,
+        )
+      : telemetry.kpis;
 
   if (
     security.mode === "live" &&
@@ -184,7 +196,7 @@ export function DashboardShell() {
                 <span className="text-[11px] text-slate-500">Поточний стан</span>
               </div>
               <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6 xl:gap-3">
-                {telemetry.kpis.map((item) => (
+                {kpis.map((item) => (
                   <KpiCard key={item.label} item={item} variant="overview" />
                 ))}
               </div>

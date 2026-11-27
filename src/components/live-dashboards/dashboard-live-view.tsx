@@ -774,7 +774,7 @@ export function DashboardLiveView({
               aria-live="polite"
               data-testid="saved-dashboard-history-progress"
             >
-              Завантаження повної persisted history…
+              Завантаження історії…
               {telemetry.historyProgress
                 ? ` Завантажено серій: ${telemetry.historyProgress.loaded} з ${telemetry.historyProgress.total}.`
                 : null}

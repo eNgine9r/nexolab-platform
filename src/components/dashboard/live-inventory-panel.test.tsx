@@ -40,8 +40,10 @@ describe("LiveInventoryPanel", () => {
     expect(screen.getByText("edge-01")).toBeVisible();
     expect(screen.getByText("Потребує уваги")).toBeVisible();
     expect(screen.getByText(/2 приладів · 8 каналів/)).toBeVisible();
-    expect(screen.getByText(/6 коректних/)).toBeVisible();
-    expect(screen.getAllByText(/2 проблем/)).toHaveLength(2);
+    // #1845: counts state their denominator (all latest values, including inactive channels).
+    expect(screen.getByText(/6 з 8 останніх значень коректні/)).toBeVisible();
+    expect(screen.getAllByText(/2 з помилкою/)).toHaveLength(2);
+    expect(screen.getByText(/зокрема неактуальні/)).toBeVisible();
     expect(screen.getByText("dixell-01")).toBeVisible();
     expect(screen.getByText(/6 каналів/)).toBeVisible();
     expect(screen.getByText("Прилади за останніми даними API")).toBeVisible();

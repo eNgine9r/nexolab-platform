@@ -77,7 +77,8 @@ export function LiveInventoryPanel({
                 </p>
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] leading-4">
                   <span className="inline-flex items-center gap-1 text-emerald-300">
-                    <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> {node.validCount} коректних
+                    <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> {node.validCount} з{" "}
+                    {node.validCount + node.issueCount} останніх значень коректні
                   </span>
                   <span
                     className={
@@ -86,9 +87,13 @@ export function LiveInventoryPanel({
                         : "inline-flex items-center gap-1 text-slate-400"
                     }
                   >
-                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> {node.issueCount} проблем
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> {node.issueCount} з помилкою
+                    якості або тривогою
                   </span>
                 </div>
+                <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                  Враховано всі канали вузла, зокрема неактуальні; деталі — у реєстрі обладнання.
+                </p>
               </div>
             </div>
           </article>
@@ -120,8 +125,8 @@ export function LiveInventoryPanel({
                 }
               >
                 {equipment.issueCount > 0
-                  ? `${equipment.issueCount} проблем`
-                  : `${equipment.validCount} коректних`}
+                  ? `${equipment.issueCount} з помилкою або тривогою`
+                  : `${equipment.validCount} коректні`}
               </span>
             </div>
           ))}

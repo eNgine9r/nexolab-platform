@@ -312,7 +312,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(compare).toHaveCount(8);
     for (let index = 0; index < 8; index += 1) await compare.nth(index).check();
 
-    await expect(page.getByText("8 / 8", { exact: true })).toBeVisible();
+    await expect(page.getByText("8 / 24", { exact: true })).toBeVisible();
     await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
     await expect(page.getByTestId("live-selected-context")).toContainText(fixture.channels[0]);
     await expect(
@@ -498,7 +498,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.876);
     await expect(page.getByText("9.88 °C", { exact: true }).first()).toBeVisible();
     await expect(rendererHosts).toHaveCount(1);
-    await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
+    await expect(page.getByText("Завантаження історії…")).toHaveCount(0);
     await expect
       .poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length)
       .toBe(historyRequestsBeforeLivePoint);
@@ -540,7 +540,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(summary).toContainText("Період 5 min");
     await page.getByRole("button", { name: "Повернутися до Live", exact: true }).click();
     await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Pause View", exact: true }).click();
+    await page.getByRole("button", { name: "Призупинити перегляд", exact: true }).click();
     await expect(page.getByText("Призупинений перегляд", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Повернутися до Live", exact: true }).click();
 
@@ -643,7 +643,7 @@ for (const width of [390, 1280]) {
       const chart = page.getByTestId("live-primary-chart");
       const host = chart.getByTestId("chart-renderer-host");
       await expect(host).toBeVisible();
-      await page.getByRole("button", { name: "Pause View", exact: true }).click();
+      await page.getByRole("button", { name: "Призупинити перегляд", exact: true }).click();
       await host.focus();
       await page.keyboard.press("Home");
       const timestamp = chart.getByTestId("chart-inspector-timestamp");

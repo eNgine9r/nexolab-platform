@@ -471,7 +471,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         <section className="grid min-h-48 place-items-center rounded-2xl border border-white/[0.08] bg-[#081a32]">
           <div className="text-center text-xs text-slate-500">
             <LoaderCircle className="mx-auto mb-2 h-5 w-5 animate-spin text-cyan-300" />
-            Завантаження persisted history…
+            Завантаження історії…
           </div>
         </section>
       ) : null}
