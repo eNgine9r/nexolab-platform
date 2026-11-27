@@ -187,7 +187,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
       label: "Вузлів онлайн",
       value: `${nodes} / 1`,
       detail: nodes ? "edge-01 передає дані" : "edge-01 недоступний",
-      trend: "production scope M3",
+      trend: "налаштовано вузлів: 1",
       tone: nodes ? "blue" : "red",
       icon: "network",
       ...mark,
@@ -195,8 +195,11 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
     {
       label: "Валідних вимірювань",
       value: String(good.length),
-      detail: `${fresh.length} свіжих записів у поточному циклі`,
-      trend: "усі налаштовані канали",
+      detail: `з ${fresh.length} актуальних каналів`,
+      trend:
+        fresh.length > good.length
+          ? `${fresh.length - good.length} з помилкою або невідомою якістю`
+          : "усі актуальні канали валідні",
       tone: good.length ? "green" : "red",
       icon: "signal",
       ...mark,
@@ -224,7 +227,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
     {
       label: "Поточне споживання",
       value: powers.length ? `${number(totalPower, 2)} kW` : "—",
-      detail: powers.length ? "LE-01MP 200–203" : "Немає свіжої active power",
+      detail: powers.length ? "LE-01MP 200–203" : "Немає актуальних даних активної потужності",
       trend: "сума валідних лічильників",
       tone: powers.length ? "amber" : "red",
       icon: "energy",

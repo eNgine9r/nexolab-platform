@@ -946,7 +946,8 @@ export function LiveTelemetryExplorer({
               Знайдіть канал за назвою або ID. Усі умови зберігаються в URL.
             </p>
             <p role="status" aria-live="polite" className="mt-1 text-xs text-cyan-200">
-              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} / {LIVE_SELECTION_LIMIT}
+              Активних умов: {activeConditionCount} · Обрано для графіка: {telemetry.selectedKeys.length} /{" "}
+              {LIVE_SELECTION_LIMIT}
             </p>
           </div>
           <button
