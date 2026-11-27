@@ -1,6 +1,6 @@
 ## 2026-11-27 — P0 charts final release deployed to LAN, Tailscale `:8443` and `:8444`; `:443` pending the owner tool step
 
-- **Post-reboot blockers resolved** (details: `docs/operations/chart-p0-release-candidate.md`, *Deployment record*):
+- **Post-reboot blockers resolved** (details: `docs/operations/chart-p0-release-candidate.md`, _Deployment record_):
   - **`:443` returned 503.** The oauth2-proxy unit `nexolab-google-oauth-stage.service` is static and had been started by hand, so it stayed down after the 00:11 reboot. The owner restarted the same unit with no authentication change and added it to `multi-user.target`. `:443` answers 302 again.
   - **Disk.** The owner-approved `storage.cleanup-regenerable build_cache=all-unused` freed space: 22.23 → 25.53 GiB. Volumes, in-use images and rollback artifacts were kept.
   - **`:3105` ownership.** It is served by the user unit `nexolab-external-ui-1569.service`, which the HTTPS tool controls. The system unit 1560 is the separate `:3104` (`lab.nexolab`) instance.
