@@ -215,10 +215,7 @@ export function EnergyHistoryChart({
       domain.fromMs === baseScene.xDomain.fromMs && domain.toMs === baseScene.xDomain.toMs ? null : domain,
     );
   return (
-    <div
-      data-testid="energy-history-chart"
-      className="min-w-0 space-y-3 [&_[aria-label='Легенда_графіка']>div]:grid [&_[aria-label='Легенда_графіка']>div]:grid-cols-[auto_1fr_1fr] [&_[aria-label='Легенда_графіка']>div>button]:min-h-10 [&_[aria-label='Легенда_графіка']>div>button:first-of-type]:col-start-2 [&_[aria-label='Легенда_графіка']>div>span:nth-of-type(2)]:col-span-2"
-    >
+    <div data-testid="energy-history-chart" className="min-w-0 space-y-3">
       {panels.map((series, index) => (
         <EnergyChartPanel
           key={index}
