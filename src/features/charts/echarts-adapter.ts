@@ -580,8 +580,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private lastCommittedCursorTimestampMs: number | null | undefined;
   /** #1866: the pointer is over this plot, so its own mouse position is the only cursor source. */
   private pointerInside = false;
-  /** The last mouse position over the plot resolved to a time (else the axis pointer is the source). */
-  private mouseResolved = false;
   /** #1866: set while this adapter dispatches a shared cursor, so its own echo is ignored. */
   private dispatchingCursor = false;
   private lastSharedCursorMs: number | null | undefined;
@@ -859,17 +857,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.queueCursor(null);
       return;
     }
+    // #1866: under the mouse, ECharts' own axis-pointer event is the ONE cursor source (it is what
+    // the browser verifiably resolves to the plotted time). The mouse only tells inside/outside;
+    // committing both sources made them alternate between neighbouring timestamps.
     this.pointerInside = true;
-    // A single-axis finder converts one coordinate (#1866: an [x, y] pair is not a time on it).
-    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel[0]);
-    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
-    if (!Number.isFinite(timestampMs)) {
-      // Never leave the cursor without a source: ECharts' axis pointer takes over.
-      this.mouseResolved = false;
-      return;
-    }
-    this.mouseResolved = true;
-    this.queueCursor(timestampMs);
   };
 
   private readonly handleContainerLeave = () => {
@@ -881,10 +872,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleAxisPointer = (event: unknown) => {
     if (!this.scene || this.primaryDragActive || this.rangeSelectionDragActive) return;
-    // #1866: two cursor sources (the mouse position and ECharts' own axis-pointer event, plus the
-    // echo of a shared cursor this adapter dispatched) alternated between neighbouring timestamps
-    // and made the inspected values flicker. Under the mouse only the mouse counts; echoes never.
-    if ((this.pointerInside && this.mouseResolved) || this.dispatchingCursor) return;
+    // #1866: the echo of a shared cursor this adapter dispatched itself is never re-committed.
+    if (this.dispatchingCursor) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.queueCursor(timestampMs);

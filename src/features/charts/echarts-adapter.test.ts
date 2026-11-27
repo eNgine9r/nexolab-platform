@@ -316,8 +316,8 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS }] });
     await nextAnimationFrame();
-    expect(instance.convertFinders.at(-1)).toEqual({ xAxisIndex: 0 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({
@@ -382,35 +382,32 @@ describe("ECharts renderer adapter lifecycle", () => {
     for (let index = 0; index < 120; index += 1) {
       container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 120 }));
     }
-    // #1866: under the mouse, ECharts' own axis-pointer event (and shared-cursor echoes) never
-    // compete with the mouse position: alternating sources made the inspected values flicker.
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 200 }] });
+    // #1866: the mouse alone never commits a cursor; ECharts' axis-pointer event is the one source.
+    expect(onCursor).not.toHaveBeenCalled();
+    const latestTimestamp = BENCHMARK_START_MS + 200;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 100 }] });
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
     expect(onCursor).not.toHaveBeenCalled();
 
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
-    expect(onCursor).toHaveBeenLastCalledWith(
-      expect.objectContaining({ timestampMs: BENCHMARK_START_MS + 119 }),
-    );
+    expect(onCursor).toHaveBeenLastCalledWith(expect.objectContaining({ timestampMs: latestTimestamp }));
 
-    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 119, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
 
     adapter.setScene(scene);
-    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 119, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(2);
 
-    // Away from the mouse (touch, keyboard or another linked plot), the axis pointer drives it.
     container.dispatchEvent(new MouseEvent("mouseleave"));
     expect(onCursor).toHaveBeenCalledTimes(3);
     expect(onCursor).toHaveBeenLastCalledWith(null);
-    const latestTimestamp = BENCHMARK_START_MS + 200;
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 300 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(4);
-    expect(onCursor).toHaveBeenLastCalledWith(expect.objectContaining({ timestampMs: latestTimestamp }));
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 210, clientY: 120 }));
     adapter.dispose();
@@ -446,6 +443,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 20, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 20 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
 
@@ -467,12 +465,14 @@ describe("ECharts renderer adapter lifecycle", () => {
       toMs: scene.xDomain.toMs,
     });
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 81 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
     instance.handlers.get("dataZoom")?.({ start: 30, end: 90 });
     container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 90 }] });
     await nextAnimationFrame();
     expect(onXDomainChange).toHaveBeenCalledTimes(2);
     expect(onXDomainChange).toHaveBeenLastCalledWith({
@@ -483,6 +483,7 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 100 }] });
     await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 3);
 
