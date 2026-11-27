@@ -1,5 +1,6 @@
 "use client";
 
+import { chartProfile } from "@/features/charts/chart-profile";
 import { fromZonedInputValue, toZonedInputValue } from "@/features/display-time/zoned-input";
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
@@ -384,25 +385,29 @@ export function LiveTelemetryExplorer({
     () => Object.fromEntries(telemetry.samples.map((sample) => [liveChannelKey(sample), sample])),
     [telemetry.samples],
   );
-  const groups = useMemo(
+  // #1867: groups depend on the data, not on the visible window; a zoom only swaps the window
+  // into the existing scenes instead of rebuilding every series.
+  const baseGroups = useMemo(
     () =>
-      buildLiveChartGroups({
-        selectedIdentities: selected,
-        historySamples: displayHistory,
-        status: telemetry.status,
-        xDomain: effectiveDomain,
-        hiddenSeriesKeys,
-        soloSeriesKey,
-        displayNames: commissionedNames,
-        latestSamples: latestByKey,
-        cadenceObservations: telemetry.cadenceObservations,
-        now: telemetry.clock,
-      }),
+      chartProfile("live.buildGroups", () =>
+        buildLiveChartGroups({
+          selectedIdentities: selected,
+          historySamples: displayHistory,
+          status: telemetry.status,
+          xDomain: resetDomain,
+          hiddenSeriesKeys,
+          soloSeriesKey,
+          displayNames: commissionedNames,
+          latestSamples: latestByKey,
+          cadenceObservations: telemetry.cadenceObservations,
+          now: telemetry.clock,
+        }),
+      ),
     [
       commissionedNames,
-      effectiveDomain,
       hiddenSeriesKeys,
       latestByKey,
+      resetDomain,
       selected,
       soloSeriesKey,
       telemetry.cadenceObservations,
@@ -410,6 +415,13 @@ export function LiveTelemetryExplorer({
       displayHistory,
       telemetry.status,
     ],
+  );
+  const groups = useMemo(
+    () =>
+      effectiveDomain === resetDomain
+        ? baseGroups
+        : baseGroups.map((group) => ({ ...group, scene: { ...group.scene, xDomain: effectiveDomain } })),
+    [baseGroups, effectiveDomain, resetDomain],
   );
   const alertEvents = useDashboardAlertEvents({
     enabled: selected.length > 0,
@@ -422,7 +434,9 @@ export function LiveTelemetryExplorer({
   const statisticsRows = useMemo(
     () =>
       historyComplete
-        ? buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics)
+        ? chartProfile("live.statisticsRows", () =>
+            buildLiveStatisticsRows(groups, selected, effectiveDomain, telemetry.intervalStatistics),
+          )
         : [],
     // historySamples changes whenever raw history or live tail is recorded, so stats stay current.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -864,6 +878,9 @@ export function LiveTelemetryExplorer({
                 onXDomainChange={(domain) => {
                   setViewportDomain(domain);
                   setLiveFollow(false);
+                  // #1867: detail for the new window in the same React update as the window, so a
+                  // zoom step costs one chart render instead of a window render plus a rebuild.
+                  if (historyComplete) telemetry.setDetailViewport?.(domain);
                 }}
                 onResetView={() => {
                   setViewportDomain(null);
