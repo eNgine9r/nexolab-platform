@@ -4,13 +4,15 @@ import {
   SETTINGS_PREFERENCES_STORAGE_KEY,
 } from "@/features/settings/preferences";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { chartSeriesKey } from "@/features/charts/domain";
 import { createBenchmarkScene } from "@/features/charts/fixtures";
 import { formatChartExactTimestamp } from "@/features/charts/format";
 
-import { ChartShell } from "./chart-shell";
+import { ChartShell, formatChartWindowDuration } from "./chart-shell";
+import { useChartView } from "./chart-view-context";
 
 describe("ChartShell accessibility contract", () => {
   it("reformats the same inspector sample and keeps values, period and series intact", () => {
@@ -391,5 +393,80 @@ describe("ChartShell truthful empty and invalid states (chart audit 2026-11-21)"
     expect(notice).toHaveTextContent("немає даних, а не нулі");
     rerender(shell(first));
     expect(screen.queryByTestId("chart-partial-history")).toBeNull();
+  });
+});
+
+describe("#1843 Y scale and visible interval", () => {
+  function Probe({
+    visible,
+    full,
+  }: {
+    visible: { fromMs: number; toMs: number };
+    full: { fromMs: number; toMs: number };
+  }) {
+    const { yScale, reportVisibleDomain } = useChartView();
+    useEffect(() => reportVisibleDomain(visible, full), [full, reportVisibleDomain, visible]);
+    return <output data-testid="probe-y-scale">{JSON.stringify(yScale)}</output>;
+  }
+
+  it("defaults to Auto, switches modes, takes manual bounds and names the zoomed interval", () => {
+    const scene = createBenchmarkScene(1);
+    const full = scene.xDomain;
+    const visible = { fromMs: full.fromMs + 60_000, toMs: full.fromMs + 60_000 + 70 * 60_000 };
+    render(
+      <ChartShell
+        title="Температура"
+        context="Огляд"
+        selectedRange="7 днів"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <Probe visible={visible} full={full} />
+      </ChartShell>,
+    );
+    const group = screen.getByRole("group", { name: "Шкала Y" });
+    expect(within(group).getByRole("button", { name: "Авто" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("probe-y-scale")).toHaveTextContent('"mode":"auto"');
+    expect(screen.getByTestId("chart-visible-window")).toHaveTextContent("1 год 10 хв");
+
+    fireEvent.click(within(group).getByRole("button", { name: "Весь період" }));
+    expect(screen.getByTestId("probe-y-scale")).toHaveTextContent('"mode":"full"');
+
+    fireEvent.click(within(group).getByRole("button", { name: "Вручну" }));
+    fireEvent.change(screen.getByLabelText("мін °C"), { target: { value: "20" } });
+    fireEvent.change(screen.getByLabelText("макс °C"), { target: { value: "30,5" } });
+    expect(screen.getByTestId("probe-y-scale")).toHaveTextContent('"min":20');
+    expect(screen.getByTestId("probe-y-scale")).toHaveTextContent('"max":30.5');
+  });
+
+  it("hides the interval line when the whole period is shown", () => {
+    const scene = createBenchmarkScene(1);
+    render(
+      <ChartShell
+        title="Температура"
+        context="Огляд"
+        selectedRange="1 год"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <Probe visible={scene.xDomain} full={scene.xDomain} />
+      </ChartShell>,
+    );
+    expect(screen.queryByTestId("chart-visible-window")).toBeNull();
+  });
+
+  it("formats window durations compactly", () => {
+    expect(formatChartWindowDuration(70 * 60_000)).toBe("1 год 10 хв");
+    expect(formatChartWindowDuration(3 * 86_400_000 + 4 * 3_600_000)).toBe("3 дн 4 год");
+    expect(formatChartWindowDuration(45_000)).toBe("45 с");
+    expect(formatChartWindowDuration(7 * 86_400_000, "en")).toBe("7 d");
   });
 });

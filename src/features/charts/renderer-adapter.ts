@@ -6,6 +6,7 @@ import type {
   ChartThreshold,
   ChartXDomain,
 } from "./domain";
+import type { ChartYScale } from "./y-axis-bounds";
 
 export interface ChartRendererInitOptions {
   container: HTMLElement;
@@ -28,6 +29,8 @@ export interface ChartRendererScene {
   thresholds?: readonly ChartThreshold[];
   events?: readonly ChartEventMarker[];
   alarmRegions?: readonly ChartAlarmRegion[];
+  /** Y-axis scaling (#1843); `auto` (fit the visible window) when absent. */
+  yScale?: ChartYScale;
 }
 
 export interface ChartRendererAdapter {

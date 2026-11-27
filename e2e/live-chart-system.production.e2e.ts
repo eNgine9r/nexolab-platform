@@ -363,6 +363,33 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
         fromMs: Number(host.getAttribute("data-chart-x-domain-from-ms")),
         toMs: Number(host.getAttribute("data-chart-x-domain-to-ms")),
       }));
+    // #1843: the Y bounds ECharts actually rendered, and the measurements they were fitted to.
+    const readY = () =>
+      equipmentHost.evaluate((host) => {
+        const surface = host.querySelector<HTMLElement>('[data-testid="chart-renderer-surface"]');
+        return {
+          bounds: JSON.parse(surface?.dataset.chartYBounds ?? "[]") as Array<{
+            min: number;
+            max: number;
+            dataMin: number | null;
+            dataMax: number | null;
+          }>,
+          rendered: JSON.parse(surface?.dataset.chartYRendered ?? "[]") as Array<[number, number]>,
+        };
+      });
+    const expectRenderedFit = (y: Awaited<ReturnType<typeof readY>>) => {
+      expect(y.bounds.length).toBeGreaterThan(0);
+      expect(y.rendered).toHaveLength(y.bounds.length);
+      y.bounds.forEach((axis, index) => {
+        expect(y.rendered[index][0]).toBeCloseTo(axis.min, 9);
+        expect(y.rendered[index][1]).toBeCloseTo(axis.max, 9);
+        if (axis.dataMin !== null) expect(axis.dataMin).toBeGreaterThanOrEqual(axis.min);
+        if (axis.dataMax !== null) expect(axis.dataMax).toBeLessThanOrEqual(axis.max);
+      });
+    };
+    await expect.poll(async () => (await readY()).rendered.length).toBeGreaterThan(0);
+    const initialY = await readY();
+    expectRenderedFit(initialY);
     await page.mouse.move(panProbe.x, panProbe.y);
     const initialInspectorTimestamp = (await inspectorTimestamp.textContent())?.trim();
     expect(initialInspectorTimestamp).toBeTruthy();
@@ -390,6 +417,15 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       })
       .toBeLessThan(initialDomain.toMs - initialDomain.fromMs);
     const zoomedDomain = await readDomain();
+    // The axes follow the zoomed window: rendered = fitted bounds, never wider than before.
+    await expect(async () => {
+      const zoomedY = await readY();
+      expectRenderedFit(zoomedY);
+      zoomedY.bounds.forEach((axis, index) => {
+        const before = initialY.bounds[index];
+        expect(axis.max - axis.min).toBeLessThanOrEqual(before.max - before.min + 1e-9);
+      });
+    }).toPass();
     await page.mouse.move(panProbe.x, panProbe.y);
     const inspectorTimestampBeforePan = (await inspectorTimestamp.textContent())?.trim();
     expect(inspectorTimestampBeforePan).toBeTruthy();
@@ -418,8 +454,11 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())
       .not.toBe(resumedInspectorTimestamp);
 
+    await expect(async () => expectRenderedFit(await readY())).toPass();
+
     await page.getByRole("button", { name: "Скинути масштаб" }).click();
     await expect.poll(readDomain).toEqual(initialDomain);
+    await expect(async () => expectRenderedFit(await readY())).toPass();
     await expect(page.getByText("Live-стеження", { exact: true })).toBeVisible();
     await page.mouse.move(panProbe.x, panProbe.y);
     await expect

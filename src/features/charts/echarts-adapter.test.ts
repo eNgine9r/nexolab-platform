@@ -898,3 +898,109 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 });
+
+describe("#1843 Y axes fitted to the visible window", () => {
+  function setup() {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const container = document.createElement("div");
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    return { instance, adapter, container };
+  }
+
+  function yAxes(instance: FakeEChartsInstance): Array<{ id: string; min: number; max: number }> {
+    return (instance.options.at(-1) as { yAxis: Array<{ id: string; min: number; max: number }> }).yAxis;
+  }
+
+  /** Visible-window extent of every visible series, straight from the scene points. */
+  function extentIn(scene: ReturnType<typeof createBenchmarkScene>, fromMs: number, toMs: number) {
+    const values = scene.series
+      .filter((series) => series.visible)
+      .flatMap((series) => series.segments.flatMap((segment) => segment.points))
+      .filter((point) => point.timestampMs >= fromMs && point.timestampMs <= toMs)
+      .map((point) => point.value);
+    return { min: Math.min(...values), max: Math.max(...values) };
+  }
+
+  it("fits a zoomed window, returns on reset and ignores hidden series", () => {
+    const { instance, adapter, container } = setup();
+    const scene = createBenchmarkScene(2);
+    adapter.setScene(scene);
+    const full = yAxes(instance)[0];
+    const whole = extentIn(scene, scene.xDomain.fromMs, scene.xDomain.toMs);
+    expect(full.min).toBeLessThanOrEqual(whole.min);
+    expect(full.max).toBeGreaterThanOrEqual(whole.max);
+
+    // Zoom into 30 s of the 20-minute window: the axis narrows to that part of the data.
+    const zoomed = { fromMs: scene.xDomain.fromMs + 100_000, toMs: scene.xDomain.fromMs + 130_000 };
+    adapter.setScene({ ...scene, xDomain: zoomed, interactionDomain: scene.xDomain });
+    const fitted = yAxes(instance)[0];
+    const visible = extentIn(scene, zoomed.fromMs, zoomed.toMs);
+    expect(fitted.min).toBeLessThanOrEqual(visible.min);
+    expect(fitted.max).toBeGreaterThanOrEqual(visible.max);
+    expect(fitted.max - fitted.min).toBeLessThan(full.max - full.min);
+    expect(JSON.parse(container.dataset.chartYBounds!)[0]).toMatchObject({
+      min: fitted.min,
+      max: fitted.max,
+    });
+
+    // Reset to the full window: the full-range axis comes back.
+    adapter.setScene({ ...scene, interactionDomain: scene.xDomain });
+    expect(yAxes(instance)[0].max - yAxes(instance)[0].min).toBe(full.max - full.min);
+
+    // Hiding the higher series refits to the remaining one.
+    const hidden = {
+      ...scene,
+      series: scene.series.map((series, index) => ({ ...series, visible: index === 0 })),
+    };
+    adapter.setScene(hidden);
+    const solo = extentIn(hidden, scene.xDomain.fromMs, scene.xDomain.toMs);
+    expect(JSON.parse(container.dataset.chartYBounds!)[0]).toMatchObject({
+      dataMin: solo.min,
+      dataMax: solo.max,
+    });
+    expect(solo.max).toBeLessThan(whole.max);
+    expect(yAxes(instance)[0].max).toBeGreaterThanOrEqual(solo.max);
+    adapter.dispose();
+  });
+
+  it("keeps the full-period axis while zooming in 'full' mode", () => {
+    const { instance, adapter } = setup();
+    const scene = { ...createBenchmarkScene(1), yScale: { mode: "full" as const } };
+    adapter.setScene(scene);
+    const full = yAxes(instance)[0];
+    adapter.setScene({
+      ...scene,
+      xDomain: { fromMs: scene.xDomain.fromMs + 100_000, toMs: scene.xDomain.fromMs + 200_000 },
+      interactionDomain: scene.xDomain,
+    });
+    expect(yAxes(instance)[0]).toMatchObject({ min: full.min, max: full.max });
+    adapter.dispose();
+  });
+
+  it("names a distant threshold off-scale instead of squashing the data", () => {
+    const { instance, adapter } = setup();
+    const base = createBenchmarkScene(1);
+    const seriesKey = chartSeriesKey(base.series[0].identity);
+    adapter.setScene({
+      ...base,
+      thresholds: [{ id: "far", seriesKey, kind: "upper", value: 500, label: "Аварійна межа" }],
+    });
+    const option = instance.options.at(-1) as {
+      series: Array<{ markLine?: unknown }>;
+      graphic: Array<{ id: string; style: { text: string } }>;
+    };
+    expect(yAxes(instance)[0].max).toBeLessThan(100);
+    expect(option.series[0].markLine).toBeUndefined();
+    expect(option.graphic.find((item) => item.id === "y-off-scale-above")?.style.text).toContain(
+      "Аварійна межа",
+    );
+    adapter.dispose();
+  });
+});
