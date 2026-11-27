@@ -2,7 +2,7 @@
 
 A consolidated **frontend-only** release built from `main` @ `84cf45e728edbe408a8881ee2ba7243f5e9eb977`, on top of production `47e9dd94` (Chart System 2.0). It also ships the merged operator-copy follow-ups #1848–#1852. The backend is unchanged and stays gated by DR #1428.
 
-**Status: built, verified and staged. Not deployed.**
+**Status (2026-11-27):** deployed to LAN, Tailscale `:8443` and `:8444`. The main HTTPS `:443` is pending the owner-run v2 tool step (see _Main HTTPS `:443`_ below).
 
 ## Contents
 
@@ -63,3 +63,35 @@ The package is in the agent's local file `~/.cache/nexolab-chart-p0/owner-packag
 
 - An operator PC and 60 FPS on real hardware.
 - The owner's browser acceptance.
+
+## Deployment record (2026-11-27)
+
+| Step                    | Result                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Owner preparation       | Stage 2 workspace archived; dev-account files removed (old Claude CLI 2.1.323/2.1.325, test venv, pip cache; 2.1.326 kept). The `c5bb48a1` LAN ZIP was kept for recovery.                                                                                                                                                                                                     |
+| Build-cache cleanup     | 21.65 → 23.75 GiB free. Volumes unchanged, 18 in-use images kept.                                                                                                                                                                                                                                                                                                             |
+| Artifacts               | Both ZIP SHA-256 values matched (`a30e461d…`, `fa34da0d…`).                                                                                                                                                                                                                                                                                                                   |
+| `prepare`               | Preview `84cf45e728ed` / `hZgwiFnOtHT1zzeKaTCMl`, Docker DNS and server API verified, compose fidelity proven, `ROLLBACK_IDENTITY_VERIFIED 47e9dd943484`, `STAGE2_CHECK_PASS NO_WRITES`.                                                                                                                                                                                      |
+| `execute`               | `STAGE2_PREFLIGHT_PASS`, `STAGE2_FRONTEND_GREEN`.                                                                                                                                                                                                                                                                                                                             |
+| Identities              | LAN, `:8443` and `:8444` report `84cf45e7` / `hZgwiFnOtHT1zzeKaTCMl`. `:3105` is unchanged (`47e9dd94` / `30zMx48UZ8ATG5QCPdL_Z`).                                                                                                                                                                                                                                            |
+| Routes                  | `/`, `/live`, `/energy`, `/refrigeration`, `/sessions` and `/alerts` answer 200 on all three interfaces. All 23 referenced static chunks answer 200.                                                                                                                                                                                                                          |
+| Auth, API and WebSocket | Public `:443` and the OAuth gateway answer 302. On the LAN and `:8443`, the API answers 401 without a token and the WebSocket upgrade answers 101. `:8444` proxies straight to the dashboard container (unchanged serve configuration), so `/api` there is a Next.js 404, as before.                                                                                          |
+| Telemetry, 5 minutes    | Ready, ingestion lag 0.07–0.40 s, `last_persisted_at` advancing, queue 0. One `/health/ready` probe at 16:56 UTC timed out after 10 s; persistence continued and the next probe was ready, with no service log errors. 13 containers running (12 healthy; MinIO has no healthcheck). 1.9 GiB memory available, no throttling, no failed units, 20.4 GiB free after the build. |
+| Rollback                | Not needed. The approval stays unused and expires.                                                                                                                                                                                                                                                                                                                            |
+
+## Main HTTPS `:443`
+
+Owner command (installed v2 tool `00fd14a3…`):
+
+```bash
+echo "00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07  /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py" | sudo sha256sum -c - &&
+H=(--artifact /home/nexolab-dev/operator-inbox/fa34da0d6b7ac077a7978308653fdbc0759453bbfc88ceb0ef80018b8fa872c7.zip
+   --expect-zip-sha256 fa34da0d6b7ac077a7978308653fdbc0759453bbfc88ceb0ef80018b8fa872c7
+   --expect-source 84cf45e728edbe408a8881ee2ba7243f5e9eb977 --expect-build hUzaQBG5v2tGcLVYrU3qL) &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py plan "${H[@]}" &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py prepare "${H[@]}" &&
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py execute "${H[@]}" \
+  --expect-current-source 47e9dd943484e58b252dfbf1d1149cf8ecf19d69 --expect-current-build 30zMx48UZ8ATG5QCPdL_Z
+```
+
+Expected: `plan` shows the stack with rollback target `47e9dd943484/30zMx48UZ8ATG5QCPdL_Z`; `execute` ends `HTTPS_FRONTEND_GREEN`. On failure the tool restores `47e9dd94` itself.

@@ -1,3 +1,11 @@
+## 2026-11-27 — Unified Chart Experience 84cf45e7 live on LAN, `:8443`, `:8444`; `:443` pending owner step
+
+- **Deployed (owner approvals, broker):** cleanup 21.65 → 23.75 GiB, `STAGE2_CHECK_PASS NO_WRITES`, `STAGE2_FRONTEND_GREEN`.
+- **Identities:** LAN, `:8443`, `:8444` = `84cf45e7` / `hZgwiFnOtHT1zzeKaTCMl`; `:3105` = `47e9dd94` / `30zMx48UZ8ATG5QCPdL_Z` until the owner runs the v2 tool.
+- **Checks:** 6 routes × 3 interfaces 200; 23/23 chunks 200; OAuth 302; API 401 and WebSocket 101 on LAN and `:8443`; telemetry ready over 5 minutes (one 10 s health-probe timeout at 16:56 UTC, no persistence gap); 13 containers running; 20.4 GiB free.
+- **Next:** owner runs the `:443` command in `docs/operations/unified-charts-release-candidate.md`; then #1852 part 2, #1853.
+- **Not verified:** operator PC, 60 FPS on real hardware, owner browser acceptance.
+
 ## 2026-11-27 — Unified Chart Experience (#1866, #1867, #1868) merged; release 84cf45e7 staged, not deployed
 
 - **#1866 (PR #1869):** cursor without flicker.
