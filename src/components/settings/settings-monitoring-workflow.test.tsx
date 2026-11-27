@@ -64,7 +64,7 @@ describe("Settings monitoring commissioning", () => {
     const action = screen.getByRole("button", { name: "Налаштувати моніторинг XJP60D" });
     expect(action).toBeVisible();
     expect(screen.getByText(/Виберіть канали, які NEXOLAB повинен постійно опитувати/)).toBeVisible();
-    expect(screen.getByText(/не виконує Modbus write/)).toBeVisible();
+    expect(screen.getByText(/Запис у прилади \(Modbus write\) не виконується/)).toBeVisible();
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).toHaveBeenCalledOnce();
   });
