@@ -8,13 +8,47 @@ import { useEffect, useMemo } from "react";
 import { AlertTriangle, Clock3, LoaderCircle } from "lucide-react";
 
 import { useSessionListReadModel } from "@/features/test-sessions/use-session-list-read-model";
+import type { DashboardKpiValue } from "@/lib/telemetry/dashboard-state";
+import type { LaboratorySession } from "@/lib/sessions/types";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
+
+/** One query for the Overview list and its KPI: the read-model cache serves both from one request. */
+export const OVERVIEW_SESSION_QUERY = { nodeId: "edge-01", limit: 50 } as const;
+
+/**
+ * #1845: the "Active sessions" KPI from the same session list the Overview panel shows (it used to
+ * say "Session API not connected" next to a running session). Active = running or paused; sessions
+ * that are only ready are named separately. Unknown stays "—" with the reason, never a guess.
+ */
+export function activeSessionsKpi(
+  base: DashboardKpiValue,
+  items: readonly Pick<LaboratorySession, "state">[] | null,
+  failed: boolean,
+): DashboardKpiValue {
+  if (items === null) {
+    return {
+      ...base,
+      value: "—",
+      detail: failed ? "Список сесій недоступний" : "Завантаження сесій…",
+      trend: "дані не симулюються",
+    };
+  }
+  const running = items.filter((item) => item.state === "running").length;
+  const paused = items.filter((item) => item.state === "paused").length;
+  const ready = items.filter((item) => item.state === "ready").length;
+  return {
+    ...base,
+    value: String(running + paused),
+    detail: `Виконується: ${running} · призупинено: ${paused}`,
+    trend: ready > 0 ? `готові до запуску: ${ready}` : failed ? "останній відомий стан" : "вузол edge-01",
+  };
+}
 
 export function SessionsPanel({ organizationId }: { organizationId: string | null }) {
   const displayTimeZone = useDisplayTimeZone();
   const sessionsModel = useSessionListReadModel({
     organizationId,
-    query: { nodeId: "edge-01", limit: 50 },
+    query: OVERVIEW_SESSION_QUERY,
   });
   const sessions = useMemo(
     () =>
@@ -41,7 +75,7 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
       <div className="m-4 rounded-xl border border-amber-300/15 bg-amber-400/[0.04] p-4 text-[10px] leading-5 text-slate-400">
         <AlertTriangle className="mr-2 inline h-4 w-4 text-amber-300" />
         {sessionsModel.error.message}
-        <p className="mt-2 text-[9px] text-slate-600">Demo sessions are disabled.</p>
+        <p className="mt-2 text-[9px] text-slate-600">Демонстраційні сесії не підставляються.</p>
       </div>
     );
   }

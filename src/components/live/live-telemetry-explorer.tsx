@@ -585,22 +585,20 @@ export function LiveTelemetryExplorer({
       <section className="overflow-hidden rounded-3xl border border-cyan-300/10 bg-[#091a31]/95 p-4 shadow-2xl shadow-black/20 sm:p-5 xl:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-xs tracking-[0.2em] text-cyan-300 uppercase">
-              <Activity className="h-4 w-4" aria-hidden="true" />
-              Canonical realtime telemetry explorer
-            </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Live дані</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              <Activity className="h-6 w-6 text-cyan-300" aria-hidden="true" />
+              Live дані
+            </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Реальний inventory, ECharts comparison і локальна persisted history. Графік не керує acquisition
-              або Modbus polling.
+              Поточні значення та історія датчиків. Перегляд графіків не впливає на опитування приладів.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[520px]">
             {[
-              ["Каналів", telemetry.samples.length],
-              ["Результатів", filtered.length],
-              ["Обрано", `${telemetry.selectedKeys.length} / 8`],
-              ["Груп", groups.length],
+              ["Доступно каналів", telemetry.samples.length],
+              ["Знайдено", filtered.length],
+              ["Обрано", `${telemetry.selectedKeys.length} / ${LIVE_SELECTION_LIMIT}`],
+              ["Графіків", groups.length],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3">
                 <p className="text-xs text-slate-500">{label}</p>
@@ -640,13 +638,11 @@ export function LiveTelemetryExplorer({
       >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs tracking-[0.18em] text-cyan-300 uppercase">Canonical Chart System</p>
-            <h2 id="live-primary-chart-title" className="mt-1 text-lg font-semibold text-white">
-              Синхронізована історія
+            <h2 id="live-primary-chart-title" className="text-lg font-semibold text-white">
+              Історія вимірювань
             </h2>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-              Оберіть до 8 датчиків для порівняння. Масштабування графіка не впливає на вимірювання. Різні
-              одиниці показуються на окремих шкалах.
+              Порівнюйте до {LIVE_SELECTION_LIMIT} датчиків. Різні одиниці показуються на окремих шкалах.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -763,7 +759,7 @@ export function LiveTelemetryExplorer({
                 }}
                 className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                Pause View
+                Призупинити перегляд
               </button>
             ) : (
               <button
@@ -804,7 +800,7 @@ export function LiveTelemetryExplorer({
             className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400"
           >
             <span>
-              Завантаження history window за одним ingestion watermark…
+              Завантаження історії…
               {historyProgress
                 ? ` Завантажено каналів: ${historyProgress.loaded} з ${historyProgress.total}.`
                 : null}
@@ -844,9 +840,8 @@ export function LiveTelemetryExplorer({
                 data-testid="live-history-progress"
                 className="rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2 text-xs text-cyan-100"
               >
-                Завантаження history window за одним ingestion watermark… Завантажено каналів:{" "}
-                {historyProgress.loaded} з {historyProgress.total}. Статистика з&apos;явиться після
-                завантаження всіх каналів.
+                Завантаження історії… Завантажено каналів: {historyProgress.loaded} з {historyProgress.total}.
+                Статистика з&apos;явиться після завантаження всіх каналів.
               </p>
             ) : null}
             {historyComplete && density !== undefined && onDensityChange && telemetry.densityResolution ? (
@@ -903,14 +898,36 @@ export function LiveTelemetryExplorer({
                 displayTimeZone={displayTimeZone}
               />
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-              <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
-              <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>
-            </div>
+            {telemetry.rejectedFutureSamples > 0 ? (
+              // A data-quality problem stays visible to the operator, in plain words.
+              <p
+                role="status"
+                data-testid="live-rejected-future-samples"
+                className="rounded-xl border border-amber-300/30 bg-amber-300/[0.06] px-3 py-2 text-xs text-amber-100"
+              >
+                Відхилено вимірювань з часом у майбутньому: {telemetry.rejectedFutureSamples}. Перевірте
+                годинник приладу або вузла.
+              </p>
+            ) : null}
+            <details className="text-xs text-slate-500" data-testid="live-technical-details">
+              <summary className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+                Технічні дані
+              </summary>
+              <dl className="mt-2 grid gap-1 sm:grid-cols-2">
+                <div>
+                  <dt className="inline">Знімок історії (snapshot watermark): </dt>
+                  <dd className="inline">{telemetry.historySnapshotAt ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="inline">Відхилено майбутніх вимірювань: </dt>
+                  <dd className="inline">{telemetry.rejectedFutureSamples}</dd>
+                </div>
+              </dl>
+            </details>
           </div>
         ) : (
           <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center text-sm text-slate-400">
-            У вибраному інтервалі немає persisted telemetry.
+            У вибраному інтервалі немає збережених вимірювань.
           </div>
         )}
       </section>
