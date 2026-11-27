@@ -13203,13 +13203,13 @@
     {
       "issue": 1878,
       "title": "Use the compact Saved Dashboard series legend on every chart surface",
-      "lifecycle": "in_progress",
+      "lifecycle": "needs_validation",
       "priority": "high",
       "scope": "Shared ChartSeriesLegend for every ChartShell surface; residual #1868 defect",
       "depends_on": [
         1868
       ],
-      "branch": "feat/1878-compact-legend",
+      "branch": null,
       "permitted_paths": [
         "src/components/charts/",
         "src/components/live-dashboards/",
@@ -13220,7 +13220,10 @@
       ],
       "evidence": {
         "site_cutover": false,
-        "hardware_verified": false
+        "hardware_verified": false,
+        "merged": "PR #1879 merge 0b07c693 (exact-head GREEN e6d3c2ac, Codex no findings)",
+        "release_candidate": "0b07c693 LAN ba539baa build EbyMPXd60YY5pAvkTzEvC; HTTPS 5665ccf9 build Xvkh7UYHlK25RwKbhiH4g; staged, not deployed (LAN SSD short 1.71 GiB)",
+        "browser_evidence": "issue-1878 screenshots: Overview, Live, multi-axis Live desktop+360, Saved Dashboards 360/1440/1920, Energy; Refrigeration/Sessions component tests only"
       }
     }
   ],
