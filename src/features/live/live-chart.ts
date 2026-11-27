@@ -94,9 +94,21 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
     : "instantaneous";
 }
 
+/**
+ * #1852: a commissioned (operator) channel name is the series name on its own; charts are already
+ * grouped by equipment and the unit is shown next to every value. Unnamed channels keep the
+ * technical identity so they stay distinguishable. Identity, keys and history are never affected.
+ */
+export function liveSeriesName(
+  sample: Pick<TelemetrySample, "node_id" | "equipment_id" | "channel_id" | "metric">,
+  displayNames: Readonly<Record<string, string>>,
+): string {
+  const label = displayNames[sample.node_id + "/" + sample.channel_id]?.trim();
+  return label ? label : `${sample.equipment_id} · ${sample.channel_id} · ${sample.metric}`;
+}
+
 function seriesName(sample: TelemetrySample, displayNames: Readonly<Record<string, string>>): string {
-  const label = displayNames[sample.node_id + "/" + sample.channel_id] ?? sample.channel_id;
-  return `${sample.equipment_id} · ${label} · ${sample.metric}`;
+  return liveSeriesName(sample, displayNames);
 }
 
 function buildSeries(
