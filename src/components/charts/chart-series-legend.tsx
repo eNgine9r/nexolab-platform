@@ -148,7 +148,7 @@ export const ChartSeriesLegend = memo(function ChartSeriesLegend({
   );
 
   return (
-    <section aria-label={copy.legend} className="min-w-0" data-testid="chart-series-legend">
+    <section aria-label={copy.legend} className="w-full min-w-0" data-testid="chart-series-legend">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-medium text-slate-100">{copy.heading}</h3>
         <span className="text-[11px] text-slate-400" data-testid="chart-series-legend-mode">
