@@ -169,7 +169,7 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             <p className="mt-3 text-[9px] text-slate-500">
               {sample
                 ? `${sample.quality} · ${formatTime(sample.captured_at, displayTimeZone)}`
-                : "Немає attributed telemetry"}
+                : "Немає даних, прив’язаних до сесії"}
             </p>
           </div>
         ))}
@@ -378,7 +378,7 @@ export function NotesAndAudit({
             </button>
           </div>
         )}
-        <div className="mt-4 max-h-80 scrollbar-thin space-y-2 overflow-y-auto">
+        <div className="scrollbar-thin mt-4 max-h-80 space-y-2 overflow-y-auto">
           {notes.length === 0 ? (
             <Empty label="Приміток немає" />
           ) : (
@@ -398,7 +398,7 @@ export function NotesAndAudit({
           <FileClock className="h-4 w-4 text-cyan-300" />
           <h2 className="text-sm font-semibold text-white">Незмінний журнал аудиту</h2>
         </div>
-        <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
+        <div className="scrollbar-thin mt-4 max-h-[390px] space-y-2 overflow-y-auto">
           {!auditReadable ? (
             <Empty label="Журнал аудиту доступний користувачам із відповідним правом." />
           ) : audit.length === 0 ? (
