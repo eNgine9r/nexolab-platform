@@ -253,7 +253,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   }
 
   if (security.mode === "demo" || !security.membership) {
-    return <Unavailable message="Комісіонування доступне лише в authenticated LOCAL_LAN live mode." />;
+    return (
+      <Unavailable message="Введення в експлуатацію доступне лише після входу в локальну систему NEXOLAB." />
+    );
   }
 
   if (!repository || !runtime.equipmentRepository) {
@@ -352,7 +354,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
 
       if (saved.lifecycle === "verified") return;
       if (saved.lifecycle !== "ready_for_preflight") {
-        setError("Заповніть підключення, Modbus Unit ID і вітрину перед read-only перевіркою.");
+        setError("Заповніть підключення, адресу Modbus і вітрину перед перевіркою читанням.");
         return;
       }
 
@@ -1088,7 +1090,7 @@ function ProfileStep({
     <StepFrame
       eyebrow="Крок 3"
       title="Профіль можливостей"
-      description="Каталог походить з уже наявних read-only acquisition contracts."
+      description="Каталог містить лише підтримувані профілі читання даних."
     >
       {profile ? (
         <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.04] p-4">
@@ -1210,7 +1212,7 @@ function ReviewStep({
         className={`mt-5 rounded-xl border p-3 text-xs leading-5 ${unsupported ? "border-rose-400/20 bg-rose-400/[0.05] text-rose-100" : "border-amber-400/20 bg-amber-400/[0.05] text-amber-100"}`}
       >
         {unsupported
-          ? "Чернетка буде fail-closed як unsupported і не зможе перейти до preflight."
+          ? "Цей прилад не підтримується: чернетку буде збережено, але перевірку запустити не можна."
           : profile?.activationSupported === false
             ? "Збереження створює commissioning intent для discovery/preflight. Активація опитування для цього профілю вимкнена."
             : "Збереження створює лише commissioning intent. Воно не активує опитування."}
@@ -1272,7 +1274,7 @@ function PreflightPanel({
         <EvidenceStatus
           label="software verified"
           state="passed"
-          detail="Фіксований read-only профіль; команди запису недоступні."
+          detail="Фіксований профіль лише для читання; команди запису недоступні."
         />
         <EvidenceStatus
           label={attempt ? evidenceLabel(attempt.evidenceLevel) : "hardware unverified"}
@@ -1371,7 +1373,8 @@ function ActivationPanel({
           </h3>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
             Активація дозволена лише після current successful preflight. Конфігурація сама по собі не означає
-            Online — success потребує health, MQTT, scheduler target і нову локально persisted telemetry.
+            «Онлайн» означає: прилад відповідає, дані передаються, опитування заплановане й нове значення
+            збережено.
           </p>
         </div>
         <button
@@ -1380,7 +1383,7 @@ function ActivationPanel({
           onClick={onRun}
           className="rounded-xl bg-emerald-400 px-4 py-2 text-xs font-semibold text-[#04111f] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? "Перевірка активації…" : "Активувати read-only моніторинг"}
+          {busy ? "Перевірка активації…" : "Увімкнути моніторинг (лише читання)"}
         </button>
       </div>
       <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">

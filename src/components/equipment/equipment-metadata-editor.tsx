@@ -115,8 +115,8 @@ export function EquipmentMetadataEditor({
       <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] p-4">
         <h3 className="text-sm font-semibold text-cyan-100">Адміністративні метадані</h3>
         <p className="mt-1 text-xs leading-5 text-cyan-100/65">
-          Ця форма не змінює Modbus Unit ID, RS-485 bus/serial parameters, register mapping, acquisition
-          enablement, polling cadence або hardware state.
+          Ця форма змінює лише описові дані. Адреса Modbus, параметри лінії RS-485, карта регістрів,
+          увімкнення та частота опитування й стан приладу не змінюються.
         </p>
       </div>
 
@@ -181,7 +181,7 @@ export function EquipmentMetadataEditor({
             </select>
           </label>
           <ReadOnlyBoundary
-            text={`Позиція ${asset.source.sensorPosition} і channel mapping залишаються read-only.`}
+            text={`Позиція ${asset.source.sensorPosition} і прив’язка каналу тут не змінюються.`}
           />
         </div>
       ) : (
@@ -204,9 +204,7 @@ export function EquipmentMetadataEditor({
             required
           />
           <Field label="Модель" value={values.model} onChange={(value) => update("model", value)} required />
-          <ReadOnlyBoundary
-            text={`Modbus Unit ID ${asset.source.unitId} і transport identity залишаються read-only.`}
-          />
+          <ReadOnlyBoundary text={`Адреса Modbus ${asset.source.unitId} і підключення тут не змінюються.`} />
         </div>
       )}
 
