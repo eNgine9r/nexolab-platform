@@ -72,7 +72,8 @@ describe("Live Data canonical chart mapping", () => {
       xDomain: domain,
       displayNames: { "other-node/t1": "Інший датчик" },
     });
-    expect(named[0].scene.series[0].name).toContain("Подача повітря");
+    // #1852: the operator name stands alone; the unnamed channel keeps its technical identity.
+    expect(named[0].scene.series[0].name).toBe("Подача повітря");
     expect(unnamed[0].scene.series[0].name).toContain("t1");
     expect(named[0].scene.series[0].identity).toEqual(unnamed[0].scene.series[0].identity);
     expect(named[0].scene.series[0].segments).toEqual(unnamed[0].scene.series[0].segments);

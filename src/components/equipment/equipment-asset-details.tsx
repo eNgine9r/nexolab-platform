@@ -222,7 +222,7 @@ export function EquipmentAssetDetails({
               ) : null}
               {asset.category === "physical-sensor" && !isCommissionedInputAsset(asset) ? (
                 <section className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.07] p-4">
-                  <h3 className="text-sm font-semibold text-amber-100">Межа metrology contract</h3>
+                  <h3 className="text-sm font-semibold text-amber-100">Межі метрологічних даних</h3>
                   <p className="mt-2 text-xs leading-5 text-amber-100/75">
                     Поточне локальне сховище містить лише статус калібрування. Дата калібрування, наступний
                     термін, номер сертифіката, файл документа, лабораторія та невизначеність ще не
@@ -454,7 +454,7 @@ function detailsSections(asset: EquipmentRegistryAsset, displayTimeZone: string)
         ["Node", item.nodeId],
         ["Bus ID", item.busId],
         ["Stable transport", item.stableTransportIdentifier],
-        ["Режим", "Лише read-only перевірка; моніторинг вимкнено"],
+        ["Режим", "Лише перевірка читанням; моніторинг вимкнено"],
       ]),
     );
     const related = compactDetails([
@@ -608,7 +608,7 @@ export function statusLabel(value: string): string {
       disconnected: "Відключено",
       verified: "Перевірено",
       monitoring_disabled: "Моніторинг вимкнено",
-      discovery_only: "Лише read-only перевірка",
+      discovery_only: "Лише перевірка читанням",
       unknown: "Невідомо",
     }[value] ?? value
   );

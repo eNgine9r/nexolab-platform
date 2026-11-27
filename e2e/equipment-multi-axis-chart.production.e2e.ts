@@ -220,7 +220,7 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
     for (let index = 0; index < CHANNELS.length; index += 1) await compare.nth(index).check();
 
     await expect(page.getByText("3 / 24", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: `Live Data · ${equipmentId}`, exact: true })).toHaveCount(
+    await expect(page.getByRole("heading", { name: `Обладнання ${equipmentId}`, exact: true })).toHaveCount(
       1,
     );
 

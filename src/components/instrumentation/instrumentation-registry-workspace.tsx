@@ -285,7 +285,7 @@ export function InstrumentationRegistryWorkspace({
     return (
       <PanelMessage
         title="Instrumentation Registry недоступний"
-        text="Live API реєстру не підключено. Demo-значення не використовуються як canonical state."
+        text="Реєстр не підключено до локального сервера. Демонстраційні значення не використовуються."
       />
     );
   }
@@ -440,7 +440,7 @@ export function InstrumentationRegistryWorkspace({
             aria-label="Пошук приладів"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Пошук за назвою, inventory key, model…"
+            placeholder="Пошук за назвою, інвентарним номером, моделлю…"
             className="mt-3 w-full rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-300/40"
           />
           {createInstrumentOpen && canManage ? (
@@ -606,7 +606,7 @@ function InstrumentCreateForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="mt-4 rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.03] p-3">
-      <p className="text-xs font-medium text-white">Новий canonical Instrument</p>
+      <p className="text-xs font-medium text-white">Новий прилад</p>
       <InstrumentFields draft={draft} setDraft={setDraft} prefix="create" />
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="text-[10px] text-amber-200">
