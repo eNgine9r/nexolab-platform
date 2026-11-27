@@ -1038,7 +1038,7 @@ describe("#1866 cursor without flicker", () => {
     return { instance, onCursor, adapter, container };
   }
 
-  it("never re-commits its own shared-cursor dispatch (no echo loop)", async () => {
+  it("a linked plot updates its inspector from a shared cursor, once per value", async () => {
     const { instance, onCursor, adapter } = setup();
     // The real ECharts emits updateAxisPointer synchronously from dispatchAction.
     instance.dispatchAction = (action: object) => {
@@ -1048,12 +1048,14 @@ describe("#1866 cursor without flicker", () => {
     };
     adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
     await nextAnimationFrame();
-    expect(onCursor).not.toHaveBeenCalled();
-    // The same shared value again is not re-dispatched.
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    // The same shared value again is not re-dispatched (no loop through the parent state).
     adapter.setSharedCursor(BENCHMARK_START_MS + 50_000);
+    await nextAnimationFrame();
     expect(
       instance.actions.filter((action) => (action as { type: string }).type === "updateAxisPointer"),
     ).toHaveLength(1);
+    expect(onCursor).toHaveBeenCalledTimes(1);
     adapter.dispose();
   });
 
@@ -1062,9 +1064,12 @@ describe("#1866 cursor without flicker", () => {
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 40, clientY: 50 }));
     adapter.setSharedCursor(BENCHMARK_START_MS + 40);
     expect(instance.actions).toHaveLength(0);
+    // A keyboard step on the hovered plot is explicit and shown.
+    adapter.setSharedCursor(BENCHMARK_START_MS + 60, { explicit: true });
+    expect(instance.actions).toHaveLength(1);
     container.dispatchEvent(new MouseEvent("mouseleave"));
     adapter.setSharedCursor(BENCHMARK_START_MS + 80);
-    expect(instance.actions).toHaveLength(1);
+    expect(instance.actions).toHaveLength(2);
     adapter.dispose();
   });
 

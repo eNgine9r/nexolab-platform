@@ -580,8 +580,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private lastCommittedCursorTimestampMs: number | null | undefined;
   /** #1866: the pointer is over this plot, so its own mouse position is the only cursor source. */
   private pointerInside = false;
-  /** #1866: set while this adapter dispatches a shared cursor, so its own echo is ignored. */
-  private dispatchingCursor = false;
   private lastSharedCursorMs: number | null | undefined;
   private cursorCommits = 0;
   private fullRenders = 0;
@@ -871,8 +869,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleAxisPointer = (event: unknown) => {
     if (!this.scene || this.primaryDragActive || this.rangeSelectionDragActive) return;
-    // #1866: the echo of a shared cursor this adapter dispatched itself is never re-committed.
-    if (this.dispatchingCursor) return;
+    // Linked plots update their own inspector from the event their shared-cursor dispatch emits;
+    // the plot under the mouse never receives that dispatch (see setSharedCursor), so no echo loop.
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.queueCursor(timestampMs);
@@ -1047,26 +1045,22 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.setScene({ ...this.scene, series });
   }
 
-  setSharedCursor(timestampMs: number | null): void {
+  setSharedCursor(timestampMs: number | null, options: { explicit?: boolean } = {}): void {
     if (!this.instance) return;
     // #1866: the plot under the mouse already shows its own pointer; re-dispatching the shared value
-    // back into it (and the same value again) only repainted and echoed.
-    if (this.pointerInside || timestampMs === this.lastSharedCursorMs) return;
+    // back into it (and the same value again) only repainted and echoed. An explicit keyboard step
+    // on this plot is always shown.
+    if (!options.explicit && (this.pointerInside || timestampMs === this.lastSharedCursorMs)) return;
     this.lastSharedCursorMs = timestampMs;
-    this.dispatchingCursor = true;
-    try {
-      if (timestampMs === null) {
-        this.instance.dispatchAction({ type: "hideTip" });
-        return;
-      }
-      this.instance.dispatchAction({
-        type: "updateAxisPointer",
-        xAxisIndex: 0,
-        value: timestampMs,
-      });
-    } finally {
-      this.dispatchingCursor = false;
+    if (timestampMs === null) {
+      this.instance.dispatchAction({ type: "hideTip" });
+      return;
     }
+    this.instance.dispatchAction({
+      type: "updateAxisPointer",
+      xAxisIndex: 0,
+      value: timestampMs,
+    });
   }
 
   setSharedXDomain(domain: ChartRendererScene["xDomain"]): void {

@@ -96,7 +96,7 @@ export function ChartRendererHost({
     if (!["ArrowLeft", "ArrowRight", "Home", "End", "Escape"].includes(event.key)) return;
     event.preventDefault();
     if (event.key === "Escape") {
-      adapter.setSharedCursor(null);
+      adapter.setSharedCursor(null, { explicit: true });
       onCursor(null);
       return;
     }
@@ -112,7 +112,7 @@ export function ChartRendererHost({
     } else {
       timestamp = timestamps.find((candidate) => candidate > sharedCursorMs) ?? timestamps.at(-1)!;
     }
-    adapter.setSharedCursor(timestamp);
+    adapter.setSharedCursor(timestamp, { explicit: true });
     onCursor(inspectChartAtTimestamp(scene, timestamp));
   };
 
