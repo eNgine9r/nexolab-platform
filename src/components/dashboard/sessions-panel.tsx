@@ -20,11 +20,11 @@ export const OVERVIEW_SESSION_QUERY = { nodeId: "edge-01", limit: 50 } as const;
  * say "Session API not connected" next to a running session). Active = running or paused; sessions
  * that are only ready are named separately. Unknown stays "—" with the reason, never a guess.
  */
-export function activeSessionsKpi(
-  base: DashboardKpiValue,
+export function activeSessionsKpi<T extends Pick<DashboardKpiValue, "value" | "detail" | "trend">>(
+  base: T,
   items: readonly Pick<LaboratorySession, "state">[] | null,
   failed: boolean,
-): DashboardKpiValue {
+): Omit<T, "value" | "detail" | "trend"> & Pick<DashboardKpiValue, "value" | "detail" | "trend"> {
   if (items === null) {
     return {
       ...base,
