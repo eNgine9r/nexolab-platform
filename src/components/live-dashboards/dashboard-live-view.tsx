@@ -806,6 +806,10 @@ export function DashboardLiveView({
             onResetView={() => setViewportDomain(null)}
             onToggleSeries={toggleSeries}
             onSoloSeries={soloSeries}
+            onShowAllSeries={() => {
+              setHiddenSeriesKeys(new Set());
+              setSoloSeriesKey(null);
+            }}
           />
         ))}
       </div>

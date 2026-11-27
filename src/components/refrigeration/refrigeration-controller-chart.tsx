@@ -107,6 +107,10 @@ export function RefrigerationControllerChart({
           });
         }}
         onSoloSeries={(key) => setSolo((current) => (current === key ? null : key))}
+        onShowAllSeries={() => {
+          setHidden(new Set());
+          setSolo(null);
+        }}
         onResetZoom={() => onViewportChange(null)}
       >
         <ChartRendererHost

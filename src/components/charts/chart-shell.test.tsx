@@ -470,3 +470,46 @@ describe("#1843 Y scale and visible interval", () => {
     expect(formatChartWindowDuration(7 * 86_400_000, "en")).toBe("7 d");
   });
 });
+
+describe("#1868 one shared show-all control", () => {
+  it("appears only while a series is hidden and restores every series through one callback", () => {
+    const scene = createBenchmarkScene(3);
+    const onShowAllSeries = vi.fn();
+    const { rerender } = render(
+      <ChartShell
+        title="Графік"
+        context="°C"
+        selectedRange="1 год"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onShowAllSeries={onShowAllSeries}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+    expect(screen.queryByRole("button", { name: "Показати всі" })).toBeNull();
+    const soloed = scene.series.map((series, index) => ({ ...series, visible: index === 0 }));
+    rerender(
+      <ChartShell
+        title="Графік"
+        context="°C"
+        selectedRange="1 год"
+        series={soloed}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onShowAllSeries={onShowAllSeries}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Показати всі" }));
+    expect(onShowAllSeries).toHaveBeenCalledTimes(1);
+  });
+});

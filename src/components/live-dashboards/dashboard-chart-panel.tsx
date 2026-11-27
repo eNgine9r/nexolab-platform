@@ -21,6 +21,7 @@ export function DashboardChartPanel({
   onResetView,
   onToggleSeries,
   onSoloSeries,
+  onShowAllSeries,
 }: {
   group: SavedDashboardChartGroup;
   rangeLabel: string;
@@ -31,6 +32,7 @@ export function DashboardChartPanel({
   onResetView: () => void;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
+  onShowAllSeries?: () => void;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const inspection = useMemo(
@@ -46,9 +48,7 @@ export function DashboardChartPanel({
     <div data-testid="saved-dashboard-chart-panel">
       <ChartShell
         title={group.title}
-        context={`${unitLabel} · ${group.nativeUnits.length} ${
-          group.nativeUnits.length === 1 ? "динамічна вісь Y" : "динамічні осі Y"
-        }`}
+        context={unitLabel}
         selectedRange={rangeLabel}
         locale="uk"
         series={group.scene.series}
@@ -64,6 +64,7 @@ export function DashboardChartPanel({
         }
         onToggleSeries={onToggleSeries}
         onSoloSeries={onSoloSeries}
+        onShowAllSeries={onShowAllSeries}
         onExportImage={() => void downloadChartPng(adapter, group.title)}
         onResetZoom={() => {
           adapter.resetZoom();
