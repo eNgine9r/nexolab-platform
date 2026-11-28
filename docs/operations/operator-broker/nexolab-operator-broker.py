@@ -1826,17 +1826,23 @@ class Audit:
         self.grant_switches: list[float] = []
         if path.exists():
             with path.open("rb") as handle:
-                for raw in collections.deque(handle, maxlen=REPLAY_MEMORY):
+                # One streaming pass over the whole chain: the replay cache keeps only the newest
+                # REPLAY_MEMORY ids, but granted switches of the last 24 h are rebuilt from every entry
+                # (diagnostic traffic must never reset the owner's daily limit, #1881 review).
+                window_start = time.time() - GRANT_WINDOW_SECONDS
+                for raw in handle:
                     try:
                         entry = json.loads(raw)
                     except ValueError:
                         continue
                     self.seq, self.prev = entry.get("seq", self.seq), entry.get("hash", self.prev)
                     grant = entry.get("grant")
-                    if isinstance(grant, dict) and grant.get("switch") is True:
-                        self.grant_switches.append(float(entry.get("ts", 0.0)))
+                    ts = entry.get("ts", 0.0)
+                    if (isinstance(grant, dict) and grant.get("switch") is True and type(ts) in (int, float)
+                            and ts >= window_start):
+                        self.grant_switches.append(float(ts))
                     if entry.get("request_id"):
-                        self.remember(entry["request_id"], entry.get("ts", 0.0))
+                        self.remember(entry["request_id"], ts)
 
     def remember(self, request_id: str, ts: float) -> None:
         self.seen[request_id] = ts

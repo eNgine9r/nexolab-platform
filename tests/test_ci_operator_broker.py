@@ -1276,6 +1276,21 @@ class BrokerV18GrantTests(unittest.TestCase):
         audit.append({"op": "deploy.lan-frontend", "grant": {"switch": False, "profile": "frontend-release"}})
         self.assertEqual(len(broker_module.Audit(path).grant_switches), 1)
 
+    def test_switch_count_survives_more_entries_than_the_replay_memory(self) -> None:
+        path = self.broker.state / "busy.jsonl"
+        now = time.time()
+        lines = [{"seq": 1, "ts": now - 60, "hash": "h1", "op": "deploy.https-frontend",
+                  "grant": {"switch": True, "profile": "frontend-release"}},
+                 {"seq": 2, "ts": now - 90000, "hash": "h2", "op": "deploy.lan-frontend",
+                  "grant": {"switch": True, "profile": "frontend-release"}}]  # older than 24 h: not counted
+        lines += [{"seq": 3 + i, "ts": now, "hash": f"r{i}", "op": "system.summary", "request_id": f"r-{i}"}
+                  for i in range(broker_module.REPLAY_MEMORY + 49)]
+        path.write_text("".join(json.dumps(line) + "\n" for line in lines))
+        reloaded = broker_module.Audit(path)
+        self.assertEqual(len(reloaded.grant_switches), 1)
+        self.assertEqual(reloaded.seq, broker_module.REPLAY_MEMORY + 51)
+        self.assertEqual(len(reloaded.seen), broker_module.REPLAY_MEMORY)
+
     def test_grant_and_revoke_are_root_only(self) -> None:
         if os.geteuid() == 0:
             self.skipTest("runs as root")
