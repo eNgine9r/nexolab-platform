@@ -103,6 +103,31 @@ The pinned Stage 2 tool builds `FROM` a local `node:` tag of the proven base, ne
 
 Further handlers (Stage 3 backend recreation) come as separate reviewed releases, applied by the owner with `upgrade`, with an approval per run.
 
+## Standing grants for frontend releases (v1.8, #1881)
+
+The owner can let the agent release the **frontend** without a per-run approval. A grant does not add a privilege: every grantable op already exists and keeps all its run-time checks. It only replaces the single-use approval for a fixed set of ops.
+
+| Property       | Rule                                                                                                                                                                                            |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who grants     | Root only: `sudo … nexolab-operator-broker.py grant --profile frontend-release`. The development account and the owner without sudo get exit 77. The file is root-owned, mode 0600              |
+| Profiles       | Fixed in the broker code. `frontend-release` = `deploy.lan-frontend` (prepare, execute, rollback), `deploy.https-frontend` (prepare, execute, rollback, recover), `storage.cleanup-regenerable` |
+| Never granted  | `deploy.backend*`, `backup.*`, `network.*`, `wifi.*`, `storage.remove*`, `service.*` — checked before any profile, so DR #1428 and the backend stay per-run owner approvals                     |
+| Expiry         | 1–30 days (default 14). `revoke --profile` ends it at once; the file is kept as `*.revoked-<ts>`                                                                                                |
+| Rate limit     | 1–4 production switches (`execute`) per rolling 24 h across both interfaces (default 2), rebuilt from the audit chain after a restart. Rollback and recover are never limited                   |
+| Run-time gates | Unchanged: artifact SHA-256 hashed while copying into root staging, expected live identity, ≥ 20 GiB reserve plus working space, preview, automatic verified rollback on any failed check       |
+| Audit          | Every grant-authorized run carries `grant {grant_id, profile, granted_by, expires_at, switch}` in the hash chain. `broker.grants` (read) shows active grants and switches used                  |
+| Precedence     | An explicit `--approval` always wins over a grant                                                                                                                                               |
+
+`deploy.https-frontend` runs the pinned v2 HTTPS release tool (#1837/#1863), installed by the installer at `/usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py`, as root in a transient unit (`ProtectSystem=full`, `PrivateTmp`, `NoNewPrivileges`, bounded runtime). The arguments are exact per phase: `prepare` needs the artifact SHA-256 and its expected source/build; `execute` also needs the live identity; `rollback` needs only the live identity; `recover` takes none.
+
+Owner, once:
+
+```bash
+bash install-operator-broker.sh upgrade <payload-dir>
+sudo python3 -I /usr/local/lib/nexolab-operator/nexolab-operator-broker.py grant --profile frontend-release \
+  --ttl-days 14 --max-switches-per-day 2 --reason "autonomous frontend releases"
+```
+
 ## Use (development account)
 
 ```bash
@@ -121,7 +146,7 @@ The owner gets one command with the SHA-256 of `install-operator-broker.sh`. Tha
 
 - `/usr/local/lib/nexolab-operator/` (root, 0755);
 - `/etc/systemd/system/nexolab-operator-broker.{socket,service}`;
-- `/etc/nexolab-operator/approvals` (root, 0700);
+- `/etc/nexolab-operator/approvals` and `/etc/nexolab-operator/grants` (root, 0700);
 - `/var/log/nexolab-operator` (root:nexolab-dev, 2750: audit receipts readable by the dev group);
 - `/var/lib/nexolab-operator/reports` (root, 0700: raw inventory reports never reach the dev account).
 
@@ -172,4 +197,5 @@ The printed `approval_id` is given to the agent, which passes it with `--approva
 - approvals: missing, mismatched, expired, mode 0644 and 0622, symlinked, and the single-use path;
 - tampering with the audit chain;
 - refusal to start with a writable broker, install directory or handler, or a symlinked handler;
+- standing grants (#1881): no grant, active, out-of-profile arguments, never-grantable ops, expired, mode 0644, over-long expiry, the rate limit and its rebuild from the audit chain, rollback never limited, approval precedence, root-only `grant`/`revoke`;
 - the root-only `approve`, the unit hardening, `systemd-analyze verify`, and that the installer pins match the files.

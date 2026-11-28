@@ -11,6 +11,7 @@ on:
       - docs/operations/storage/nexolab-storage-inventory.sh
       - docs/operations/network/wp2c-stage2-frontend.py
       - docs/operations/network/wp2c-stage3-backend.py
+      - docs/operations/https-frontend-release/nexolab-https-frontend-release.py
       - tests/test_ci_operator_broker.py
       - .github/workflows/operator-broker-install-acceptance.yml
   push:
@@ -20,6 +21,7 @@ on:
       - docs/operations/storage/nexolab-storage-inventory.sh
       - docs/operations/network/wp2c-stage2-frontend.py
       - docs/operations/network/wp2c-stage3-backend.py
+      - docs/operations/https-frontend-release/nexolab-https-frontend-release.py
       - .github/workflows/operator-broker-install-acceptance.yml
   workflow_dispatch:
 
@@ -55,6 +57,7 @@ jobs:
           cp docs/operations/storage/nexolab-storage-inventory.sh /tmp/payload/
           cp docs/operations/network/wp2c-stage2-frontend.py /tmp/payload/
           cp docs/operations/network/wp2c-stage3-backend.py /tmp/payload/
+          cp docs/operations/https-frontend-release/nexolab-https-frontend-release.py /tmp/payload/
           chmod 0444 /tmp/payload/*
 
       - name: Workloads (one NEXOLAB container that logs a secret, one foreign product)
@@ -364,6 +367,53 @@ jobs:
           print("STAGE2_BUILD_PATTERN_OK", ref, new["Id"])
           PY
 
+      - name: v1.8 standing owner grant for frontend releases (#1881)
+        run: |
+          set -euo pipefail
+          call() {
+            sudo systemd-run --quiet --wait --pipe --collect --uid=runner -p NoNewPrivileges=yes \
+              -p PrivateDevices=yes -p ProtectSystem=strict -p InaccessiblePaths=-/run/docker.sock \
+              /usr/bin/python3 -I "$GITHUB_WORKSPACE/docs/operations/operator-broker/nexolab-operator.py" --json "$@"
+          }
+          broker=/usr/local/lib/nexolab-operator/nexolab-operator-broker.py
+          test "$(sudo stat -c '%U:%G %a' /etc/nexolab-operator/grants)" = "root:root 700"
+          test "$(sudo sha256sum /usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py | cut -d' ' -f1)" \
+            = "$(sha256sum docs/operations/https-frontend-release/nexolab-https-frontend-release.py | cut -d' ' -f1)"
+          # no grant: still a single-use approval
+          refused=$(call deploy.https-frontend phase=recover || true)
+          grep -q '"error": "approval_required"' <<<"$refused"
+          call broker.grants | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["ok"] and not r["result"]["grants"][0]["active"], r'
+          # neither the owner without root nor the dev account can grant
+          if sudo -u nxowner python3 -I "$broker" grant --profile frontend-release; then exit 1; fi
+          if sudo -u runner test -w /etc/nexolab-operator/grants; then echo "dev can write grants"; exit 1; fi
+          if sudo python3 -I "$broker" grant --profile backend-release; then exit 1; fi   # unknown profile
+          sudo python3 -I "$broker" grant --profile frontend-release --ttl-days 1 --max-switches-per-day 1 --reason ci
+          test "$(sudo stat -c '%U:%G %a' /etc/nexolab-operator/grants/frontend-release.json)" = "root:root 600"
+          call broker.grants | python3 -c 'import json,sys; r=json.load(sys.stdin); g=r["result"]["grants"][0]; assert g["active"] and g["max_switches_per_day"] == 1, r'
+          # granted: the pinned HTTPS tool runs as root in a transient unit (nothing to recover on the runner)
+          out=$(call deploy.https-frontend phase=recover)
+          echo "$out" | head -c 3000
+          python3 -c '
+          import json, sys
+          r = json.loads(sys.argv[1]); res = r["result"]
+          assert r["ok"] and res["phase"] == "recover", r
+          assert any(m.startswith("HTTPS_FRONTEND_NOTHING_TO_RECOVER") for m in res["markers"]), res
+          ' "$out"
+          # never grantable, whatever the grant: backend, DR backup, network, image removal
+          for op in "backup.start" "deploy.backend-loopback phase=prove" "network.tailscale-inspection-route action=restore"; do
+            refused=$(call $op || true)
+            grep -q '"error": "approval_required"' <<<"$refused"
+          done
+          # the audit chain records the grant that authorized the run
+          sudo grep -q '"grant":{"expires_at"' /var/log/nexolab-operator/audit.jsonl
+          sudo python3 -I -B "$broker" verify-audit | grep -q '"ok": true'
+          # revoke ends it at once and keeps the file as evidence
+          if sudo -u nxowner python3 -I "$broker" revoke --profile frontend-release; then exit 1; fi
+          sudo python3 -I "$broker" revoke --profile frontend-release | grep -q '"was_active": true'
+          refused=$(call deploy.https-frontend phase=recover || true)
+          grep -q '"error": "approval_required"' <<<"$refused"
+          test -n "$(sudo find /etc/nexolab-operator/grants -name 'frontend-release.revoked-*')"
+
       - name: Upgrade from the merged v1.1 (failure restores v1.1), rollback and roll forward
         run: |
           set -euo pipefail
@@ -402,23 +452,23 @@ jobs:
 
           # 2. clean upgrade keeps v1.1 as the retained previous version
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/payload 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.7.0" <<<"$out"
-          test "$(version)" = 1.7.0
+          grep -q "OPERATOR_BROKER_UPGRADED from=1.1.0 to=1.8.0" <<<"$out"
+          test "$(version)" = 1.8.0
           test "$(sudo stat -c '%U:%G %a' /var/lib/nexolab-operator/previous)" = "root:root 700"
 
           # 3. explicit rollback to v1.1, then roll forward again
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.7.0 to=1.1.0" <<<"$out"
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.8.0 to=1.1.0" <<<"$out"
           test "$(version)" = 1.1.0
           test "$(broker_sha)" = "$v11"
           out=$(owner bash /tmp/payload/install-operator-broker.sh rollback 2>&1) || { echo "$out"; exit 1; }
-          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.7.0" <<<"$out"
-          test "$(version)" = 1.7.0
+          grep -q "OPERATOR_BROKER_ROLLED_BACK from=1.1.0 to=1.8.0" <<<"$out"
+          test "$(version)" = 1.8.0
 
           # 4. a tampered payload changes nothing
           out=$(owner bash /tmp/payload/install-operator-broker.sh upgrade /tmp/tampered 2>&1) && exit 1 || true
           grep -q "installed broker left unchanged" <<<"$out"
-          test "$(version)" = 1.7.0
+          test "$(version)" = 1.8.0
           sudo python3 -I -B /usr/local/lib/nexolab-operator/nexolab-operator-broker.py verify-audit | grep -q '"ok": true'
 
       - name: Owner cannot approve as non-root; uninstall removes everything and keeps evidence

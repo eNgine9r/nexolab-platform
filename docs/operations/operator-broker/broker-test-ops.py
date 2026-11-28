@@ -41,6 +41,9 @@ def operations(broker_module):
     def approved(_broker, args):
         return {"approved_run": True, "target": args["target"]}
 
+    def deploy(_broker, args):
+        return {"deployed": True, "phase": args["phase"]}
+
     word = Name(re.compile(r"^[a-z]{1,16}$"))
     return {o.name: o for o in [
         Operation("test.echo", "read", "echo a validated word", echo, {"word": word}),
@@ -50,4 +53,21 @@ def operations(broker_module):
         Operation("test.mutate", "recover", "holds the mutation lock", mutate, {"hold": Int(0, 5, 0)}),
         Operation("test.approved", "approved", "needs an owner approval", approved,
                   {"target": Name(re.compile(r"^[a-z]{1,16}$"))}),
+        Operation("test.deploy", "approved", "grantable deploy-like op (#1881)", deploy,
+                  {"phase": broker_module.Enum(("prepare", "execute", "rollback"))}),
+        Operation("backup.test-start", "approved", "never grantable even if a profile lists it (#1881)", approved,
+                  {"target": Name(re.compile(r"^[a-z]{1,16}$"))}),
     ]}
+
+
+def grant_profiles():
+    """Test-only standing-grant profiles (#1881); merged only in test mode."""
+    return {
+        "test-release": {
+            "summary": "test profile",
+            "ops": {"test.deploy": {"phase": ("prepare", "execute", "rollback")},
+                    "test.approved": {"target": ("alpha",)}},
+            "switches": {("test.deploy", "execute")},
+        },
+        "test-unsafe": {"summary": "lists a never-grantable op", "ops": {"backup.test-start": {}}, "switches": set()},
+    }
