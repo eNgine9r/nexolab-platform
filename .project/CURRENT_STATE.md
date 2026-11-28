@@ -1,3 +1,10 @@
+## 2026-11-28 — #1881 Operator Broker v1.8: standing owner grant for autonomous frontend releases
+
+- **Why:** the Product Owner moved NEXOLAB to maximum autonomy (releases, rollback, verification by the agent). Every deployment still needed a single-use owner approval.
+- **What:** a root-only `grant --profile frontend-release` (1–30 days, 1–4 production switches per 24 h) lets the agent run `deploy.lan-frontend`, the new `deploy.https-frontend` (pinned v2 tool, now an installer payload) and regenerable cleanup without per-run approvals. All run-time gates stay: artifact hash, expected live identity, disk reserve, preview, automatic verified rollback.
+- **Never grantable:** backend, DR backup, network, Wi-Fi, image removal and service changes stay per-run owner approvals (DR #1428 is not bypassed).
+- **Owner, once:** `upgrade` to v1.8 and `grant` (privilege extension → owner decision). Until then nothing changes.
+
 ## 2026-11-27 — #1878 merged; release candidate 0b07c693 staged, LAN blocked by SSD
 
 - **#1878 (PR #1879, merge `0b07c693`):** one shared compact `ChartSeriesLegend` on every chart surface. Energy's old card-legend overrides were removed.

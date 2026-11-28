@@ -82,6 +82,19 @@ class RunningBroker:
     def call(self, op: str, args: dict | None = None, **extra) -> dict:
         return client_module.call(op, args or {}, path=self.socket, timeout=30, **extra)
 
+    def grant(self, profile: str, *, days: float = 1, switches: int = 2, mode: int = 0o600,
+              issued: float | None = None) -> Path:
+        """Stands in for the root-only `grant` CLI (#1881)."""
+        grants = self.state / "grants"
+        grants.mkdir(mode=0o700, exist_ok=True)
+        now = time.time() if issued is None else issued
+        path = grants / f"{profile}.json"
+        path.write_text(json.dumps({"grant_id": uuid.uuid4().hex, "profile": profile, "issued_at": now,
+                                    "expires_at": now + days * 86400, "max_switches_per_day": switches,
+                                    "granted_by": "owner", "reason": "test"}))
+        os.chmod(path, mode)
+        return path
+
     def approve(self, op: str, args: dict, *, ttl: float = 600, mode: int = 0o600) -> str:
         approval_id = uuid.uuid4().hex
         path = self.state / "approvals" / f"{approval_id}.json"
@@ -1196,6 +1209,154 @@ class BrokerV17Tests(unittest.TestCase):
             broker_module.validate_args(schema, {"phase": "prove", "retain_env": "DATABASE_URL"})
 
 
+class BrokerV18GrantTests(unittest.TestCase):
+    """v1.8 (#1881): standing owner grants for fixed frontend-release profiles."""
+
+    def setUp(self) -> None:
+        self.broker = RunningBroker()
+        self.addCleanup(self.broker.close)
+
+    def audit(self) -> list[dict]:
+        return [json.loads(line) for line in (self.broker.state / "audit.jsonl").read_text().splitlines()]
+
+    def test_without_a_grant_every_approved_op_still_needs_a_single_use_approval(self) -> None:
+        self.assertEqual(self.broker.call("test.deploy", {"phase": "prepare"})["error"], "approval_required")
+        self.assertFalse(self.broker.call("broker.grants")["result"]["grants"][0]["active"])
+
+    def test_active_grant_runs_profile_ops_and_the_audit_records_the_grant(self) -> None:
+        self.broker.grant("test-release")
+        response = self.broker.call("test.deploy", {"phase": "prepare"})
+        self.assertTrue(response["ok"], response)
+        entry = self.audit()[-1]
+        self.assertEqual(entry["grant"]["profile"], "test-release")
+        self.assertFalse(entry["grant"]["switch"])
+        self.assertNotIn("approval", entry)
+        listed = {g["profile"]: g for g in self.broker.call("broker.grants")["result"]["grants"]}
+        self.assertTrue(listed["test-release"]["active"])
+
+    def test_arguments_outside_the_profile_and_never_grantable_ops_are_refused(self) -> None:
+        self.broker.grant("test-release")
+        self.broker.grant("test-unsafe")
+        self.assertTrue(self.broker.call("test.approved", {"target": "alpha"})["ok"])
+        self.assertEqual(self.broker.call("test.approved", {"target": "beta"})["error"], "approval_required")
+        # a profile that lists a backup/backend/network op is ignored (defence in depth)
+        self.assertEqual(self.broker.call("backup.test-start", {"target": "alpha"})["error"], "approval_required")
+
+    def test_expired_or_untrusted_grants_do_not_authorize(self) -> None:
+        self.broker.grant("test-release", days=-1 / 24)
+        self.assertEqual(self.broker.call("test.deploy", {"phase": "prepare"})["error"], "approval_required")
+        self.broker.grant("test-release", mode=0o644)
+        self.assertEqual(self.broker.call("test.deploy", {"phase": "prepare"})["error"], "grant_invalid")
+        self.broker.grant("test-release", days=90)
+        self.assertEqual(self.broker.call("test.deploy", {"phase": "prepare"})["error"], "grant_invalid")
+        self.broker.grant("test-release", switches=9)
+        self.assertEqual(self.broker.call("test.deploy", {"phase": "prepare"})["error"], "grant_invalid")
+
+    def test_production_switches_are_rate_limited_but_rollback_never_is(self) -> None:
+        self.broker.grant("test-release", switches=1)
+        self.assertTrue(self.broker.call("test.deploy", {"phase": "execute"})["ok"])
+        limited = self.broker.call("test.deploy", {"phase": "execute"})
+        self.assertEqual(limited["error"], "grant_rate_limited", limited)
+        self.assertTrue(self.broker.call("test.deploy", {"phase": "rollback"})["ok"])
+        self.assertEqual(self.broker.call("broker.grants")["result"]["switches_last_24h"], 1)
+
+    def test_explicit_owner_approval_takes_precedence_over_a_grant(self) -> None:
+        self.broker.grant("test-release")
+        approval = self.broker.approve("test.deploy", {"phase": "execute"})
+        response = self.broker.call("test.deploy", {"phase": "execute"}, approval_id=approval)
+        self.assertTrue(response["ok"], response)
+        entry = self.audit()[-1]
+        self.assertEqual(entry["approval"]["approval_id"], approval)
+        self.assertNotIn("grant", entry)
+
+    def test_switch_count_is_rebuilt_from_the_audit_chain_after_a_restart(self) -> None:
+        path = self.broker.state / "seed.jsonl"
+        audit = broker_module.Audit(path)
+        audit.append({"op": "deploy.lan-frontend", "grant": {"switch": True, "profile": "frontend-release"}})
+        audit.append({"op": "deploy.lan-frontend", "grant": {"switch": False, "profile": "frontend-release"}})
+        self.assertEqual(len(broker_module.Audit(path).grant_switches), 1)
+
+    def test_grant_and_revoke_are_root_only(self) -> None:
+        if os.geteuid() == 0:
+            self.skipTest("runs as root")
+        for command in (["grant", "--profile", "frontend-release"], ["revoke", "--profile", "frontend-release"]):
+            out = subprocess.run([sys.executable, "-I", "-B", str(BROKER), *command], capture_output=True, text=True,
+                                 timeout=30)
+            self.assertEqual(out.returncode, 77, out.stderr)
+
+    def test_frontend_profile_is_frontend_only(self) -> None:
+        profile = broker_module.GRANT_PROFILES["frontend-release"]
+        ops = broker_module.production_ops()
+        self.assertEqual(set(profile["ops"]), {"deploy.lan-frontend", "deploy.https-frontend",
+                                               "storage.cleanup-regenerable"})
+        for name in profile["ops"]:
+            self.assertEqual(ops[name].kind, "approved")
+            self.assertIsNone(broker_module.NEVER_GRANTABLE.match(name))
+        for name in ("deploy.backend-loopback", "backup.start", "storage.remove-images", "wifi.connect-test",
+                     "network.tailscale-inspection-route", "service.retire-legacy-https"):
+            self.assertIsNotNone(broker_module.NEVER_GRANTABLE.match(name), name)
+            self.assertFalse(any(name in p["ops"] for p in broker_module.GRANT_PROFILES.values()))
+        self.assertEqual(profile["switches"], {("deploy.lan-frontend", "execute"),
+                                               ("deploy.https-frontend", "execute")})
+
+
+class BrokerHttpsFrontendTests(unittest.TestCase):
+    """v1.8 (#1881): deploy.https-frontend runs the pinned v2 tool with bound arguments."""
+
+    SHA = "a" * 64
+    SRC = "b" * 40
+    CUR = "c" * 40
+
+    def run_op(self, args: dict, output: str = "HTTPS_FRONTEND_GREEN source=x build=y\n", code: int = 0):
+        from unittest import mock
+        calls: list[list[str]] = []
+
+        def runner(argv, _timeout, **_kw):
+            calls.append(argv)
+            return broker_module.RunResult(code, output, False, False)
+        fake = type("B", (), {"runner": staticmethod(runner), "install_dir": Path("/usr/local/lib/nexolab-operator"),
+                              "trusted_uid": 0})()
+        schema = broker_module.production_ops()["deploy.https-frontend"].schema
+        with mock.patch.object(broker_module, "assert_trusted"), \
+                mock.patch.object(broker_module, "stage_artifact",
+                                  return_value=Path("/var/lib/nexolab-operator-deploy") / f"{self.SHA}.zip"):
+            result = broker_module.op_deploy_https_frontend(fake, broker_module.validate_args(schema, args))
+        return result, calls
+
+    def test_execute_binds_artifact_identity_and_live_identity(self) -> None:
+        result, calls = self.run_op({"phase": "execute", "artifact_sha256": self.SHA, "expect_source": self.SRC,
+                                     "expect_build": "buildId0001", "expect_current_source": self.CUR,
+                                     "expect_current_build": "liveBuild01"})
+        self.assertTrue(result["ok"], result)
+        argv = calls[0]
+        self.assertEqual(argv[0], "systemd-run")
+        self.assertIn("ProtectSystem=full", argv)
+        tool = argv.index("/usr/local/lib/nexolab-operator/nexolab-https-frontend-release.py")
+        self.assertEqual(argv[tool + 1:], ["execute", "--artifact", f"/var/lib/nexolab-operator-deploy/{self.SHA}.zip",
+                                           "--expect-zip-sha256", self.SHA, "--expect-source", self.SRC,
+                                           "--expect-build", "buildId0001", "--expect-current-source", self.CUR,
+                                           "--expect-current-build", "liveBuild01"])
+
+    def test_phase_arguments_are_exact(self) -> None:
+        with self.assertRaises(broker_module.Rejected) as missing:
+            self.run_op({"phase": "execute", "artifact_sha256": self.SHA, "expect_source": self.SRC,
+                         "expect_build": "buildId0001"})
+        self.assertEqual(missing.exception.code, "missing_argument")
+        with self.assertRaises(broker_module.Rejected) as extra:
+            self.run_op({"phase": "recover", "artifact_sha256": self.SHA})
+        self.assertEqual(extra.exception.code, "unexpected_argument")
+        result, calls = self.run_op({"phase": "recover"}, output="HTTPS_FRONTEND_NOTHING_TO_RECOVER\n")
+        self.assertTrue(result["ok"])
+        self.assertEqual(calls[0][-1], "recover")
+
+    def test_failed_marker_is_not_ok(self) -> None:
+        result, _ = self.run_op({"phase": "rollback", "expect_current_source": self.CUR,
+                                 "expect_current_build": "liveBuild01"},
+                                output="HTTPS_FRONTEND_FAILED live identity differs\n", code=1)
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["production_changed"])
+
+
 class BrokerStaticContractTests(unittest.TestCase):
     def test_no_shell_or_generic_execution_paths(self) -> None:
         source = BROKER.read_text()
@@ -1211,7 +1372,8 @@ class BrokerStaticContractTests(unittest.TestCase):
             self.assertIn(op.kind, ("read", "recover", "approved"))
             self.assertNotRegex(name, r"exec|shell|script|run|sudo|prune|delete|rm\b|write|modbus")
         approved = sorted(op.name for op in ops.values() if op.kind == "approved")
-        self.assertEqual(approved, ["backup.start", "deploy.backend-loopback", "deploy.lan-frontend",
+        self.assertEqual(approved, ["backup.start", "deploy.backend-loopback", "deploy.https-frontend",
+                                    "deploy.lan-frontend",
                                     "network.tailscale-inspection-route", "service.restore-legacy-https",
                                     "service.retire-legacy-https", "storage.cleanup-regenerable",
                                     "storage.remove-images", "wifi.connect-test",
@@ -1278,6 +1440,8 @@ class BrokerStaticContractTests(unittest.TestCase):
             "nexolab-storage-inventory.sh": ROOT / "docs" / "operations" / "storage" / "nexolab-storage-inventory.sh",
             "wp2c-stage2-frontend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage2-frontend.py",
             "wp2c-stage3-backend.py": ROOT / "docs" / "operations" / "network" / "wp2c-stage3-backend.py",
+            "nexolab-https-frontend-release.py":
+                ROOT / "docs" / "operations" / "https-frontend-release" / "nexolab-https-frontend-release.py",
         }
         self.assertEqual(set(pins), set(expected))
         for name, path in expected.items():

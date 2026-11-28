@@ -15,6 +15,10 @@ Operation classes:
             with a precondition (the unit must already be down); one mutation at a time.
   approved  needs a single-use, root-owned owner approval for the exact op and args
             (created with `sudo ... approve`). The dev account cannot create one.
+            v1.8 (#1881): an op listed in a FIXED grant profile may instead run under a
+            root-owned standing grant (`sudo ... grant --profile P`), bounded by expiry, a
+            rate limit on production switches and the profile's argument constraints.
+            Backend, network, Wi-Fi, image removal and DR ops are never grantable.
 
 There is no generic exec, no Docker API proxy, no secret output and no Modbus access.
 The broker refuses to start when its own file, handlers or approval directory could be
@@ -23,6 +27,8 @@ modified by anyone other than root (the agent cannot change privileged code).
 Usage:
   nexolab-operator-broker.py serve                   (systemd; socket on fd 3)
   nexolab-operator-broker.py approve --op OP [--arg k=v ...] [--ttl-minutes N] [--reason TEXT]
+  nexolab-operator-broker.py grant --profile P [--ttl-days N] [--max-switches-per-day K] [--reason TEXT]
+  nexolab-operator-broker.py revoke --profile P
   nexolab-operator-broker.py verify-audit [PATH]
 """
 from __future__ import annotations
@@ -48,7 +54,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 PROTOCOL = 1
 MAX_REQUEST_BYTES = 4096
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -61,6 +67,7 @@ INSTALL_DIR = Path("/usr/local/lib/nexolab-operator")
 AUDIT_LOG = Path("/var/log/nexolab-operator/audit.jsonl")
 REPORT_DIR = Path("/var/lib/nexolab-operator/reports")
 APPROVAL_DIR = Path("/etc/nexolab-operator/approvals")
+GRANT_DIR = Path("/etc/nexolab-operator/grants")
 LOCK_FILE = Path("/run/nexolab-operator/mutation.lock")
 SAFE_PATH = "/usr/sbin:/usr/bin:/sbin:/bin"
 
@@ -1060,6 +1067,163 @@ def op_deploy_lan_frontend(broker: "Broker", args: dict) -> dict:
                      "rollback": "verify the previous dashboard identity"}[phase]}
 
 
+# ----------------------------------------------------------------------------- HTTPS frontend (#1881)
+# deploy.https-frontend runs the PINNED v2 HTTPS release tool (#1837/#1863) as root in a bounded
+# transient unit (the broker's own sandbox cannot write /opt or the user unit drop-in). The tool
+# verifies the artifact, the >= 20 GiB reserve, the expected live identity and the OAuth gate, and
+# restores the previous drop-in with verification on any failure. The artifact is the same verified
+# root-controlled copy as for deploy.lan-frontend.
+
+HTTPS_TOOL = "nexolab-https-frontend-release.py"
+SOURCE_OR_NONE = re.compile(r"^([0-9a-f]{40}|none)$")
+BUILD_OR_NONE = re.compile(r"^([A-Za-z0-9_-]{8,64}|none)$")
+HTTPS_RUNTIME_LIMIT = {"prepare": 1800, "execute": 900, "rollback": 900, "recover": 900}
+HTTPS_MARKERS = re.compile(r"^(HTTPS_FRONTEND_[A-Z_]+[^\n]{0,300})", re.M)
+
+
+def op_deploy_https_frontend(broker: "Broker", args: dict) -> dict:
+    """WP #1881: protected HTTPS UI (:3105) prepare | execute | rollback | recover with the pinned v2 tool."""
+    phase = args["phase"]
+    needs_artifact = phase in ("prepare", "execute")
+    needs_current = phase in ("execute", "rollback")
+    for key, required in (("artifact_sha256", needs_artifact), ("expect_source", needs_artifact),
+                          ("expect_build", needs_artifact), ("expect_current_source", needs_current),
+                          ("expect_current_build", needs_current)):
+        if required and args[key] == "none":
+            raise Rejected("missing_argument", f"{key} is required for phase={phase}")
+        if not required and args[key] != "none":
+            raise Rejected("unexpected_argument", f"{key} is not used by phase={phase}")
+    tool = broker.install_dir / HTTPS_TOOL
+    assert_trusted(tool, broker.trusted_uid, directory=False)
+    argv = [phase]
+    if needs_artifact:
+        artifact = stage_artifact(broker, args["artifact_sha256"], 0)
+        argv += ["--artifact", str(artifact), "--expect-zip-sha256", args["artifact_sha256"],
+                 "--expect-source", args["expect_source"], "--expect-build", args["expect_build"]]
+    if needs_current:
+        argv += ["--expect-current-source", args["expect_current_source"],
+                 "--expect-current-build", args["expect_current_build"]]
+    limit = HTTPS_RUNTIME_LIMIT[phase]
+    unit = ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", "--working-directory=/",
+            "-p", "NoNewPrivileges=yes", "-p", f"RuntimeMaxSec={limit}", "-p", "ProtectSystem=full",
+            "-p", "PrivateTmp=yes", "-p", "ProtectKernelModules=yes", "-p", "Nice=10",
+            "-p", "IOSchedulingClass=best-effort", "-p", "IOSchedulingPriority=7"]
+    result = broker.runner(unit + ["/usr/bin/python3", "-I", "-B", str(tool), *argv], limit + 60, keep="tail")
+    markers = HTTPS_MARKERS.findall(result.output)[-12:]
+    ok = result.exit == 0 and not any(m.startswith("HTTPS_FRONTEND_FAILED") for m in markers)
+    return {"phase": phase, "ok": ok, "exit": result.exit, "timed_out": result.timed_out, "markers": markers,
+            "output": result.output[-6000:], "production_changed": phase in ("execute", "rollback", "recover"),
+            "next": {"prepare": "phase=execute with the same artifact and the live identity",
+                     "execute": "verify :3105 identity and the OAuth gate; undo with phase=rollback",
+                     "rollback": "verify the previous identity on :3105",
+                     "recover": "verify the identity on :3105"}[phase]}
+
+
+# ----------------------------------------------------------------------------- standing grants (#1881)
+# A grant is a root-owned, mode-0600 file /etc/nexolab-operator/grants/<profile>.json written only by
+# `grant` (root). Profiles are FIXED here: each lists the ops and the argument values it allows. A
+# request without an approval id runs under an active grant only when its op and arguments fall
+# inside the profile; otherwise the single-use approval path applies unchanged.
+
+GRANT_PROFILES: dict[str, dict] = {
+    "frontend-release": {
+        "summary": "Frontend only: LAN dashboard (Stage 2) and protected HTTPS UI releases with automatic "
+                   "verified rollback, plus regenerable-only cleanup. No backend, DB, network or deletion.",
+        "ops": {
+            "deploy.lan-frontend": {"phase": ("prepare", "execute", "rollback")},
+            "deploy.https-frontend": {"phase": ("prepare", "execute", "rollback", "recover")},
+            "storage.cleanup-regenerable": {"build_cache": ("older-than-7d", "all-unused")},
+        },
+        # Production switches counted against max_switches_per_day; rollback/recover never are.
+        "switches": {("deploy.lan-frontend", "execute"), ("deploy.https-frontend", "execute")},
+    },
+}
+# Defence in depth: these can never run under a grant, whatever a profile says (DR #1428 and data).
+NEVER_GRANTABLE = re.compile(r"^(deploy\.backend|backup\.|network\.|wifi\.|storage\.remove|service\.)")
+GRANT_PROFILE_NAME = re.compile(r"^[a-z][a-z0-9-]{1,40}$")
+GRANT_MAX_TTL_DAYS = 30
+GRANT_MAX_SWITCHES = 4
+GRANT_WINDOW_SECONDS = 24 * 3600
+
+
+def grant_profile_switch(profile: dict, op: str, args: dict) -> bool:
+    return (op, args.get("phase")) in profile.get("switches", set())
+
+
+def read_grant(broker: "Broker", name: str) -> dict | None:
+    """The active grant of a profile, or None. Untrusted or malformed grant files are refused loudly."""
+    path = broker.grant_dir / f"{name}.json"
+    if not path.exists() and not path.is_symlink():
+        return None
+    assert_trusted(path, broker.trusted_uid, directory=False)
+    if stat.S_IMODE(path.lstat().st_mode) & 0o077:
+        raise Rejected("grant_invalid", "grant file must be mode 0600")
+    try:
+        grant = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        raise Rejected("grant_invalid", "unreadable grant") from None
+    if not isinstance(grant, dict) or grant.get("profile") != name:
+        raise Rejected("grant_invalid", "grant is for a different profile")
+    switches = grant.get("max_switches_per_day")
+    expires = grant.get("expires_at")
+    if type(switches) is not int or not 1 <= switches <= GRANT_MAX_SWITCHES:
+        raise Rejected("grant_invalid", "max_switches_per_day out of range")
+    if type(expires) not in (int, float) or expires - grant.get("issued_at", 0) > GRANT_MAX_TTL_DAYS * 86400 + 60:
+        raise Rejected("grant_invalid", "expiry out of range")
+    if expires < time.time():
+        return None
+    return grant
+
+
+def authorize_by_grant(broker: "Broker", op: str, args: dict) -> dict:
+    if NEVER_GRANTABLE.match(op):
+        raise Rejected("approval_required", "this operation always needs a single-use owner approval")
+    if not broker.grant_dir.exists():
+        raise Rejected("approval_required", "this operation needs an owner approval id (no standing grant)")
+    assert_trusted(broker.grant_dir, broker.trusted_uid, directory=True)
+    for name, profile in sorted(broker.grant_profiles.items()):
+        allowed = profile["ops"].get(op)
+        if allowed is None or any(args.get(key) not in values for key, values in allowed.items()):
+            continue
+        grant = read_grant(broker, name)
+        if grant is None:
+            continue
+        switch = grant_profile_switch(profile, op, args)
+        if switch:
+            now = time.time()
+            recent = [ts for ts in broker.audit.grant_switches if now - ts < GRANT_WINDOW_SECONDS]
+            broker.audit.grant_switches[:] = recent
+            if len(recent) >= grant["max_switches_per_day"]:
+                raise Rejected("grant_rate_limited",
+                               f"{len(recent)} production switches in 24 h (grant allows "
+                               f"{grant['max_switches_per_day']}); rollback stays available")
+            broker.audit.grant_switches.append(now)
+        return {"grant_id": grant.get("grant_id"), "profile": name, "granted_by": grant.get("granted_by"),
+                "expires_at": grant.get("expires_at"), "switch": switch}
+    raise Rejected("approval_required", "no active standing grant covers this operation and these arguments")
+
+
+def op_broker_grants(broker: "Broker", _args: dict) -> dict:
+    """Active standing grants (no secrets) and the production switches used in the last 24 h."""
+    now = time.time()
+    grants = []
+    for name, profile in sorted(broker.grant_profiles.items()):
+        entry: dict[str, Any] = {"profile": name, "summary": profile["summary"],
+                                 "ops": {op: {k: list(v) for k, v in c.items()} for op, c in profile["ops"].items()}}
+        try:
+            grant = read_grant(broker, name) if broker.grant_dir.exists() else None
+        except Rejected as exc:
+            entry.update(active=False, error=exc.code)
+        else:
+            entry["active"] = grant is not None
+            if grant is not None:
+                entry.update({k: grant.get(k) for k in ("grant_id", "granted_by", "issued_at", "expires_at",
+                                                        "max_switches_per_day", "reason")})
+        grants.append(entry)
+    used = sum(1 for ts in broker.audit.grant_switches if now - ts < GRANT_WINDOW_SECONDS)
+    return {"grants": grants, "switches_last_24h": used, "never_grantable": NEVER_GRANTABLE.pattern}
+
+
 # ----------------------------------------------------------------------------- v1.3 (#1778)
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -1605,6 +1769,18 @@ def production_ops() -> dict[str, Operation]:
                    "artifact_sha256": Name(SHA256_OR_NONE, "none"),
                    "expect_current_source": Name(SOURCE_SHA),
                    "expect_current_build": Name(BUILD_ID)}, timeout=3100),
+        Operation("deploy.https-frontend", "approved",
+                  "Owner-approved or granted #1881: protected HTTPS UI :3105 prepare | execute | rollback | recover "
+                  "(pinned v2 tool, bound artifact and live identity, automatic verified restore)",
+                  op_deploy_https_frontend,
+                  {"phase": Enum(("prepare", "execute", "rollback", "recover")),
+                   "artifact_sha256": Name(SHA256_OR_NONE, "none"),
+                   "expect_source": Name(SOURCE_OR_NONE, "none"),
+                   "expect_build": Name(BUILD_OR_NONE, "none"),
+                   "expect_current_source": Name(SOURCE_OR_NONE, "none"),
+                   "expect_current_build": Name(BUILD_OR_NONE, "none")}, timeout=1900),
+        Operation("broker.grants", "read", "Standing owner grants (#1881): profiles, expiry, switches used in 24 h",
+                  op_broker_grants),
         Operation("storage.remove-images", "approved",
                   "Owner-approved: remove the exact unused NEXOLAB images of a hash-bound inbox manifest (never -f)",
                   op_storage_remove_images, {"manifest_sha256": Name(SHA256)}, timeout=1800, heavy=True),
@@ -1646,6 +1822,8 @@ class Audit:
         self.seq = 0
         self.prev = "0" * 64
         self.seen: collections.OrderedDict[str, float] = collections.OrderedDict()
+        # Production switches authorized by a standing grant (#1881), for the rolling 24 h limit.
+        self.grant_switches: list[float] = []
         if path.exists():
             with path.open("rb") as handle:
                 for raw in collections.deque(handle, maxlen=REPLAY_MEMORY):
@@ -1654,6 +1832,9 @@ class Audit:
                     except ValueError:
                         continue
                     self.seq, self.prev = entry.get("seq", self.seq), entry.get("hash", self.prev)
+                    grant = entry.get("grant")
+                    if isinstance(grant, dict) and grant.get("switch") is True:
+                        self.grant_switches.append(float(entry.get("ts", 0.0)))
                     if entry.get("request_id"):
                         self.remember(entry["request_id"], entry.get("ts", 0.0))
 
@@ -1727,6 +1908,49 @@ def consume_approval(broker: "Broker", approval_id: Any, op: str, args: dict) ->
     return {"approval_id": approval_id, "approved_by": approval.get("approved_by"), "reason": approval.get("reason")}
 
 
+def cmd_grant(ns: argparse.Namespace, grant_dir: Path = GRANT_DIR) -> int:
+    """Root only (#1881): write or replace the standing grant of a FIXED profile."""
+    if os.geteuid() != 0:
+        print("grant must run as root (owner via sudo); the development account cannot grant", file=sys.stderr)
+        return 77
+    if ns.profile not in GRANT_PROFILES:
+        print(f"unknown grant profile: {ns.profile} (known: {', '.join(sorted(GRANT_PROFILES))})", file=sys.stderr)
+        return 64
+    now = time.time()
+    record = {"grant_id": secrets.token_hex(16), "profile": ns.profile, "issued_at": now,
+              "expires_at": now + ns.ttl_days * 86400, "max_switches_per_day": ns.max_switches_per_day,
+              "granted_by": os.environ.get("SUDO_USER", "root"), "reason": ns.reason[:300]}
+    grant_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    temporary = grant_dir / f".{ns.profile}.{record['grant_id']}.tmp"
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        json.dump(record, handle, sort_keys=True)
+    os.replace(temporary, grant_dir / f"{ns.profile}.json")
+    profile = GRANT_PROFILES[ns.profile]
+    print(json.dumps({"granted": ns.profile, "grant_id": record["grant_id"], "expires_in_days": ns.ttl_days,
+                      "max_switches_per_day": ns.max_switches_per_day, "ops": sorted(profile["ops"]),
+                      "revoke": f"sudo {INSTALL_DIR}/nexolab-operator-broker.py revoke --profile {ns.profile}"},
+                     sort_keys=True))
+    return 0
+
+
+def cmd_revoke(ns: argparse.Namespace, grant_dir: Path = GRANT_DIR) -> int:
+    """Root only (#1881): end a standing grant now; the file is kept as evidence."""
+    if os.geteuid() != 0:
+        print("revoke must run as root (owner via sudo)", file=sys.stderr)
+        return 77
+    if not GRANT_PROFILE_NAME.fullmatch(ns.profile):
+        print("invalid profile name", file=sys.stderr)
+        return 64
+    path = grant_dir / f"{ns.profile}.json"
+    if not path.exists():
+        print(json.dumps({"revoked": ns.profile, "was_active": False}))
+        return 0
+    os.rename(path, grant_dir / f"{ns.profile}.revoked-{int(time.time())}")
+    print(json.dumps({"revoked": ns.profile, "was_active": True}))
+    return 0
+
+
 def cmd_approve(ns: argparse.Namespace) -> int:
     if os.geteuid() != 0:
         print("approve must run as root (owner via sudo); the development account cannot approve", file=sys.stderr)
@@ -1764,12 +1988,15 @@ def cmd_approve(ns: argparse.Namespace) -> int:
 class Broker:
     def __init__(self, *, ops: dict[str, Operation], allowed_uids: set[int], trusted_uid: int, install_dir: Path,
                  audit_path: Path, approval_dir: Path, report_dir: Path, lock_file: Path,
-                 runner: Callable[[list[str], float], RunResult] = run) -> None:
+                 runner: Callable[[list[str], float], RunResult] = run, grant_dir: Path | None = None,
+                 grant_profiles: dict[str, dict] | None = None) -> None:
         self.ops = ops
         self.allowed_uids = allowed_uids
         self.trusted_uid = trusted_uid
         self.install_dir = install_dir
         self.approval_dir = approval_dir
+        self.grant_dir = grant_dir if grant_dir is not None else approval_dir.parent / "grants"
+        self.grant_profiles = GRANT_PROFILES if grant_profiles is None else grant_profiles
         self.report_dir = report_dir
         self.lock_file = lock_file
         self.runner = runner
@@ -1785,6 +2012,8 @@ class Broker:
             assert_trusted(child, self.trusted_uid, directory=child.is_dir() and not child.is_symlink())
         if self.approval_dir.exists():
             assert_trusted(self.approval_dir, self.trusted_uid, directory=True)
+        if self.grant_dir.exists():
+            assert_trusted(self.grant_dir, self.trusted_uid, directory=True)
 
     def handle(self, raw: bytes, peer: tuple[int, int, int]) -> dict:
         pid, uid, _gid = peer
@@ -1871,7 +2100,10 @@ class Broker:
                 except BlockingIOError:
                     raise Rejected("busy", "mutation lock held") from None
                 if op.kind == "approved":
-                    record["approval"] = consume_approval(self, approval_id, op.name, args)
+                    if approval_id is None:  # #1881: an explicit owner approval always takes precedence
+                        record["grant"] = authorize_by_grant(self, op.name, args)
+                    else:
+                        record["approval"] = consume_approval(self, approval_id, op.name, args)
                 return op.handler(self, args)
         finally:
             self.mutation.release()
@@ -1938,6 +2170,7 @@ def cmd_serve(ns: argparse.Namespace) -> int:
         print("no allowed peer uid configured (root is never a client)", file=sys.stderr)
         return 78
     ops = production_ops()
+    test_profiles: dict[str, dict] = {}
     if test_mode:
         from importlib import util  # test-only operations, never loaded by the installed unit
         spec = util.spec_from_file_location("broker_test_ops", ns.test_ops)
@@ -1945,12 +2178,15 @@ def cmd_serve(ns: argparse.Namespace) -> int:
         assert spec.loader is not None
         spec.loader.exec_module(module)
         ops.update(module.operations(sys.modules[__name__]))
+        test_profiles = getattr(module, "grant_profiles", dict)()
     root = Path(ns.state_root) if ns.state_root else None
     broker = Broker(
         ops=ops, allowed_uids=allowed, trusted_uid=os.geteuid() if test_mode else 0,
         install_dir=Path(ns.install_dir) if ns.install_dir else INSTALL_DIR,
         audit_path=root / "audit.jsonl" if root else AUDIT_LOG,
         approval_dir=root / "approvals" if root else APPROVAL_DIR,
+        grant_dir=root / "grants" if root else GRANT_DIR,
+        grant_profiles={**GRANT_PROFILES, **test_profiles},
         report_dir=root / "reports" if root else REPORT_DIR,
         lock_file=root / "mutation.lock" if root else LOCK_FILE)
     try:
@@ -1988,6 +2224,15 @@ def main(argv: list[str] | None = None) -> int:
     approve.add_argument("--arg", action="append")
     approve.add_argument("--ttl-minutes", type=int, default=60, choices=range(1, 24 * 60 + 1), metavar="1..1440")
     approve.add_argument("--reason", default="")
+    grant = sub.add_parser("grant")
+    grant.add_argument("--profile", required=True)
+    grant.add_argument("--ttl-days", type=int, default=14, choices=range(1, GRANT_MAX_TTL_DAYS + 1),
+                       metavar=f"1..{GRANT_MAX_TTL_DAYS}")
+    grant.add_argument("--max-switches-per-day", type=int, default=2, choices=range(1, GRANT_MAX_SWITCHES + 1),
+                       metavar=f"1..{GRANT_MAX_SWITCHES}")
+    grant.add_argument("--reason", default="")
+    revoke = sub.add_parser("revoke")
+    revoke.add_argument("--profile", required=True)
     check = sub.add_parser("verify-audit")
     check.add_argument("path", nargs="?", default=str(AUDIT_LOG))
     ns = parser.parse_args(argv)
@@ -1997,6 +2242,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_serve(ns)
     if ns.command == "approve":
         return cmd_approve(ns)
+    if ns.command == "grant":
+        return cmd_grant(ns)
+    if ns.command == "revoke":
+        return cmd_revoke(ns)
     ok, count, last = verify_audit(Path(ns.path))
     print(json.dumps({"ok": ok, "entries": count, "last": last}))
     return 0 if ok else 1

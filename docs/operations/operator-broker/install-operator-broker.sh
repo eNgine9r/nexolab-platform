@@ -8,7 +8,7 @@
 #   bash install-operator-broker.sh status
 #   bash install-operator-broker.sh uninstall
 #
-# <payload-dir> holds the six pinned payload files below (a reviewed copy of main). Every
+# <payload-dir> holds the seven pinned payload files below (a reviewed copy of main). Every
 # file is first copied into a root-only staging directory and verified there, so nothing
 # the development account can still modify is ever installed. The broker is
 # socket-activated, touches no production service, container, network or credential at
@@ -25,12 +25,13 @@ set -Eeuo pipefail
 umask 022
 
 declare -A PIN=(
-  [nexolab-operator-broker.py]=01a4275d6fc07b7ce4aa55b10ffaab2be512e22cf56b71ab40f3193b58c1a6c4
+  [nexolab-operator-broker.py]=59d92fbaed76a3eab7f70bded9d798e325e8423b209d637c84d0325433145729
   [nexolab-operator-broker.service]=9dd3659153a46a5f1c8877bb21a9ceffc22f8e0e0f0bb3ae29b48e93a9a601bd
   [nexolab-operator-broker.socket]=c1555f81c9de214e43d86230d5a67f9ac70b78f710d6f91985a8d0f4bd227e49
   [nexolab-storage-inventory.sh]=a8f4b9c96f1f98b6fafa72c1782cdfc6590d0640f0dcc04ee43c43ef93d1703b
   [wp2c-stage3-backend.py]=b3176baff391b104dd71c876d9b2aef97bf871954aa3fbf4bb082f45fe5acac4
   [wp2c-stage2-frontend.py]=bcbb9788a36ba717e43d8717ea790714f147b87bb77af995cc64a29acd3086cb
+  [nexolab-https-frontend-release.py]=00fd14a363b804f1289df515e2063eec250bb6b9537ff050b395243f25ce6c07
 )
 LIB=/usr/local/lib/nexolab-operator
 UNIT_DIR=/etc/systemd/system
@@ -193,9 +194,13 @@ install() {
   sudo install -o root -g root -m 0755 "$STAGE/nexolab-storage-inventory.sh" "$LIB/handlers/nexolab-storage-inventory.sh"
   sudo install -o root -g root -m 0755 "$STAGE/wp2c-stage2-frontend.py" "$LIB/handlers/wp2c-stage2-frontend.py"
   sudo install -o root -g root -m 0755 "$STAGE/wp2c-stage3-backend.py" "$LIB/handlers/wp2c-stage3-backend.py"
+  # v2 HTTPS release tool (#1837/#1863): same path the owner runs it from; deploy.https-frontend (#1881).
+  sudo install -o root -g root -m 0755 "$STAGE/nexolab-https-frontend-release.py" "$LIB/nexolab-https-frontend-release.py"
   sudo install -o root -g root -m 0644 "$STAGE/nexolab-operator-broker.service" "$UNIT_DIR/nexolab-operator-broker.service"
   sudo install -o root -g root -m 0644 "$STAGE/nexolab-operator-broker.socket" "$UNIT_DIR/nexolab-operator-broker.socket"
   sudo install -d -o root -g root -m 0700 /etc/nexolab-operator /etc/nexolab-operator/approvals
+  # Standing owner grants (#1881): written only by `sudo ... grant`; kept across upgrades and uninstall.
+  sudo install -d -o root -g root -m 0700 /etc/nexolab-operator/grants
   # Audit receipts are readable by the dev group (setgid keeps the group); raw reports are root-only.
   sudo install -d -o root -g "$DEV_GROUP" -m 2750 /var/log/nexolab-operator
   sudo install -d -o root -g root -m 0700 /var/lib/nexolab-operator /var/lib/nexolab-operator/reports
